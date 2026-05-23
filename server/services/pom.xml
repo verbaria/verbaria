@@ -1405,9 +1405,8 @@
       <groupId>org.apache.deltaspike.core</groupId>
       <artifactId>deltaspike-core-impl</artifactId>
     </dependency>
-    <!-- deltaspike-servlet-module was removed in DeltaSpike 2.0. The features
-         it provided (web request scope, servlet event observers) are now in
-         CDI 4 standard. Code using @Initialized/@Destroyed should already work. -->
+    <!-- deltaspike-servlet-module was never published for Jakarta;
+         DeltaSpikeServletProducers below replicates its @DeltaSpike beans. -->
 
     <dependency>
       <groupId>org.apache.deltaspike.modules</groupId>

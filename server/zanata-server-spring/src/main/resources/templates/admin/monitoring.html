@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Server monitoring')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Server monitoring', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <p>JavaMelody-style monitoring panel.  Spring Boot's Actuator
+                replaces this — view live health at
+                <a th:href="@{/actuator/health}">/actuator/health</a> and
+                metrics at <a th:href="@{/actuator/metrics}">/actuator/metrics</a>.
+            </p>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

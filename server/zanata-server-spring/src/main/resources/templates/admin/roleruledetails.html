@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Role rule detail')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Role rule detail', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <form class="form">
+                <div class="form__item">
+                    <label for="policyName">Policy name</label>
+                    <input id="policyName" name="policyName" type="text"/>
+                </div>
+                <div class="form__item">
+                    <label for="identityPattern">Identity pattern (regex)</label>
+                    <input id="identityPattern" name="identityPattern" type="text"/>
+                </div>
+                <div class="form__item">
+                    <label for="role">Assign role</label>
+                    <input id="role" name="role" type="text"/>
+                </div>
+                <button type="button" class="button--primary" disabled="disabled">Save</button>
+            </form>
+            <p class="txt--mini l--push-top-half">Save is disabled until the
+                /rest/admin/role-rules endpoint is implemented.</p>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

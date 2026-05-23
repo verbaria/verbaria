@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Activate account')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--3-4-m w--1-2-l u-centerBlock">
+            <div class="panel l--push-top-1">
+                <div class="panel__header"><h2 class="gamma heading--sub">Activate account</h2></div>
+                <div class="l--pad-all-half">
+                    <p th:if="${key}">Activation key: <code th:text="${key}">key</code></p>
+                    <p th:unless="${key}">Missing activation key.</p>
+                    <p class="txt--mini">Once the auth migration lands this page will verify the
+                        emailed activation key and enable the account.</p>
+                    <a th:href="@{/account/login}" class="button--primary l--push-top-half">Go to sign in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Create user')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--3-4-m w--1-2-l u-centerBlock">
+            <div class="panel l--push-top-1">
+                <div class="panel__header"><h2 class="gamma heading--sub">Create user</h2></div>
+                <div class="l--pad-all-half">
+                    <p>Administrators can create accounts manually here.  Form lands once
+                        the user-creation service migrates.</p>
+                    <a th:href="@{/admin/usermanager}" class="button l--push-top-half">Back to user manager</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

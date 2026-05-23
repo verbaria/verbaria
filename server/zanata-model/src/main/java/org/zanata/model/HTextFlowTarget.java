@@ -97,7 +97,7 @@ public class HTextFlowTarget extends ModelEntityBase
     // Only for internal use (persistence transient)
     private Integer oldVersionNum;
 
-        @Column(columnDefinition = "char(3)")
+        @Column
     public TranslationSourceType getSourceType() {
         return sourceType;
     }
@@ -217,7 +217,7 @@ public class HTextFlowTarget extends ModelEntityBase
         this.setContents(Arrays.asList(content));
     }
 
-        @Column(columnDefinition = "char(3)")
+        @Column
     public EntityType getCopiedEntityType() {
         return copiedEntityType;
     }
@@ -316,32 +316,32 @@ public class HTextFlowTarget extends ModelEntityBase
         }
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent0() {
         return content0;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent1() {
         return content1;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent2() {
         return content2;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent3() {
         return content3;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent4() {
         return content4;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent5() {
         return content5;
     }
@@ -750,12 +750,12 @@ public class HTextFlowTarget extends ModelEntityBase
         return result;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public String getRevisionComment() {
         return this.revisionComment;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public Long getCopiedEntityId() {
         return this.copiedEntityId;
     }

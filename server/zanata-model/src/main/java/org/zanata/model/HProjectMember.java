@@ -59,7 +59,7 @@ public class HProjectMember implements Serializable, HasUserFriendlyToString {
     @JoinColumn(name = "personId", nullable = false)
     private HPerson person;
     @Id
-    @Column(name = "role", columnDefinition = "char")
+    @Column(name = "role")
         private ProjectRole role;
 
     @Override

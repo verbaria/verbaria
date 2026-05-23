@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Validate email')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--3-4-m w--1-2-l u-centerBlock">
+            <div class="panel l--push-top-1">
+                <div class="panel__header"><h2 class="gamma heading--sub">Validate email</h2></div>
+                <div class="l--pad-all-half">
+                    <p th:if="${key}">Validation key: <code th:text="${key}">key</code></p>
+                    <p>Click the link in the email we sent you to verify your address.  This
+                        page will confirm verification once Spring Security wires the email
+                        service back in.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

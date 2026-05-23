@@ -61,7 +61,7 @@ public class TransMemoryUnitVariant extends ModelEntityBase
     @Enumerated(EnumType.STRING)
     @Column(name = "metadata_type", nullable = true)
     private TMMetadataType metadataType;
-    @Column(nullable = true, columnDefinition = "longtext")
+    @Column(nullable = true, columnDefinition = "text")
     @Basic(fetch = FetchType.LAZY)
     private String metadata;
 

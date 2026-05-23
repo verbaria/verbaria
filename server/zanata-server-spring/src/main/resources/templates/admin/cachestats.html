@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Cache statistics')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Cache statistics', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <p>Second-level cache statistics (Infinispan / Hibernate L2).
+                The legacy cachestats.xhtml polled CacheStatisticsBean; the
+                Spring port reads from Hibernate Statistics + Actuator's
+                /actuator/caches endpoint.</p>
+            <table class="l__data">
+                <thead><tr><th>Region</th><th>Hits</th><th>Misses</th><th>Puts</th></tr></thead>
+                <tbody><tr><td colspan="4" class="txt--meta">No cache data loaded.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

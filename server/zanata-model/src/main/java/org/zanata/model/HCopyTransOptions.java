@@ -90,19 +90,19 @@ public class HCopyTransOptions extends ModelEntityBase {
             ConditionRuleAction.REJECT;
 
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     public ConditionRuleAction getContextMismatchAction() {
         return contextMismatchAction;
     }
 
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     public ConditionRuleAction getDocIdMismatchAction() {
         return docIdMismatchAction;
     }
 
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     public ConditionRuleAction getProjectMismatchAction() {
         return projectMismatchAction;
     }

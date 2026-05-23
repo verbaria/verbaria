@@ -194,8 +194,10 @@
         <version>${deltaspike.version}</version>
         <scope>runtime</scope>
       </dependency>
-      <!-- deltaspike-servlet-module dropped in 2.0 — features replaced by
-           CDI 4 standard (@Initialized/@Destroyed). Kept proxy-module if needed. -->
+      <!-- deltaspike-servlet-module was never published for Jakarta EE 9+
+           (last release on Central is 1.9.6, javax-only).  Zanata replaces
+           it with in-tree producers in
+           org.zanata.cdi.DeltaSpikeServletProducers. -->
       <dependency>
         <groupId>org.apache.deltaspike.modules</groupId>
         <artifactId>deltaspike-proxy-module-api</artifactId>
@@ -357,10 +359,13 @@
         <version>0.6.9</version>
       </dependency>
 
+      <!-- snakeyaml 1.x lacks org.yaml.snakeyaml.inspector.TagInspector,
+           which Spring Boot 3.x calls at startup.  2.x is the current
+           stable line and is API-compatible for our usages elsewhere. -->
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>1.21</version>
+        <version>2.3</version>
       </dependency>
 
       <dependency>
@@ -2305,5 +2310,9 @@
     <module>gwt-editor</module>
     <module>security-common</module>
     <module>services</module>
+    <!-- New Spring Boot rewrite of the server, replacing the WildFly WAR
+         path.  Currently scaffold-only; files are being moved over from
+         zanata-model / services / zanata-war as the migration progresses. -->
+    <module>zanata-server-spring</module>
   </modules>
 </project>

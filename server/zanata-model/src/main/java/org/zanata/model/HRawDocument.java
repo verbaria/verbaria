@@ -76,12 +76,12 @@ public class HRawDocument extends ModelEntityBase implements Serializable {
                 + contentHash + "]";
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public String getFileId() {
         return this.fileId;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public String getAdapterParameters() {
         return this.adapterParameters;
     }

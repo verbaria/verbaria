@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Manage roles')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Manage roles', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <p>Roles configured for the deployment.  The legacy rolemanager.xhtml
+                listed HAccountRole rows + add/edit/delete buttons; that comes
+                online with the /rest/admin/roles migration.</p>
+            <table class="l__data l--push-top-half">
+                <thead><tr><th>Name</th><th>Conditional</th></tr></thead>
+                <tbody><tr><td colspan="2" class="txt--meta">No roles loaded.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

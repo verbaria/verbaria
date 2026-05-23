@@ -228,12 +228,12 @@ public class HTextFlowTargetHistory extends HTextContainer
         this.reviewer = reviewer;
     }
 
-        @Column(columnDefinition = "char(3)")
+        @Column
     public TranslationSourceType getSourceType() {
         return sourceType;
     }
 
-        @Column(columnDefinition = "char(3)")
+        @Column
     public EntityType getCopiedEntityType() {
         return copiedEntityType;
     }
@@ -293,7 +293,7 @@ public class HTextFlowTargetHistory extends HTextContainer
         this.copiedEntityType = copiedEntityType;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public Long getCopiedEntityId() {
         return this.copiedEntityId;
     }
@@ -314,7 +314,7 @@ public class HTextFlowTargetHistory extends HTextContainer
         this.automatedEntry = automatedEntry;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public String getRevisionComment() {
         return this.revisionComment;
     }

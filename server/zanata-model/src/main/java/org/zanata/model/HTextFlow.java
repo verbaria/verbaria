@@ -310,32 +310,32 @@ public class HTextFlow extends HTextContainer implements Serializable,
         }
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent0() {
         return content0;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent1() {
         return content1;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent2() {
         return content2;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent3() {
         return content3;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent4() {
         return content4;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     protected String getContent5() {
         return content5;
     }

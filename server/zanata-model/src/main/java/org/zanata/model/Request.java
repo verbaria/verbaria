@@ -50,9 +50,9 @@ import io.leangen.graphql.annotations.GraphQLIgnore;
 @GraphQLIgnore
 public class Request extends TimeEntityBase {
     private static final long serialVersionUID = -7765625863647796620L;
-        @Column(nullable = true, columnDefinition = "char(1)")
+        @Column(nullable = true)
     private RequestState state = RequestState.NEW;
-        @Column(nullable = false, columnDefinition = "char(2)")
+        @Column(nullable = false)
     @NotNull
     private RequestType requestType;
     @Column(nullable = true)

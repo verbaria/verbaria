@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Inactive account')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--3-4-m w--1-2-l u-centerBlock">
+            <div class="panel l--push-top-1">
+                <div class="panel__header"><h2 class="gamma heading--sub">Account inactive</h2></div>
+                <div class="l--pad-all-half">
+                    <p>Your account is not activated yet.  Check your email for the activation
+                        link, or request a new one below.</p>
+                    <form class="form--inline" method="post" th:action="@{/account/email_validation}">
+                        <input id="emailInput" name="email" type="email" required="required"
+                               class="form--inline__input" placeholder="Email address"/>
+                        <button id="updateEmail" type="submit"
+                                class="form--inline__addon button--primary">Resend activation</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

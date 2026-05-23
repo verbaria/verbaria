@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Manage users')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Manage users', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <p class="txt--meta">
+                Total users: <strong th:text="${count}">0</strong>
+            </p>
+            <p>The user-table + filter widgets land here once the
+                /rest/admin/users endpoint migrates.</p>
+            <p>
+                <a th:href="@{/account/create_user}" class="button--primary">Create user</a>
+            </p>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

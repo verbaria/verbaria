@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Spring Boot rewrite of the Zanata server.
+
+    This module replaces the WildFly / Jakarta EE WAR (server/zanata-war) and
+    the CDI-driven service layer (server/services).  Files are *moved* into
+    this tree as each subsystem (persistence, REST, security, JMS) is
+    ported; the WildFly WAR stays around only until everything has migrated
+    and the React frontend is wired up.
+
+    Stack:
+      - Spring Boot 3.4.x (web + data-jpa + security + actuator)
+      - Hibernate ORM 6.6 (Boot's default for 3.4) + Hibernate Search 7.2
+      - PostgreSQL 42.x JDBC
+      - JDK 21
+  -->
+  <artifactId>zanata-server-spring</artifactId>
+  <name>Zanata Server (Spring Boot)</name>
+  <packaging>jar</packaging>
+
+  <parent>
+    <groupId>org.zanata</groupId>
+    <artifactId>server</artifactId>
+    <version>4.7.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <properties>
+    <!-- Spring Boot 3.4 needs JDK 17+; we target 21 to match the rest
+         of the reactor. -->
+    <spring-boot.version>3.4.1</spring-boot.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Spring Boot BOM — pins versions of everything in spring-boot-* /
+           spring-* / jackson / hibernate / logging.  Imported here so the
+           rest of the module can reference dependencies without versions. -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Pin jboss-logging to 3.6.3.Final.  Spring Boot 3.4 ships
+           3.6.1.Final whose Logger.getMessageLogger fails clinit on
+           recent JDKs (24/25) with "given lookup does not have access
+           to the implementation class constructor"; 3.6.3 fixes that
+           lookup handling.  We can't go to 3.5.x because Hibernate
+           Search 7.2 calls the (Lookup, Class, String) overload that
+           was added in 3.6. -->
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging</artifactId>
+        <version>3.6.3.Final</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Force the SnakeYAML version Spring Boot 3.4 expects (2.x): the
+         parent reactor pulls in 1.21 transitively, which lacks
+         org.yaml.snakeyaml.inspector.TagInspector and crashes the Spring
+         Boot startup banner before it can read application.yml. -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+    </dependency>
+
+    <!-- Spring Boot starters -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <!-- PostgreSQL JDBC driver — target DB for the rewrite.  Schema
+         generation against Postgres needs entity-mapping fixes
+         (columnDefinition="longtext" etc.); until that's done we boot on
+         H2 in-memory below so the UI dev loop isn't blocked. -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- H2 lets Hibernate accept the legacy MySQL-isms (longtext,
+         char-as-enum) loosely while we work on the Postgres mapping. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Liquibase is deferred — the legacy changelog only targets MySQL+H2
+         and a Postgres path is its own work item.  For now Hibernate
+         ddl-auto=update generates the schema directly from entity
+         mappings. -->
+
+    <!-- React UI: the zanata-frontend module's npm build emits its bundles
+         into META-INF/resources/, which Spring Boot's classpath static
+         handler serves at the application root.  No extra config needed —
+         opening http://localhost:8080/ will load index.html from the JAR. -->
+    <dependency>
+      <groupId>org.zanata</groupId>
+      <artifactId>zanata-frontend</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- The 120 legacy JSF pages are being rewritten as Thymeleaf
+         templates page-by-page.  Adding the starter brings in the
+         template engine + Spring view resolver — Thymeleaf templates
+         live under src/main/resources/templates/. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+
+    <!-- Zanata entity classes.  Kept as a JAR dependency for slice 2 so
+         the new Spring app can run against the existing model without us
+         having to move 101 entity files first; once everything works the
+         entities will be moved into this module package-by-package. -->
+    <dependency>
+      <groupId>org.zanata</groupId>
+      <artifactId>zanata-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- zanata-model has a handful of CDI references (jakarta.enterprise.*)
+         that block classloading on a Spring-only classpath.  We're not
+         running a CDI container — pulling in only the API jar gives the
+         JVM enough types to load those classes; eventual cleanup will
+         remove the CDI imports outright. -->
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <version>4.0.1</version>
+    </dependency>
+
+    <!-- Hibernate Search 7 (Lucene backend).  The version comes from the
+         parent properties, NOT Spring Boot's BOM, because Boot doesn't
+         manage Search. -->
+    <dependency>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-mapper-orm</artifactId>
+      <version>${hibernate.search.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-backend-lucene</artifactId>
+      <version>${hibernate.search.version}</version>
+    </dependency>
+    <!-- Search uses Jandex 3 to scan annotations on startup.
+         Parent dependencyManagement pins this to <scope>test</scope>;
+         override here so the jar is on the runtime classpath. -->
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>jandex</artifactId>
+      <version>3.2.2</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- Test stack -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
+        <configuration>
+          <mainClass>org.zanata.spring.ZanataServerApplication</mainClass>
+          <!-- Postgres dev container doesn't ship the EET tzdata; force
+               the JVM (and therefore the PG JDBC driver's startup
+               message) to UTC so the connection handshake succeeds. -->
+          <jvmArguments>-Duser.timezone=UTC</jvmArguments>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Dashboard')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--1">
+            <h1 class="l--push-bottom-half">Dashboard</h1>
+
+            <div class="tabs--lined js-tabs">
+                <ul class="tabs__nav js-tabs-nav">
+                    <li><a th:href="@{/dashboard/projects}" class="js-url-mod" data-content="#projects">
+                        <i class="i i--project"></i>
+                        <span class="is-hidden--s i__text--right">
+                            Projects
+                            <span class="txt--neutral" th:text="${projectCount}">0</span>
+                        </span>
+                    </a></li>
+                    <li><a th:href="@{/dashboard/groups}" class="js-url-mod" data-content="#groups">
+                        <i class="i i--group"></i>
+                        <span class="is-hidden--s i__text--right">Groups</span>
+                    </a></li>
+                    <li><a th:href="@{/dashboard/activity}" class="js-url-mod" data-content="#activity">
+                        <i class="i i--activity"></i>
+                        <span class="is-hidden--s i__text--right">Activity</span>
+                    </a></li>
+                    <li><a th:href="@{/dashboard/settings}" class="js-url-mod" data-content="#settings">
+                        <i class="i i--settings"></i>
+                        <span class="is-hidden--s i__text--right">Settings</span>
+                    </a></li>
+                </ul>
+
+                <ul class="tabsContent panels__container js-tabs-content l--push-top-1">
+                    <li id="projects">
+                        <p class="txt--understated">Your projects appear here.</p>
+                        <p>
+                            <a th:href="@{/dashboard/projects}" class="button--primary">Browse projects</a>
+                            <a th:href="@{/explore}" class="button l--push-left-half">Explore</a>
+                        </p>
+                    </li>
+                    <li id="groups">
+                        <p class="txt--understated">Version groups you maintain land here.</p>
+                    </li>
+                    <li id="activity">
+                        <p class="txt--understated">Recent activity feed (depends on
+                            /rest/stats migration).</p>
+                    </li>
+                    <li id="settings">
+                        <p class="txt--understated">Account settings land here once
+                            /profile/edit migrates.</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

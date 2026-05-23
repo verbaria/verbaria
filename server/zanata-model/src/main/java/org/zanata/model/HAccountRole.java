@@ -69,7 +69,7 @@ public class HAccountRole implements Serializable, HasUserFriendlyToString {
     }
 
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     public RoleType getRoleType() {
         return roleType;
     }

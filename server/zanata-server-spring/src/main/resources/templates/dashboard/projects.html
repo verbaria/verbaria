@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Projects')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--1">
+            <p class="txt--meta"><a th:href="@{/dashboard}">Dashboard</a></p>
+            <h1 class="l--push-bottom-half">Projects</h1>
+
+            <ul class="list--no-bullets l--push-top-1">
+                <li th:each="p : ${projects}" class="card l--push-bottom-half">
+                    <h2 class="l--push-all-0">
+                        <a th:href="@{|/project/view/${p.slug}|}" th:text="${p.name}">project name</a>
+                    </h2>
+                    <p class="txt--meta l--push-all-0"
+                       th:text="${p.description}">project description</p>
+                </li>
+                <li th:if="${projects == null or projects.isEmpty()}" class="txt--understated">
+                    No projects yet.
+                </li>
+            </ul>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

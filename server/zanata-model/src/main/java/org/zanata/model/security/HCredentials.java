@@ -58,7 +58,10 @@ public abstract class HCredentials extends ModelEntityBase {
         return account;
     }
 
-    @Column(unique = true, nullable = false, columnDefinition = "longtext")
+    // `user` is a Postgres reserved keyword; back-tick the column name
+    // so Hibernate emits "user" in DDL (dialect-quoted) instead of bare
+    // user which Postgres refuses.
+    @Column(name = "`user`", unique = true, nullable = false, columnDefinition = "text")
     public String getUser() {
         return user;
     }

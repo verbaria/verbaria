@@ -1,7 +1,13 @@
-<beans xmlns="http://java.sun.com/xml/ns/javaee"
+<!-- CDI 4 (Jakarta EE 10) defaults bean-discovery-mode to "annotated", which
+     would skip many of Zanata's legacy CDI beans (e.g. ServiceLocator)
+     because they lack scope annotations.  Pin discovery to "all" to keep
+     Weld 2/3 behavior: every class in this archive is a managed bean unless
+     explicitly excluded below. -->
+<beans xmlns="https://jakarta.ee/xml/ns/jakartaee"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:weld="http://jboss.org/schema/weld/beans"
-    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/beans_1_0.xsd">
+    xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/beans_4_0.xsd"
+    bean-discovery-mode="all" version="4.0">
 
   <alternatives>
     <!--<class>org.apache.deltaspike.jpa.impl.transaction.BeanManagedUserTransactionStrategy</class>-->

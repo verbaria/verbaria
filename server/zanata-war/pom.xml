@@ -1725,8 +1725,7 @@
       <groupId>org.apache.deltaspike.core</groupId>
       <artifactId>deltaspike-core-impl</artifactId>
     </dependency>
-    <!-- deltaspike-servlet-module dropped in DeltaSpike 2.0 (use CDI 4 standard). -->
-
+    <!-- deltaspike-servlet-module not on Jakarta; see DeltaSpikeServletProducers. -->
     <dependency>
       <groupId>org.apache.deltaspike.modules</groupId>
       <artifactId>deltaspike-proxy-module-api</artifactId>

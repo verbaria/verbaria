@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Sign out')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="g">
+        <div class="g__item w--3-4-m w--1-2-l u-centerBlock">
+            <div class="panel l--push-top-1">
+                <div class="panel__header"><h2 class="gamma heading--sub">Sign out</h2></div>
+                <div class="l--pad-all-half">
+                    <p>Are you sure you want to sign out?</p>
+                    <form th:action="@{/account/logout}" method="post">
+                        <button type="submit" class="button--primary">Sign out</button>
+                        <a th:href="@{/}" class="button l--push-left-half">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

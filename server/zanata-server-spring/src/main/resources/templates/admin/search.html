@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Manage search')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div th:replace="~{admin/_card :: card('Manage search', ~{::cardBody})}">
+        <div th:fragment="cardBody" th:remove="tag">
+            <p>Reindex Lucene / Hibernate Search indices.  The legacy "Manage
+                Search" panel lands here once a Spring-driven
+                MassIndexer endpoint is wired up.</p>
+            <button class="button--primary" disabled="disabled">Reindex all</button>
+            <p class="txt--mini">Disabled until the indexing endpoint lands.</p>
+        </div>
+    </div>
+</main-content>
+</body>
+</html>

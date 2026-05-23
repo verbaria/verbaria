@@ -117,7 +117,7 @@ public class HProjectIteration extends SlugEntityBase
     private ProjectType projectType;
 
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     private EntityStatus status = EntityStatus.ACTIVE;
 
     @Override

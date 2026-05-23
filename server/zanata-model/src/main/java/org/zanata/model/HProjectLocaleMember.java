@@ -68,7 +68,7 @@ public class HProjectLocaleMember
     @JoinColumn(name = "personId", nullable = false)
     private HPerson person;
     @Id
-    @Column(name = "role", columnDefinition = "char")
+    @Column(name = "role")
         private LocaleRole role;
 
     @Override

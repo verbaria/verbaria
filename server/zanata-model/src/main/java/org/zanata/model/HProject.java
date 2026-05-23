@@ -83,9 +83,9 @@ public class HProject extends SlugEntityBase
     @jakarta.persistence.Lob
     private String homeContent;
     @Url(canEndInSlash = true)
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     private String sourceViewURL;
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     private String sourceCheckoutURL;
     private boolean overrideLocales = false;
     private boolean restrictedByRoles = false;
@@ -150,7 +150,7 @@ public class HProject extends SlugEntityBase
     @Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
     private List<HProjectIteration> projectIterations = Lists.newArrayList();
         @NotNull
-    @Column(columnDefinition = "char(1)")
+
     private EntityStatus status = EntityStatus.ACTIVE;
 
     public void addIteration(HProjectIteration iteration) {

@@ -1,0 +1,49 @@
+package org.zanata.spring.security;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.zanata.spring.repository.AccountRepository;
+
+/**
+ * Resolves Spring Security users by username against the legacy
+ * HAccount table.  Roles flow through as ROLE_<name> authorities to
+ * match Spring Security's hasRole() convention; the HAccountRole.name
+ * column already stores values like "admin", "user" without prefix.
+ */
+@Service
+public class ZanataUserDetailsService implements UserDetailsService {
+
+    private final AccountRepository accountRepository;
+
+    public ZanataUserDetailsService(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        var account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("No account: " + username));
+
+        List<GrantedAuthority> authorities = account.getRoles() == null
+                ? List.of()
+                : account.getRoles().stream()
+                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getName().toUpperCase()))
+                        .collect(Collectors.toList());
+
+        return User.withUsername(account.getUsername())
+                .password(account.getPasswordHash() == null ? "" : account.getPasswordHash())
+                .authorities(authorities)
+                .disabled(!account.isEnabled())
+                .build();
+    }
+}

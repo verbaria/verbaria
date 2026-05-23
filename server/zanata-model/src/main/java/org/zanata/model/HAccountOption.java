@@ -49,7 +49,7 @@ public class HAccountOption extends ModelEntityBase {
         return name;
     }
 
-    @Column(columnDefinition = "longtext")
+    @Column(columnDefinition = "text")
     public String getValue() {
         return value;
     }

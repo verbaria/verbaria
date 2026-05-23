@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" class="no-js new-zanata template">
+<!--
+  Master Thymeleaf layout for legacy JSF rewrites.  Page skeleton tracks
+  server/zanata-war/src/main/webapp/WEB-INF/template/template.xhtml so
+  /resources/assets/css/style.css renders the page in the original Zanata
+  theme, and the React frontend bundle mounts into #root for the same
+  header / search / locale switcher chrome the legacy template relied on.
+
+    .templateWrapper > .templateContainer
+        > #root           (React: header, search, locale picker)
+        > main.rootMain
+            > .l__wrapper.rootMain-content
+                > <page content>  (Thymeleaf fragment from caller)
+        > #jsfReactRoot   (React: messages, modals)
+-->
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="color-scheme" content="light"/>
+    <title th:text="|Zanata: ${pageTitle ?: ''}|">Zanata</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/resources/assets/css/style.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/resources/fontello/css/fontello.css}"/>
+    <!-- Browsers honouring `prefers-color-scheme: dark` would render the
+         legacy style.css's transparent body as black; force the original
+         light theme regardless of the OS preference.  Also reserve
+         vertical space at the bottom for the fixed nav-bar that the
+         legacy React bundle injects into #jsfReactRoot (~64px tall) —
+         without it long page content scrolls under the nav. -->
+    <style>
+        html, body { background: #ffffff !important; color: #222 !important; }
+        main.rootMain { padding-bottom: 64px; }
+    </style>
+    <link rel="icon" th:href="@{/resources/assets/img/logo/logo.ico}"/>
+    <link rel="stylesheet" type="text/css"
+          th:if="${manifest != null and manifest.frontendCss() != null}"
+          th:href="@{|/${manifest.frontendCss()}|}"/>
+</head>
+<body class="new-zanata templateStyle">
+
+<div id="config"
+     data-app-url=""
+     data-server-url=""
+     data-api-server-url="/rest"
+     data-app-locale="en-US"
+     data-allow-register="false"
+     data-user='{"username":"dev","email":"dev@example.com","name":"Dev User","imageUrl":"","languageTeams":"en-US"}'
+     data-permission='{"isLoggedIn":true,"isAdmin":true}'>
+</div>
+<script type="application/javascript">
+    /*<![CDATA[*/
+    window.config = JSON.parse(JSON.stringify(document.getElementById('config').dataset));
+    // The React frontend bundle parses any JSON values out of the dataset;
+    // mirror what JSF used to write so the Header/UserMenu hydrate cleanly.
+    if (typeof window.config.user === 'string') {
+        try { window.config.user = JSON.parse(window.config.user); } catch (e) {}
+    }
+    if (typeof window.config.permission === 'string') {
+        try { window.config.permission = JSON.parse(window.config.permission); } catch (e) {}
+    }
+    /*]]>*/
+</script>
+
+<div class="templateWrapper">
+    <div class="templateContainer">
+        <!-- React mounts the top header / search / language picker here. -->
+        <div id="root"></div>
+        <main role="main" class="rootMain">
+            <div class="l__wrapper rootMain-content l--pad-top-half">
+                <div th:replace="${content}">page content goes here</div>
+            </div>
+        </main>
+        <!-- React mounts toasts / modals / footer here. -->
+        <div id="jsfReactRoot"></div>
+    </div>
+</div>
+
+
+<!-- Bring in the React frontend bundle so the chrome renders.  The
+     legacy template.xhtml loaded `frontend.legacy.js` (not the modern
+     dashboard `frontend.js`); that bundle was designed to render
+     alongside JSF page bodies and matches the visual chrome the user
+     remembers. -->
+<script th:if="${manifest != null and manifest.runtimeJs() != null}"
+        th:src="@{|/${manifest.runtimeJs()}|}"></script>
+<script th:if="${manifest != null and manifest.intlPolyfillJs() != null}"
+        th:src="@{|/${manifest.intlPolyfillJs()}|}"></script>
+<script th:if="${manifest != null and manifest.legacyJs() != null}"
+        th:src="@{|/${manifest.legacyJs()}|}"></script>
+
+</body>
+</html>
