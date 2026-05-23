@@ -20,11 +20,11 @@
  */
 package org.zanata.notification;
 
-import javax.ejb.ActivationConfigProperty;
-import javax.ejb.MessageDriven;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.inject.Named;
+import jakarta.ejb.ActivationConfigProperty;
+import jakarta.ejb.MessageDriven;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.inject.Named;
 
 /**
  * Consumer for JMS ExpiryQueue.
@@ -34,7 +34,7 @@ import javax.inject.Named;
  */
 @MessageDriven(activationConfig = {
         @ActivationConfigProperty(propertyName = "destinationType",
-                propertyValue = "javax.jms.Queue"),
+                propertyValue = "jakarta.jms.Queue"),
         @ActivationConfigProperty(propertyName = "destination",
                 propertyValue = "jms/queue/ExpiryQueue"),
         @ActivationConfigProperty(propertyName = "maxSession",

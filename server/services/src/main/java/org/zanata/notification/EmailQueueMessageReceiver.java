@@ -24,12 +24,12 @@ import java.io.Serializable;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-import javax.ejb.ActivationConfigProperty;
-import javax.ejb.MessageDriven;
-import javax.inject.Inject;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.ObjectMessage;
+import jakarta.ejb.ActivationConfigProperty;
+import jakarta.ejb.MessageDriven;
+import jakarta.inject.Inject;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.jms.ObjectMessage;
 
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
@@ -54,7 +54,7 @@ import static org.zanata.notification.NotificationManager.MessagePropertiesKey;
 @MessageDriven(activationConfig = {
         @ActivationConfigProperty(
                 propertyName = "destinationType",
-                propertyValue = "javax.jms.Queue"
+                propertyValue = "jakarta.jms.Queue"
         ),
         @ActivationConfigProperty(
                 propertyName = "destination",

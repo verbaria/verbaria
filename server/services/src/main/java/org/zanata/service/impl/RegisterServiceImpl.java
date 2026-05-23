@@ -23,14 +23,14 @@ package org.zanata.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.context.RequestScoped;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.persistence.EntityManager;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.dao.AccountActivationKeyDAO;
 import org.zanata.dao.AccountDAO;

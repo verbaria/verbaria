@@ -34,8 +34,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.queryparser.classic.ParseException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 
 import org.apache.lucene.search.BooleanQuery;
 import org.zanata.common.LocaleId;

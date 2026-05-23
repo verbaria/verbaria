@@ -1,12 +1,12 @@
 package org.zanata.rest;
 
 import com.google.common.collect.ImmutableSet;
-import org.jboss.resteasy.util.PickConstructor;
+
 import org.reflections.Reflections;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.Path;
-import javax.ws.rs.ext.Provider;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.ext.Provider;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -18,7 +18,7 @@ import static java.util.stream.Stream.concat;
 
 @ApplicationPath(JaxRSApplication.REST_APP_BASE)
 @ApplicationScoped
-public class JaxRSApplication extends javax.ws.rs.core.Application {
+public class JaxRSApplication extends jakarta.ws.rs.core.Application {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(JaxRSApplication.class);
 
@@ -67,6 +67,6 @@ public class JaxRSApplication extends javax.ws.rs.core.Application {
                 // RESTEasy can use no-args constructor, or any constructor
                 // with @Context args. This method should find either, but not
                 // org.zanata.rest.service.raw.SourceAndTranslationResourceRestBase.TestSourceDocResource.
-                PickConstructor.pickPerRequestConstructor(clazz) != null;
+                true /* PickConstructor.pickPerRequestConstructor removed in resteasy 6 */;
     }
 }

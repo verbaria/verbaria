@@ -1,9 +1,9 @@
 package org.zanata.security;
 
 import org.hibernate.Session;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.ContextController;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.ContextController;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -24,9 +24,9 @@ import org.zanata.servlet.annotations.ServerPath;
 import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import java.util.Optional;
 

@@ -22,14 +22,14 @@ package org.zanata.config;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.zanata.ZanataDbunitJpaTest;
 import org.zanata.test.CdiUnitRunner;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,8 +44,7 @@ public class DatabaseBackedConfigTest extends ZanataDbunitJpaTest {
     @Inject
     private DatabaseBackedConfig databaseBackedConfig;
 
-    @Produces
-    public Session getSession() {
+    @Produces @jakarta.enterprise.inject.Typed(org.hibernate.Session.class)    public Session getSession() {
         return super.getSession();
     }
 

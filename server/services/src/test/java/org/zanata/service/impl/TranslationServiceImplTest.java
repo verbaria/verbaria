@@ -27,8 +27,10 @@ import java.util.Locale;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import org.zanata.jpa.EntityManagerProducer;
+import io.github.cdiunit.InRequestScope;
 import org.zanata.i18n.Messages;
 import org.zanata.jpa.FullText;
 import org.zanata.model.HAccount;
@@ -52,9 +54,9 @@ import org.zanata.test.CdiUnitRunner;
 import org.zanata.webtrans.shared.model.TransUnitId;
 import org.zanata.webtrans.shared.model.TransUnitUpdateRequest;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
@@ -71,6 +73,7 @@ import static org.zanata.service.TranslationService.TranslationResult;
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
+@IgnoredClasses(EntityManagerProducer.class)
 @RunWith(CdiUnitRunner.class)
 @AdditionalClasses({
         LocaleServiceImpl.class,

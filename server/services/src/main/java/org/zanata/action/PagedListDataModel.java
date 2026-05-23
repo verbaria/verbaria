@@ -21,7 +21,7 @@
 package org.zanata.action;
 
 import java.io.Serializable;
-import javax.faces.model.DataModel;
+import jakarta.faces.model.DataModel;
 import org.zanata.exception.ZanataServiceException;
 
 public abstract class PagedListDataModel<E> extends DataModel<E>

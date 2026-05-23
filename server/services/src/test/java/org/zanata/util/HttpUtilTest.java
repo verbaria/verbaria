@@ -1,7 +1,7 @@
 package org.zanata.util;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.HttpMethod;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.HttpMethod;
 
 import org.junit.Before;
 import org.junit.Test;

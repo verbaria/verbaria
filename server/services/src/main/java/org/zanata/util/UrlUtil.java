@@ -32,13 +32,13 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.context.RequestScoped;
-import javax.faces.context.FacesContext;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.UriBuilder;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.UriBuilder;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
@@ -95,19 +95,19 @@ public class UrlUtil implements Serializable {
     public String getLocalUrl(HttpServletRequest request) {
         StringBuilder url = new StringBuilder();
         String queryString;
-        if (request.getAttribute("javax.servlet.forward.request_uri") != null) {
+        if (request.getAttribute("jakarta.servlet.forward.request_uri") != null) {
             Object contextPath = request
-                    .getAttribute("javax.servlet.forward.context_path");
+                    .getAttribute("jakarta.servlet.forward.context_path");
             if (contextPath != null) {
                 url.append((String) contextPath);
             }
             Object servletPath =
-                    request.getAttribute("javax.servlet.forward.servlet_path");
+                    request.getAttribute("jakarta.servlet.forward.servlet_path");
             if (servletPath != null) {
                 url.append((String) servletPath);
             }
             queryString = (String) request
-                    .getAttribute("javax.servlet.forward.query_string");
+                    .getAttribute("jakarta.servlet.forward.query_string");
         } else {
             url.append(request.getRequestURI());
             queryString = request.getQueryString();

@@ -20,13 +20,13 @@
  */
 package org.zanata.action;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.infinispan.AdvancedCache;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.events.HomeContentChangedEvent;
@@ -56,7 +56,7 @@ public class HomePage {
      * Returns the rendered, sanitised HTML for the home page content set by
      * admin.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public String getHtml() {
         String html = (String) cache.get(CACHE_KEY);
         if (html == null) {

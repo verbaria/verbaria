@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.extractFromEvents;
 
@@ -495,7 +495,7 @@ public class DocumentListPresenterTest {
 
         verify(mockDisplay).setLayout(ThemesOption.THEMES_DEFAULT.name());
 
-        verifyZeroInteractions(mockDisplay);
+        verifyNoMoreInteractions(mockDisplay);
     }
 
     @Test

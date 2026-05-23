@@ -22,15 +22,15 @@ package org.zanata.action;
 
 import java.io.Serializable;
 import java.util.List;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.validation.constraints.Size;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.validation.constraints.Size;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.security.annotations.Authenticated;
 import org.apache.commons.lang3.StringUtils;

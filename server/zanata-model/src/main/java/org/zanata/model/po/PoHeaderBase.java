@@ -20,10 +20,10 @@
  */
 package org.zanata.model.po;
 
-import javax.persistence.CascadeType;
-import javax.persistence.JoinColumn;
-import javax.persistence.MappedSuperclass;
-import javax.persistence.OneToOne;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.OneToOne;
 import org.zanata.model.HSimpleComment;
 import org.zanata.model.ModelEntityBase;
 
@@ -49,7 +49,7 @@ public abstract class PoHeaderBase extends ModelEntityBase {
     }
     // see PoUtility.stringToHeaderEntries
 
-    @javax.persistence.Lob
+    @jakarta.persistence.Lob
     public String getEntries() {
         return entries;
     }

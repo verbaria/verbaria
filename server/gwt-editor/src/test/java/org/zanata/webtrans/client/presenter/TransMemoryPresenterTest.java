@@ -232,7 +232,7 @@ public class TransMemoryPresenterTest {
         presenter.createTMRequestForTransUnit(makeTransUnit(1));
 
         // Then:
-        verifyZeroInteractions(dispatcher);
+        verifyNoMoreInteractions(dispatcher);
     }
 
     @Test

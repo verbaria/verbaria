@@ -32,16 +32,16 @@ import org.zanata.webtrans.shared.model.*;
 import org.zanata.webtrans.shared.rpc.*;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
 @Named("webtrans.gwt.TransUnitUpdateHelper")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class TransUnitUpdateHelper {
 
     @Inject

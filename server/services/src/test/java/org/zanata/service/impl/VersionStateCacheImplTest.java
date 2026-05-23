@@ -19,8 +19,8 @@ import com.google.common.cache.CacheLoader;
 import org.zanata.util.IServiceLocator;
 import org.zanata.util.Zanata;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>

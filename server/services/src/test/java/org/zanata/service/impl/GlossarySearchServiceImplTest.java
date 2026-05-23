@@ -2,7 +2,7 @@ package org.zanata.service.impl;
 
 import com.google.common.collect.Lists;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -24,9 +24,9 @@ import org.zanata.webtrans.shared.model.WorkspaceId;
 import org.zanata.webtrans.shared.rpc.HasSearchType;
 import org.zanata.webtrans.test.GWTTestData;
 
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;

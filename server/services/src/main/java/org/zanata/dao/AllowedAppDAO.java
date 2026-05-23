@@ -22,8 +22,8 @@
 package org.zanata.dao;
 
 import java.util.Optional;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 
 import org.hibernate.Session;
 import org.zanata.model.AllowedApp;

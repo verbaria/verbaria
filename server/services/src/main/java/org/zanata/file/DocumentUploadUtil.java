@@ -32,11 +32,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Vector;
-import javax.enterprise.context.Dependent;
-import javax.ws.rs.core.Response.Status;
+import jakarta.enterprise.context.Dependent;
+import jakarta.ws.rs.core.Response.Status;
 import org.hibernate.Session;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.DocumentType;
 import org.zanata.common.EntityStatus;
 import org.zanata.dao.DocumentDAO;
@@ -52,7 +52,7 @@ import org.zanata.rest.DocumentFileUploadForm;
 import org.zanata.security.ZanataIdentity;
 import org.zanata.service.TranslationFileService;
 import org.zanata.util.PasswordUtil;
-import com.google.common.base.Optional;
+import java.util.Optional;
 // TODO damason: add thorough unit testing
 
 @Named("documentUploadUtil")

@@ -20,14 +20,14 @@
  */
 package org.zanata.service.impl;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.servlet.http.HttpSession;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
+import org.zanata.cdi.DeltaSpike;
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -37,8 +37,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.Search;
 import org.infinispan.manager.CacheContainer;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -249,8 +249,8 @@ public class CopyVersionServiceImplPerformanceTest extends ZanataTest {
         SessionFactory sessionFactory =
                 ((Session) em.getDelegate()).getSessionFactory();
         try {
-            sessionFactory.getCache().evictEntityRegions();
-            sessionFactory.getCache().evictCollectionRegions();
+            sessionFactory.getCache().evictAllRegions();
+            sessionFactory.getCache().evictDefaultQueryRegion();
         } catch (Exception e) {
             log.error(" *** Cache Exception " + e.getMessage());
         }

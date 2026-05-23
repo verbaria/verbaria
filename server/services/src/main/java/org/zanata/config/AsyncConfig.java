@@ -20,8 +20,8 @@
  */
 package org.zanata.config;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * Holds all configuration values related to the asynchronous execution of tasks
@@ -31,7 +31,7 @@ import javax.inject.Named;
  *         <a href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Named("asyncConfig")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class AsyncConfig {
     public static final String THREAD_POOL_SIZE = "async.threadpool.size";
     @Inject

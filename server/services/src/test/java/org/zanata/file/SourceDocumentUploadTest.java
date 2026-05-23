@@ -20,7 +20,7 @@
  */
 package org.zanata.file;
 
-import static javax.ws.rs.core.Response.Status.*;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -32,7 +32,7 @@ import java.io.IOException;
 
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,15 +49,15 @@ import org.zanata.security.ZanataCredentials;
 import org.zanata.service.DocumentService;
 import org.zanata.service.TranslationFileService;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.zanata.servlet.annotations.ContextPath;
 import org.zanata.servlet.annotations.ServerPath;
 import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 @RunWith(CdiUnitRunner.class)
 public class SourceDocumentUploadTest extends DocumentUploadTest {

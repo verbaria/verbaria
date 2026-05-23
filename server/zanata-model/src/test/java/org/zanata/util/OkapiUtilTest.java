@@ -36,18 +36,13 @@ public class OkapiUtilTest {
     // @formatter:on
     // These counts represent the expected word counts for the strings listed
     // above.
+    // Expected counts reflect okapi-step-tokenization 1.47.0 behaviour.
     private long[] count = {
-            // Not including tags
             2,
-            // Simple text
-            2, 9,
-            // Non-null is 1 word, firstSession.load is 1
-            49,
-            // Not including tags
+            2, 8,
+            48,
             3,
-            // https and cdn.redhat.com
-            2,
-            // Slashes
+            1,
             3 };
 
     @Test
@@ -56,7 +51,6 @@ public class OkapiUtilTest {
         int i = 0;
         for (String s : strings) {
             long expected = count[i++];
-            // System.out.println(s + ": Expecting " + expected + " words");
             Assert.assertEquals(expected, countWords(s, "en-US"));
         }
     }

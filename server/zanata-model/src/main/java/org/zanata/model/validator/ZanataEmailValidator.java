@@ -22,18 +22,15 @@ package org.zanata.model.validator;
 
 import org.apache.commons.validator.routines.EmailValidator;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import java.io.Serializable;
 
 public class ZanataEmailValidator implements
         ConstraintValidator<ZanataEmail, String>, Serializable {
     private static final long serialVersionUID = 1L;
 
-    // allowed by hibernate validator
     private static final boolean allowTLD = true;
-
-    // allowed by hibernate validator
     private static final boolean allowLocale = true;
 
     private static final EmailValidator VALIDATOR =

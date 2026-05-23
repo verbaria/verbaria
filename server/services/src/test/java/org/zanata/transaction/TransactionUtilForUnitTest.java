@@ -3,7 +3,7 @@ package org.zanata.transaction;
 
 import java.util.concurrent.Callable;
 import javax.annotation.CheckForNull;
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

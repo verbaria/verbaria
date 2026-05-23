@@ -23,9 +23,9 @@ package org.zanata.webtrans.server.rpc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.exception.ZanataServiceException;
 import org.zanata.model.HLocale;
 import org.zanata.model.HTextFlow;
@@ -37,7 +37,7 @@ import org.zanata.webtrans.server.ActionHandlerFor;
 import org.zanata.webtrans.shared.model.TransUnit;
 import org.zanata.webtrans.shared.rpc.GetProjectTransUnitLists;
 import org.zanata.webtrans.shared.rpc.GetProjectTransUnitListsResult;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
@@ -165,9 +165,9 @@ public class GetProjectTransUnitListsHandler extends
         @Override
         public boolean apply(HTextFlow textFlow) {
             if (action.isSearchInSource()) {
-                Optional<String> optional = Iterables.tryFind(
-                        textFlow.getContents(), containSearchTermPredicate);
-                if (optional.isPresent()) {
+                boolean found = textFlow.getContents().stream()
+                        .anyMatch(containSearchTermPredicate::apply);
+                if (found) {
                     return true;
                 }
             }
@@ -175,9 +175,8 @@ public class GetProjectTransUnitListsHandler extends
                 // FIXME hibernate n + 1 select happening here
                 List<String> targetContents =
                         textFlow.getTargets().get(localeId).getContents();
-                Optional<String> optional = Iterables.tryFind(targetContents,
-                        containSearchTermPredicate);
-                return optional.isPresent();
+                return targetContents.stream()
+                        .anyMatch(containSearchTermPredicate::apply);
             }
             return false;
         }

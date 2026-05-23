@@ -22,9 +22,9 @@ package org.zanata.service.impl;
 
 import static org.apache.commons.lang3.StringUtils.join;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.common.Namespaces;
 import org.zanata.common.ProjectType;

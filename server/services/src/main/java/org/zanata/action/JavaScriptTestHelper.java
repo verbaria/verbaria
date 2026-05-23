@@ -20,8 +20,8 @@
  */
 package org.zanata.action;
 
-import javax.enterprise.context.Dependent;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Named;
 
 /**
  * @author Sean Flanigan

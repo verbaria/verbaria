@@ -23,7 +23,7 @@ package org.zanata.rest.editor.dto;
 
 import java.io.Serializable;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.zanata.rest.dto.DTOUtil;
 
 /**

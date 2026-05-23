@@ -20,9 +20,9 @@
  */
 package org.zanata.provider;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.hibernate.Session;
 import org.slf4j.Logger;
@@ -107,8 +107,8 @@ public class JPAProvider {
         /*
          * SessionFactory sessionFactory =
          * ((Session)em.getDelegate()).getSessionFactory(); try {
-         * sessionFactory.getCache().evictEntityRegions();
-         * sessionFactory.getCache().evictCollectionRegions(); } catch
+         * sessionFactory.getCache().evictAllRegions();
+         * sessionFactory.getCache().evictDefaultQueryRegion(); } catch
          * (Exception e) { System.out.println(" *** Cache Exception "+
          * e.getMessage()); }
          */

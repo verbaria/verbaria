@@ -24,7 +24,7 @@ import java.io.Serializable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * @author Sean Flanigan <a href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>

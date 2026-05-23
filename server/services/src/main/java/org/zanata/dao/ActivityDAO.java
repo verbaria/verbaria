@@ -23,11 +23,11 @@ package org.zanata.dao;
 import java.util.Date;
 import java.util.List;
 
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.common.ActivityType;
 import org.zanata.model.Activity;
 import org.zanata.model.type.EntityType;
@@ -61,7 +61,7 @@ public class ActivityDAO extends AbstractDAOImpl<Activity, Long> {
         query.setParameter("contextId", contextId);
         query.setParameter("activityType", activityType);
         query.setParameter("contextType", contextType);
-        query.setTimestamp("approxTime", approxTime);
+        query.setParameter("approxTime", approxTime);
         query.setCacheable(true);
         query.setComment("activityDAO.findActivity");
         return (Activity) query.uniqueResult();

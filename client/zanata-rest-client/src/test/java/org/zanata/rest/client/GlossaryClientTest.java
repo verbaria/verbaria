@@ -32,7 +32,7 @@ import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.service.GlossaryResource;
 import org.zanata.rest.service.StubbingServerRule;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

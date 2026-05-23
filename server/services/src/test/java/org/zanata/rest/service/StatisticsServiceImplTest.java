@@ -33,17 +33,19 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.infinispan.manager.CacheContainer;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.ContextController;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import org.zanata.jpa.EntityManagerProducer;
+import io.github.cdiunit.ContextController;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,6 +87,7 @@ import com.google.common.collect.Lists;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
+@IgnoredClasses(EntityManagerProducer.class)
 @RunWith(CdiUnitRunner.class)
 @AdditionalClasses({ TranslationStateCacheImpl.class,
         DocumentStatisticLoader.class, HTextFlowTargetIdLoader.class,

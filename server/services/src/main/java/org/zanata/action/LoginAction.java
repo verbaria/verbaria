@@ -22,13 +22,13 @@ package org.zanata.action;
 
 import java.io.Serializable;
 import java.util.Set;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.validator.internal.constraintvalidators.hv.EmailValidator;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.dao.AccountDAO;

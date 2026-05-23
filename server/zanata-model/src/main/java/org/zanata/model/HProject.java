@@ -29,43 +29,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import com.google.common.collect.ImmutableSet;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.hibernate.annotations.TypeDefs;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Indexed;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.zanata.annotation.EntityRestrict;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
-import org.zanata.hibernate.search.CaseInsensitiveWhitespaceAnalyzer;
-import org.zanata.model.type.EntityStatusType;
-import org.zanata.model.type.LocaleIdType;
-import org.zanata.model.type.ProjectRoleType;
 import org.zanata.model.validator.Url;
 import org.zanata.rest.dto.Project;
 import com.google.common.collect.Lists;
@@ -79,12 +69,7 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 @Entity
 @Cacheable
 @Access(AccessType.FIELD)
-@TypeDefs({ @TypeDef(name = "entityStatus", typeClass = EntityStatusType.class),
-        @TypeDef(name = "localeId", defaultForType = LocaleId.class,
-                typeClass = LocaleIdType.class) })
 @EntityRestrict({ INSERT, UPDATE, DELETE })
-@Indexed
-@TypeDef(name = "projectRole", typeClass = ProjectRoleType.class)
 @GraphQLType(name = "Project")
 public class HProject extends SlugEntityBase
         implements Serializable, HasEntityStatus, HasUserFriendlyToString {
@@ -92,12 +77,10 @@ public class HProject extends SlugEntityBase
     private static final long serialVersionUID = 1L;
     @Size(max = 80)
     @NotEmpty
-    @Field(analyzer = @Analyzer(impl = CaseInsensitiveWhitespaceAnalyzer.class))
     private String name;
     @Size(max = 100)
-    @Field(analyzer = @Analyzer(impl = CaseInsensitiveWhitespaceAnalyzer.class))
     private String description;
-    @javax.persistence.Lob
+    @jakarta.persistence.Lob
     private String homeContent;
     @Url(canEndInSlash = true)
     @Column(columnDefinition = "longtext")
@@ -166,9 +149,7 @@ public class HProject extends SlugEntityBase
     @OneToMany(mappedBy = "project")
     @Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
     private List<HProjectIteration> projectIterations = Lists.newArrayList();
-    @Type(type = "entityStatus")
-    @NotNull
-    @Field
+        @NotNull
     @Column(columnDefinition = "char(1)")
     private EntityStatus status = EntityStatus.ACTIVE;
 

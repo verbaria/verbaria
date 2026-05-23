@@ -31,9 +31,9 @@ import org.zanata.webtrans.shared.model.*;
 import org.zanata.webtrans.shared.model.ValidationAction.*;
 import org.zanata.webtrans.shared.rpc.*;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  *

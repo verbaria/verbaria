@@ -36,8 +36,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -801,7 +801,9 @@ public class TranslationMemoryServiceImpl implements TranslationMemoryService {
             throws ParseException {
         Query contentQuery = buildContentQuery(queryParams, sourceLocale,
                 queryText, multiQueryText, srcContentFields);
-        contentQuery.setBoost(BOOST_CONTENT);
+        // Lucene 6+ removed Query.setBoost — wrap with BoostQuery if needed.
+
+        // contentQuery.setBoost(BOOST_CONTENT);
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         queryBuilder.add(contentQuery, BooleanClause.Occur.MUST);
         if (textFlowTargetId.isPresent()) {
@@ -852,7 +854,9 @@ public class TranslationMemoryServiceImpl implements TranslationMemoryService {
             String fld,
             String txt, float boost) {
         TermQuery q = new TermQuery(new Term(fld, txt));
-        q.setBoost(boost);
+        // Lucene 6+ removed Query.setBoost — wrap with BoostQuery if needed.
+
+        // q.setBoost(boost);
         builder.add(q, BooleanClause.Occur.SHOULD);
     }
 

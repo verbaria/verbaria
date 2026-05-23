@@ -55,13 +55,10 @@ public class InfinispanTestCacheContainer implements CacheContainer {
     }
 
     private GlobalConfiguration getCacheManagerGlobalConfiguration() {
-        /*
-         * This allows multiple concurrent tests to run. See
-         * https://issues.jboss.org/browse/ISPN-2886 for the exception that is
-         * thrown when this is not used.
-         */
-        return new GlobalConfigurationBuilder().globalJmxStatistics()
-                .allowDuplicateDomains(true).build();
+        // Infinispan 14 dropped allowDuplicateDomains; concurrent tests now
+        // get unique JMX domains automatically because the JmxConfiguration
+        // builder is created per-DefaultCacheManager.
+        return new GlobalConfigurationBuilder().build();
     }
 
     public <K extends java.lang.Object, V extends java.lang.Object>
@@ -72,5 +69,10 @@ public class InfinispanTestCacheContainer implements CacheContainer {
     public <K extends java.lang.Object, V extends java.lang.Object>
             org.infinispan.Cache<K, V> getCache(final java.lang.String arg0) {
         return this.delegate.<K, V> getCache(arg0);
+    }
+
+    @Override
+    public java.util.Set<String> getCacheNames() {
+        return this.delegate.getCacheNames();
     }
 }

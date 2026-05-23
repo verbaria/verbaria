@@ -7,7 +7,7 @@ import org.mockito.MockitoAnnotations;
 import org.zanata.webtrans.server.rpc.GetTranslationHistoryHandler;
 import org.zanata.webtrans.shared.rpc.GetTranslationHistoryResult;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;

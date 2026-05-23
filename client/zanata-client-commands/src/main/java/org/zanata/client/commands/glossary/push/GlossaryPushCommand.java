@@ -45,7 +45,7 @@ import org.zanata.rest.dto.GlossaryEntry;
 
 import com.google.common.collect.Lists;
 
-import javax.ws.rs.client.ResponseProcessingException;
+import jakarta.ws.rs.client.ResponseProcessingException;
 
 import static org.zanata.client.commands.glossary.push.GlossaryPushOptions.DEFAULT_SOURCE_LANG;
 

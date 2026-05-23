@@ -35,11 +35,12 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.ws.rs.client.Client;
+import jakarta.ws.rs.client.Client;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.rest.MediaTypes;
@@ -73,7 +74,7 @@ public class RestClientFactory implements Serializable {
         this.clientApiVersion = clientApiVersion;
         clientVersion = clientApiVersion.getVersionNo();
 
-        this.client = new ResteasyClientBuilder()
+        this.client = new ResteasyClientBuilderImpl()
                 .sslContext(sslConfiguration(sslCertDisabled))
                 .register(new RedirectFilter())
                 .register(new ResponseStatusFilter())
@@ -109,7 +110,7 @@ public class RestClientFactory implements Serializable {
         this.baseURI = base;
         this.clientApiVersion = clientApiVersion;
         this.clientVersion = clientApiVersion.getVersionNo();
-        ResteasyClientBuilder clientBuilder = new ResteasyClientBuilder()
+        ResteasyClientBuilder clientBuilder = new ResteasyClientBuilderImpl()
                 .sslContext(sslConfiguration(sslCertDisabled))
                 .register(new RedirectFilter())
                 .register(new ResponseStatusFilter())

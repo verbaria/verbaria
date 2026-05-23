@@ -22,9 +22,9 @@
 package org.zanata.exception.handler;
 
 import java.util.Set;
-import javax.enterprise.event.Event;
-import javax.faces.application.FacesMessage;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Event;
+import jakarta.faces.application.FacesMessage;
+import jakarta.inject.Inject;
 
 import org.apache.deltaspike.core.api.exception.control.ExceptionHandler;
 import org.apache.deltaspike.core.api.exception.control.Handles;

@@ -20,7 +20,7 @@
  */
 package org.zanata.rest.editor.dto.suggestion;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.zanata.common.ContentState;
 import org.zanata.model.*;
 import org.zanata.rest.dto.TranslationSourceType;

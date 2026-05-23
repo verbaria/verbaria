@@ -37,8 +37,9 @@ public abstract class AbstractIndexingStrategy<T> {
                     break;
                 }
                 rowNum++;
+                // Hibernate 6 ScrollableResults<R>.get() now returns R directly.
                 @SuppressWarnings("unchecked")
-                T entity = (T) scrollableResults.get(0);
+                T entity = (T) scrollableResults.get();
                 session.index(entity);
                 if (handle != null) {
                     handle.increaseProgress(1);

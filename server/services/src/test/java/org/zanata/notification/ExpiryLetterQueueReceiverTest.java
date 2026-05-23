@@ -1,6 +1,6 @@
 package org.zanata.notification;
 
-import javax.jms.Message;
+import jakarta.jms.Message;
 
 import org.junit.Before;
 import org.junit.Test;

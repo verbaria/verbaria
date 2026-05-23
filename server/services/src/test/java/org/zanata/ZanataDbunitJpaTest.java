@@ -78,8 +78,8 @@ public abstract class ZanataDbunitJpaTest extends ZanataJpaTest {
     private void clearCache() {
         /*
          * Session session = getSession();
-         * session.getSessionFactory().getCache().evictEntityRegions();
-         * session.getSessionFactory().getCache().evictCollectionRegions();
+         * session.getSessionFactory().getCache().evictAllRegions();
+         * session.getSessionFactory().getCache().evictDefaultQueryRegion();
          */
     }
 
@@ -227,8 +227,10 @@ public abstract class ZanataDbunitJpaTest extends ZanataJpaTest {
             // TODO DBUnit recommends reusing the DatabaseConnection for all tests in a run
             // because it's expensive to collect the table metadata each time
             // http://dbunit.sourceforge.net/faq.html#performance
+            // SessionImpl.connection() was removed in Hibernate 6; use the
+            // public Session#doReturningWork API to obtain the JDBC Connection.
             DatabaseConnection dbConn = new DatabaseConnection(
-                    ((SessionImpl) getSession()).connection());
+                    getSession().doReturningWork(conn -> conn));
             editConfig(dbConn.getConfig());
             return dbConn;
         } catch (Exception ex) {

@@ -23,8 +23,8 @@ package org.zanata.config;
 import java.io.Serializable;
 
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.zanata.util.Synchronized;
@@ -39,7 +39,7 @@ import org.zanata.model.HApplicationConfiguration;
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Named("databaseBackedConfig")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 
 @Synchronized(timeout = ServerConstants.DEFAULT_TIMEOUT)
 public class DatabaseBackedConfig implements Serializable {

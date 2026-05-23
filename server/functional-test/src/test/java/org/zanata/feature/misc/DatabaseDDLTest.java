@@ -28,9 +28,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +83,7 @@ public class DatabaseDDLTest {
         propForPersistenceUnit.put("hibernate.connection.provider_class", null);
         propForPersistenceUnit.put("hibernate.connection.driver_class", "com.mysql.jdbc.Driver");
         propForPersistenceUnit.put("hibernate.dialect", "org.hibernate.dialect.MySQL5InnoDBDialect");
-        propForPersistenceUnit.put("javax.persistence.validation.mode", "none");
+        propForPersistenceUnit.put("jakarta.persistence.validation.mode", "none");
     }
 
     @Test

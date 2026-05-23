@@ -2,7 +2,7 @@ package org.zanata.model;
 
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;

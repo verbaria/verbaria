@@ -3,12 +3,12 @@ package org.zanata.action;
 import java.io.Serializable;
 import java.util.Date;
 import org.apache.commons.lang3.StringUtils;
-import javax.annotation.PostConstruct;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.exception.AuthorizationException;
 import org.zanata.action.validator.NotDuplicateEmail;
 import org.zanata.dao.AccountActivationKeyDAO;
@@ -120,7 +120,7 @@ public class InactiveAccountAction implements Serializable {
     private boolean validateEmail(String email) {
         if (StringUtils.isEmpty(email)) {
             facesMessages.addToControl("email",
-                    "#{msgs[\'javax.faces.component.UIInput.REQUIRED\']}");
+                    "#{msgs[\'jakarta.faces.component.UIInput.REQUIRED\']}");
             return false;
         }
         HPerson person = personDAO.findByEmail(email);

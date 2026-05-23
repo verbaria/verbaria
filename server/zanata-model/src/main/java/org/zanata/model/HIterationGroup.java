@@ -21,19 +21,18 @@
 package org.zanata.model;
 
 import java.util.Set;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Size;
 
 import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.annotations.types.GraphQLType;
-import org.hibernate.search.annotations.Field;
 import org.hibernate.validator.constraints.NotEmpty;
 import com.google.common.collect.Sets;
 
@@ -50,10 +49,8 @@ public class HIterationGroup extends SlugEntityBase
     private static final long serialVersionUID = 5682522115222479842L;
     @Size(max = 80)
     @NotEmpty
-    @Field
     private String name;
     @Size(max = 100)
-    @Field
     private String description;
     @ManyToMany
     @JoinTable(name = "HIterationGroup_Maintainer",

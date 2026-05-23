@@ -27,7 +27,7 @@ import org.zanata.exception.ZanataServiceException;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import java.io.File;
 import java.io.InputStream;

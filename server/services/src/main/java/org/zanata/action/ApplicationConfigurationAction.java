@@ -22,13 +22,13 @@ package org.zanata.action;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.enterprise.context.Dependent;
-import javax.enterprise.inject.Model;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Model;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.zanata.ApplicationConfiguration;
 import org.zanata.util.UrlUtil;

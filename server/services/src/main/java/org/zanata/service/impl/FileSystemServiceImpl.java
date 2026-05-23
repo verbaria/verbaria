@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Properties;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.service.FileSystemService;
 
 /**

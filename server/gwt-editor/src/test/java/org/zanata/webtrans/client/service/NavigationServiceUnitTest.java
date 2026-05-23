@@ -261,7 +261,7 @@ public class NavigationServiceUnitTest {
         service.onTransUnitUpdated(new TransUnitUpdatedEvent(updatedData));
 
         // Then:
-        verifyZeroInteractions(pageDataChangeListener);
+        verifyNoMoreInteractions(pageDataChangeListener);
         assertThat(data.get(data.size() - 1).getSourceComment())
                 .isNotEqualTo(updatedTU.getSourceComment());
     }
@@ -280,7 +280,7 @@ public class NavigationServiceUnitTest {
         service.onTransUnitUpdated(new TransUnitUpdatedEvent(updatedData));
 
         // Then:
-        verifyZeroInteractions(pageDataChangeListener);
+        verifyNoMoreInteractions(pageDataChangeListener);
 
     }
 
@@ -380,7 +380,7 @@ public class NavigationServiceUnitTest {
                 extractFromEvents(eventCaptor.getAllValues(),
                         TableRowSelectedEvent.class);
         assertThat(event.getSelectedId()).isEqualTo(targetId);
-        verifyZeroInteractions(dispatcher);
+        verifyNoMoreInteractions(dispatcher);
     }
 
     @Test

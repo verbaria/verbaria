@@ -22,7 +22,7 @@ package org.zanata.security;
 
 import org.zanata.model.HAccount;
 
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.RequestScoped;
 
 /**
  * @author Patrick Huang <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>

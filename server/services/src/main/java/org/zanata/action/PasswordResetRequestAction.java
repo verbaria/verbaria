@@ -1,12 +1,12 @@
 package org.zanata.action;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.validator.constraints.NotEmpty;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Model;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Model;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.dao.AccountActivationKeyDAO;
 import org.zanata.dao.AccountDAO;
 import org.zanata.i18n.Messages;

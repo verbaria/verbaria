@@ -21,7 +21,7 @@
 package org.zanata.security;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.openid4java.OpenIDException;
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.consumer.VerificationResult;
@@ -52,13 +52,13 @@ import org.zanata.util.ServiceLocator;
 import org.zanata.util.Synchronized;
 import org.zanata.util.UrlUtil;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.SessionScoped;
-import javax.enterprise.event.Event;
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
@@ -169,7 +169,7 @@ public class ZanataOpenId implements OpenIdAuthCallback, Serializable {
 
     public void verify() {
         ExternalContext context =
-                javax.faces.context.FacesContext.getCurrentInstance()
+                jakarta.faces.context.FacesContext.getCurrentInstance()
                         .getExternalContext();
         HttpServletRequest request = (HttpServletRequest) context.getRequest();
 

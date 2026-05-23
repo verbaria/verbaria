@@ -21,10 +21,10 @@
 
 package org.zanata.servlet;
 
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
-import javax.faces.context.FacesContext;
-import javax.servlet.ServletRequest;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.InjectionPoint;
+import jakarta.faces.context.FacesContext;
+import jakarta.servlet.ServletRequest;
 
 import org.zanata.servlet.annotations.HttpParam;
 

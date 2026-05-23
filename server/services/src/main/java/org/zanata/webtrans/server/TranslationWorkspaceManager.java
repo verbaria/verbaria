@@ -23,7 +23,7 @@ package org.zanata.webtrans.server;
 
 import org.zanata.webtrans.shared.NoSuchWorkspaceException;
 import org.zanata.webtrans.shared.model.WorkspaceId;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import java.io.Serializable;
 

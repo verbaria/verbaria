@@ -29,9 +29,9 @@ import org.infinispan.stats.Stats;
 import org.zanata.i18n.Messages;
 import org.zanata.security.annotations.CheckRole;
 import org.zanata.util.Zanata;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -71,13 +71,14 @@ public class CacheAction implements Serializable {
         log.debug("getting stats for cache \'{}\'", cacheName);
         try {
             Cache<Object, Object> cache = cacheManager.getCache(cacheName);
-            if (cache.getCacheConfiguration().jmxStatistics().enabled()) {
+            // Infinispan 15: jmxStatistics() merged into statistics().
+            if (cache.getCacheConfiguration().statistics().enabled()) {
                 return cache.getAdvancedCache().getStats();
             } else {
                 log.debug("Statistics are not enabled for cache \'{}\'",
                         cacheName);
                 // -1 just means no stats (same as Infinispan)
-                return new UnavailableStats(-1);
+                return unavailableStats(-1);
             }
             // eg getStats() throws IndexOutOfBoundsException if stats not
             // enabled
@@ -87,7 +88,7 @@ public class CacheAction implements Serializable {
                     cacheName, e);
             // -2 also means no stats, but serves as a hint that something might
             // be wrong
-            return new UnavailableStats(-2);
+            return unavailableStats(-2);
         }
     }
 
@@ -153,89 +154,25 @@ public class CacheAction implements Serializable {
      * Dummy Stats implementation returned when Stats are disabled or otherwise
      * unavailable.
      */
-    private static class UnavailableStats implements Stats {
-        private final int val;
-
-        private UnavailableStats(int val) {
-            this.val = val;
-        }
-
-        @Override
-        public long getTimeSinceStart() {
-            return val;
-        }
-
-        @Override
-        public long getTimeSinceReset() {
-            return val;
-        }
-
-        @Override
-        public int getCurrentNumberOfEntries() {
-            return val;
-        }
-
-        @Override
-        public long getTotalNumberOfEntries() {
-            return val;
-        }
-
-        @Override
-        public long getStores() {
-            return val;
-        }
-
-        @Override
-        public long getRetrievals() {
-            return val;
-        }
-
-        @Override
-        public long getHits() {
-            return val;
-        }
-
-        @Override
-        public long getMisses() {
-            return val;
-        }
-
-        @Override
-        public long getRemoveHits() {
-            return val;
-        }
-
-        @Override
-        public long getRemoveMisses() {
-            return val;
-        }
-
-        @Override
-        public long getEvictions() {
-            return val;
-        }
-
-        @Override
-        public long getAverageReadTime() {
-            return val;
-        }
-
-        @Override
-        public long getAverageWriteTime() {
-            return val;
-        }
-
-        @Override
-        public long getAverageRemoveTime() {
-            return val;
-        }
-
-        @Override
-        public void reset() {
-        }
-
-        @Override
-        public void setStatisticsEnabled(boolean enabled) {
-        }
+        /**
+     * Returns a Stats proxy whose long-typed methods return {@code val} and
+     * others return defaults. Infinispan 14 keeps adding methods to Stats so
+     * we can't enumerate them all here.
+     */
+    @SuppressWarnings("unchecked")
+    private static Stats unavailableStats(int val) {
+        return (Stats) java.lang.reflect.Proxy.newProxyInstance(
+                Stats.class.getClassLoader(),
+                new Class<?>[]{Stats.class},
+                (proxy, method, args) -> {
+                    Class<?> r = method.getReturnType();
+                    if (r == int.class || r == Integer.class) return val;
+                    if (r == long.class || r == Long.class) return (long) val;
+                    if (r == double.class || r == Double.class) return (double) val;
+                    if (r == float.class || r == Float.class) return (float) val;
+                    if (r == boolean.class || r == Boolean.class) return false;
+                    return null;
+                });
     }
+
 }

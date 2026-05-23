@@ -31,7 +31,7 @@ import org.zanata.client.commands.OptionsUtil;
 import org.zanata.rest.client.GlossaryClient;
 import org.zanata.rest.client.RestClientFactory;
 
-import javax.ws.rs.client.ResponseProcessingException;
+import jakarta.ws.rs.client.ResponseProcessingException;
 
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 

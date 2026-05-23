@@ -1,10 +1,10 @@
 package org.zanata.action.validator;
 
-import javax.inject.Inject;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.inject.Inject;
+import jakarta.validation.ConstraintValidatorContext;
 
 import org.hibernate.validator.cdi.HibernateValidator;
-import org.jglue.cdiunit.AdditionalClasspaths;
+import io.github.cdiunit.AdditionalClasspaths;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,7 +13,7 @@ import org.zanata.test.CdiUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(CdiUnitRunner.class)
-// enable Hibernate Validator's ValidationExtension so we can inject Validator
+// Enables Hibernate Validator's CDI extension so Validator can be @Inject-ed.
 @AdditionalClasspaths(HibernateValidator.class)
 public class EmailListValidatorTest {
 

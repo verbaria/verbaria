@@ -35,8 +35,8 @@ import org.zanata.security.annotations.CheckLoggedIn;
 import org.zanata.service.EmailService;
 import org.zanata.service.LocaleService;
 import org.zanata.ui.faces.FacesMessages;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.io.Serializable;
 import java.util.List;
 import com.google.common.collect.Lists;
@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
 @Named("contactLanguageTeamMembersAction")
-@javax.faces.bean.ViewScoped
+@jakarta.faces.view.ViewScoped
 public class ContactLanguageTeamMembersAction implements Serializable {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory
             .getLogger(ContactLanguageTeamMembersAction.class);

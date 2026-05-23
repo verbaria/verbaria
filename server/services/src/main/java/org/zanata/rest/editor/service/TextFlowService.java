@@ -21,14 +21,14 @@
 package org.zanata.rest.editor.service;
 
 import java.util.List;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.common.LocaleId;
 import org.zanata.dao.TextFlowDAO;
 import org.zanata.model.HTextFlow;
@@ -43,7 +43,7 @@ import org.zanata.rest.editor.service.resource.TextFlowResource;
 @RequestScoped
 @Named("editor.textFlowService")
 @Path(TextFlowResource.SERVICE_PATH)
-@Transactional(readOnly = true)
+@Transactional
 public class TextFlowService implements TextFlowResource {
     @Inject
     private TextFlowDAO textFlowDAO;

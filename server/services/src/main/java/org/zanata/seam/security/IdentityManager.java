@@ -6,11 +6,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import javax.annotation.PostConstruct;
-import javax.inject.Named;
-import javax.validation.constraints.NotNull;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Named;
+import jakarta.validation.constraints.NotNull;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.security.ZanataIdentity;
 import org.zanata.util.ServiceLocator;
 import com.google.common.base.Strings;
@@ -21,7 +21,7 @@ import com.google.common.base.Strings;
  * @author Patrick Huang
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@javax.enterprise.context.RequestScoped
+@jakarta.enterprise.context.RequestScoped
 @Named("identityManager")
 public class IdentityManager implements Serializable {
     public static final String USER_PERMISSION_NAME = "seam.user";

@@ -5,16 +5,16 @@ import static org.zanata.model.HAccountRole.RoleType.MANUAL;
 import static org.zanata.model.HApplicationConfiguration.KEY_ALLOW_ANONYMOUS_USER;
 import java.util.List;
 import javax.annotation.Nonnull;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import com.google.common.annotations.VisibleForTesting;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.apache.deltaspike.core.api.exclude.Exclude;
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import jakarta.enterprise.context.Initialized;
 import org.apache.deltaspike.core.api.projectstage.ProjectStage;
-import javax.inject.Named;
-import javax.servlet.ServletContext;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Named;
+import jakarta.servlet.ServletContext;
+import jakarta.transaction.Transactional;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.dao.AccountDAO;
 import org.zanata.dao.AccountRoleDAO;
@@ -69,7 +69,7 @@ public class EssentialDataCreator {
 
     @WithRequestScope
     @Transactional
-    public void onCreate(@Observes @Initialized ServletContext context) {
+    public void onCreate(@Observes @Initialized(jakarta.enterprise.context.ApplicationScoped.class) ServletContext context) {
         log.debug("{}.onCreate()", getClass().getName());
         // since our EntityManager is RequestScoped, we need to have it before
         // any Transactional thing to happen

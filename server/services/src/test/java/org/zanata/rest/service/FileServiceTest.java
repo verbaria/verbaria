@@ -23,8 +23,10 @@ package org.zanata.rest.service;
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import io.github.cdiunit.InRequestScope;
+import org.zanata.jpa.EntityManagerProducer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,10 +65,10 @@ import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,6 +80,8 @@ import static org.mockito.Mockito.when;
  */
 @RunWith(CdiUnitRunner.class)
 @AdditionalClasses({FileService.class, CurrentUserImpl.class})
+// Skip the production EntityManagerProducer; the test supplies its own mock.
+@IgnoredClasses(EntityManagerProducer.class)
 public class FileServiceTest extends ZanataTest {
     private static final String PROJ_SLUG = "project-slug";
     private static final String VER_SLUG = "version-slug";

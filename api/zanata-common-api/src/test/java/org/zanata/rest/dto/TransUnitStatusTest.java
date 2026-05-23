@@ -2,7 +2,7 @@ package org.zanata.rest.dto;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.zanata.common.ContentState;
 

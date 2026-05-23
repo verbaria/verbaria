@@ -30,18 +30,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Dependent;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.servlet.http.HttpSession;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpSession;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.core.api.common.DeltaSpike;
+import org.zanata.cdi.DeltaSpike;
 import org.apache.log4j.Level;
 import org.zanata.config.AllowAnonymousAccess;
 import org.zanata.config.AllowPublicRegistration;
@@ -68,7 +68,7 @@ import org.zanata.util.DefaultLocale;
 import org.zanata.util.Synchronized;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
@@ -237,13 +237,12 @@ public class ApplicationConfiguration implements Serializable {
      */
     private void loadJaasConfig() {
         if (loginModuleNames.containsKey(AuthenticationType.OPENID)) {
-            openIdProvider = Optional
-                    .fromNullable(jaasConfig.getAppConfigurationProperty(
+            openIdProvider = Optional.ofNullable(jaasConfig.getAppConfigurationProperty(
                             loginModuleNames.get(AuthenticationType.OPENID),
                             OpenIdLoginModule.class,
                             OpenIdLoginModule.OPEN_ID_PROVIDER_KEY));
         } else {
-            openIdProvider = Optional.absent();
+            openIdProvider = Optional.empty();
         }
     }
 
@@ -338,7 +337,7 @@ public class ApplicationConfiguration implements Serializable {
     }
 
     public String getOpenIdProviderUrl() {
-        return openIdProvider.orNull();
+        return openIdProvider.orElse(null);
     }
 
     public boolean isInternalAuth() {

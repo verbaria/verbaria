@@ -20,13 +20,12 @@
  */
 package org.zanata.service.impl;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.Session;
-import org.hibernate.criterion.Restrictions;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.SlugEntityBase;
 import org.zanata.service.SlugEntityService;
@@ -49,15 +48,27 @@ public class SlugEntityServiceImpl implements SlugEntityService {
     @Override
     public boolean isSlugAvailable(String slug,
             Class<? extends SlugEntityBase> cls) {
-        return session.createCriteria(cls).add(Restrictions.eq("slug", slug))
-                .list().size() == 0;
+        // Port of Hibernate 5 Criteria to HQL (simpler than JPA Criteria here).
+        Long count = session.createQuery(
+                "select count(e) from " + cls.getSimpleName()
+                        + " e where e.slug = :slug",
+                Long.class)
+                .setParameter("slug", slug)
+                .uniqueResult();
+        return count == null || count == 0;
     }
 
     @Override
     public boolean isProjectIterationSlugAvailable(String slug,
             String projectSlug) {
-        return session.createCriteria(HProjectIteration.class)
-                .add(Restrictions.eq("slug", slug)).createCriteria("project")
-                .add(Restrictions.eq("slug", projectSlug)).list().size() == 0;
+        Long count = session.createQuery(
+                "select count(it) from HProjectIteration it"
+                        + " where it.slug = :slug"
+                        + " and it.project.slug = :projectSlug",
+                Long.class)
+                .setParameter("slug", slug)
+                .setParameter("projectSlug", projectSlug)
+                .uniqueResult();
+        return count == null || count == 0;
     }
 }

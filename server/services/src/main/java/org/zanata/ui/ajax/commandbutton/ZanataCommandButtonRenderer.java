@@ -2,163 +2,76 @@
  * Copyright 2015, Red Hat, Inc. and individual contributors as indicated by the
  * @author tags. See the copyright.txt file in the distribution for a full
  * listing of individual contributors.
- *
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this software; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
- * site: http://www.fsf.org.
  */
 package org.zanata.ui.ajax.commandbutton;
 
-import org.richfaces.renderkit.RenderKitUtils;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.context.FacesContext;
+import jakarta.faces.context.ResponseWriter;
+import jakarta.faces.render.FacesRenderer;
+import jakarta.faces.render.Renderer;
 
-import javax.faces.component.UIComponent;
-import javax.faces.context.FacesContext;
-import javax.faces.context.ResponseWriter;
-import javax.faces.render.FacesRenderer;
 import java.io.IOException;
 
-import static org.richfaces.renderkit.RenderKitUtils.attributes;
-import static org.richfaces.renderkit.RenderKitUtils.renderPassThroughAttributes;
-import static org.richfaces.renderkit.RenderKitUtils.shouldRenderAttribute;
-
 /**
- * Command button renderer for html faces.
- * @author Carlos Munoz <a
- *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
+ * Renderer that emits the component as a real {@code <button>} HTML element
+ * (with {@code onclick} bridged to the JSF submit machinery). Replaces the
+ * previous RichFaces-based renderer.
  */
 @FacesRenderer(componentFamily = CommandButton.COMPONENT_FAMILY,
         rendererType = ZanataCommandButtonRenderer.RENDERER_TYPE)
-// TODO why does this class copy so much code from parent class?
-public class ZanataCommandButtonRenderer extends
-        org.richfaces.renderkit.html.CommandButtonRenderer {
+public class ZanataCommandButtonRenderer extends Renderer {
 
-    public static final String RENDERER_TYPE =
-            "org.zanata.CommandButtonRenderer";
+    public static final String RENDERER_TYPE = "org.zanata.CommandButtonRenderer";
 
-    private static final RenderKitUtils.Attributes PASS_THROUGH_ATTRIBUTES2 =
-            attributes()
-                    .generic("accept", "accept")
-
-                    .generic("accesskey", "accesskey")
-
-                    .generic("align", "align")
-
-                    .generic("alt", "alt")
-
-                    .bool("checked", "checked")
-
-                    .generic("class", "styleClass")
-
-                    .generic("dir", "dir")
-
-                    .bool("disabled", "disabled")
-
-                    .generic("lang", "lang")
-
-                    .generic("maxlength", "maxlength")
-
-                    .generic("onblur", "onblur")
-
-                    .generic("onchange", "onchange")
-
-                    .generic("ondblclick", "ondblclick", "dblclick")
-
-                    .generic("onfocus", "onfocus")
-
-                    .generic("onkeydown", "onkeydown", "keydown")
-
-                    .generic("onkeypress", "onkeypress", "keypress")
-
-                    .generic("onkeyup", "onkeyup", "keyup")
-
-                    .generic("onmousedown", "onmousedown", "mousedown")
-
-                    .generic("onmousemove", "onmousemove", "mousemove")
-
-                    .generic("onmouseout", "onmouseout", "mouseout")
-
-                    .generic("onmouseover", "onmouseover", "mouseover")
-
-                    .generic("onmouseup", "onmouseup", "mouseup")
-
-                    .generic("onselect", "onselect")
-
-                    .bool("readonly", "readonly")
-
-                    .generic("role", "role")
-
-                    .generic("size", "size")
-
-                    .uri("src", "src")
-
-                    .generic("style", "style")
-
-                    .generic("tabindex", "tabindex")
-
-                    .generic("title", "title")
-
-                    .uri("usemap", "usemap")
-
-    ;
+    /** HTML attributes that should be passed straight through if set on the component. */
+    private static final String[] PASS_THROUGH = {
+            "accept", "accesskey", "align", "alt", "checked", "dir",
+            "disabled", "lang", "maxlength", "onblur", "onchange",
+            "ondblclick", "onfocus", "onkeydown", "onkeypress", "onkeyup",
+            "onmousedown", "onmousemove", "onmouseout", "onmouseover",
+            "onmouseup", "onselect", "readonly", "role", "size", "src",
+            "style", "tabindex", "title", "usemap"
+    };
 
     @Override
-    public void doEncodeEnd(ResponseWriter responseWriter,
-            FacesContext facesContext, UIComponent component)
-            throws IOException {
+    public void encodeEnd(FacesContext facesContext, UIComponent component) throws IOException {
+        ResponseWriter w = facesContext.getResponseWriter();
         String clientId = component.getClientId(facesContext);
-        responseWriter.startElement("button", component);
-        {
-            String value = clientId;
-            if (null != value &&
-                    value.length() > 0) {
-                responseWriter.writeAttribute("id", value, null);
-            }
 
+        w.startElement("button", component);
+        if (clientId != null && !clientId.isEmpty()) {
+            w.writeAttribute("id", clientId, null);
+            w.writeAttribute("name", clientId, null);
         }
 
-        {
-            String value = clientId;
-            if (null != value &&
-                    value.length() > 0) {
-                responseWriter.writeAttribute("name", value, null);
-            }
-
+        Object onclick = component.getAttributes().get("onclick");
+        if (onclick != null) {
+            w.writeAttribute("onclick", onclick, "onclick");
+        }
+        Object value = component.getAttributes().get("value");
+        if (value != null) {
+            w.writeAttribute("value", value, "value");
+        }
+        String styleClass = (String) component.getAttributes().get("styleClass");
+        if (styleClass != null && !styleClass.isEmpty()) {
+            w.writeAttribute("class", styleClass, "styleClass");
         }
 
-        {
-            String value = this.getOnClick(facesContext, component);
-            if (null != value &&
-                    value.length() > 0) {
-                responseWriter.writeAttribute("onclick", value, null);
+        for (String attr : PASS_THROUGH) {
+            Object v = component.getAttributes().get(attr);
+            if (v != null && !v.toString().isEmpty()) {
+                w.writeAttribute(attr, v, attr);
             }
-
         }
 
-        {
-            Object value = component.getAttributes().get("value");
-            if (null != value &&
-                    shouldRenderAttribute(value)) {
-                responseWriter.writeAttribute("value", value, null);
+        // Render children inside the button
+        if (component.getChildCount() > 0) {
+            for (UIComponent child : component.getChildren()) {
+                child.encodeAll(facesContext);
             }
-
         }
-
-        renderPassThroughAttributes(facesContext, component,
-                PASS_THROUGH_ATTRIBUTES2);
-
-        renderChildren(facesContext, component);
-        responseWriter.endElement("button");
+        w.endElement("button");
     }
 
     @Override

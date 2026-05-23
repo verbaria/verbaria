@@ -26,12 +26,12 @@ import static org.mockito.Mockito.when;
 import java.io.Serializable;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpSession;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
+import org.zanata.cdi.DeltaSpike;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;

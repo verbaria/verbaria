@@ -23,15 +23,15 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
 
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
 import org.hibernate.Session;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

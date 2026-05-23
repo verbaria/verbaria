@@ -21,8 +21,8 @@
 package org.zanata.action;
 
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -39,9 +39,9 @@ import static org.mockito.Mockito.*;
 import static org.zanata.security.AuthenticationType.INTERNAL;
 import static org.zanata.security.AuthenticationType.SAML2;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.io.Serializable;
 
 import com.google.common.collect.Sets;
@@ -161,6 +161,6 @@ public class LoginActionTest implements Serializable {
 
         loginAction.redirectIfOnlySSOEnabled();
 
-        verifyZeroInteractions(urlUtil);
+        verifyNoMoreInteractions(urlUtil);
     }
 }

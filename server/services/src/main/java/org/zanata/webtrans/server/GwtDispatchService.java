@@ -1,7 +1,7 @@
 package org.zanata.webtrans.server;
 
-import javax.inject.Inject;
-import javax.servlet.annotation.WebServlet;
+import jakarta.inject.Inject;
+import jakarta.servlet.annotation.WebServlet;
 
 import net.customware.gwt.dispatch.shared.Action;
 import net.customware.gwt.dispatch.shared.Result;

@@ -3,16 +3,16 @@ package org.zanata.service.tm.merge;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
-import javax.enterprise.event.Event;
-import javax.enterprise.inject.Default;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.Search;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -348,8 +348,8 @@ public class TransMemoryMergeServiceImplJpaTest extends ZanataJpaTest {
                 (TMMergeEmailStrategy) emailStrategy.getValue();
         TMMergeEmailContext mergeContext = str.getContext();
         assertThat(mergeContext.getMatchRange()).isEqualTo(new IntRange(threshold, 100));
-        assertThat(mergeContext.getProject().getName()).isEqualTo(targetVersion.getProject().getName());
-        assertThat(mergeContext.getVersion().getSlug()).isEqualTo(targetVersion.getSlug());
+        assertThat(mergeContext.getProject().name()).isEqualTo(targetVersion.getProject().getName());
+        assertThat(mergeContext.getVersion().slug()).isEqualTo(targetVersion.getSlug());
         assertThat(mergeContext.getToAddresses()).containsExactly(
                 getAddress(person));
 

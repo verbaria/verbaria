@@ -1,9 +1,9 @@
 package org.zanata.action;
 
 import java.io.Serializable;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.ApplicationConfiguration;

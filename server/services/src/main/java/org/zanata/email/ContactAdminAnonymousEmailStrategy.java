@@ -20,11 +20,11 @@
  */
 package org.zanata.email;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import com.oath.cyclops.types.persistent.PersistentMap;
 import org.zanata.i18n.Messages;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import static org.zanata.util.HtmlUtil.textToSafeHtml;
 
 public class ContactAdminAnonymousEmailStrategy extends VelocityEmailStrategy {
@@ -39,7 +39,7 @@ public class ContactAdminAnonymousEmailStrategy extends VelocityEmailStrategy {
 
     @Override
     public Optional<InternetAddress[]> getReplyToAddress() {
-        return Optional.absent();
+        return Optional.empty();
     }
 
     @Override

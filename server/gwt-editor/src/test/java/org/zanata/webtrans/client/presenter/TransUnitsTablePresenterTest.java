@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.makeTransUnit;
 
@@ -267,7 +267,7 @@ public class TransUnitsTablePresenterTest {
 
         // Then:
         verify(targetContentsPresenter).updateRow(updatedTransUnit);
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
         verifyNoMoreInteractions(targetContentsPresenter);
     }
 
@@ -285,7 +285,7 @@ public class TransUnitsTablePresenterTest {
                 TransUnitUpdated.UpdateType.WebEditorSave);
 
         // Then:
-        verifyZeroInteractions(eventBus, targetContentsPresenter);
+        verifyNoMoreInteractions(eventBus, targetContentsPresenter);
     }
 
     @Test
@@ -303,7 +303,7 @@ public class TransUnitsTablePresenterTest {
 
         // Then:
         verify(targetContentsPresenter).updateRow(updatedTransUnit);
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
         verifyNoMoreInteractions(targetContentsPresenter);
     }
 
@@ -336,7 +336,7 @@ public class TransUnitsTablePresenterTest {
         verify(targetContentsPresenter).currentEditorContentHasChanged();
         verify(targetContentsPresenter).updateRow(updatedTransUnit);
         verifyNoMoreInteractions(targetContentsPresenter);
-        verifyZeroInteractions(translationHistoryPresenter);
+        verifyNoMoreInteractions(translationHistoryPresenter);
     }
 
     @Test
@@ -418,7 +418,7 @@ public class TransUnitsTablePresenterTest {
         // Then:
         verify(navigationService).getCurrentRowIndexOnPage();
         verifyNoMoreInteractions(navigationService);
-        verifyZeroInteractions(targetContentsPresenter, display);
+        verifyNoMoreInteractions(targetContentsPresenter, display);
     }
 
     @Test
@@ -434,7 +434,7 @@ public class TransUnitsTablePresenterTest {
 
         // Then:
         verify(navigationService).getCurrentRowIndexOnPage();
-        verifyZeroInteractions(targetContentsPresenter);
+        verifyNoMoreInteractions(targetContentsPresenter);
     }
 
     @Test
@@ -541,7 +541,7 @@ public class TransUnitsTablePresenterTest {
 
         verify(display).delayRefresh();
         verifyNoMoreInteractions(display);
-        verifyZeroInteractions(targetContentsPresenter);
+        verifyNoMoreInteractions(targetContentsPresenter);
     }
 
     @Test

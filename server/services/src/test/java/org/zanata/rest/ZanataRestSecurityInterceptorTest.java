@@ -22,12 +22,12 @@
 package org.zanata.rest;
 
 import java.util.Optional;
-import javax.inject.Provider;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.inject.Provider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import org.apache.oltu.oauth2.common.OAuth;
 import org.junit.Before;
@@ -48,7 +48,7 @@ import static org.apache.oltu.oauth2.common.OAuth.HeaderType.AUTHORIZATION;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class ZanataRestSecurityInterceptorTest {
@@ -95,7 +95,7 @@ public class ZanataRestSecurityInterceptorTest {
 
         securityInterceptor.filter(context);
 
-        verifyZeroInteractions(request);
+        verifyNoMoreInteractions(request);
     }
 
     @Test

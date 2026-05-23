@@ -144,6 +144,26 @@
 
       <!-- https://docs.jboss.org/author/display/AS71/JPA+Reference+Guide#JPAReferenceGuide-Persistenceunitproperties -->
       <property name="jboss.as.jpa.managed" value="true" />
+
+      <!-- Force Hibernate to use JSON-B as its JsonFormatMapper. The default
+           Jackson-based mapper would try `new ObjectMapper().findAndRegisterModules()`
+           with WildFly's Jackson 2.15.x — and load WAR-bundled Jackson 2.18.x
+           Module SPI classes, causing a "not a subtype" ServiceConfigurationError
+           because Module 2.15 and 2.18 are incompatible binary types.
+           Hibernate 6.4's property is `hibernate.type.json_format_mapper`
+           (the `preferred_*` variant was introduced in 6.5). -->
+      <property name="hibernate.type.json_format_mapper"
+                value="org.hibernate.type.format.jakartajson.JsonBJsonFormatMapper" />
+      <!-- Same reason as above for the XML side: Hibernate's default Jackson
+           XML mapper trips on the same 2.15 vs 2.18 Module mismatch. -->
+      <property name="hibernate.type.xml_format_mapper"
+                value="org.hibernate.type.format.jaxb.JaxbXmlFormatMapper" />
+
+      <!-- WildFly's JPA subsystem enables strict JPQL compliance which rejects
+           Hibernate's HQL extensions (aliased fetch join, implicit SELECT).
+           The Zanata named queries pre-date the migration and use those
+           extensions; relax compliance until they can be ported. -->
+      <property name="hibernate.jpa.compliance.query" value="false" />
     </properties>
   </persistence-unit>
 

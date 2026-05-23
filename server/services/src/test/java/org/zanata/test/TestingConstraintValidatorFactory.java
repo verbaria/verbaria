@@ -20,12 +20,16 @@
  */
 package org.zanata.test;
 
-import org.apache.deltaspike.beanvalidation.impl.CDIAwareConstraintValidatorFactory;
 import org.apache.deltaspike.core.api.provider.BeanManagerProvider;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorFactory;
-import javax.validation.Validation;
+import jakarta.enterprise.context.spi.CreationalContext;
+import jakarta.enterprise.inject.spi.AnnotatedType;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.InjectionTarget;
+import jakarta.enterprise.inject.spi.InjectionTargetFactory;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorFactory;
+import jakarta.validation.Validation;
 
 /**
  * The standard CDIAwareConstraintValidatorFactory configured in production
@@ -41,9 +45,33 @@ public class TestingConstraintValidatorFactory implements ConstraintValidatorFac
     private final ConstraintValidatorFactory defaultFactory;
 
     public TestingConstraintValidatorFactory() {
-        cdiFactory = new CDIAwareConstraintValidatorFactory();
+        cdiFactory = new CdiConstraintValidatorFactory();
         defaultFactory = Validation.byDefaultProvider().configure()
                 .getDefaultConstraintValidatorFactory();
+    }
+
+    /** Local replacement for DeltaSpike's CDIAwareConstraintValidatorFactory
+     *  (dropped in DeltaSpike 2.0): create the validator through the active
+     *  CDI BeanManager so injections in constraint validators still work. */
+    private static final class CdiConstraintValidatorFactory
+            implements ConstraintValidatorFactory {
+        @Override
+        public <T extends ConstraintValidator<?, ?>> T getInstance(
+                Class<T> validatorClass) {
+            BeanManager bm = BeanManagerProvider.getInstance().getBeanManager();
+            AnnotatedType<T> at = bm.createAnnotatedType(validatorClass);
+            InjectionTargetFactory<T> factory = bm.getInjectionTargetFactory(at);
+            InjectionTarget<T> it = factory.createInjectionTarget(null);
+            CreationalContext<T> cc = bm.createCreationalContext(null);
+            T instance = it.produce(cc);
+            it.inject(instance, cc);
+            it.postConstruct(instance);
+            return instance;
+        }
+
+        @Override
+        public void releaseInstance(ConstraintValidator<?, ?> instance) {
+        }
     }
 
     private static boolean isCdiActive() {

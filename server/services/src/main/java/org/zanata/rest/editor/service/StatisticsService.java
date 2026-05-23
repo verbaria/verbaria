@@ -21,14 +21,14 @@
 package org.zanata.rest.editor.service;
 
 import java.util.List;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.Response;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.Response;
+import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.LocaleId;
 import org.zanata.dao.DocumentDAO;
 import org.zanata.model.HDocument;
@@ -46,7 +46,7 @@ import com.google.common.collect.Lists;
 @RequestScoped
 @Named("editor.statisticService")
 @Path(StatisticResource.SERVICE_PATH)
-@Transactional(readOnly = true)
+@Transactional
 public class StatisticsService implements StatisticResource {
     @Inject
     private DocumentDAO documentDAO;

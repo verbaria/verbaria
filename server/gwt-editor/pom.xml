@@ -71,7 +71,7 @@
     <!-- NB: GWT and anything which depends on it should go last, to
          avoid overriding Java APIs (especially javax.servlet) -->
     <dependency>
-      <groupId>com.google.gwt</groupId>
+      <groupId>org.gwtproject</groupId>
       <artifactId>gwt-servlet</artifactId>
       <scope>runtime</scope>
     </dependency>
@@ -82,20 +82,20 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.gwt</groupId>
+      <groupId>org.gwtproject</groupId>
       <artifactId>gwt-user</artifactId>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>jaxrs-api</artifactId>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>javax.validation</groupId>
-      <artifactId>validation-api</artifactId>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -106,7 +106,7 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
-          <groupId>com.google.gwt</groupId>
+          <groupId>org.gwtproject</groupId>
           <artifactId>gwt-dev</artifactId>
         </exclusion>
         <exclusion>
@@ -221,7 +221,7 @@
         <configuration>
           <ignoredDependencies>
             <dependency>
-              <groupId>com.google.gwt</groupId>
+              <groupId>org.gwtproject</groupId>
               <artifactId>gwt-user</artifactId>
             </dependency>
           </ignoredDependencies>
@@ -232,17 +232,17 @@
         <artifactId>gwt-maven-plugin</artifactId>
         <dependencies>
           <dependency>
-            <groupId>com.google.gwt</groupId>
+            <groupId>org.gwtproject</groupId>
             <artifactId>gwt-user</artifactId>
             <version>${gwt.version}</version>
           </dependency>
           <dependency>
-            <groupId>com.google.gwt</groupId>
+            <groupId>org.gwtproject</groupId>
             <artifactId>gwt-dev</artifactId>
             <version>${gwt.version}</version>
           </dependency>
           <dependency>
-            <groupId>com.google.gwt</groupId>
+            <groupId>org.gwtproject</groupId>
             <artifactId>gwt-codeserver</artifactId>
             <version>${gwt.version}</version>
           </dependency>
@@ -411,26 +411,6 @@
                   <module>org.zanata.webtrans.ApplicationI18n</module>
                   <extra>${project.build.directory}/gwt-extra</extra>
                   <extraParam>true</extraParam>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.codehaus.gmaven</groupId>
-            <artifactId>gmaven-plugin</artifactId>
-            <configuration>
-              <!-- the groovy.script will be given by command line arg -->
-              <!-- at the moment it's used in zanata.xml as command hook -->
-              <source>${pom.basedir}/src/etc/${groovy.script}</source>
-            </configuration>
-            <executions>
-              <execution>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>execute</goal>
-                </goals>
-                <configuration>
-                  <source>${pom.basedir}/src/etc/PrepareGWTI18NProperties.groovy</source>
                 </configuration>
               </execution>
             </executions>

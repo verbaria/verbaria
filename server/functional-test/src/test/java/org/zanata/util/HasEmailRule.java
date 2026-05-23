@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import javax.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimeMultipart;
 import org.junit.rules.ExternalResource;
 import org.subethamail.wiser.Wiser;
 import org.subethamail.wiser.WiserMessage;

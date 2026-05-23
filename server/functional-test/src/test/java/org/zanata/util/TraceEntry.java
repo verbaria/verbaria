@@ -22,7 +22,7 @@ package org.zanata.util;
 
 import java.util.List;
 
-import org.codehaus.jackson.annotate.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.zanata.feature.Trace;
 import com.google.common.primitives.Ints;
 

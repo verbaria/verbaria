@@ -1,5 +1,7 @@
 package org.zanata.model.type;
 
+
+import org.zanata.model.type.WebhookType;
 import java.io.Serializable;
 
 /**

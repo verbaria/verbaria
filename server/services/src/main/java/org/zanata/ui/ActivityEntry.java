@@ -21,8 +21,8 @@
  */
 package org.zanata.ui;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.apache.commons.text.StringEscapeUtils;
 import org.zanata.common.ActivityType;
@@ -54,7 +54,7 @@ import static org.zanata.common.ActivityType.UPLOAD_TRANSLATION_DOCUMENT;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
 @Named("activityEntry")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class ActivityEntry {
     @Inject
     private ActivityService activityServiceImpl;

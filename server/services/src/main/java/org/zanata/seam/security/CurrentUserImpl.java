@@ -21,8 +21,8 @@
 package org.zanata.seam.security;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 
 import org.zanata.model.HAccount;
 import org.zanata.security.annotations.Authenticated;

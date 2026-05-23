@@ -2,9 +2,9 @@ package org.zanata.webtrans.server.rpc;
 
 import java.util.List;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.model.HLocale;
 import org.zanata.security.ZanataIdentity;
 import org.zanata.service.LocaleService;

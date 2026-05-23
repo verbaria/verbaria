@@ -1,8 +1,8 @@
 package org.zanata.security;
 
-import javax.faces.event.PhaseEvent;
-import javax.inject.Provider;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.faces.event.PhaseEvent;
+import jakarta.inject.Provider;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;

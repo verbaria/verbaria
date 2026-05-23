@@ -1,7 +1,7 @@
 package org.zanata.webtrans.server;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -33,12 +33,12 @@ import org.zanata.webtrans.shared.model.ValidationId;
 import org.zanata.webtrans.shared.model.WorkspaceId;
 import org.zanata.webtrans.shared.rpc.ExitWorkspace;
 import org.zanata.webtrans.shared.rpc.WorkspaceContextUpdate;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityManager;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.zanata.transaction.TransactionUtilImpl.runInTransaction;
 
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 @Named("translationWorkspaceManager")
 public class TranslationWorkspaceManagerImpl
         implements TranslationWorkspaceManager {
@@ -119,7 +119,7 @@ public class TranslationWorkspaceManagerImpl
     }
     // transaction has already been committed and marked as rolled back only for
     // current thread. We have to open a new transaction to load any lazy
-    // properties (otherwise exception like javax.resource.ResourceException:
+    // properties (otherwise exception like jakarta.resource.ResourceException:
     // IJ000460: Error checking for a transaction: Transactions are not active)
 
     @Async
@@ -142,7 +142,7 @@ public class TranslationWorkspaceManagerImpl
                 projectSlug, oldProjectSlug, project.getStatus());
         for (HProjectIteration iter : project.getProjectIterations()) {
             projectIterationUpdate(iter, Optional.of(oldProjectSlug),
-                    Optional.<String> absent());
+                    Optional.empty());
         }
     }
 
@@ -150,7 +150,7 @@ public class TranslationWorkspaceManagerImpl
     public void
             projectIterationUpdate(@Observes ProjectIterationUpdate payload) {
         projectIterationUpdate(payload.getIteration(),
-                Optional.<String> absent(), Optional.of(payload.getOldSlug()));
+                Optional.empty(), Optional.of(payload.getOldSlug()));
     }
 
     void projectIterationUpdate(HProjectIteration projectIteration,
@@ -271,6 +271,6 @@ public class TranslationWorkspaceManagerImpl
     @Override
     public Optional<TranslationWorkspace>
             tryGetWorkspace(WorkspaceId workspaceId) {
-        return Optional.fromNullable(workspaceMap.get(workspaceId));
+        return Optional.ofNullable(workspaceMap.get(workspaceId));
     }
 }

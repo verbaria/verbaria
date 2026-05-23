@@ -168,7 +168,7 @@ public class TransMemoryMergeManagerTest {
         boolean result = manager.startTransMemoryMerge(request);
 
         assertThat(result).isFalse();
-        Mockito.verifyZeroInteractions(transMemoryMergeService);
+        Mockito.verifyNoMoreInteractions(transMemoryMergeService);
     }
 
     @Test
@@ -300,7 +300,7 @@ public class TransMemoryMergeManagerTest {
                 .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessage("there is already a task running for version and locale");
 
-        Mockito.verifyZeroInteractions(transMemoryMergeService);
+        Mockito.verifyNoMoreInteractions(transMemoryMergeService);
     }
 
 }

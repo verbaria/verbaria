@@ -20,7 +20,7 @@
  */
 package org.zanata.rest.editor.dto.suggestion;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.zanata.model.tm.TransMemoryUnit;
 import java.util.Date;
 

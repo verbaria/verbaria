@@ -20,7 +20,7 @@
  */
 package org.zanata.security.openid;
 
-import javax.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Alternative;
 import java.util.regex.Pattern;
 
 /**

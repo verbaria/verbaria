@@ -20,22 +20,22 @@
  */
 package org.zanata.rest.admin;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.dao.ApplicationConfigurationDAO;
 import org.zanata.model.HApplicationConfiguration;
 import org.zanata.rest.service.ServerConfigurationService;
 import org.zanata.security.annotations.CheckRole;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,7 +70,7 @@ import static org.zanata.model.HApplicationConfiguration.KEY_TM_FUZZY_BANDS;
 @CheckRole("admin")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@Transactional(readOnly = true)
+@Transactional
 public class ServerSettingsService {
     public static final int DEFAULT_MAX_FILE_UPLOAD = 100;
     public static final int DEFAULT_ACTIVE_REQUEST = 2;
@@ -119,7 +119,7 @@ public class ServerSettingsService {
     }
 
     @POST
-    @Transactional(readOnly = false)
+    @Transactional
     public Response saveSettings(Map<String, String> updatedSettings) {
         for (Map.Entry<String, String> prop : updatedSettings.entrySet()) {
             PropertyWithDBKey property = allProperties.stream()

@@ -1,11 +1,11 @@
 package org.zanata.service;
 
 import java.util.Map;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.hibernate.cfg.Environment;
-import org.hibernate.dialect.MySQL5Dialect;
+import org.hibernate.dialect.MySQLDialect;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public class EntityManagerFactoryRule extends ExternalResource {
     private static final String MYSQL_TEST_DB_URL =
             "jdbc:log4jdbc:mysql://localhost:3306/zanata_unit_test?characterEncoding=UTF-8";
     private static final String MYSQL_DIALECT =
-            MySQL5Dialect.class.getCanonicalName();
+            MySQLDialect.class.getCanonicalName();
 
     private EntityManagerFactory emf;
     private TestProfile profile;

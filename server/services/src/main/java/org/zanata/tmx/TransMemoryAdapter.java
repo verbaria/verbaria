@@ -20,14 +20,14 @@
  */
 package org.zanata.tmx;
 
-import javax.enterprise.context.Dependent;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.context.Dependent;
+import jakarta.persistence.EntityManager;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import nu.xom.Element;
 import nu.xom.Elements;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.dao.TransMemoryDAO;
 import org.zanata.model.tm.TransMemoryUnitVariant;
 import org.zanata.model.tm.TransMemoryUnit;

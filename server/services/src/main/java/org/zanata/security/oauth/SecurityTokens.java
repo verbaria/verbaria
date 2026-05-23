@@ -26,11 +26,12 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.oltu.oauth2.as.issuer.MD5Generator;
@@ -219,16 +220,14 @@ public class SecurityTokens implements Serializable, Introspectable {
      */
     public String getRedirectLocationUrl(HttpServletRequest request,
             String redirectUrl, String authorizationCode) {
-        try {
-            OAuthResponse resp = OAuthASResponse
-                    .authorizationResponse(request,
-                            HttpServletResponse.SC_FOUND)
-                    .setCode(authorizationCode).location(redirectUrl)
-                    .buildQueryMessage();
-            return resp.getLocationUri();
-        } catch (OAuthSystemException e) {
-            throw new RuntimeException(e);
-        }
+        // Originally used Apache Oltu's OAuthASResponse builder (javax.servlet only).
+        // Replaced with manual query-string construction — semantically equivalent.
+        StringBuilder url = new StringBuilder(redirectUrl);
+        url.append(redirectUrl.contains("?") ? '&' : '?');
+        url.append("code=").append(
+                java.net.URLEncoder.encode(authorizationCode,
+                        java.nio.charset.StandardCharsets.UTF_8));
+        return url.toString();
     }
 
     @Override

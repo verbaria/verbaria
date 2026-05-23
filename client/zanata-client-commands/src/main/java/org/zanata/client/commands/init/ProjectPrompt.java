@@ -29,8 +29,8 @@ import static org.zanata.client.commands.Messages.get;
 import java.util.Collections;
 import java.util.List;
 
-import javax.ws.rs.ClientErrorException;
-import javax.ws.rs.ServerErrorException;
+import jakarta.ws.rs.ClientErrorException;
+import jakarta.ws.rs.ServerErrorException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.zanata.client.commands.ConsoleInteractor;

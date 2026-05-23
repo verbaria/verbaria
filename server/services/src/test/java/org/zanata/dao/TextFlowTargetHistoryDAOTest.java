@@ -26,7 +26,7 @@ import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 import com.github.huangp.entityunit.entity.EntityMakerBuilder;
 import com.github.huangp.entityunit.maker.FixedValueMaker;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.zanata.rest.service.StatisticsServiceImpl.UserMatrixResultTransformer;
 import org.zanata.security.ZanataIdentity;
 
@@ -176,7 +176,7 @@ public class TextFlowTargetHistoryDAOTest extends ZanataJpaTest {
         getEm().flush();
         List<TranslationMatrix> result = historyDAO.getUserTranslationMatrix(
                 user, new DateTime(2015, 2, 1, 1, 1, zone), new DateTime(zone),
-                Optional.absent(), DateTimeZone.getDefault(),
+                Optional.empty(), DateTimeZone.getDefault(),
                 resultTransformer);
         assertThat(result).isEmpty();
     }

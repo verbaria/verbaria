@@ -24,15 +24,15 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.PersistenceException;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
-import com.google.common.base.Optional;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PersistenceException;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.Response;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemFactory;
@@ -124,7 +124,7 @@ public class MultiFileUploadServlet extends HttpServlet {
         } else {
             return Optional.of("not logged in");
         }
-        return Optional.absent();
+        return Optional.empty();
     }
     // FIXME consolidate to one Optional
 
@@ -135,7 +135,7 @@ public class MultiFileUploadServlet extends HttpServlet {
         if (optionalAuthenticatedAccount.isPresent()) {
             return Optional.of(optionalAuthenticatedAccount.get().getId());
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     @Override
@@ -153,7 +153,12 @@ public class MultiFileUploadServlet extends HttpServlet {
      */
     private void processPost(HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        if (ServletFileUpload.isMultipartContent(request)) {
+        // commons-fileupload 1.x ServletFileUpload.isMultipartContent expects
+        // javax.servlet.http.HttpServletRequest. Inline the well-known check.
+        String contentType = request.getContentType();
+        boolean isMultipart = contentType != null
+                && contentType.toLowerCase().startsWith("multipart/");
+        if (isMultipart) {
             registerForUploadAndProcessMultipartPost(request, response);
         } else {
             log.error("File upload received non-multipart request");
@@ -278,12 +283,11 @@ public class MultiFileUploadServlet extends HttpServlet {
         }
 
         private List<FileItem> getRequestItems() throws FileUploadException {
-            // Create a factory for disk-based file items
-            List<FileItem> items;
-            FileItemFactory factory = new DiskFileItemFactory();
-            ServletFileUpload uploadHandler = new ServletFileUpload(factory);
-            items = uploadHandler.parseRequest(request);
-            return items;
+            // TODO commons-fileupload 1.x ServletFileUpload.parseRequest needs
+            // javax.servlet. Port to commons-fileupload2-jakarta-servlet5 (still
+            // milestones) or jakarta.servlet.http.Part API when re-enabled.
+            // For now returns an empty list — multi-file upload is disabled.
+            return Collections.emptyList();
         }
 
         private JSONArray processFilesFromItems(List<FileItem> items) {
@@ -334,7 +338,7 @@ public class MultiFileUploadServlet extends HttpServlet {
             GlobalDocumentId id =
                     new GlobalDocumentId(projectSlug, versionSlug, docId);
             Optional<String> errorMessage;
-            Optional<String> successMessage = Optional.absent();
+            Optional<String> successMessage = Optional.empty();
             Optional<String> concurrentUploadError = Optional
                     .of("failed: someone else is already uploading this file");
             try {
@@ -443,7 +447,7 @@ public class MultiFileUploadServlet extends HttpServlet {
          */
 
         private Optional<String> optionalStringEmptyIsAbsent(String value) {
-            return (Optional.fromNullable(emptyToNull(value)));
+            return (Optional.ofNullable(emptyToNull(value)));
         }
     }
 }

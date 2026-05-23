@@ -21,11 +21,11 @@
 
 package org.zanata.rest.service;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.rest.dto.ProjectIteration;

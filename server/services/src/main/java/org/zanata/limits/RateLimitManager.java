@@ -3,12 +3,12 @@ package org.zanata.limits;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.async.Async;
 import org.zanata.events.ConfigurationChanged;
@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 @Named("rateLimitManager")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class RateLimitManager implements Introspectable {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(RateLimitManager.class);

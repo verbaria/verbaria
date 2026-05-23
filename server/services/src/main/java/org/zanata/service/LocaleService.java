@@ -27,7 +27,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.GenericEntity;
 
 import com.google.common.collect.Lists;
 import com.ibm.icu.util.ULocale;

@@ -21,15 +21,15 @@
 
 package org.zanata.exception.handler;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
+import org.zanata.cdi.DeltaSpike;
 import org.apache.deltaspike.core.api.exception.control.ExceptionHandler;
 import org.apache.deltaspike.core.api.exception.control.Handles;
 import org.apache.deltaspike.core.api.exception.control.event.ExceptionEvent;
 import org.zanata.exception.LockTimeoutException;
 
-import javax.faces.context.FacesContext;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**

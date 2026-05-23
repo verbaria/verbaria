@@ -1,6 +1,6 @@
 package org.zanata.client.config;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 public class StringTrimAdapter extends XmlAdapter<String, String> {
 

@@ -32,8 +32,10 @@ import org.apache.deltaspike.core.spi.scope.window.WindowContext;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import org.zanata.jpa.EntityManagerProducer;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -58,15 +60,16 @@ import org.zanata.security.annotations.Authenticated;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
+@IgnoredClasses(EntityManagerProducer.class)
 @RunWith(CdiUnitRunner.class)
 @AdditionalClasses({
         LocaleServiceImpl.class,

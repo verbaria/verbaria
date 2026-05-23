@@ -22,8 +22,8 @@ package org.zanata.common;
 
 import com.webcohesion.enunciate.metadata.Label;
 
-import javax.xml.bind.annotation.XmlEnum;
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlEnum;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * The possible state of various entities in the system.

@@ -25,7 +25,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
@@ -41,7 +41,7 @@ import org.zanata.security.ZanataIdentity;
  * @author Carlos Munoz <a href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Named("asyncTaskHandleManager")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class AsyncTaskHandleManager implements Serializable {
     private static final long serialVersionUID = -3209755141964141830L;
     @SuppressFBWarnings(value = "SE_BAD_FIELD")

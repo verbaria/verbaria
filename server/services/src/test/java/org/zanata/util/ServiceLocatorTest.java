@@ -24,12 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.logging.LogManager;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.bridge.SLF4JBridgeHandler;

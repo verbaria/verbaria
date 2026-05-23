@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import org.assertj.core.api.Fail;
 import org.hibernate.JDBCException;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;

@@ -2,7 +2,7 @@ package org.zanata.rest.dto.v1
 
 import spock.lang.Specification;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.zanata.common.ContentState;
 import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;

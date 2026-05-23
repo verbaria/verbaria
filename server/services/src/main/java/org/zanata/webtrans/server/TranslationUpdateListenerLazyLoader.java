@@ -69,9 +69,7 @@ public class TranslationUpdateListenerLazyLoader implements
     }
 
     @Override
-    public boolean requiresPostCommitHanding(EntityPersister persister) {
-        // TODO um, no?
-        return false;
+    public boolean requiresPostCommitHandling(org.hibernate.persister.entity.EntityPersister persister) {
+        return true;
     }
-
 }

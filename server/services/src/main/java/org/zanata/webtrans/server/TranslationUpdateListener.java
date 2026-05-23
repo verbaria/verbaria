@@ -2,15 +2,15 @@ package org.zanata.webtrans.server;
 
 import static org.zanata.transaction.TransactionUtilImpl.runInTransaction;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.event.Observes;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.hibernate.event.spi.PostInsertEvent;
 import org.hibernate.event.spi.PostInsertEventListener;
 import org.hibernate.event.spi.PostUpdateEvent;
 import org.hibernate.event.spi.PostUpdateEventListener;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.hibernate.persister.entity.EntityPersister;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
@@ -21,7 +21,7 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 import org.zanata.servlet.HttpRequestAndSessionHolder;
 import org.zanata.util.IServiceLocator;
 import org.zanata.webtrans.server.rpc.TransUnitTransformer;
@@ -33,13 +33,13 @@ import org.zanata.webtrans.shared.model.TransUnitId;
 import org.zanata.webtrans.shared.model.TransUnitUpdateInfo;
 import org.zanata.webtrans.shared.model.WorkspaceId;
 import org.zanata.webtrans.shared.rpc.TransUnitUpdated;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * Entity event listener for HTextFlowTarget.
@@ -48,7 +48,7 @@ import javax.servlet.http.HttpSession;
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 @Named("translationUpdateListener")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class TranslationUpdateListener
         implements PostUpdateEventListener, PostInsertEventListener {
     private static final org.slf4j.Logger log =
@@ -101,12 +101,6 @@ public class TranslationUpdateListener
         } catch (Exception e) {
             log.error("fail to publish TransUnitUpdate event", e);
         }
-    }
-
-    @Override
-    public boolean requiresPostCommitHanding(EntityPersister persister) {
-        // TODO um, no?
-        return false;
     }
 
     private void prepareTransUnitUpdatedEvent(int previousVersionNum,
@@ -242,5 +236,10 @@ public class TranslationUpdateListener
             this.editorClientId = editorClientId;
             this.updateType = updateType;
         }
+    }
+
+    @Override
+    public boolean requiresPostCommitHandling(org.hibernate.persister.entity.EntityPersister persister) {
+        return true;
     }
 }

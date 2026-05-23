@@ -2,7 +2,7 @@ package org.zanata.util;
 
 import java.io.Serializable;
 
-import javax.inject.Provider;
+import jakarta.inject.Provider;
 
 import org.apache.deltaspike.core.api.provider.DependentProvider;
 

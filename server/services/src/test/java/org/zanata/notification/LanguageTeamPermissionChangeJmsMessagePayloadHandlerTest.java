@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class LanguageTeamPermissionChangeJmsMessagePayloadHandlerTest {
     public void willNotHandleWhenEventIsIrrelevant() {
         handler.handle("not a language team permission change event");
 
-        Mockito.verifyZeroInteractions(emailBuilder);
+        Mockito.verifyNoMoreInteractions(emailBuilder);
     }
 
     @Test
@@ -51,7 +51,7 @@ public class LanguageTeamPermissionChangeJmsMessagePayloadHandlerTest {
 
         handler.handle(permissionChangeEvent);
 
-        Mockito.verifyZeroInteractions(emailBuilder);
+        Mockito.verifyNoMoreInteractions(emailBuilder);
     }
 
     @Test

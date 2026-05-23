@@ -3,7 +3,7 @@ package org.zanata.mock;
 import org.zanata.service.TranslationMergeService;
 import org.zanata.service.impl.TranslationMergeServiceFactory;
 
-import javax.enterprise.inject.Specializes;
+import jakarta.enterprise.inject.Specializes;
 
 @Specializes
 public class MockTranslationMergeServiceFactory extends TranslationMergeServiceFactory {

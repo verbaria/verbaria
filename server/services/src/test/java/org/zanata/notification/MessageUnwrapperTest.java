@@ -5,10 +5,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.StringTokenizer;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
-import javax.jms.TextMessage;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.TextMessage;
 
 import org.junit.Test;
 import org.mockito.Mockito;

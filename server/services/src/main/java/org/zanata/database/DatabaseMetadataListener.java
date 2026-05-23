@@ -22,9 +22,9 @@ package org.zanata.database;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import javax.annotation.Resource;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
+import jakarta.annotation.Resource;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 import javax.sql.DataSource;
 
 import org.slf4j.Logger;

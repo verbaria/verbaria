@@ -25,7 +25,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -35,9 +35,9 @@ import com.google.common.cache.CacheLoader;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.infinispan.manager.CacheContainer;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,10 +78,10 @@ import org.zanata.util.ServiceLocator;
 import org.zanata.util.TranslationUtil;
 import org.zanata.util.Zanata;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.transaction.UserTransaction;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.UserTransaction;
 
 @RunWith(CdiUnitRunner.class)
 @SupportDeltaspikeCore
@@ -176,8 +176,8 @@ public class CopyVersionServiceImplTest extends ZanataDbunitJpaTest {
         String versionSlug = "1.0";
         String newVersionSlug = "new-version";
         service.copyVersion(projectSlug, versionSlug, newVersionSlug, null);
-        verifyZeroInteractions(identity);
-        verifyZeroInteractions(credentials);
+        verifyNoMoreInteractions(identity);
+        verifyNoMoreInteractions(credentials);
     }
 
     @Test

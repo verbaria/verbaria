@@ -34,7 +34,7 @@ import org.zanata.model.ITextFlow;
 import org.zanata.model.ITextFlowTarget;
 import org.zanata.util.TMXConstants;
 import org.zanata.util.VersionUtility;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Sets;
 
 /**
@@ -105,7 +105,7 @@ public class TranslationsTMXExportStrategy <T extends ITextFlow>
             return Optional.of(tu);
         } catch (InvalidContentsException e) {
             log.warn(e.getMessage());
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 
@@ -125,13 +125,13 @@ public class TranslationsTMXExportStrategy <T extends ITextFlow>
             Iterable<ITextFlowTarget> allTargets = tf.getAllTargetContents();
             for (ITextFlowTarget target : allTargets) {
                 Optional<Element> tuv = buildTargetTUV(target);
-                tuvSet.addAll(tuv.asSet());
+                tuvSet.addAll((tuv.isPresent() ? java.util.Collections.singleton(tuv.get()) : java.util.Collections.emptySet()));
             }
         } else {
             ITextFlowTarget target = tf.getTargetContents(this.localeId);
             if (target != null) {
                 Optional<Element> tuv = buildTargetTUV(target);
-                tuvSet.addAll(tuv.asSet());
+                tuvSet.addAll((tuv.isPresent() ? java.util.Collections.singleton(tuv.get()) : java.util.Collections.emptySet()));
             }
         }
         return tuvSet;
@@ -168,7 +168,7 @@ public class TranslationsTMXExportStrategy <T extends ITextFlow>
                 log.warn(
                         "illegal null character; discarding TargetContents with locale={}, contents={}",
                         locId, trgContent);
-                return Optional.absent();
+                return Optional.empty();
             }
             Element tuv = new Element("tuv");
             tuv.addAttribute(new Attribute("xml:lang", XMLConstants.XML_NS_URI,
@@ -178,7 +178,7 @@ public class TranslationsTMXExportStrategy <T extends ITextFlow>
             tuv.appendChild(seg);
             return Optional.of(tuv);
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     private String sanitizeForXML(String input) {

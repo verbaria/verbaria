@@ -1,8 +1,8 @@
 package org.zanata.model.validator;
 
 import java.util.Set;
-import javax.inject.Provider;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.inject.Provider;
+import jakarta.validation.ConstraintValidatorContext;
 
 import org.junit.Before;
 import org.junit.Test;

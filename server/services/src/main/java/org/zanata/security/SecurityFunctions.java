@@ -39,7 +39,7 @@ import org.zanata.security.permission.GrantsPermission;
 import org.zanata.security.permission.PermissionProvider;
 import org.zanata.util.ServiceLocator;
 import javax.annotation.Nonnull;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static org.zanata.model.ProjectRole.Maintainer;
 import static org.zanata.model.ProjectRole.TranslationMaintainer;

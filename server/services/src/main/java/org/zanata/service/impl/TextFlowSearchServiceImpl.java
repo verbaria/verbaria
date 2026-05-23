@@ -25,11 +25,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.search.FullTextSession;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.LocaleId;
 import org.zanata.dao.DocumentDAO;
 import org.zanata.exception.ZanataServiceException;
@@ -154,7 +154,7 @@ public class TextFlowSearchServiceImpl implements TextFlowSearchService {
                 .filterInMultipleDocuments(constraints, documentIds);
         String hql = toQuery.toEntityQuery();
         log.debug("hql for searching: {}", hql);
-        org.hibernate.Query query = session.createQuery(hql);
+        org.hibernate.query.Query query = session.createQuery(hql);
         toQuery.setQueryParameters(query, hLocale);
         query.setComment(
                 "TextFlowSearchServiceImpl.findTextFlowsWithDatabaseSearch");

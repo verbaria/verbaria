@@ -23,7 +23,7 @@ package org.zanata.security.openid;
 import java.text.MessageFormat;
 import java.util.regex.Pattern;
 
-import javax.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Alternative;
 
 /**
  * Yahoo Open Id provider.

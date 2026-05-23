@@ -24,7 +24,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 import org.zanata.model.HLocaleMember;
 import org.zanata.model.HPerson;
 

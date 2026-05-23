@@ -22,8 +22,8 @@ package org.zanata.dao;
 
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.model.HAccountActivationKey;
 
 @Named("accountActivationKeyDAO")
@@ -45,8 +45,8 @@ public class AccountActivationKeyDAO extends
         return (HAccountActivationKey) getSession()
             .createQuery(
                 "from HAccountActivationKey key where key.account.id = :accountId and key.keyHash= :keyHash")
-            .setLong("accountId", accountId)
-            .setString("keyHash", keyHash)
+            .setParameter("accountId", accountId)
+            .setParameter("keyHash", keyHash)
             .setComment("AccountDAO.getByUsernameAndEmail").uniqueResult();
     }
 

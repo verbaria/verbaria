@@ -20,6 +20,8 @@
  */
 package org.zanata.model;
 
+
+import org.zanata.model.type.EntityType;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,36 +30,32 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.util.AnnotationLiteral;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapKey;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.OrderColumn;
-import javax.persistence.PreUpdate;
-import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.enterprise.util.AnnotationLiteral;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKey;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.apache.deltaspike.core.api.provider.BeanProvider;
 import org.hibernate.annotations.ListIndexBase;
 import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.Where;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;
 import org.zanata.model.po.HPoHeader;
 import org.zanata.model.po.HPoTargetHeader;
-import org.zanata.model.type.ContentTypeType;
-import org.zanata.model.type.EntityType;
 import org.zanata.rest.dto.resource.AbstractResourceMeta;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
@@ -75,7 +73,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 @Entity
 @EntityListeners({ HDocument.EntityListener.class })
 @Cacheable
-@TypeDef(name = "contentType", typeClass = ContentTypeType.class)
 @GraphQLType(name = "Document")
 public class HDocument extends ModelEntityBase implements DocumentWithId,
         IDocumentHistory, Serializable, Iterable<ITextFlow>, IsEntityWithType {
@@ -206,8 +203,7 @@ public class HDocument extends ModelEntityBase implements DocumentWithId,
         revision++;
     }
 
-    @Type(type = "contentType")
-    @NotNull
+        @NotNull
     public ContentType getContentType() {
         return contentType;
     }

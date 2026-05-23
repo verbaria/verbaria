@@ -28,9 +28,11 @@ import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.FullTextSession;
 import org.hibernate.search.jpa.FullTextEntityManager;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import org.zanata.jpa.EntityManagerProducer;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -53,11 +55,11 @@ import org.zanata.transaction.TransactionUtilImpl;
 import org.zanata.util.IServiceLocator;
 import org.zanata.util.TMXParseException;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityManager;
-import javax.transaction.UserTransaction;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.UserTransaction;
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Collection;
@@ -75,6 +77,7 @@ import static org.mockito.Mockito.when;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
+@IgnoredClasses(EntityManagerProducer.class)
 @RunWith(CdiUnitRunner.class)
 @SupportDeltaspikeCore
 @AdditionalClasses({

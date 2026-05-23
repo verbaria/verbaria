@@ -20,7 +20,7 @@
  */
 package org.zanata.email;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import com.oath.cyclops.types.persistent.PersistentMap;
 

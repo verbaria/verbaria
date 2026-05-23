@@ -20,10 +20,10 @@
  */
 package org.zanata.service.impl;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.apache.commons.io.input.NullInputStream;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,8 +43,8 @@ import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.HashUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -109,7 +109,7 @@ public class TranslationFileServiceImplTest extends ZanataTest {
 
         TranslationsResource translationsResource = transFileService
                 .parseTranslationFile(stream, poName,
-                "ru", project, version, docId, Optional.absent());
+                "ru", project, version, docId, Optional.empty());
 
         TextFlowTarget target = translationsResource.getTextFlowTargets().get(0);
         assertThat(target.getContents().get(0)).isEqualTo("1 aoeuaouaou");
@@ -143,7 +143,7 @@ public class TranslationFileServiceImplTest extends ZanataTest {
 
         TranslationsResource translationsResource = transFileService
                 .parseTranslationFile(stream, docId,
-                        "ru", project, version, docId, Optional.absent());
+                        "ru", project, version, docId, Optional.empty());
         TextFlowTarget target = translationsResource.getTextFlowTargets().get(0);
         assertThat(target.getContents().get(0)).isEqualTo("test message");
         assertThat(target.getResId()).isEqualTo("first");
@@ -164,7 +164,7 @@ public class TranslationFileServiceImplTest extends ZanataTest {
 
         try {
             transFileService.parseTranslationFile(stream, docId,
-                    "ru", project, version, docId, Optional.absent());
+                    "ru", project, version, docId, Optional.empty());
             fail("Expected a ZanataServiceException");
         } catch (ZanataServiceException zse) {
             assertThat(zse.getMessage()).contains("Unsupported Translation file");

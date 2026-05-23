@@ -55,12 +55,6 @@ public class ReindexChildrenEntityEventListener
     private Integer statusFieldIndexInIteration;
 
     @Override
-    public boolean requiresPostCommitHanding(EntityPersister persister) {
-        // We must return true otherwise hibernate will not treat this as post commit event
-        return true;
-    }
-
-    @Override
     public void onPostUpdate(PostUpdateEvent event) {
         Object entity = event.getEntity();
         if (entity instanceof HProject) {
@@ -132,5 +126,10 @@ public class ReindexChildrenEntityEventListener
     @Override
     public void onPostUpdateCommitFailed(PostUpdateEvent event) {
         // nothing
+    }
+
+    @Override
+    public boolean requiresPostCommitHandling(org.hibernate.persister.entity.EntityPersister persister) {
+        return true;
     }
 }

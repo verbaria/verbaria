@@ -20,6 +20,10 @@
  */
 package org.zanata.eventservice;
 
+// gwt-eventservice 1.2.1 is the latest published version and still targets
+// the legacy javax.servlet API. Keep javax.* imports here. The
+// javax.servlet:javax.servlet-api dep is declared explicitly in
+// server/services/pom.xml just for this file.
 import javax.servlet.http.HttpServletRequest;
 import de.novanic.eventservice.service.connection.id.ConnectionIdGenerator;
 

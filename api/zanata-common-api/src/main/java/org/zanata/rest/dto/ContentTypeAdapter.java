@@ -1,6 +1,6 @@
 package org.zanata.rest.dto;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 import org.zanata.common.ContentType;
 

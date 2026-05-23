@@ -2,84 +2,72 @@
  * Copyright 2016, Red Hat, Inc. and individual contributors as indicated by the
  * @author tags. See the copyright.txt file in the distribution for a full
  * listing of individual contributors.
- *
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
- * details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this software; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
- * site: http://www.fsf.org.
  */
-
 package org.zanata.rest.oauth;
 
 import java.util.Optional;
-import javax.servlet.http.HttpServletRequest;
 
-import org.apache.oltu.oauth2.common.OAuth;
-import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
-import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
-import org.apache.oltu.oauth2.common.message.types.ParameterStyle;
-import org.apache.oltu.oauth2.rs.request.OAuthAccessResourceRequest;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 
 /**
- * @author Patrick Huang <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
+ * OAuth 2.0 request inspection helpers.
+ *
+ * Originally relied on Apache Oltu which is dead and only ships against
+ * javax.servlet. Re-implemented using direct {@link HttpServletRequest}
+ * inspection — same OAuth 2.0 header / parameter conventions.
  */
-public class OAuthUtil {
+public final class OAuthUtil {
+
     private static final Logger log = LoggerFactory.getLogger(OAuthUtil.class);
 
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    // OAuth 2.0 parameter names (formerly from org.apache.oltu.oauth2.common.OAuth)
+    private static final String OAUTH_REDIRECT_URI = "redirect_uri";
+    private static final String OAUTH_CLIENT_ID    = "client_id";
+    private static final String OAUTH_CODE         = "code";
+    private static final String OAUTH_REFRESH_TOKEN = "refresh_token";
+
+    private OAuthUtil() {}
+
+    /** Extract a bearer access token from the {@code Authorization} header. */
     public static Optional<String> getAccessTokenFromHeader(HttpServletRequest request) {
-        OAuthAccessResourceRequest oauthRequest = null;
-        if (!Strings.isNullOrEmpty(request.getHeader(OAuth.HeaderType.AUTHORIZATION))) {
-
-            try {
-                // Make the OAuth Request out of this request and validate it
-                // Specify where you expect OAuth access token (request header, body or query string)
-                oauthRequest = new
-                        OAuthAccessResourceRequest(request, ParameterStyle.HEADER);
-                return Optional.of(oauthRequest.getAccessToken());
-            } catch (OAuthSystemException | OAuthProblemException e) {
-                throw new RuntimeException(e);
-            }
+        String header = request.getHeader(AUTHORIZATION_HEADER);
+        if (Strings.isNullOrEmpty(header)) {
+            log.debug("no Authorization header");
+            return Optional.empty();
         }
-        log.debug("no Authorization header");
+        if (header.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+            return Optional.of(header.substring(BEARER_PREFIX.length()).trim());
+        }
         return Optional.empty();
-
     }
 
     public static Optional<String> getOAuthRedirectURI(HttpServletRequest request) {
-        String uri = request.getParameter(OAuth.OAUTH_REDIRECT_URI);
-        return getNonEmptyString(uri);
-    }
-
-    private static Optional<String> getNonEmptyString(String str) {
-        if (Strings.isNullOrEmpty(str)) {
-            return Optional.empty();
-        }
-        return Optional.of(str.trim());
+        return getNonEmptyString(request.getParameter(OAUTH_REDIRECT_URI));
     }
 
     public static Optional<String> getOAuthClientId(HttpServletRequest request) {
-        String clientId = request.getParameter(OAuth.OAUTH_CLIENT_ID);
-        return getNonEmptyString(clientId);
+        return getNonEmptyString(request.getParameter(OAUTH_CLIENT_ID));
     }
 
     public static Optional<String> getAuthCode(HttpServletRequest request) {
-        return getNonEmptyString(request.getParameter(OAuth.OAUTH_CODE));
+        return getNonEmptyString(request.getParameter(OAUTH_CODE));
     }
 
     public static Optional<String> getRefreshToken(HttpServletRequest request) {
-        return getNonEmptyString(request.getParameter(OAuth.OAUTH_REFRESH_TOKEN));
+        return getNonEmptyString(request.getParameter(OAUTH_REFRESH_TOKEN));
+    }
+
+    private static Optional<String> getNonEmptyString(String s) {
+        if (Strings.isNullOrEmpty(s)) {
+            return Optional.empty();
+        }
+        return Optional.of(s.trim());
     }
 }

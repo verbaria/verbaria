@@ -28,19 +28,19 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.Response;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.common.LocaleId;
 import org.zanata.dao.DocumentDAO;
 import org.zanata.dao.LocaleDAO;
@@ -90,7 +90,7 @@ public class LocalesService implements LocalesResource {
     @Inject
     RequestService requestService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public Response get(@QueryParam("filter") String filter,
             @QueryParam("sort") String fields,
@@ -137,7 +137,7 @@ public class LocalesService implements LocalesResource {
     private final FilterLocaleDetails filterLocaleDetails =
             new FilterLocaleDetails();
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public Response getNewLocales(@QueryParam("filter") String filter,
             @QueryParam("size") @DefaultValue("10") int size) {
@@ -160,7 +160,7 @@ public class LocalesService implements LocalesResource {
         return Response.ok(entity).build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public Response getDetails(String localeId) {
         if (StringUtils.isBlank(localeId)) {
@@ -175,7 +175,7 @@ public class LocalesService implements LocalesResource {
         return Response.status(Response.Status.NOT_FOUND).build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public Response getMembers(String localeId) {
         if (StringUtils.isBlank(localeId)) {
@@ -194,7 +194,7 @@ public class LocalesService implements LocalesResource {
         return Response.status(Response.Status.NOT_FOUND).build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public Response getUITranslations() {
         List<HLocale> locales = localeServiceImpl.getSupportedLocales();
@@ -205,7 +205,7 @@ public class LocalesService implements LocalesResource {
         return Response.ok(entity).build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     @CheckRole("admin")
     public Response getSourceLocales() {

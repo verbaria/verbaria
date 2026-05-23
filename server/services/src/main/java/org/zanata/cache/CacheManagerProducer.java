@@ -20,9 +20,9 @@
  */
 package org.zanata.cache;
 
-import javax.annotation.Resource;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.annotation.Resource;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 import org.infinispan.AdvancedCache;
 import org.infinispan.manager.EmbeddedCacheManager;

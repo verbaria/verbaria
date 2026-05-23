@@ -20,12 +20,12 @@
  */
 package org.zanata.action;
 
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Model;
-import javax.faces.event.ValueChangeEvent;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.event.ValueChangeEvent;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.security.annotations.CheckRole;
 import org.zanata.model.tm.TransMemory;
 import org.zanata.seam.framework.EntityHome;

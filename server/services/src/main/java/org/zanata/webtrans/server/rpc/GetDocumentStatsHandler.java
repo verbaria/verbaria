@@ -3,9 +3,9 @@ package org.zanata.webtrans.server.rpc;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
 import org.zanata.service.TranslationStateCache;
 import org.zanata.rest.service.StatisticsServiceImpl;

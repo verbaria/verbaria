@@ -22,8 +22,8 @@ package org.zanata.model.validator;
 
 import java.io.Serializable;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 import org.zanata.rest.service.RestConstants;
 

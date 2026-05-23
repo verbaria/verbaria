@@ -25,8 +25,8 @@ import java.lang.annotation.Annotation;
 import java.util.Optional;
 
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 public interface IServiceLocator extends Serializable {
 

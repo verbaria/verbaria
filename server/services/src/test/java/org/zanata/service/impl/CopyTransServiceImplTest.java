@@ -23,11 +23,11 @@ package org.zanata.service.impl;
 import com.google.common.cache.CacheLoader;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
-import org.hibernate.jpa.HibernateEntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.infinispan.manager.CacheContainer;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -57,9 +57,9 @@ import org.zanata.util.UrlUtil;
 import org.zanata.util.Zanata;
 import org.zanata.webtrans.shared.model.DocumentStatus;
 import org.zanata.webtrans.shared.model.ValidationId;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import java.util.Map;
 import static org.zanata.common.ContentState.Approved;
 import static org.zanata.common.ContentState.New;
@@ -121,7 +121,7 @@ public class CopyTransServiceImplTest extends ZanataDbunitJpaTest {
 
     @Override
     @Produces
-    protected HibernateEntityManagerFactory getEmf() {
+    protected EntityManagerFactory getEmf() {
         return super.getEmf();
     }
 

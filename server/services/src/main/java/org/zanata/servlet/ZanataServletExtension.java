@@ -24,6 +24,7 @@ import io.undertow.servlet.ServletExtension;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.util.ImmediateAuthenticationMechanismFactory;
 import org.zanata.security.DummyAuthenticationMechanism;
+// Undertow ServletExtension is implemented with javax.servlet.ServletContext
 import javax.servlet.ServletContext;
 import javax.servlet.SessionCookieConfig;
 

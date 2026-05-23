@@ -423,7 +423,7 @@ public class AppPresenterTest {
         presenter.onDocumentStatsUpdated(new DocumentStatsUpdatedEvent(
                 new DocumentId(1L, ""), new ContainerTranslationStatistics()));
 
-        verifyZeroInteractions(display);
+        verifyNoMoreInteractions(display);
     }
 
     @Test
@@ -438,7 +438,7 @@ public class AppPresenterTest {
                 new DocumentId(1L, ""), new ContainerTranslationStatistics()));
 
         // Then:
-        verifyZeroInteractions(display);
+        verifyNoMoreInteractions(display);
     }
 
     @Test

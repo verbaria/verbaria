@@ -21,9 +21,9 @@
 package org.zanata.action.validator;
 
 import java.io.Serializable;
-import javax.inject.Inject;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.inject.Inject;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import org.zanata.dao.PersonDAO;
 
 public class DuplicateEmailValidator implements

@@ -21,7 +21,7 @@
 package org.zanata.seam.security;
 
 import java.security.Principal;
-import java.security.acl.Group;
+import org.zanata.security.Group;
 import javax.security.auth.Subject;
 
 import org.zanata.security.Identity;

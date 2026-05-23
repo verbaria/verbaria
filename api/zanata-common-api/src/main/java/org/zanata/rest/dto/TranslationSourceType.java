@@ -23,8 +23,8 @@ package org.zanata.rest.dto;
 import java.io.Serializable;
 import java.util.Collection;
 
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableSet;
 
 /**

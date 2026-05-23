@@ -31,23 +31,23 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Model;
-import javax.faces.application.FacesMessage;
-import javax.faces.bean.ViewScoped;
-import javax.faces.event.ValueChangeEvent;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.view.ViewScoped;
+import jakarta.faces.event.ValueChangeEvent;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Session;
 import org.hibernate.criterion.NaturalIdentifier;
 import org.hibernate.criterion.Restrictions;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.validation.constraints.NotNull;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.validation.constraints.NotNull;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
@@ -85,8 +85,8 @@ import org.zanata.webtrans.shared.model.ValidationId;
 import org.zanata.webtrans.shared.validation.ValidationFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import static javax.faces.application.FacesMessage.SEVERITY_ERROR;
-import static javax.faces.application.FacesMessage.SEVERITY_INFO;
+import static jakarta.faces.application.FacesMessage.SEVERITY_ERROR;
+import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
 import static org.zanata.service.impl.WebhookServiceImpl.getTypesFromString;
 import static org.zanata.model.ProjectRole.Maintainer;
 
@@ -728,7 +728,7 @@ public class ProjectHome extends SlugHome<HProject>
         if (!valid) {
             String validationMessages =
                     ResourceBundle.getBundle("ValidationMessages").getString(
-                            "javax.validation.constraints.Slug.message");
+                            "jakarta.validation.constraints.Slug.message");
             facesMessages.addToControl(componentId, validationMessages);
             return false;
         }

@@ -22,9 +22,9 @@ package org.zanata.rest.client;
 
 import java.io.IOException;
 import java.net.URI;
-import javax.ws.rs.client.ClientRequestContext;
-import javax.ws.rs.client.ClientResponseContext;
-import javax.ws.rs.client.ClientResponseFilter;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientResponseContext;
+import jakarta.ws.rs.client.ClientResponseFilter;
 
 /**
  * Resteasy does not support following redirect. https://issues.jboss.org/browse/RESTEASY-1075

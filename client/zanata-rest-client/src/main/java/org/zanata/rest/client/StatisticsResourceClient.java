@@ -22,11 +22,11 @@
 package org.zanata.rest.client;
 
 import java.net.URI;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.client.ResponseProcessingException;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.client.ResponseProcessingException;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import org.zanata.rest.RestUtil;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;

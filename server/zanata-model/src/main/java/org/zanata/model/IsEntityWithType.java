@@ -20,8 +20,8 @@
  */
 package org.zanata.model;
 
-import org.zanata.model.type.EntityType;
 
+import org.zanata.model.type.EntityType;
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */

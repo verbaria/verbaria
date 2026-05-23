@@ -24,18 +24,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import org.hibernate.search.annotations.AnalyzerDiscriminator;
-import org.hibernate.search.annotations.ClassBridge;
-import org.zanata.hibernate.search.TextContainerAnalyzerDiscriminator;
-import org.zanata.hibernate.search.TransUnitVariantClassBridge;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Basic;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import org.zanata.model.ModelEntityBase;
 import org.zanata.tmx.TMXUtil;
 import org.zanata.util.HashUtil;
@@ -48,8 +44,6 @@ import org.zanata.util.HashUtil;
  */
 @Entity
 @Access(AccessType.FIELD)
-@ClassBridge(impl = TransUnitVariantClassBridge.class)
-@AnalyzerDiscriminator(impl = TextContainerAnalyzerDiscriminator.class)
 public class TransMemoryUnitVariant extends ModelEntityBase
         implements HasTMMetadata {
     private static final long serialVersionUID = 1L;

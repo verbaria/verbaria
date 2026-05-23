@@ -22,7 +22,7 @@ package org.zanata.search;
 
 import org.hibernate.CacheMode;
 import org.hibernate.FlushMode;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.search.FullTextSession;
@@ -78,14 +78,14 @@ public class HTextFlowTargetIndexingStrategy
 
     private static void reindexScrollableResultSet(FullTextSession session,
             ScrollableResults scrollableResults, AsyncTaskHandle<?> handle) {
-        session.setFlushMode(FlushMode.MANUAL);
+        session.setHibernateFlushMode(FlushMode.MANUAL);
         session.setCacheMode(CacheMode.IGNORE);
         int rowNum = 0;
         try {
             while (scrollableResults.next()) {
                 rowNum++;
                 HTextFlowTarget entity =
-                        (HTextFlowTarget) scrollableResults.get(0);
+                        (HTextFlowTarget) scrollableResults.get();
                 // TODO pahuang do I need to purge first then reindex?
                 session.index(entity);
                 if (handle != null) {

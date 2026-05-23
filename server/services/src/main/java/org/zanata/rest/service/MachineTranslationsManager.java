@@ -22,7 +22,7 @@ package org.zanata.rest.service;
 
 import static org.zanata.async.AsyncTaskKey.joinFields;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

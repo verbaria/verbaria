@@ -20,12 +20,12 @@
  */
 package org.zanata.notification;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.jms.JMSException;
-import javax.jms.ObjectMessage;
-import javax.jms.QueueSender;
-import javax.jms.QueueSession;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.jms.JMSException;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.QueueSender;
+import jakarta.jms.QueueSession;
 import org.zanata.events.LanguageTeamPermissionChangedEvent;
 
 /**

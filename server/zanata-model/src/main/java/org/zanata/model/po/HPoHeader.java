@@ -20,8 +20,8 @@
  */
 package org.zanata.model.po;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Entity;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Entity;
 
 import io.leangen.graphql.annotations.types.GraphQLType;
 

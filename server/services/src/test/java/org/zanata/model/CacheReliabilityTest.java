@@ -20,7 +20,7 @@
  */
 package org.zanata.model;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.junit.Test;

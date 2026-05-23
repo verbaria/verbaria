@@ -26,9 +26,9 @@ import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.infinispan.manager.CacheContainer;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,10 +65,10 @@ import org.zanata.util.Zanata;
 import org.zanata.webtrans.shared.model.DocumentStatus;
 import org.zanata.webtrans.shared.model.ValidationId;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.transaction.UserTransaction;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.UserTransaction;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -79,7 +79,7 @@ import java.util.concurrent.Future;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.zanata.action.MergeTranslationsManager.MergeVersionKey.getKey;
 
 @RunWith(CdiUnitRunner.class)
@@ -192,7 +192,7 @@ public class MergeTranslationsServiceImplTest extends ZanataDbunitJpaTest {
         Future<Void> future = service.startMergeTranslations(projectSlug,
                 sourceVersionSlug, projectSlug, targetVersionSlug, true,
                 handle);
-        verifyZeroInteractions(authenticatedAccount);
+        verifyNoMoreInteractions(authenticatedAccount);
         // wait for the async process to finish...
         future.get();
         // No translations were performed
@@ -209,7 +209,7 @@ public class MergeTranslationsServiceImplTest extends ZanataDbunitJpaTest {
                 getKey(projectSlug, targetVersionSlug));
         Future<Void> future = service.startMergeTranslations(projectSlug,
                 sourceVersionSlug, projectSlug, targetVersionSlug, true, null);
-        verifyZeroInteractions(authenticatedAccount);
+        verifyNoMoreInteractions(authenticatedAccount);
         // wait for the async process to finish...
         future.get();
         // No translations were performed

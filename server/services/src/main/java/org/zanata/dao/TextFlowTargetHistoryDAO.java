@@ -28,11 +28,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.zanata.common.ContentState;
@@ -42,7 +42,7 @@ import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.zanata.rest.dto.ProjectStatisticsMatrix;
@@ -168,7 +168,7 @@ public class TextFlowTargetHistoryDAO extends
             .append("group by state, id, localeId, wordCount) as target_history_group ")
             .append("group by state, localeId");
 
-        Query query = getSession().createSQLQuery(queryString.toString());
+        Query query = getSession().createNativeQuery(queryString.toString());
         query.setParameter("versionId", versionId);
         query.setParameter("personId", personId);
         if (translations) {
@@ -179,9 +179,9 @@ public class TextFlowTargetHistoryDAO extends
             query.setParameterList("states",
                     getContentStateOrdinals(ContentState.REVIEWED_STATES));
         }
-        query.setBoolean("automatedEntry", automatedEntry);
-        query.setTimestamp("fromDate", fromDate);
-        query.setTimestamp("toDate", toDate);
+        query.setParameter("automatedEntry", automatedEntry);
+        query.setParameter("fromDate", fromDate);
+        query.setParameter("toDate", toDate);
         return query;
     }
 
@@ -309,13 +309,13 @@ public class TextFlowTargetHistoryDAO extends
                         "  ) as all_translation" +
                         "  group by " + dateOfLastChanged + ", iteration, locale, state " +
                         "  order by lastChanged, iteration, locale, state";
-        Query query = getSession().createSQLQuery(queryString)
+        Query query = getSession().createNativeQuery(queryString)
             .setParameter("user", user.getId())
-            .setInteger("untranslated", ContentState.New.ordinal())
-                .setInteger("rejected", ContentState.Rejected.ordinal())
-            .setBoolean("automatedEntry", false)
-            .setTimestamp("fromDate", fromDate.toDate())
-            .setTimestamp("toDate", toDate.toDate())
+            .setParameter("untranslated", ContentState.New.ordinal())
+                .setParameter("rejected", ContentState.Rejected.ordinal())
+            .setParameter("automatedEntry", false)
+            .setParameter("fromDate", fromDate.toDate())
+            .setParameter("toDate", toDate.toDate())
             .setResultTransformer(resultTransformer);
         @SuppressWarnings("unchecked")
         List<TranslationMatrix> list = query.list();
@@ -361,11 +361,11 @@ public class TextFlowTargetHistoryDAO extends
                         "  ) as all_translation" +
                         "  group by " + dateOfLastChanged + ", locale, state " +
                         "  order by lastChanged, locale, state";
-        Query query = getSession().createSQLQuery(queryString)
+        Query query = getSession().createNativeQuery(queryString)
                 .setParameter("versionId", version.getId())
-                .setBoolean("automatedEntry", false)
-                .setTimestamp("fromDate", fromDate.toDate())
-                .setTimestamp("toDate", toDate.toDate())
+                .setParameter("automatedEntry", false)
+                .setParameter("fromDate", fromDate.toDate())
+                .setParameter("toDate", toDate.toDate())
                 .setResultTransformer(resultTransformer);
         @SuppressWarnings("unchecked")
         List<ProjectStatisticsMatrix> list = query.list();

@@ -2,7 +2,7 @@ package org.zanata.util;
 
 import java.util.Map;
 import java.util.Optional;
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.RequestScoped;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

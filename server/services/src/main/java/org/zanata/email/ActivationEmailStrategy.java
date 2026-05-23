@@ -23,7 +23,7 @@ package org.zanata.email;
 import com.oath.cyclops.types.persistent.PersistentMap;
 import org.zanata.i18n.Messages;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 /**
 * @author Sean Flanigan <a href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>

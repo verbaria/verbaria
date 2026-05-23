@@ -20,7 +20,7 @@
  */
 package org.zanata.dao;
 
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.RequestScoped;
 import org.zanata.model.security.HCredentials;
 
 /**

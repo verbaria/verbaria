@@ -20,7 +20,7 @@
  */
 package org.zanata.file;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,7 +32,7 @@ import java.util.Set;
  * to prevent an individual user tying up too many server resources.
  */
 @Named("userFileUploadTracker")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 
 public class UserFileUploadTracker {
 

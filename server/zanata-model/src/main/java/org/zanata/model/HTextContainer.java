@@ -26,25 +26,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.Transient;
+import jakarta.persistence.Transient;
 
-import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
-import org.apache.lucene.analysis.ngram.NGramTokenizerFactory;
-import org.apache.lucene.analysis.standard.StandardFilterFactory;
-import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
-import org.hibernate.search.annotations.AnalyzerDef;
-import org.hibernate.search.annotations.AnalyzerDefs;
-import org.hibernate.search.annotations.AnalyzerDiscriminator;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Parameter;
-import org.hibernate.search.annotations.TokenFilterDef;
-import org.hibernate.search.annotations.TokenizerDef;
 import org.zanata.common.HasContents;
-import org.zanata.hibernate.search.Analyzers;
-import org.zanata.hibernate.search.IndexFieldLabels;
-import org.zanata.hibernate.search.StringListBridge;
-import org.zanata.hibernate.search.TextContainerAnalyzerDiscriminator;
 
 /**
  * @author Sean Flanigan <a
@@ -52,34 +36,10 @@ import org.zanata.hibernate.search.TextContainerAnalyzerDiscriminator;
  *
  * @see Analyzers
  */
-@AnalyzerDefs({
-        /**
-         * IMPORTANT: make sure this matches the code in
-         * {@link org.zanata.hibernate.search.DefaultAnalyzer}
-         */
-        @AnalyzerDef(name = Analyzers.DEFAULT, tokenizer = @TokenizerDef(
-                factory = StandardTokenizerFactory.class), filters = {
-                @TokenFilterDef(factory = StandardFilterFactory.class),
-                @TokenFilterDef(factory = LowerCaseFilterFactory.class)
-        // @TokenFilterDef(factory = StopFilterFactory.class)
-                }),
-        /**
-         * IMPORTANT: make sure this matches the code in
-         * {@link org.zanata.hibernate.search.UnigramAnalyzer}
-         */
-        @AnalyzerDef(name = Analyzers.UNIGRAM, tokenizer = @TokenizerDef(
-                factory = NGramTokenizerFactory.class, params = {
-                        @Parameter(name = "minGramSize", value = "1"),
-                        @Parameter(name = "maxGramSize", value = "1") }),
-                filters = { @TokenFilterDef(
-                        factory = LowerCaseFilterFactory.class) }) })
 //@GraphQLType(name = "TextContainer")
 public abstract class HTextContainer implements HasContents, Serializable {
     private static final long serialVersionUID = 1L;
 
-    @Field(name = IndexFieldLabels.CONTENT, bridge = @FieldBridge(
-            impl = StringListBridge.class))
-    @AnalyzerDiscriminator(impl = TextContainerAnalyzerDiscriminator.class)
     private List<String> getContentsToIndex() {
         return getContents();
     }

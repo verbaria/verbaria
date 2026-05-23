@@ -8,8 +8,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.List;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.Marshaller;
 
 import org.fedorahosted.tennera.jgettext.Message;
 import org.junit.Rule;

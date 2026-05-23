@@ -28,10 +28,10 @@ import java.util.Optional;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.infinispan.manager.CacheContainer;
-import javax.annotation.PostConstruct;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+import jakarta.inject.Inject;
 
 import org.zanata.cache.CacheWrapper;
 import org.zanata.cache.InfinispanCacheWrapper;
@@ -63,7 +63,7 @@ import com.google.common.cache.CacheLoader;
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 // TODO split into APPLICATION and STATELESS beans
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 
 public class TranslationStateCacheImpl implements TranslationStateCache {
     private static final long serialVersionUID = -212573982590368031L;

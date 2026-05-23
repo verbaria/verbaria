@@ -28,7 +28,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.zanata.page.projectversion.VersionBasePage;
 
-import static org.zanata.util.FluentWaitExtKt.until;
+import static org.zanata.util.FluentWaitExt.until;
 
 /**
  * @author Damian Jansen

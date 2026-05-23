@@ -35,9 +35,9 @@ import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 
 @RunWith(CdiUnitRunner.class)
 public class TranslationDocumentUploadTest extends DocumentUploadTest {

@@ -20,9 +20,9 @@
  */
 package org.zanata.email;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.zanata.i18n.Messages;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import com.oath.cyclops.types.persistent.PersistentMap;
 

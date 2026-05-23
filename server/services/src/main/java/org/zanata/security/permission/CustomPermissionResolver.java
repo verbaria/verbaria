@@ -25,8 +25,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serializable;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 /**
  * This permission resolver will use the
@@ -38,7 +38,7 @@ import javax.inject.Named;
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Named("customPermissionResolver")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class CustomPermissionResolver implements Serializable {
 
     @Inject

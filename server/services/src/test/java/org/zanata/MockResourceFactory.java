@@ -20,7 +20,8 @@ public class MockResourceFactory implements ResourceFactory {
     @Override
     public Object createResource(HttpRequest request, HttpResponse response,
             ResteasyProviderFactory factory) {
-        propertyInjector.inject(request, response, obj);
+        // RESTEasy 6: PropertyInjector#inject(HttpRequest, HttpResponse, Object, boolean)
+        propertyInjector.inject(request, response, obj, false);
         return obj;
     }
 

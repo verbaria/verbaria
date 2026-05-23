@@ -23,11 +23,11 @@ package org.zanata.action.validator;
 import java.io.Serializable;
 import java.util.Set;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Validator;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Validator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.model.validator.ZanataEmail;

@@ -21,12 +21,12 @@
 package org.zanata.action;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Model;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Model;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.rest.dto.DTOUtil;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.rest.dto.User;
 import org.zanata.rest.editor.dto.Permission;
 import org.zanata.rest.editor.service.UserService;

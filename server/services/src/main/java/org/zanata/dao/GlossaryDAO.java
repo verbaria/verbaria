@@ -35,16 +35,16 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.TermQuery;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 import org.hibernate.search.engine.ProjectionConstants;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.FullTextQuery;
 import org.zanata.common.GlossarySortField;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.LocaleId;
 import org.zanata.hibernate.search.IndexFieldLabels;
 import org.zanata.jpa.FullText;
@@ -336,14 +336,14 @@ public class GlossaryDAO extends AbstractDAOImpl<HGlossaryEntry, Long> {
 
         String deleteTermQuery =
                 "DELETE FROM HGlossaryTerm WHERE glossaryEntryId IN (SELECT e.id FROM HGlossaryEntry e INNER JOIN Glossary g ON e.glossaryId = g.id WHERE g.qualifiedName =:qualifiedName)";
-        Query query = getSession().createSQLQuery(deleteTermQuery);
+        Query query = getSession().createNativeQuery(deleteTermQuery);
         query.setParameter("qualifiedName", qualifiedName)
                 .setComment("GlossaryDAO.deleteAllEntries-terms");
         int rowCount = query.executeUpdate();
 
         String deleteEntryQuery =
                 "DELETE FROM HGlossaryEntry where glossaryId IN (SELECT id FROM Glossary WHERE qualifiedName =:qualifiedName)";
-        Query query2 = getSession().createSQLQuery(deleteEntryQuery);
+        Query query2 = getSession().createNativeQuery(deleteEntryQuery);
         query2.setParameter("qualifiedName", qualifiedName)
                 .setComment("GlossaryDAO.deleteAllEntries-entries");
         query2.executeUpdate();

@@ -24,10 +24,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Properties;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +38,7 @@ import org.zanata.webtrans.shared.model.ProjectIterationId;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
-import static javax.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.BCC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

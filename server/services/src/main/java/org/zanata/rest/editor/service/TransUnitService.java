@@ -24,14 +24,14 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Response;
 
 import org.apache.commons.lang3.StringUtils;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.dao.TextFlowDAO;
 import org.zanata.model.HLocale;
 import org.zanata.model.HTextFlow;
@@ -48,7 +48,7 @@ import kotlin.Pair;
 @RequestScoped
 @Named("editor.transUnitService")
 @Path(TransUnitResource.SERVICE_PATH)
-@Transactional(readOnly = true)
+@Transactional
 public class TransUnitService implements TransUnitResource {
     @Inject
     private LocaleService localeServiceImpl;

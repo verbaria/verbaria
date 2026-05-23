@@ -23,7 +23,7 @@ package org.zanata.cdi;
 import org.zanata.util.IServiceLocator;
 import org.zanata.util.ServiceLocator;
 
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Produces;
 
 /**
  * @author Carlos Munoz <a href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>

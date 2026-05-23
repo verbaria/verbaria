@@ -21,7 +21,7 @@
 package org.zanata.file;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static javax.ws.rs.core.Response.Status.*;
+import static jakarta.ws.rs.core.Response.Status.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
@@ -52,7 +52,7 @@ import org.zanata.model.HDocumentUploadPart;
 import org.zanata.rest.DocumentFileUploadForm;
 import org.zanata.service.TranslationFileService;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.io.Files;
 import org.zanata.servlet.annotations.ContextPath;
 import org.zanata.servlet.annotations.ServerPath;
@@ -60,9 +60,9 @@ import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 
 @RunWith(CdiUnitRunner.class)
 public class DocumentUploadUtilTest extends DocumentUploadTest {
@@ -308,7 +308,7 @@ public class DocumentUploadUtilTest extends DocumentUploadTest {
                 new ByteArrayInputStream("test".getBytes());
         conf = defaultUpload().fileStream(streamFromForm).build();
         InputStream returnedStream =
-                getInputStream(Optional.absent(), conf.uploadForm);
+                getInputStream(Optional.empty(), conf.uploadForm);
 
         assertThat(returnedStream).isSameAs(streamFromForm);
     }

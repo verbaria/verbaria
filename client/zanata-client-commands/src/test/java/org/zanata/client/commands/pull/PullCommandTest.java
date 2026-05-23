@@ -23,7 +23,7 @@ package org.zanata.client.commands.pull;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -111,7 +111,7 @@ public class PullCommandTest {
         pullCommand.run();
 
         // Then:
-        verifyZeroInteractions(statsClient, transClient);
+        verifyNoMoreInteractions(statsClient, transClient);
     }
 
     @Test
@@ -130,7 +130,7 @@ public class PullCommandTest {
         pullCommand.run();
 
         // Then:
-        verifyZeroInteractions(statsClient);
+        verifyNoMoreInteractions(statsClient);
         verify(transClient).getTranslations("file1", new LocaleId("zh"),
                 EXTENSIONS, false, null);
         verify(transClient).getTranslations("file1", new LocaleId("de"),

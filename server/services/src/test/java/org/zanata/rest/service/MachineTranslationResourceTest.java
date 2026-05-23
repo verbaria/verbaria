@@ -9,7 +9,7 @@ import static org.zanata.common.LocaleId.EN_US;
 import java.net.URI;
 import java.util.List;
 
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.core.UriInfo;
 
 import org.assertj.core.util.Lists;
 import org.junit.Before;

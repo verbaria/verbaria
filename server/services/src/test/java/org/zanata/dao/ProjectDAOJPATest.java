@@ -6,11 +6,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.hibernate.search.jpa.Search;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;

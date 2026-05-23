@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.async.Async;
@@ -59,7 +59,7 @@ import org.zanata.service.VersionStateCache;
 import org.zanata.transaction.TransactionUtil;
 import org.zanata.util.JPACopier;
 import org.zanata.util.TranslationUtil;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -106,7 +106,7 @@ public class CopyVersionServiceImpl implements CopyVersionService {
             @Nonnull String versionSlug, @Nonnull String newVersionSlug,
             @Nullable CopyVersionTaskHandle handle) {
         Optional<CopyVersionTaskHandle> taskHandleOpt =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         HProjectIteration version =
                 projectIterationDAO.getBySlug(projectSlug, versionSlug);
         if (version == null) {

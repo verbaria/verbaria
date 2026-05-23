@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.userWorkspaceContext;
 
@@ -93,7 +93,7 @@ public class EventProcessorTest {
 
         eventProcessor.apply(notSessionEvent);
 
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test
@@ -114,6 +114,6 @@ public class EventProcessorTest {
 
         eventProcessor.apply(sessionEventData);
 
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 }

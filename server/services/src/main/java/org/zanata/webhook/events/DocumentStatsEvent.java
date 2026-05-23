@@ -21,7 +21,7 @@
 package org.zanata.webhook.events;
 
 import java.util.Map;
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.events.WebhookEventType;

@@ -23,18 +23,15 @@ package org.zanata.model;
 import com.google.common.base.Function;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.zanata.model.type.LocaleRoleType;
 import javax.annotation.Nullable;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.io.Serializable;
 
 import io.leangen.graphql.annotations.types.GraphQLType;
@@ -45,7 +42,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 @Entity
 @Table(name = "HProject_LocaleMember")
 @IdClass(HProjectLocaleMember.HProjectLocaleMemberPK.class)
-@TypeDef(name = "localeRole", typeClass = LocaleRoleType.class)
 @GraphQLType(name = "ProjectLocaleMember")
 public class HProjectLocaleMember
         implements Serializable, HasUserFriendlyToString {
@@ -73,8 +69,7 @@ public class HProjectLocaleMember
     private HPerson person;
     @Id
     @Column(name = "role", columnDefinition = "char")
-    @Type(type = "localeRole")
-    private LocaleRole role;
+        private LocaleRole role;
 
     @Override
     public boolean equals(Object obj) {

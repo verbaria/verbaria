@@ -40,7 +40,7 @@ import org.zanata.model.tm.TransMemoryUnit;
 import org.zanata.util.TMXConstants;
 import org.zanata.util.VersionUtility;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -106,7 +106,7 @@ public class TransMemoryTMXExportStrategy implements
         if (tuSourceLanguage != null) {
             return Optional.of(new LocaleId(tuSourceLanguage));
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     private static void addAttributes(Element toElem,

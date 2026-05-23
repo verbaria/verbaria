@@ -37,8 +37,8 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
@@ -52,12 +52,12 @@ import javax.naming.LinkRef;
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import org.apache.commons.io.FileUtils;
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import jakarta.enterprise.context.Initialized;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.config.MTServiceToken;
 import org.zanata.config.MTServiceURL;
@@ -66,7 +66,7 @@ import org.zanata.email.EmailBuilder;
 import org.zanata.events.ServerStarted;
 import org.zanata.exception.ZanataInitializationException;
 import org.zanata.rest.dto.VersionInfo;
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 
 import org.zanata.util.VersionUtility;
 import org.zanata.util.WithRequestScope;
@@ -118,7 +118,7 @@ public class ZanataInit {
     private String mtServiceToken;
 
     @WithRequestScope
-    public void onCreate(@Observes @Initialized ServletContext context)
+    public void onCreate(@Observes @Initialized(jakarta.enterprise.context.ApplicationScoped.class) ServletContext context)
             throws Exception {
         initZanata(context);
     }

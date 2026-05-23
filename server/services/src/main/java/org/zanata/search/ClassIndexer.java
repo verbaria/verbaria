@@ -22,7 +22,6 @@ package org.zanata.search;
 
 import org.hibernate.CacheMode;
 import org.hibernate.FlushMode;
-import org.hibernate.criterion.Projections;
 import org.hibernate.search.FullTextSession;
 import org.zanata.async.AsyncTaskHandle;
 
@@ -49,14 +48,17 @@ public class ClassIndexer<T> {
     }
 
     public int getEntityCount(FullTextSession session) {
-        Long result = (Long) session.createCriteria(entityType)
-                .setProjection(Projections.rowCount()).list().get(0);
-        return result.intValue();
+        // Hibernate 5 Criteria → JPA Criteria for the simple COUNT.
+        jakarta.persistence.criteria.CriteriaBuilder cb = session.getCriteriaBuilder();
+        jakarta.persistence.criteria.CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        cq.select(cb.count(cq.from(entityType)));
+        Long result = session.createQuery(cq).getSingleResult();
+        return result == null ? 0 : result.intValue();
     }
 
     public void index(FullTextSession session) throws Exception {
         log.info("Setting manual-flush and ignore-cache for {}", entityType);
-        session.setFlushMode(FlushMode.MANUAL);
+        session.setHibernateFlushMode(FlushMode.MANUAL);
         session.setCacheMode(CacheMode.IGNORE);
         indexingStrategy.invoke(handle, session);
         session.flushToIndexes(); // apply changes to indexes

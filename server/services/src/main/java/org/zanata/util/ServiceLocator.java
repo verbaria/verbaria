@@ -22,12 +22,12 @@ package org.zanata.util;
 
 import org.apache.deltaspike.core.api.provider.BeanProvider;
 
-import javax.enterprise.inject.Default;
+import jakarta.enterprise.inject.Default;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import java.lang.annotation.Annotation;
 import java.util.Optional;
 

@@ -19,8 +19,8 @@ import org.zanata.rest.service.ResourceTestUtil;
 import org.zanata.rest.service.ResourceUtils;
 import org.zanata.util.UrlUtil;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;

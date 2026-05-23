@@ -26,12 +26,12 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
-import org.hibernate.Query;
+import jakarta.transaction.Transactional;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

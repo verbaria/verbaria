@@ -22,11 +22,11 @@ package org.zanata.ui.input;
 
 import com.sun.faces.renderkit.html_basic.TextRenderer;
 
-import javax.faces.component.UIComponent;
-import javax.faces.context.FacesContext;
-import javax.faces.context.ResponseWriter;
-import javax.faces.context.ResponseWriterWrapper;
-import javax.faces.render.FacesRenderer;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.context.FacesContext;
+import jakarta.faces.context.ResponseWriter;
+import jakarta.faces.context.ResponseWriterWrapper;
+import jakarta.faces.render.FacesRenderer;
 import java.io.IOException;
 
 /**

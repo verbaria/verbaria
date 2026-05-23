@@ -4,15 +4,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Response;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Response;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.common.LocaleId;
@@ -45,7 +45,7 @@ import com.google.common.base.Strings;
 @RequestScoped
 @Named("editor.userService")
 @Path(UserResource.SERVICE_PATH)
-@Transactional(readOnly = true)
+@Transactional
 public class UserService implements UserResource {
     @Inject
     private CurrentUser currentUser;
@@ -282,7 +282,7 @@ public class UserService implements UserResource {
      * @param prefix add prefix then '.' to the front of each setting before persisting.
      * @param settings JSON object with setting names as keys
      */
-    @Transactional(readOnly = false)
+    @Transactional
     public Response postSettings(String prefix, Map<String, String> settings) {
         HAccount account = accountDAO.findById(currentUser.getAccount().getId(), true);
         for (Map.Entry<String, String> entry : settings.entrySet()) {

@@ -36,8 +36,9 @@ in case changes are required for production deployment (eg Ansible playbooks).
     <jndi-name>java:/jms/queue/MailsQueue</jndi-name>
   </resource-ref>
 
-  <!-- TODO is this still needed? -->
-  <security-domain>zanata</security-domain>
+  <!-- Legacy PicketBox security-domain removed; WildFly 32 only supports
+       Elytron. Auth must be wired through an Elytron application-security-domain
+       when the SAML/OIDC flow is re-implemented. -->
 
   <!-- This is where the webapp context root (eg /zanata or /) can be overridden: -->
   <!-- _context_root_ -->

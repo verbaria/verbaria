@@ -26,7 +26,7 @@ import org.hibernate.criterion.NaturalIdentifier;
 import org.zanata.model.ModelEntityBase;
 import org.zanata.seam.framework.EntityHome;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 /**
  * This implementation uses a field 'slug' to refer to the id of the object.
@@ -47,9 +47,15 @@ public abstract class SlugHome<E extends ModelEntityBase> extends EntityHome<E> 
     @SuppressWarnings("unchecked")
     @Override
     protected E loadInstance() {
+        // Hibernate 5 Criteria + NaturalIdentifier → Hibernate 6 byNaturalId().
         Session session = (Session) getEntityManager().getDelegate();
-        return (E) session.createCriteria(getEntityClass()).add(getNaturalId())
-                .uniqueResult();
+        org.hibernate.criterion.NaturalIdentifier nid = getNaturalId();
+        org.hibernate.NaturalIdLoadAccess<E> loader =
+                session.byNaturalId(getEntityClass());
+        for (java.util.Map.Entry<String, Object> e : nid.getValues().entrySet()) {
+            loader = loader.using(e.getKey(), e.getValue());
+        }
+        return loader.loadOptional().orElse(null);
     }
 
     public abstract NaturalIdentifier getNaturalId();

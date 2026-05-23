@@ -1,9 +1,9 @@
 package org.zanata.notification;
 
-import javax.jms.JMSException;
-import javax.jms.ObjectMessage;
-import javax.jms.QueueSender;
-import javax.jms.QueueSession;
+import jakarta.jms.JMSException;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.QueueSender;
+import jakarta.jms.QueueSession;
 
 import org.junit.Before;
 import org.junit.Test;

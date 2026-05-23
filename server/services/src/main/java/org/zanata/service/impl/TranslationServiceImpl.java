@@ -31,15 +31,15 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import javax.enterprise.context.RequestScoped;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.persistence.EntityManager;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.HibernateException;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.jetbrains.annotations.NotNull;
 import org.zanata.async.Async;
 import org.zanata.async.AsyncTaskHandle;
@@ -80,13 +80,13 @@ import org.zanata.service.LockManagerService;
 import org.zanata.service.TranslationMergeService;
 import org.zanata.service.TranslationService;
 import org.zanata.service.ValidationService;
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 import org.zanata.util.ShortString;
 import org.zanata.webtrans.shared.model.TransUnitId;
 import org.zanata.webtrans.shared.model.TransUnitUpdateInfo;
 import org.zanata.webtrans.shared.model.TransUnitUpdateRequest;
 import org.zanata.webtrans.shared.model.ValidationAction;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -610,7 +610,7 @@ public class TranslationServiceImpl implements TranslationService {
                 localeServiceImpl.validateLocaleByProjectIteration(locale,
                         projectSlug, iterationSlug);
         final Optional<AsyncTaskHandle<?>> handleOp =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         if (handleOp.isPresent()) {
             handleOp.get()
                     .setMaxProgress(translations.getTextFlowTargets().size());

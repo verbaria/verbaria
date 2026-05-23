@@ -1,8 +1,8 @@
 package org.zanata.limits;
 
 import java.io.IOException;
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +60,6 @@ public class RateLimitingProcessorTest {
         processor.processForApiKey(API_KEY, response, runnable);
 
         verify(restCallLimiter).tryAcquireAndRun(runnable);
-        verifyZeroInteractions(response);
+        verifyNoMoreInteractions(response);
     }
 }

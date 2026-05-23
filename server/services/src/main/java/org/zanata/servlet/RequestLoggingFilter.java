@@ -24,15 +24,15 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.annotation.WebFilter;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -67,7 +67,7 @@ public class RequestLoggingFilter implements Filter {
             Logger logger;
             if (uri.equals("/webtrans/gwteventservice")) {
                 logger = gwtESLogger;
-            } else if (uri.startsWith("/javax.faces.resource/") ||
+            } else if (uri.startsWith("/jakarta.faces.resource/") ||
                     uri.startsWith("/org.richfaces.resources/") ||
                     uri.startsWith("/resources/") ||
                     uri.endsWith(".js") ||

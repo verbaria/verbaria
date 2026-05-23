@@ -21,8 +21,8 @@
 package org.zanata.action;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -34,10 +34,10 @@ import org.zanata.ui.faces.FacesMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-import javax.enterprise.inject.Produces;
-import javax.faces.component.UIComponent;
-import javax.faces.event.ValueChangeEvent;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.event.ValueChangeEvent;
+import jakarta.inject.Inject;
 import java.io.Serializable;
 
 /**

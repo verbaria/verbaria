@@ -22,7 +22,7 @@ package org.zanata.webtrans.shared.rest.dto;
 
 import java.io.Serializable;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.zanata.common.IssuePriority;
 import com.google.gwt.user.client.rpc.IsSerializable;
 

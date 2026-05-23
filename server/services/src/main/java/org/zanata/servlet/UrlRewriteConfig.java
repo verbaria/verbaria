@@ -24,8 +24,8 @@ import org.ocpsoft.urlbuilder.AddressBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.ServletContext;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;

@@ -30,9 +30,8 @@
   </scm>
 
   <properties>
-    <!-- Fedora 23 has 3.3.3 -->
-    <maven.version>2.0.11</maven.version>
-    <maven.plugin.version>3.5</maven.plugin.version>
+    <maven.version>3.9.9</maven.version>
+    <maven.plugin.version>3.15.1</maven.plugin.version>
   </properties>
 
   <prerequisites>
@@ -105,7 +104,21 @@
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>1.2</version>
+      <version>3.3.0</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- maven-plugin-testing-harness 3.3.0 still expects to look up Maven
+         core / compat classes; supply them explicitly. -->
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-compat</artifactId>
+      <version>${maven.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${maven.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -132,19 +145,9 @@
 
   <build>
     <plugins>
+      <!-- Use the default javac compiler (Plexus Eclipse compiler is incompatible with JDK 21 source level). -->
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <!-- Override maven.compiler.compilerId=jdt -->
-          <compilerId>eclipse</compilerId>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-compiler-eclipse</artifactId>
-            <version>2.7</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

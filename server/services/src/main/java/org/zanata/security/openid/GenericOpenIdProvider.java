@@ -26,7 +26,7 @@ import org.openid4java.message.MessageExtension;
 import org.openid4java.message.Parameter;
 import org.openid4java.message.ax.AxMessage;
 import org.openid4java.message.sreg.SRegMessage;
-import javax.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Alternative;
 import java.util.Collection;
 import java.util.HashSet;
 

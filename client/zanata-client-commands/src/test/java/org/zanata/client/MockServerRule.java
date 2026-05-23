@@ -21,11 +21,11 @@
 
 package org.zanata.client;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anySetOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import org.jboss.resteasy.specimpl.MultivaluedMapImpl;
 import org.junit.rules.ExternalResource;
@@ -177,7 +177,7 @@ public class MockServerRule extends ExternalResource {
                 asyncClient.startSourceDocCreationOrUpdateWithDocId(
                         eq(pushOpts.getProj()),
                         eq(pushOpts.getProjectVersion()),
-                        any(Resource.class), anySetOf(String.class),
+                        any(Resource.class), anySet(),
                         anyString()))
                 .thenReturn(running);
         when(
@@ -259,7 +259,7 @@ public class MockServerRule extends ExternalResource {
         // return provided remote doc meta list
         when(sourceDocClient.getResourceMeta(null)).thenReturn(remoteDocList);
         // return provided server resource
-        when(sourceDocClient.getResource(anyString(), anySetOf(String.class)))
+        when(sourceDocClient.getResource(anyString(), anySet()))
                 .thenReturn(resourceOnServer);
         when(
                 clientFactory.getTransDocResourceClient(pullOpts.getProj(),
@@ -268,7 +268,7 @@ public class MockServerRule extends ExternalResource {
         // return provided server translation
         when(
                 transDocClient.getTranslations(anyString(),
-                        any(LocaleId.class), anySetOf(String.class),
+                        any(LocaleId.class), anySet(),
                         eq(getPullOpts().getCreateSkeletons()), any(String.class)))
                 .thenReturn(transResourceResponse);
         when(transResourceResponse.getStatus()).thenReturn(200);

@@ -21,16 +21,16 @@
 package org.zanata.test;
 
 import java.io.IOException;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.annotation.WebFilter;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 
 /**
  * This utility filter provides a second chance for some sort of partially
@@ -79,14 +79,8 @@ public class BadResponseFilter implements Filter {
             }
         }
 
-        @Deprecated
-        @Override
-        public void setStatus(int sc, String sm) {
-            super.setStatus(sc, sm);
-            if (sc >= 500) {
-                log5xxMessage(sc);
-            }
-        }
+        // setStatus(int, String) was removed in Servlet 6 (Jakarta EE 10);
+        // no override needed since setStatus(int) above already handles 5xx.
 
         public void log5xxMessage(int statusCode) {
             // We can't access the actual exception which triggered the 500

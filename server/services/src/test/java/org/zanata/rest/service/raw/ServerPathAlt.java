@@ -20,8 +20,8 @@
  */
 package org.zanata.rest.service.raw;
 
-import javax.enterprise.inject.Alternative;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Produces;
 
 import org.zanata.servlet.annotations.ServerPath;
 

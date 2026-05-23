@@ -6,13 +6,13 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
-import javax.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.EntityTag;
 
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Session;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.dao.DocumentDAO;
 import org.zanata.model.HDocument;
@@ -25,7 +25,7 @@ import org.zanata.rest.dto.extensions.gettext.PoHeader;
 import org.zanata.util.HashUtil;
 
 @Named("eTagUtils")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class ETagUtils implements Serializable {
 
     private static final long serialVersionUID = -9048796062192670716L;

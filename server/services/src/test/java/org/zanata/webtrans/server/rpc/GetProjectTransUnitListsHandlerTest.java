@@ -3,7 +3,7 @@ package org.zanata.webtrans.server.rpc;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,15 +30,15 @@ import org.zanata.webtrans.shared.rpc.GetProjectTransUnitListsResult;
 import org.zanata.webtrans.test.GWTTestData;
 import com.google.common.collect.Lists;
 import net.customware.gwt.dispatch.shared.ActionException;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.test.EntityTestData.makeHTextFlow;
 import static org.zanata.test.EntityTestData.setId;
@@ -132,7 +132,7 @@ public class GetProjectTransUnitListsHandlerTest extends ZanataTest {
         GetProjectTransUnitListsResult result = handler.execute(action, null);
         verify(identity).checkLoggedIn();
         assertThat(result.getDocumentIds()).isEmpty();
-        verifyZeroInteractions(textFlowSearchServiceImpl);
+        verifyNoMoreInteractions(textFlowSearchServiceImpl);
     }
 
     @Test

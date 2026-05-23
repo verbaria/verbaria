@@ -21,9 +21,9 @@
 package org.zanata.notification;
 
 import java.io.Serializable;
-import javax.mail.internet.InternetAddress;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.email.Addresses;
 import org.zanata.email.EmailBuilder;
 import org.zanata.email.LanguageTeamPermissionChangeEmailStrategy;
@@ -42,7 +42,7 @@ import com.google.common.collect.Lists;
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 @Named("languageTeamPermissionChangeJmsMessagePayloadHandler")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class LanguageTeamPermissionChangeJmsMessagePayloadHandler
         implements EmailQueueMessageReceiver.JmsMessagePayloadHandler {
     private static final org.slf4j.Logger log =

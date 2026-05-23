@@ -20,6 +20,8 @@
  */
 package org.zanata.model;
 
+
+import org.zanata.model.type.EntityType;
 import static org.zanata.security.EntityAction.DELETE;
 import static org.zanata.security.EntityAction.INSERT;
 import static org.zanata.security.EntityAction.UPDATE;
@@ -28,38 +30,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapKey;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.OrderBy;
-import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKey;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.Where;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
 import org.zanata.annotation.EntityRestrict;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
-import org.zanata.hibernate.search.GroupSearchBridge;
-import org.zanata.model.type.EntityStatusType;
-import org.zanata.model.type.EntityType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -67,7 +62,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 
 @Entity
 @Cacheable
-@TypeDef(name = "entityStatus", typeClass = EntityStatusType.class)
 @EntityRestrict({ INSERT, UPDATE, DELETE })
 @Access(AccessType.FIELD)
 @GraphQLType(name = "ProjectIteration")
@@ -79,8 +73,6 @@ public class HProjectIteration extends SlugEntityBase
     @ManyToOne
     @NotNull
     @NaturalId
-    @Field
-    @FieldBridge(impl = GroupSearchBridge.class)
     private HProject project;
     @ManyToOne
     @JoinColumn(name = "parentId")
@@ -124,8 +116,7 @@ public class HProjectIteration extends SlugEntityBase
     @Enumerated(EnumType.STRING)
     private ProjectType projectType;
 
-    @Type(type = "entityStatus")
-    @NotNull
+        @NotNull
     @Column(columnDefinition = "char(1)")
     private EntityStatus status = EntityStatus.ACTIVE;
 

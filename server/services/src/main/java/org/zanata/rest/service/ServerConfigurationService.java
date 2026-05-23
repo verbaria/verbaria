@@ -5,25 +5,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.apache.deltaspike.core.api.provider.BeanManagerProvider;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.enterprise.inject.spi.CDI;
 import org.jboss.resteasy.annotations.providers.jaxb.Wrapped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.security.annotations.CheckRole;
 import org.zanata.common.Namespaces;
 import org.zanata.dao.ApplicationConfigurationDAO;
@@ -172,8 +172,8 @@ public class ServerConfigurationService {
             applicationConfigurationDAO.makePersistent(appConfig);
         }
         // TODO make method non-static, use configurationChangedEvent.fire()
-        BeanManagerProvider.getInstance().getBeanManager()
-                .fireEvent(new ConfigurationChanged(key));
+        CDI.current().getBeanManager()
+                .getEvent().fire(new ConfigurationChanged(key));
     }
 
     private boolean isConfigKeyValid(String configKey) {

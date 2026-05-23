@@ -22,7 +22,7 @@ package org.zanata.rest;
 
 import java.io.InputStream;
 import java.io.Serializable;
-import javax.ws.rs.FormParam;
+import jakarta.ws.rs.FormParam;
 
 import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
 import org.jboss.resteasy.annotations.providers.multipart.PartType;

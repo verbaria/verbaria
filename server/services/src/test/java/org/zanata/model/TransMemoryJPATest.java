@@ -23,7 +23,7 @@ package org.zanata.model;
 import java.util.Date;
 import java.util.List;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.criterion.Restrictions;

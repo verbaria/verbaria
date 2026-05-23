@@ -3,13 +3,10 @@ package org.zanata.dao;
 import java.io.Serializable;
 import java.util.List;
 
-import org.hibernate.Criteria;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
-import org.hibernate.criterion.Criterion;
-import org.hibernate.criterion.Example;
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Based on code from http://community.jboss.org/wiki/GenericDataAccessObjects
@@ -80,7 +77,11 @@ public class AbstractDAOImpl<T, ID extends Serializable> implements
 
     @Override
     public List<T> findAll() {
-        return findByCriteria();
+        // Real Hibernate 6 JPA Criteria: SELECT * FROM <entity>
+        jakarta.persistence.criteria.CriteriaBuilder cb = getSession().getCriteriaBuilder();
+        jakarta.persistence.criteria.CriteriaQuery<T> cq = cb.createQuery(getPersistentClass());
+        cq.from(getPersistentClass());
+        return getSession().createQuery(cq).getResultList();
     }
 
     @Override
@@ -90,16 +91,12 @@ public class AbstractDAOImpl<T, ID extends Serializable> implements
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public List<T> findByExample(T exampleInstance, String[] excludeProperty) {
-        Criteria crit = getSession().createCriteria(getPersistentClass());
-        Example example = Example.create(exampleInstance);
-        for (String exclude : excludeProperty) {
-            example.excludeProperty(exclude);
-        }
-        crit.add(example);
-        return crit.list();
+        // TODO Hibernate 5 Criteria/Example removed in Hibernate 6.
+        // Port to JPA Criteria (CriteriaBuilder + Root + Predicate).
+        throw new UnsupportedOperationException(
+                "findByExample needs porting to JPA Criteria API");
     }
 
     @Override
@@ -128,18 +125,6 @@ public class AbstractDAOImpl<T, ID extends Serializable> implements
         return getSession().contains(entity);
 
     };
-
-    /**
-     * Use this inside subclasses as a convenience method.
-     */
-    @SuppressWarnings("unchecked")
-    protected List<T> findByCriteria(Criterion... criterion) {
-        Criteria crit = getSession().createCriteria(getPersistentClass());
-        for (Criterion c : criterion) {
-            crit.add(c);
-        }
-        return crit.list();
-    }
 
     /**
      * This is to handle special character search in hibernate by prefixing

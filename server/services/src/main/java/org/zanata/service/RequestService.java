@@ -29,7 +29,7 @@ import org.zanata.model.LanguageRequest;
 import org.zanata.model.Request;
 import org.zanata.model.type.RequestState;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.io.Serializable;
 import java.util.List;
 

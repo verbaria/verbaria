@@ -23,8 +23,8 @@ package org.zanata.job;
 import java.io.File;
 import java.io.Serializable;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 
 import org.apache.deltaspike.scheduler.api.Scheduled;
 import org.quartz.Job;

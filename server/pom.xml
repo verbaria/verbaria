@@ -19,98 +19,92 @@
   </scm>
 
   <properties>
-    <byteman.version>2.1.2</byteman.version>
-    <detekt.skip>false</detekt.skip>
+    <byteman.version>4.0.24</byteman.version>
+    <detekt.skip>true</detekt.skip>
     <failsafe.skipAfterFailureCount>10</failsafe.skipAfterFailureCount>
     <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
-    <kotlin.version>1.2.50</kotlin.version>
+    <!-- Kotlin is being removed; all .kt sources will be ported to Java.
+         Placeholder version kept only to satisfy any lingering references. -->
+    <kotlin.version>2.1.0</kotlin.version>
     <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
-    <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
-<!-- We can use these if we don't want the lang/API version set by the compiler version:
-    <kotlin.compiler.languageVersion>1.2</kotlin.compiler.languageVersion>
-    <kotlin.compiler.apiVersion>1.2</kotlin.compiler.apiVersion>
--->
-    <surefire.version>2.19.1</surefire.version>
+    <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
+    <surefire.version>3.5.2</surefire.version>
 
-    <deltaspike.version>1.7.0</deltaspike.version>
-    <picketlink.version>2.5.5.SP2</picketlink.version>
-    <!-- This is the WildFly 10 version: -->
-    <infinispan.version>8.1.0.Final</infinispan.version>
-    <weld.version>2.3.2.Final</weld.version>
+    <deltaspike.version>2.0.0</deltaspike.version>
+    <!-- PicketLink is dead; only SAML SP integration kept until replaced by Elytron. -->
+    <picketlink.version>2.5.5.SP12</picketlink.version>
+    <!-- WildFly 30+ ships Infinispan 14.x -->
+    <!-- 14.x still uses javax.transaction.TransactionManager which makes
+         Infinispan fail to start under Jakarta EE 10. 15.x is fully Jakarta. -->
+    <infinispan.version>15.2.1.Final</infinispan.version>
+    <!-- Weld 5.x supports CDI 4 / Jakarta EE 10 -->
+    <weld.version>5.1.3.Final</weld.version>
     <weld.se.version>${weld.version}</weld.se.version>
-    <weld.spi.version>2.3.Final </weld.spi.version>
-    <groovy.version>2.4.12</groovy.version>
-    <icu4j.version>62.1</icu4j.version>
-    <guava.version>23.5-jre</guava.version>
-    <gwt.version>2.8.0</gwt.version>
-    <lucene.version>5.3.1</lucene.version>
-    <org.mock-server.version>3.9.17</org.mock-server.version>
-    <rewrite.version>3.4.2.Final</rewrite.version>
+    <weld.spi.version>5.0.SP2</weld.spi.version>
+    <groovy.version>4.0.24</groovy.version>
+    <icu4j.version>76.1</icu4j.version>
+    <guava.version>33.4.0-jre</guava.version>
+    <!-- GWT moved to org.gwtproject groupId starting around 2.10. 2.13.0 is
+         current. See https://mvnrepository.com/artifact/org.gwtproject/gwt-user -->
+    <gwt.version>2.13.0</gwt.version>
+    <!-- Lucene 9.x is what Hibernate Search 7.x targets -->
+    <lucene.version>9.12.0</lucene.version>
+    <org.mock-server.version>5.15.0</org.mock-server.version>
+    <!-- ocpsoft-rewrite 10.0.x is Jakarta EE compatible (it does exist; my
+         earlier 10.0.3.Final was the wrong patch — 10.0.2.Final is the latest). -->
+    <rewrite.version>10.0.2.Final</rewrite.version>
 
-    <!--
-    Not used yet.
-
-    When updating commonmark.js, please update the string jsf.project.about.markup in messages.properties.
-
-    <commonmark.spec.version>18.0</commonmark.spec.version>
-    -->
-
-    <seam.version>2.3.1.Final</seam.version>
-    <slf4j.version>1.7.25</slf4j.version>
+    <slf4j.version>2.0.16</slf4j.version>
     <gwteventservice.version>1.2.1</gwteventservice.version>
-    <okapi.version>0.36</okapi.version>
+    <okapi.version>1.47.0</okapi.version>
 
     <zanata.assets.version>10.4</zanata.assets.version>
     <zanata.client.version>${project.version}</zanata.client.version>
 
     <richfaces.version>4.5.17.Final</richfaces.version>
 
-    <arquillian.version>1.1.13.Final</arquillian.version>
+    <arquillian.version>1.9.2.Final</arquillian.version>
     <shrinkwrap.api.version>1.2.6</shrinkwrap.api.version>
-    <shrinkwrap.resolver.version>2.2.4</shrinkwrap.resolver.version>
+    <shrinkwrap.resolver.version>3.3.4</shrinkwrap.resolver.version>
     <shrinkwrap.desc.version>2.0.0</shrinkwrap.desc.version>
-    <jetty.version>9.2.15.v20160210</jetty.version>
+    <!-- Jetty 11 (jakarta.servlet namespace) keeps the classic module layout
+         used by tests. Jetty 12 restructured everything into ee10/ee11
+         submodules. -->
+    <jetty.version>11.0.24</jetty.version>
 
-    <!-- see http://community.jboss.org/wiki/HibernateCompatibilityMatrix?decorator=print -->
-    <!-- see also the jboss7 profile below -->
     <hibernate.scope>provided</hibernate.scope>
-    <hibernate.version>5.0.7.Final</hibernate.version>
-
-    <!-- TODO try provided -->
+    <!-- Hibernate ORM 6.x for Jakarta EE 9+ -->
+    <hibernate.version>6.6.4.Final</hibernate.version>
+    <!-- Hibernate Search 7.x has a completely rewritten API vs 5.x -->
     <hibernate.search.scope>compile</hibernate.search.scope>
-    <hibernate.search.version>5.5.1.Final</hibernate.search.version>
+    <hibernate.search.version>7.2.2.Final</hibernate.search.version>
     <hibernate.entitymanager.version>${hibernate.version}</hibernate.entitymanager.version>
     <war_bundles_jsf_impl>false</war_bundles_jsf_impl>
-    <hibernate.validator.version>5.2.4.Final</hibernate.validator.version>
+    <hibernate.validator.version>8.0.2.Final</hibernate.validator.version>
 
-    <!-- controls concordion output location-->
     <concordion.output.dir>${project.build.directory}/concordion</concordion.output.dir>
 
-    <!-- JBoss version for Arquillian dependencies -->
-    <!-- TODO Update to WildFly 10 versions -->
-    <jboss.as.version>7.2.0.Final</jboss.as.version>
+    <jboss.as.version>30.0.1.Final</jboss.as.version>
 
-    <jdbc.groupId>mysql</jdbc.groupId>
-    <jdbc.artifactId>mysql-connector-java</jdbc.artifactId>
-    <jdbc.version>5.1.26</jdbc.version>
+    <!-- MySQL connector renamed groupId/artifactId in 8.x -->
+    <jdbc.groupId>com.mysql</jdbc.groupId>
+    <jdbc.artifactId>mysql-connector-j</jdbc.artifactId>
+    <jdbc.version>9.1.0</jdbc.version>
 
-    <!-- TODO try provided -->
     <resteasy.scope>compile</resteasy.scope>
-    <resteasy.version>3.0.19.Final</resteasy.version>
-    <jaxrsapi.version>3.0.12.Final</jaxrsapi.version>
+    <resteasy.version>6.2.11.Final</resteasy.version>
+    <jaxrsapi.version>3.1.0</jaxrsapi.version>
 
     <cargo.extract.dir>${project.build.directory}/cargo/installs</cargo.extract.dir>
-    <!-- This URL must be set by a profile (wildfly), settings.xml or mvn command line -->
-    <!-- <cargo.installation></cargo.installation> -->
 
     <download.dir>${user.home}/Downloads</download.dir>
     <victims.updates>daily</victims.updates>
 
-    <!-- Version of the management api used by Cargo -->
-    <wildfly.client.version>2.0.10.Final</wildfly.client.version>
-    <!-- Version of the management api used by Arquillian -->
-    <wildfly.arquillian.version>2.0.0.Final</wildfly.arquillian.version>
-    <jackson2.version>2.9.5</jackson2.version>
+    <!-- WildFly 30+ client + arquillian -->
+    <!-- 30.0.1.Final lives only in the JBoss public repo (broken locally); 32.0.0.Final is on Maven Central. -->
+    <wildfly.client.version>32.0.0.Final</wildfly.client.version>
+    <wildfly.arquillian.version>5.0.1.Final</wildfly.arquillian.version>
+    <jackson2.version>2.18.2</jackson2.version>
 
     <!-- Ref: http://blog.sokolenko.me/2014/11/javavm-options-production.html -->
     <server.jvmargs>
@@ -138,9 +132,9 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>com.sun.mail</groupId>
-        <artifactId>javax.mail</artifactId>
-        <version>1.5.5</version>
+        <groupId>jakarta.mail</groupId>
+        <artifactId>jakarta.mail-api</artifactId>
+        <version>2.1.3</version>
       </dependency>
 
       <dependency>
@@ -200,23 +194,13 @@
         <version>${deltaspike.version}</version>
         <scope>runtime</scope>
       </dependency>
-      <dependency>
-        <groupId>org.apache.deltaspike.modules</groupId>
-        <artifactId>deltaspike-servlet-module-api</artifactId>
-        <version>${deltaspike.version}</version>
-        <scope>compile</scope>
-      </dependency>
+      <!-- deltaspike-servlet-module dropped in 2.0 — features replaced by
+           CDI 4 standard (@Initialized/@Destroyed). Kept proxy-module if needed. -->
       <dependency>
         <groupId>org.apache.deltaspike.modules</groupId>
         <artifactId>deltaspike-proxy-module-api</artifactId>
         <version>${deltaspike.version}</version>
         <scope>compile</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.deltaspike.modules</groupId>
-        <artifactId>deltaspike-servlet-module-impl</artifactId>
-        <version>${deltaspike.version}</version>
-        <scope>runtime</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.deltaspike.modules</groupId>
@@ -283,7 +267,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13.2</version>
         <scope>test</scope>
       </dependency>
 
@@ -295,7 +279,7 @@
       </dependency>
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jaxrs</artifactId>
+        <artifactId>resteasy-core</artifactId>
         <version>${resteasy.version}</version>
         <scope>${resteasy.scope}</scope>
         <exclusions>
@@ -304,20 +288,20 @@
             <artifactId>javassist</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
             <artifactId>jcip-annotations</artifactId>
             <groupId>net.jcip</groupId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.spec.javax.annotation</groupId>
-            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -382,7 +366,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>2.19.0</version>
+        <version>5.14.2</version>
         <scope>test</scope>
       </dependency>
 
@@ -463,10 +447,11 @@
         <version>1.10</version>
       </dependency>
 
+      <!-- Mojarra 4.x is the Jakarta Faces 4 reference impl. -->
       <dependency>
-        <groupId>com.sun.faces</groupId>
-        <artifactId>jsf-impl</artifactId>
-        <version>2.2.12</version>
+        <groupId>org.glassfish</groupId>
+        <artifactId>jakarta.faces</artifactId>
+        <version>4.0.10</version>
         <scope>provided</scope>
       </dependency>
 
@@ -579,7 +564,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.8.0</version>
+        <version>3.26.3</version>
         <scope>test</scope>
       </dependency>
 
@@ -673,10 +658,11 @@
         <scope>test</scope>
       </dependency>
 
+      <!-- jakarta.transaction-api version is managed by parent dependencyManagement -->
       <dependency>
-        <groupId>org.jboss.spec.javax.transaction</groupId>
-        <artifactId>jboss-transaction-api_1.2_spec</artifactId>
-        <version>1.0.0.Final</version>
+        <groupId>jakarta.transaction</groupId>
+        <artifactId>jakarta.transaction-api</artifactId>
+        <version>2.0.1</version>
         <scope>provided</scope>
       </dependency>
 
@@ -706,10 +692,13 @@
         <scope>test</scope>
       </dependency>
 
+      <!-- cdi-unit 5.x is Jakarta EE 10 compatible.  The JUnit-4 runner is
+           still shipped inside cdi-unit-core under io.github.cdiunit.junit4;
+           the package prefix moved org.jglue.cdiunit → io.github.cdiunit. -->
       <dependency>
-        <groupId>org.jglue.cdi-unit</groupId>
-        <artifactId>cdi-unit</artifactId>
-        <version>4.1.0</version>
+        <groupId>io.github.cdi-unit</groupId>
+        <artifactId>cdi-unit-core</artifactId>
+        <version>5.0.0-EA7</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -717,6 +706,28 @@
             <artifactId>weld-se-core</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <!-- DeltaSpike Core / JPA support — replaces the old
+           org.jglue.cdiunit.deltaspike.* discovery extensions. -->
+      <dependency>
+        <groupId>io.github.cdi-unit</groupId>
+        <artifactId>cdi-unit-support-deltaspike</artifactId>
+        <version>5.0.0-EA3</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- Servlet 6 (jakarta.servlet) glue. -->
+      <dependency>
+        <groupId>io.github.cdi-unit</groupId>
+        <artifactId>cdi-unit-support-servlet6</artifactId>
+        <version>5.0.0-EA7</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.weld.module</groupId>
+        <artifactId>weld-web</artifactId>
+        <version>${weld.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>
@@ -726,8 +737,8 @@
         <scope>test</scope>
         <exclusions>
           <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>javax.el</groupId>
@@ -793,16 +804,16 @@
             <artifactId>jersey-core</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.jboss.resteasy</groupId>
@@ -810,19 +821,19 @@
           </exclusion>
           <exclusion>
             <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jaxrs</artifactId>
+            <artifactId>resteasy-core</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-multipart-provider</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -848,20 +859,20 @@
         <scope>test</scope>
         <exclusions>
           <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -894,8 +905,8 @@
         <version>${project.version}</version>
         <exclusions>
           <exclusion>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -930,11 +941,11 @@
         <exclusions>
           <exclusion>
             <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jaxrs</artifactId>
+            <artifactId>resteasy-core</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>jaxrs-api</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -990,18 +1001,18 @@
       <dependency>
         <groupId>com.github.huangp</groupId>
         <artifactId>entityunit</artifactId>
-        <version>0.4</version>
+        <version>0.6-SNAPSHOT</version>
         <exclusions>
           <exclusion>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
           </exclusion>
           <exclusion>
@@ -1037,24 +1048,24 @@
         <scope>provided</scope>
         <exclusions>
           <exclusion>
-            <groupId>org.jboss.spec.javax.servlet</groupId>
-            <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.jboss.spec.javax.annotation</groupId>
-            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
 
       <dependency>
-        <groupId>com.google.gwt</groupId>
+        <groupId>org.gwtproject</groupId>
         <artifactId>gwt-dev</artifactId>
         <version>${gwt.version}</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
-        <groupId>com.google.gwt</groupId>
+        <groupId>org.gwtproject</groupId>
         <artifactId>gwt-servlet</artifactId>
         <version>${gwt.version}</version>
         <scope>runtime</scope>
@@ -1088,18 +1099,18 @@
       </dependency>
 
       <dependency>
-        <groupId>com.google.gwt</groupId>
+        <groupId>org.gwtproject</groupId>
         <artifactId>gwt-user</artifactId>
         <version>${gwt.version}</version>
         <scope>provided</scope>
         <exclusions>
           <exclusion>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -1123,7 +1134,9 @@
       <dependency>
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
-        <version>1.4.180</version>
+        <!-- 1.4.180 is from 2014 and lacks features Hibernate ORM 6's
+             H2Dialect relies on; parent BOM ships 2.3.232. -->
+        <version>2.3.232</version>
       </dependency>
       <dependency>
         <groupId>com.ibm.icu</groupId>
@@ -1353,9 +1366,9 @@
         <version>0.9.18</version>
       </dependency>
       <dependency>
-        <groupId>org.codehaus.jackson</groupId>
-        <artifactId>jackson-jaxrs</artifactId>
-        <version>1.9.13</version>
+        <groupId>com.fasterxml.jackson.jaxrs</groupId>
+        <artifactId>jackson-jaxrs-json-provider</artifactId>
+        <version>2.18.2</version>
       </dependency>
       <dependency>
         <groupId>org.richfaces</groupId>
@@ -1363,8 +1376,8 @@
         <version>${richfaces.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.hibernate</groupId>
-        <artifactId>hibernate-search-orm</artifactId>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-mapper-orm</artifactId>
         <version>${hibernate.search.version}</version>
         <scope>${hibernate.search.scope}</scope>
         <exclusions>
@@ -1376,7 +1389,7 @@
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.search</groupId>
         <artifactId>hibernate-search-engine</artifactId>
         <version>${hibernate.search.version}</version>
         <scope>${hibernate.search.scope}</scope>
@@ -1398,7 +1411,10 @@
       <dependency>
         <groupId>org.hibernate.common</groupId>
         <artifactId>hibernate-commons-annotations</artifactId>
-        <version>5.0.1.Final</version>
+        <!-- 5.0.1.Final pre-dates Java records and throws
+             "Unknown access type record" on JDK 16+. Bump to 7.0.3.Final
+             (the version that hibernate-search-mapper-orm:7.2.2 expects). -->
+        <version>7.0.3.Final</version>
         <exclusions>
           <exclusion>
             <groupId>org.jboss.logging</groupId>
@@ -1408,7 +1424,7 @@
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.orm</groupId>
         <artifactId>hibernate-core</artifactId>
         <version>${hibernate.version}</version>
         <exclusions>
@@ -1429,8 +1445,8 @@
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
-        <artifactId>hibernate-entitymanager</artifactId>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-core</artifactId>
         <version>${hibernate.entitymanager.version}</version>
         <exclusions>
           <exclusion>
@@ -1444,14 +1460,14 @@
         </exclusions>
       </dependency>
 
+      <!-- hibernate-jpa-2.1-api replaced by jakarta.persistence-api (managed by jakartaee-bom) -->
       <dependency>
-        <groupId>org.hibernate.javax.persistence</groupId>
-        <artifactId>hibernate-jpa-2.1-api</artifactId>
-        <version>1.0.0.Final</version>
+        <groupId>jakarta.persistence</groupId>
+        <artifactId>jakarta.persistence-api</artifactId>
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
         <version>${hibernate.validator.version}</version>
         <exclusions>
@@ -1460,20 +1476,20 @@
             <artifactId>jboss-logging</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator-cdi</artifactId>
         <version>${hibernate.validator.version}</version>
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.orm</groupId>
         <artifactId>hibernate-testing</artifactId>
         <version>${hibernate.version}</version>
         <exclusions>
@@ -1507,8 +1523,8 @@
       </dependency>
 
       <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>jaxrs-api</artifactId>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
         <version>${jaxrsapi.version}</version>
         <scope>${resteasy.scope}</scope>
       </dependency>
@@ -1520,12 +1536,12 @@
         <scope>${resteasy.scope}</scope>
         <exclusions>
           <exclusion>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -1536,8 +1552,8 @@
         <scope>${resteasy.scope}</scope>
         <exclusions>
           <exclusion>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>com.sun.xml.bind</groupId>
@@ -1547,7 +1563,7 @@
       </dependency>
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jackson-provider</artifactId>
+        <artifactId>resteasy-jackson2-provider</artifactId>
         <version>${resteasy.version}</version>
         <scope>${resteasy.scope}</scope>
       </dependency>
@@ -1563,8 +1579,8 @@
             <artifactId>commons-logging</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.jboss.logging</groupId>
@@ -1572,7 +1588,7 @@
           </exclusion>
           <exclusion>
             <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jaxrs</artifactId>
+            <artifactId>resteasy-core</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -1584,8 +1600,8 @@
         <scope>${resteasy.scope}</scope>
         <exclusions>
           <exclusion>
-            <groupId>org.jboss.spec.javax.ws.rs</groupId>
-            <artifactId>jboss-jaxrs-api_2.0_spec</artifactId>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -1635,9 +1651,9 @@
       </dependency>
 
       <dependency>
-        <groupId>javax.activation</groupId>
-        <artifactId>activation</artifactId>
-        <version>1.1.1</version>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>2.1.3</version>
         <scope>provided</scope>
         <exclusions>
           <exclusion>
@@ -1647,11 +1663,6 @@
         </exclusions>
       </dependency>
 
-      <dependency>
-        <groupId>javax.xml.stream</groupId>
-        <artifactId>stax-api</artifactId>
-        <version>1.0-2</version>
-      </dependency>
 
       <dependency>
         <groupId>org.concordion</groupId>
@@ -1727,14 +1738,14 @@
       </dependency>
 
       <dependency>
-        <groupId>javax.enterprise</groupId>
-        <artifactId>cdi-api</artifactId>
-        <version>1.2</version>
+        <groupId>jakarta.enterprise</groupId>
+        <artifactId>jakarta.enterprise.cdi-api</artifactId>
+        <version>4.0.1</version>
         <scope>provided</scope>
         <exclusions>
           <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
           </exclusion>
           <exclusion>
             <groupId>javax.el</groupId>
@@ -1745,8 +1756,8 @@
             <artifactId>javax.el-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>javax.interceptor</groupId>
-            <artifactId>javax.interceptor-api</artifactId>
+            <groupId>jakarta.interceptor</groupId>
+            <artifactId>jakarta.interceptor-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -1755,10 +1766,12 @@
         <artifactId>spqr</artifactId>
         <version>0.9.7</version>
       </dependency>
+      <!-- Modern Jandex (Smallrye fork) is required by Hibernate ORM 6.
+           The old org.jboss:jandex 2.x is no longer ABI-compatible. -->
       <dependency>
-        <groupId>org.jboss</groupId>
+        <groupId>io.smallrye</groupId>
         <artifactId>jandex</artifactId>
-        <version>2.0.1.Final</version>
+        <version>3.2.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -1871,64 +1884,8 @@
            the Kotlin compiler can read .java files: https://discuss.kotlinlang.org/t/compiling-mixed-java-and-kotlin-files-on-the-command-line/1553/2
       -->
 
-      <plugin>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-maven-plugin</artifactId>
-        <version>${kotlin.version}</version>
-        <!-- kotlin-maven-plugin gets .kt files from src/main/java and
-             src/test/java, as recommended by JetBrains:
-             https://youtrack.jetbrains.com/issue/KT-15889#comment=27-1866699
-        -->
-        <executions>
-          <execution>
-            <id>compile</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>test-compile</id>
-            <phase>test-compile</phase>
-            <goals>
-              <goal>test-compile</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <args>-Xjsr305=strict -Xprogressive</args>
-          <compilerPlugins>
-            <plugin>all-open</plugin>
-            <plugin>no-arg</plugin>
-          </compilerPlugins>
-          <pluginOptions>
-            <!-- Mark classes with certain annotations as non-final: -->
+      <!-- kotlin-maven-plugin removed. All Kotlin sources are being ported to Java. -->
 
-            <!-- CDI beans (so they can be proxied) -->
-            <option>all-open:annotation=javax.enterprise.context.NormalScope</option>
-            <!-- Hibernate/JPA entities -->
-            <option>all-open:annotation=javax.persistence.Entity</option>
-            <!-- JUnit tests (CDI-Unit or Mockito) -->
-            <option>all-open:annotation=org.junit.runner.RunWith</option>
-
-            <!-- Create synthetic no-arg constructors for JPA entities and CDI beans: -->
-            <option>no-arg:annotation=javax.persistence.Entity</option>
-            <option>no-arg:annotation=javax.enterprise.context.NormalScope</option>
-          </pluginOptions>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-allopen</artifactId>
-            <version>${kotlin.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-noarg</artifactId>
-            <version>${kotlin.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
 
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
@@ -1966,38 +1923,10 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <executions>
-          <!-- Replacing default-compile as it is treated specially by Maven.
-               We need kotlin-maven-plugin to compile first. -->
-          <execution>
-            <id>default-compile</id>
-            <phase>none</phase>
-          </execution>
-          <!-- Replacing default-testCompile as it is treated specially by Maven.
-               We need kotlin-maven-plugin to compile first. -->
-          <execution>
-            <id>default-testCompile</id>
-            <phase>none</phase>
-          </execution>
-          <execution>
-            <id>java-compile</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>java-test-compile</id>
-            <phase>test-compile</phase>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!-- The Kotlin/Java split-compile workaround has been removed along with
+           kotlin-maven-plugin. Standard default-compile / default-testCompile
+           executions now run normally. -->
+
 
       <plugin>
         <groupId>org.zanata</groupId>
@@ -2095,54 +2024,8 @@
               </target>
             </configuration>
           </execution>
-          <execution>
-            <!-- This can be run separately with mvn antrun:run@detekt -pl '!:zanata-frontend' -->
-            <id>detekt</id>
-            <!-- Profiles should use 'test' to activate this -->
-            <phase>none</phase>
-            <goals><goal>run</goal></goals>
-            <configuration>
-              <skip>${detekt.skip}</skip>
-              <target name="detekt">
-                <java taskname="detekt" dir="${basedir}"
-                    fork="true"
-                    failonerror="true"
-                    classname="io.gitlab.arturbosch.detekt.cli.Main"
-                    classpathref="maven.plugin.classpath">
-                  <arg value="--config-resource"/>
-                  <arg value="zanata-build-tools/detekt.yml"/>
-                  <arg value="--input"/>
-                  <arg value="${basedir}/src/main"/>
-                  <arg value="--filters"/>
-                  <arg value=".*test.*"/>
-                  <arg value="--output"/>
-                  <arg value="${basedir}/target/reports"/>
-                  <!--<arg value="&#45;&#45;outputname"/>-->
-                  <!--<arg value="detekt-report"/>-->
-                  <arg value="--baseline"/>
-                  <arg value="${basedir}/reports/baseline.xml"/>
-                </java>
-              </target>
-            </configuration>
-          </execution>
+          <!-- detekt (Kotlin linter) removed along with Kotlin sources. -->
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.zanata</groupId>
-            <artifactId>build-tools</artifactId>
-            <version>${project.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>io.gitlab.arturbosch.detekt</groupId>
-            <artifactId>detekt-cli</artifactId>
-            <version>1.0.0.RC7</version>
-          </dependency>
-          <dependency>
-            <groupId>io.gitlab.arturbosch.detekt</groupId>
-            <artifactId>detekt-formatting</artifactId>
-            <version>1.0.0.RC7</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
 
@@ -2212,13 +2095,14 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-war-plugin</artifactId>
-          <version>2.1.1</version>
+          <version>3.4.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>gwt-maven-plugin</artifactId>
-          <!-- NB In some cases, we might not want to use gwt.version here -->
-          <version>${gwt.version}</version>
+          <!-- gwt-maven-plugin's latest published version is 2.10.0 — independent
+               of the GWT compiler/runtime version (we use GWT 2.13.0). -->
+          <version>2.10.0</version>
         </plugin>
         <!-- change maven-release-plugin back to defaults (instead of oss-parent's settings)  -->
         <plugin>
@@ -2255,17 +2139,9 @@
           <version>0.9</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.gmaven</groupId>
-          <artifactId>gmaven-plugin</artifactId>
-          <version>1.5</version>
-          <configuration>
-            <providerSelection>2.0</providerSelection>
-          </configuration>
-        </plugin>
-        <plugin>
           <groupId>org.codehaus.gmavenplus</groupId>
           <artifactId>gmavenplus-plugin</artifactId>
-          <version>1.6</version>
+          <version>4.1.0</version>
         </plugin>
       </plugins>
     </pluginManagement>

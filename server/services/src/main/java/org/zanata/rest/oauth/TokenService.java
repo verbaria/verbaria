@@ -22,16 +22,19 @@
 package org.zanata.rest.oauth;
 
 import java.util.Optional;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
+// Apache Oltu is dead and only ships against javax.servlet — keep these
+// imports on the legacy API. The javax.servlet:javax.servlet-api dep in
+// server/services/pom.xml satisfies the classpath.
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.apache.oltu.oauth2.as.request.OAuthTokenRequest;
 import org.apache.oltu.oauth2.as.response.OAuthASResponse;
 import org.apache.oltu.oauth2.common.OAuth;

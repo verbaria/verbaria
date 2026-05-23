@@ -3,8 +3,8 @@ package org.zanata;
 import java.net.URI;
 import java.util.Set;
 
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 
 import org.hibernate.Session;
 import org.jboss.resteasy.client.jaxrs.ProxyBuilder;

@@ -3,8 +3,10 @@ package org.zanata.rest.service;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.IgnoredClasses;
+import org.zanata.jpa.EntityManagerProducer;
+import io.github.cdiunit.InRequestScope;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,10 +33,10 @@ import org.zanata.servlet.annotations.SessionId;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.ws.rs.core.Response;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +50,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
+@IgnoredClasses(EntityManagerProducer.class)
 @RunWith(CdiUnitRunner.class)
 @AdditionalClasses({ LocaleServiceImpl.class, CurrentUserImpl.class })
 public class LocalesServiceTest extends ZanataDbunitJpaTest implements
@@ -69,8 +72,7 @@ public class LocalesServiceTest extends ZanataDbunitJpaTest implements
     @Produces @Mock
     private UrlUtil urlUtil;
 
-    @Produces
-    public Session getSession() {
+    @Produces @jakarta.enterprise.inject.Typed(org.hibernate.Session.class)    public Session getSession() {
         return super.getSession();
     }
 

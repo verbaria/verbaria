@@ -6,8 +6,8 @@ import static org.mockito.Mockito.when;
 import java.net.URI;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import org.junit.Before;
 import org.junit.Test;

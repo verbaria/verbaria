@@ -24,13 +24,13 @@ import java.io.InputStream;
 import java.sql.Blob;
 
 import org.hibernate.Session;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.model.HDocumentUploadPart;
 
 // TODO damason: replace with file system implementation, named something like "filePartPersistService"
 @Named("blobPersistService")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 
 public class BlobPersistService implements UploadPartPersistService {
 

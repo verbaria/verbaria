@@ -42,7 +42,8 @@ public class TextFlowStreamingDAOTest extends ZanataDbunitJpaTest {
 
     @Before
     public void setup() {
-        dao = new TextFlowStreamingDAO(getEmf().getSessionFactory());
+        dao = new TextFlowStreamingDAO(
+                getEmf().unwrap(org.hibernate.SessionFactory.class));
         Session session = getSession();
         projectDao = new ProjectDAO(session, new AltCurrentUser());
         projectIterDao = new ProjectIterationDAO(session);

@@ -23,25 +23,22 @@ package org.zanata.model.tm;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Basic;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapKey;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKey;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
 import org.zanata.model.ModelEntityBase;
 
 import com.google.common.collect.Maps;
@@ -54,7 +51,6 @@ import com.google.common.collect.Maps;
  */
 @Entity
 @Access(AccessType.FIELD)
-@Indexed
 @Table(uniqueConstraints = @UniqueConstraint(name = "UK_natural_id",
         columnNames = { "tm_id", "unique_id" }))
 public class TransMemoryUnit extends ModelEntityBase implements HasTMMetadata {
@@ -85,7 +81,6 @@ public class TransMemoryUnit extends ModelEntityBase implements HasTMMetadata {
     // This is the BCP-47 language code, or null iff the TU supports all source
     // languages (*all* in TMX)
     @Column(name = "source_language", nullable = true)
-    @Field
     private String sourceLanguage;
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "tm_id", nullable = false)
@@ -97,7 +92,6 @@ public class TransMemoryUnit extends ModelEntityBase implements HasTMMetadata {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "trans_unit_id", nullable = false)
     @MapKey(name = "language")
-    @IndexedEmbedded
     private Map<String, TransMemoryUnitVariant> transUnitVariants =
             Maps.newHashMap();
     @Enumerated(EnumType.STRING)

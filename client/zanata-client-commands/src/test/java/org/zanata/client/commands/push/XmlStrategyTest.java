@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import javax.xml.bind.Unmarshaller;
+import jakarta.xml.bind.Unmarshaller;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Assert;
@@ -48,7 +48,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;

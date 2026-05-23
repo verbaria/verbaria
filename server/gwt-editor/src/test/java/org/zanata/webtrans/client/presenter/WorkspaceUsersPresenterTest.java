@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -210,6 +210,6 @@ public class WorkspaceUsersPresenterTest {
         presenter.dispatchChatAction("someone", "",
                 HasWorkspaceChatData.MESSAGE_TYPE.USER_MSG);
 
-        verifyZeroInteractions(dispatcher, eventBus, display);
+        verifyNoMoreInteractions(dispatcher, eventBus, display);
     }
 }

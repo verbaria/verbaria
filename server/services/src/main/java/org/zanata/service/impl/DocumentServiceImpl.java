@@ -27,12 +27,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.ApplicationConfiguration;
 import org.zanata.async.Async;
 import org.zanata.async.AsyncTaskHandle;
@@ -66,10 +66,10 @@ import org.zanata.service.VersionStateCache;
 import org.zanata.ui.model.statistic.WordStatistic;
 import org.zanata.util.StatisticsUtil;
 import com.google.common.annotations.VisibleForTesting;
-import javax.enterprise.event.Event;
+import jakarta.enterprise.event.Event;
 import org.zanata.util.UrlUtil;
 import org.zanata.webhook.events.SourceDocumentChangedEvent;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.event.Observes;
 
 /**
  * Default implementation of the {@link DocumentService} business service

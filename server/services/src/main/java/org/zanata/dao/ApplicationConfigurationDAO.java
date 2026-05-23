@@ -2,8 +2,8 @@ package org.zanata.dao;
 
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.model.HApplicationConfiguration;
 
 @Named("applicationConfigurationDAO")

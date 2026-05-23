@@ -1,8 +1,8 @@
 package org.zanata.webtrans.server;
 
-import javax.enterprise.inject.Instance;
-import javax.inject.Provider;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Provider;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -22,10 +22,10 @@
 package org.zanata.rest.service;
 
 import java.util.Set;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Response;
 
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.resource.TextFlowTarget;

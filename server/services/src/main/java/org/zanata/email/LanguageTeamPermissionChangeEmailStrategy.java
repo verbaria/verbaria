@@ -1,7 +1,7 @@
 package org.zanata.email;
 
 import java.util.List;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 import org.zanata.events.LanguageTeamPermissionChangedEvent;
 import org.zanata.i18n.Messages;
 import com.google.common.collect.Lists;

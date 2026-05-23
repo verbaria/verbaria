@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.runner.RunWith;
 import org.junit.Test;
 import org.zanata.ZanataDbunitJpaTest;
@@ -16,10 +16,10 @@ import org.zanata.test.CdiUnitRunner;
 import org.zanata.webtrans.shared.model.UserOptions;
 import org.zanata.webtrans.shared.rpc.SaveOptionsAction;
 import org.zanata.webtrans.shared.rpc.SaveOptionsResult;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

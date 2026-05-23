@@ -20,8 +20,8 @@
  */
 package org.zanata.action;
 
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
@@ -47,9 +47,9 @@ import org.zanata.test.CdiUnitRunner;
 import org.zanata.ui.faces.FacesMessages;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.event.Event;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -57,7 +57,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static javax.faces.application.FacesMessage.SEVERITY_ERROR;
+import static jakarta.faces.application.FacesMessage.SEVERITY_ERROR;
 import static org.zanata.test.EntityTestData.setId;
 
 /**

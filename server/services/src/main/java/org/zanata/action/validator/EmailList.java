@@ -27,8 +27,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import javax.validation.Constraint;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 @Constraint(validatedBy = { EmailListValidator.class })
 @Target({ METHOD, FIELD })
@@ -36,7 +36,7 @@ import javax.validation.Payload;
 public @interface EmailList {
     Class<?>[] groups() default {};
 
-    String message() default "{javax.validation.constraints.EmailList.message}";
+    String message() default "{jakarta.validation.constraints.EmailList.message}";
 
     Class<? extends Payload>[] payload() default {};
 }

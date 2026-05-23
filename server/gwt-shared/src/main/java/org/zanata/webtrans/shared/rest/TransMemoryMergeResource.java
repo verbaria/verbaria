@@ -20,8 +20,8 @@
  */
 package org.zanata.webtrans.shared.rest;
 
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
 
 import org.fusesource.restygwt.client.DirectRestService;
 import org.zanata.webtrans.shared.rest.dto.TransMemoryMergeCancelRequest;

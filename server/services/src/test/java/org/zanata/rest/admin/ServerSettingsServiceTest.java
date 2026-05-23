@@ -28,7 +28,7 @@ import org.mockito.MockitoAnnotations;
 import org.zanata.dao.ApplicationConfigurationDAO;
 import org.zanata.model.HApplicationConfiguration;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 import java.util.Optional;

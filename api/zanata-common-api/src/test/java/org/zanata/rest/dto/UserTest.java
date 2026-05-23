@@ -3,7 +3,7 @@ package org.zanata.rest.dto;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.zanata.common.LocaleId;
 

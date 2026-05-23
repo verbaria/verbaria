@@ -20,7 +20,7 @@
  */
 package org.zanata.client.etag;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlAttribute;
 
 /**
  * Contains information about a particular entry in the ETag cache.

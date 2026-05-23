@@ -25,13 +25,13 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.ResponseProcessingException;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.GenericType;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.ResponseProcessingException;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import org.zanata.rest.RestUtil;
 import org.zanata.rest.dto.resource.Resource;
@@ -139,16 +139,18 @@ public class SourceDocResourceClient {
     public String deleteResource(String docId) {
         Client client = factory.getClient();
         WebTarget webResource = getBaseServiceResource(client);
+        Response response = webResource.path("resource")
+                .queryParam("docId", docId).request().delete();
         try {
-            return webResource.path("resource").queryParam("docId", docId)
-                            .request().delete(String.class);
-        } catch (ResponseProcessingException e) {
-            if (RestUtil.isNotFound(e.getResponse())) {
+            if (RestUtil.isNotFound(response)) {
+                response.close();
                 String idNoSlash = RestUtil.convertToDocumentURIId(docId);
-                return webResource.path("r").path(idNoSlash).request()
-                        .delete(String.class);
+                response = webResource.path("r").path(idNoSlash).request()
+                        .delete();
             }
-            throw e;
+            return response.hasEntity() ? response.readEntity(String.class) : "";
+        } finally {
+            response.close();
         }
     }
 }

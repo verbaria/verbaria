@@ -20,7 +20,6 @@
  */
 package org.zanata.util;
 
-import org.hibernate.criterion.Restrictions;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,8 +95,7 @@ public class QueryBuilderTest {
                         .select("col1, col2")
                         .from("DatabaseTable")
                         .leftJoin("Table2")
-                        .with(Restrictions.eq("Table2.content", ":content")
-                                .toString())
+                        .with("Table2.content=:content")
                         .where(and("col1 = 2", or("or1", "or2", "or3"),
                                 and("and1", "and2"))).toQueryString();
 

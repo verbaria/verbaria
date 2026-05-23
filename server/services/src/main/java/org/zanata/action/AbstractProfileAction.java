@@ -1,9 +1,9 @@
 package org.zanata.action;
 
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.NotEmpty;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.zanata.dao.AccountDAO;
 import org.zanata.dao.PersonDAO;

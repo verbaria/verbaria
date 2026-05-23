@@ -46,7 +46,7 @@ import org.zanata.rest.editor.dto.ReviewData;
 import org.zanata.security.ZanataIdentity;
 import org.zanata.service.LocaleService;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;

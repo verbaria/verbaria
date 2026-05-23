@@ -21,7 +21,7 @@ R * Copyright 2010, Red Hat, Inc. and individual contributors
 package org.zanata.security;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.core.api.literal.DeltaSpikeLiteral;
+import org.zanata.cdi.DeltaSpikeLiteral;
 import org.jboss.security.SecurityContextAssociation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +29,10 @@ import org.zanata.events.AlreadyLoggedInEvent;
 import org.zanata.util.ServiceLocator;
 import org.zanata.util.Synchronized;
 
-import javax.enterprise.context.SessionScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 
 @SessionScoped

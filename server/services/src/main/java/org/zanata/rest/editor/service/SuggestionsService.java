@@ -20,22 +20,22 @@
  */
 package org.zanata.rest.editor.service;
 
-import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static org.zanata.webtrans.shared.rpc.HasSearchType.SearchType;
 
 import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.Response;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HLocale;
 import org.zanata.rest.editor.dto.suggestion.Suggestion;
@@ -58,7 +58,7 @@ import com.google.common.base.Joiner;
 @RequestScoped
 @Named("editor.suggestionsService")
 @Path(SuggestionsResource.SERVICE_PATH)
-@Transactional(readOnly = true)
+@Transactional
 public class SuggestionsService implements SuggestionsResource {
     public static final String SEARCH_TYPES = Joiner.on(", ").join(SearchType.values());
 

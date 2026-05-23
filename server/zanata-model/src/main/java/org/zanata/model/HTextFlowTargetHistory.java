@@ -20,42 +20,37 @@
  */
 package org.zanata.model;
 
+
+import org.zanata.model.type.EntityType;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToOne;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.OrderColumn;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 
 import org.hibernate.annotations.AttributeAccessor;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.ListIndexBase;
 import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.hibernate.annotations.TypeDefs;
 import org.zanata.common.ContentState;
-import org.zanata.model.type.EntityType;
-import org.zanata.model.type.EntityTypeType;
 import org.zanata.rest.dto.TranslationSourceType;
-import org.zanata.model.type.TranslationSourceTypeType;
-
 import com.google.common.base.Objects;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
@@ -74,10 +69,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
                 query = "select count(*) from HTextFlowTargetHistory t where t.textFlowTarget = :tft and size(t.contents) = :contentCount and contents[0] = :content0 and contents[1] = :content1 and contents[2] = :content2 and contents[3] = :content3 and contents[4] = :content4"),
         @NamedQuery(name = HTextFlowTargetHistory.QUERY_MATCHING_HISTORY + 6,
                 query = "select count(*) from HTextFlowTargetHistory t where t.textFlowTarget = :tft and size(t.contents) = :contentCount and contents[0] = :content0 and contents[1] = :content1 and contents[2] = :content2 and contents[3] = :content3 and contents[4] = :content4 and contents[5] = :content5") })
-@TypeDefs({
-        @TypeDef(name = "sourceType",
-                typeClass = TranslationSourceTypeType.class),
-        @TypeDef(name = "entityType", typeClass = EntityTypeType.class) })
 @EntityListeners({ HTextFlowTargetHistory.EntityListener.class })
 @GraphQLType(name = "TextFlowTargetHistory")
 public class HTextFlowTargetHistory extends HTextContainer
@@ -160,7 +151,7 @@ public class HTextFlowTargetHistory extends HTextContainer
     }
 
     @Override
-    @javax.persistence.Lob
+    @jakarta.persistence.Lob
     @AttributeAccessor("field")
     @ElementCollection(fetch = FetchType.EAGER)
     @JoinTable(name = "HTextFlowTargetContentHistory",
@@ -237,14 +228,12 @@ public class HTextFlowTargetHistory extends HTextContainer
         this.reviewer = reviewer;
     }
 
-    @Type(type = "sourceType")
-    @Column(columnDefinition = "char(3)")
+        @Column(columnDefinition = "char(3)")
     public TranslationSourceType getSourceType() {
         return sourceType;
     }
 
-    @Type(type = "entityType")
-    @Column(columnDefinition = "char(3)")
+        @Column(columnDefinition = "char(3)")
     public EntityType getCopiedEntityType() {
         return copiedEntityType;
     }

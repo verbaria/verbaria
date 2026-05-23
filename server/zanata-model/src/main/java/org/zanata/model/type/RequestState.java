@@ -20,6 +20,8 @@
  */
 package org.zanata.model.type;
 
+
+import org.zanata.model.type.RequestState;
 /**
  * Request state with single char
  *

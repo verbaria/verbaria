@@ -55,7 +55,7 @@ import net.customware.gwt.presenter.client.EventBus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.userWorkspaceContext;
 
@@ -147,7 +147,7 @@ public class ForceReviewCommentPresenterTest {
     @Test
     public void noActionIfNoContentAndReviewCriteria() {
         presenter.addComment("");
-        verifyZeroInteractions(dispatcher);
+        verifyNoMoreInteractions(dispatcher);
     }
 
     @Test

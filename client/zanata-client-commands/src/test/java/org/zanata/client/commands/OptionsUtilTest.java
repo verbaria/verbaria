@@ -2,7 +2,7 @@ package org.zanata.client.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
 import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders.allHolders;
@@ -15,7 +15,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBException;
 
 import org.apache.commons.configuration.HierarchicalINIConfiguration;
 import org.junit.Before;
@@ -142,7 +142,7 @@ public class OptionsUtilTest {
                 Mockito.mock(HierarchicalINIConfiguration.class);
         OptionsUtil.applyUserConfig(opts, config);
 
-        verifyZeroInteractions(config);
+        verifyNoMoreInteractions(config);
     }
 
     @Test

@@ -20,10 +20,10 @@
  */
 package org.zanata.email;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import org.zanata.i18n.Messages;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Strategy class for EmailBuilder to customise the content and recipients
@@ -37,7 +37,7 @@ public abstract class AbstractEmailStrategy {
      * If absent, use the default From address configured by the server
      */
     public Optional<InternetAddress> getFromAddress() {
-        return Optional.absent();
+        return Optional.empty();
     }
 
     /**
@@ -45,7 +45,7 @@ public abstract class AbstractEmailStrategy {
      * If absent, the Reply-To address will be omitted.
      */
     public Optional<InternetAddress[]> getReplyToAddress(){
-        return Optional.absent();
+        return Optional.empty();
     }
 
     public abstract String getSubject(Messages msgs);

@@ -25,8 +25,8 @@ import org.apache.deltaspike.core.api.exception.control.ExceptionHandler;
 import org.apache.deltaspike.core.api.exception.control.Handles;
 import org.apache.deltaspike.core.api.exception.control.event.ExceptionEvent;
 
-import javax.faces.application.FacesMessage;
-import javax.persistence.EntityNotFoundException;
+import jakarta.faces.application.FacesMessage;
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  * @author Patrick Huang <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>

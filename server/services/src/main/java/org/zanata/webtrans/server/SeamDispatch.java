@@ -3,16 +3,16 @@ package org.zanata.webtrans.server;
 import java.io.Serializable;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.util.AnnotationLiteral;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.util.AnnotationLiteral;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import net.customware.gwt.dispatch.server.ActionHandler;
@@ -24,8 +24,8 @@ import net.customware.gwt.dispatch.shared.ActionException;
 import net.customware.gwt.dispatch.shared.Result;
 import net.customware.gwt.dispatch.shared.UnsupportedActionException;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import org.zanata.cdi.DeltaSpike;
+import jakarta.enterprise.context.Initialized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.config.AllowAnonymousAccess;
@@ -67,7 +67,7 @@ public class SeamDispatch implements Dispatch, Serializable {
     public SeamDispatch() {
     }
 
-    public void onStartup(@Observes @Initialized ServletContext context) {
+    public void onStartup(@Observes @Initialized(jakarta.enterprise.context.ApplicationScoped.class) ServletContext context) {
         if (actionHandlers.isUnsatisfied()) {
             throw new RuntimeException("No ActionHandler beans found for injection");
         }

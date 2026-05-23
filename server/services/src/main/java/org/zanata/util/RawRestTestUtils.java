@@ -23,13 +23,13 @@ package org.zanata.util;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import jakarta.ws.rs.core.Response;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.zanata.rest.dto.DTOUtil;
 
 /**
@@ -111,7 +111,7 @@ public class RawRestTestUtils {
             jc = JAXBContext.newInstance(jaxbType);
             Unmarshaller um = jc.createUnmarshaller();
             // um.setEventHandler( new
-            // javax.xml.bind.helpers.DefaultValidationEventHandler() );
+            // jakarta.xml.bind.helpers.DefaultValidationEventHandler() );
             String entity = response.readEntity(String.class);
             @SuppressWarnings("unchecked")
             T result = (T) um.unmarshal(new StringReader(entity));
@@ -128,7 +128,7 @@ public class RawRestTestUtils {
             jc = JAXBContext.newInstance(jaxbType);
             Unmarshaller um = jc.createUnmarshaller();
             // um.setEventHandler( new
-            // javax.xml.bind.helpers.DefaultValidationEventHandler() );
+            // jakarta.xml.bind.helpers.DefaultValidationEventHandler() );
             @SuppressWarnings("unchecked")
             T result = (T) um.unmarshal(new StringReader(entityString));
             return result;
@@ -153,7 +153,7 @@ public class RawRestTestUtils {
             jc = JAXBContext.newInstance(jaxbObject.getClass());
             Marshaller m = jc.createMarshaller();
             // m.setEventHandler( new
-            // javax.xml.bind.helpers.DefaultValidationEventHandler() );
+            // jakarta.xml.bind.helpers.DefaultValidationEventHandler() );
             StringWriter sw = new StringWriter();
             m.marshal(jaxbObject, sw);
             return sw.toString();

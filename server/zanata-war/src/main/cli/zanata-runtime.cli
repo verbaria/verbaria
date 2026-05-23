@@ -1,0 +1,25 @@
+# Wire JMS queues + Infinispan cache + mail session into standalone-full.xml.
+# standalone-full.xml already ships DLQ and ExpiryQueue, so only register the
+# Zanata-specific MailsQueue + cache container.  if-then-end-if guards make
+# the script idempotent across re-runs.
+
+embed-server --std-out=echo --server-config=standalone-full.xml
+
+if (outcome != success) of /subsystem=messaging-activemq/server=default/jms-queue=MailsQueue:read-resource
+    /subsystem=messaging-activemq/server=default/jms-queue=MailsQueue:add( \
+        entries=["java:/jms/queue/MailsQueue","java:jboss/exported/jms/queue/MailsQueue"])
+end-if
+
+if (outcome != success) of /subsystem=infinispan/cache-container=zanata:read-resource
+    /subsystem=infinispan/cache-container=zanata:add()
+    /subsystem=infinispan/cache-container=zanata/local-cache=default:add()
+    /subsystem=infinispan/cache-container=zanata:write-attribute(name=default-cache,value=default)
+end-if
+
+# Mail session — dev default; override via env vars on a real install.
+if (outcome != success) of /subsystem=mail/mail-session=default:read-resource
+    /subsystem=mail/mail-session=default:add(jndi-name=java:jboss/mail/Default)
+    /subsystem=mail/mail-session=default/server=smtp:add(outbound-socket-binding-ref=mail-smtp)
+end-if
+
+stop-embedded-server

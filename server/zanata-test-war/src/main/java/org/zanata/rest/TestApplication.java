@@ -23,7 +23,7 @@ package org.zanata.rest;
 
 import java.util.Set;
 
-import javax.ws.rs.ApplicationPath;
+import jakarta.ws.rs.ApplicationPath;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableSet;
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 @ApplicationPath("/rest/test")
-public class TestApplication extends javax.ws.rs.core.Application {
+public class TestApplication extends jakarta.ws.rs.core.Application {
 
     private static final ImmutableSet<Class<?>> CLASSES =
             ImmutableSet.<Class<?>>builder()

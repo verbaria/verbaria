@@ -2,7 +2,7 @@ package org.zanata.dao;
 
 import javax.annotation.Nonnull;
 
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;

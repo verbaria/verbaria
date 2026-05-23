@@ -20,8 +20,8 @@
  */
 package org.zanata.action;
 
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
@@ -33,8 +33,8 @@ import org.zanata.security.annotations.Authenticated;
 import org.zanata.service.EmailService;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.ui.faces.FacesMessages;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;

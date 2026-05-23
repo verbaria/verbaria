@@ -20,11 +20,11 @@
  */
 package org.zanata.rest.service;
 
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.Path;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.Path;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.action.CopyTransManager;
 import org.zanata.async.handle.CopyTransTaskHandle;

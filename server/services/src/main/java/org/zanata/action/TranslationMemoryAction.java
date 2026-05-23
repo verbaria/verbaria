@@ -20,7 +20,7 @@
  */
 package org.zanata.action;
 
-import static javax.faces.application.FacesMessage.SEVERITY_ERROR;
+import static jakarta.faces.application.FacesMessage.SEVERITY_ERROR;
 import static org.zanata.async.AsyncTaskKey.joinFields;
 
 import java.io.Serializable;
@@ -28,11 +28,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.async.AsyncTaskKey;
 import org.zanata.async.GenericAsyncTaskKey;
 import org.zanata.security.annotations.CheckRole;

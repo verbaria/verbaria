@@ -25,8 +25,8 @@ import static org.zanata.async.AsyncTaskKey.joinFields;
 import java.io.Serializable;
 
 import javax.annotation.Nonnull;
-import javax.enterprise.context.Dependent;
-import javax.inject.Inject;
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Inject;
 
 import org.zanata.async.AsyncTaskHandle;
 import org.zanata.async.AsyncTaskHandleManager;

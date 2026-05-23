@@ -83,7 +83,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.extractFromEvents;
 import static org.zanata.webtrans.test.GWTTestData.makeTransUnit;
@@ -469,7 +469,7 @@ public class TargetContentsPresenterTest {
         presenter.savePendingChangesIfApplicable();
 
         // Then:
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
         verify(display, never()).revertEditorContents();
     }
 
@@ -683,7 +683,7 @@ public class TargetContentsPresenterTest {
 
         // Then:
         verify(display).focusEditor(0);
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test
@@ -713,7 +713,7 @@ public class TargetContentsPresenterTest {
 
         // Then:
         verify(display).focusEditor(1);
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test
@@ -731,7 +731,7 @@ public class TargetContentsPresenterTest {
 
         // Then:
         verify(display).focusEditor(1);
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test
@@ -886,7 +886,7 @@ public class TargetContentsPresenterTest {
 
         presenter.rejectTranslation(selectedTU.getId());
 
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test

@@ -15,9 +15,9 @@ import java.util.Map;
 
 import net.customware.gwt.dispatch.server.ExecutionContext;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import org.zanata.cdi.DeltaSpike;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,10 +67,10 @@ import org.zanata.webtrans.shared.rpc.LoadOptionsResult;
 import org.zanata.webtrans.shared.validation.ValidationFactory;
 import org.zanata.webtrans.test.GWTTestData;
 
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpSession;
 
 import com.google.common.collect.Lists;
 

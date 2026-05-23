@@ -20,7 +20,7 @@
  */
 package org.zanata.service.impl;
 
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.zanata.ZanataTest;
@@ -31,8 +31,8 @@ import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.IServiceLocator;
 import org.zanata.util.ServiceLocator;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

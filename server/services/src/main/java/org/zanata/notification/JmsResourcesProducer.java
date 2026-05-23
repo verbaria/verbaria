@@ -20,19 +20,19 @@
  */
 package org.zanata.notification;
 
-import javax.annotation.Resource;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Queue;
-import javax.jms.QueueConnection;
-import javax.jms.QueueConnectionFactory;
-import javax.jms.QueueSender;
-import javax.jms.QueueSession;
-import javax.jms.Session;
+import jakarta.annotation.Resource;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Disposes;
+import jakarta.enterprise.inject.Produces;
+import jakarta.jms.Connection;
+import jakarta.jms.JMSException;
+import jakarta.jms.Queue;
+import jakarta.jms.QueueConnection;
+import jakarta.jms.QueueConnectionFactory;
+import jakarta.jms.QueueSender;
+import jakarta.jms.QueueSession;
+import jakarta.jms.Session;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +59,10 @@ public class JmsResourcesProducer {
     // eg ThreadScoped), instead of multiplexing.
     // See http://stackoverflow.com/a/18630122/14379
 
-    @Resource(lookup = "JmsXA")
+    @Resource(lookup = "java:/JmsXA")
     private QueueConnectionFactory connectionFactory;
 
-    @Resource(lookup = "jms/queue/MailsQueue")
+    @Resource(lookup = "java:/jms/queue/MailsQueue")
     private Queue mailQueue;
 
     @Produces @RequestScoped @InVMJMS

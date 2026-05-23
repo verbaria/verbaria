@@ -1,0 +1,31 @@
+# Register the PostgreSQL JDBC driver + zanataDatasource in the offline server
+# config. Run by the wildfly-maven-plugin "packaging-script" hook before the
+# WAR is deployed, so by the time standalone boots the datasource is wired.
+
+batch
+
+# Driver — postgresql JDBC is added to the plugin's runtime via the
+# wildfly-maven-plugin <dependencies> block; it is hot-deployed as a JAR
+# (no JBoss module needed in modern WildFly).
+/subsystem=datasources/jdbc-driver=postgres:add(driver-name=postgres, \
+  driver-module-name=org.postgresql, \
+  driver-class-name=org.postgresql.Driver, \
+  driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)
+
+# Datasource — persistence.xml jta-data-source name:
+# java:jboss/datasources/zanataDatasource
+/subsystem=datasources/data-source=zanataDatasource:add( \
+  jndi-name=java:jboss/datasources/zanataDatasource, \
+  enabled=true, \
+  use-java-context=true, \
+  connection-url="${zanata.db.url}", \
+  driver-name=postgres, \
+  user-name="${zanata.db.user}", \
+  password="${zanata.db.password}", \
+  min-pool-size=1, \
+  max-pool-size=20, \
+  validate-on-match=true, \
+  background-validation=false, \
+  check-valid-connection-sql="SELECT 1")
+
+run-batch

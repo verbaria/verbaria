@@ -1,7 +1,7 @@
 package org.zanata.email;
 
 import org.zanata.i18n.Messages;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import com.oath.cyclops.types.persistent.PersistentMap;
 

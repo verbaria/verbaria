@@ -22,12 +22,12 @@ package org.zanata.action;
 
 import java.io.Serializable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.annotation.PostConstruct;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.model.HPerson;
 import org.zanata.service.impl.EmailChangeService;
 

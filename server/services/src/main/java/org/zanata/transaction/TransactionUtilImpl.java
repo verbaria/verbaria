@@ -21,25 +21,25 @@
 package org.zanata.transaction;
 
 import java.util.concurrent.Callable;
-import javax.ejb.ApplicationException;
-import javax.enterprise.context.ApplicationScoped;
-import javax.faces.convert.ConverterException;
-import javax.faces.validator.ValidatorException;
-import javax.inject.Inject;
+import jakarta.ejb.ApplicationException;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.faces.convert.ConverterException;
+import jakarta.faces.validator.ValidatorException;
+import jakarta.inject.Inject;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.transaction.NotSupportedException;
-import javax.transaction.Status;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.NotSupportedException;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.UserTransaction;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.util.IServiceLocator;
 import org.zanata.util.RunnableEx;
 import org.zanata.util.ServiceLocator;
-import static javax.transaction.Status.STATUS_ACTIVE;
-import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
-import static javax.transaction.Status.STATUS_ROLLEDBACK;
+import static jakarta.transaction.Status.STATUS_ACTIVE;
+import static jakarta.transaction.Status.STATUS_MARKED_ROLLBACK;
+import static jakarta.transaction.Status.STATUS_ROLLEDBACK;
 //@Stateless
 //@TransactionManagement(TransactionManagementType.BEAN)
 

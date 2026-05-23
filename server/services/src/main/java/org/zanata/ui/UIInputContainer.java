@@ -23,22 +23,22 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.faces.FacesException;
-import javax.faces.application.FacesMessage;
-import javax.faces.component.EditableValueHolder;
-import javax.faces.component.NamingContainer;
-import javax.faces.component.UIComponent;
-import javax.faces.component.UIComponentBase;
-import javax.faces.component.UIMessage;
-import javax.faces.component.UINamingContainer;
-import javax.faces.component.UIViewRoot;
-import javax.faces.component.html.HtmlOutputLabel;
-import javax.faces.context.FacesContext;
-import javax.faces.validator.BeanValidator;
-import javax.validation.Validation;
-import javax.validation.ValidationException;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
+import jakarta.faces.FacesException;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.component.EditableValueHolder;
+import jakarta.faces.component.NamingContainer;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.UIComponentBase;
+import jakarta.faces.component.UIMessage;
+import jakarta.faces.component.UINamingContainer;
+import jakarta.faces.component.UIViewRoot;
+import jakarta.faces.component.html.HtmlOutputLabel;
+import jakarta.faces.context.FacesContext;
+import jakarta.faces.validator.BeanValidator;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidationException;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
 /**
  * N.B. Copy from seam's migration demo project at https://github.com/seam/migration.
@@ -96,7 +96,7 @@ import javax.validation.ValidatorFactory;
  * NOTE: Firefox does not properly associate a label with the target input if
  * the input id contains a colon (:), the default separator character in JSF.
  * JSF 2 allows developers to set the value via an initialization parameter
- * (context-param in web.xml) keyed to javax.faces.SEPARATOR_CHAR. We recommend
+ * (context-param in web.xml) keyed to jakarta.faces.SEPARATOR_CHAR. We recommend
  * that you override this setting to make the separator an underscore (_).
  * </p>
  *
@@ -113,7 +113,7 @@ public class UIInputContainer extends UIComponentBase implements
     private boolean beanValidationPresent = false;
 
     public UIInputContainer() {
-        beanValidationPresent = isClassPresent("javax.validation.Validator");
+        beanValidationPresent = isClassPresent("jakarta.validation.Validator");
     }
 
     @Override

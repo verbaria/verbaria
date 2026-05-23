@@ -20,13 +20,10 @@
  */
 package org.zanata.model;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.validation.constraints.NotNull;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.zanata.model.type.ConditionRuleActionType;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.validation.constraints.NotNull;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
 /**
@@ -36,8 +33,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
  *         <a href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Entity
-@TypeDef(name = "conditionRuleAction",
-        typeClass = ConditionRuleActionType.class)
 @Cacheable
 @GraphQLType(name = "CopyTransOptions")
 public class HCopyTransOptions extends ModelEntityBase {
@@ -94,22 +89,19 @@ public class HCopyTransOptions extends ModelEntityBase {
     private ConditionRuleAction projectMismatchAction =
             ConditionRuleAction.REJECT;
 
-    @Type(type = "conditionRuleAction")
-    @NotNull
+        @NotNull
     @Column(columnDefinition = "char(1)")
     public ConditionRuleAction getContextMismatchAction() {
         return contextMismatchAction;
     }
 
-    @Type(type = "conditionRuleAction")
-    @NotNull
+        @NotNull
     @Column(columnDefinition = "char(1)")
     public ConditionRuleAction getDocIdMismatchAction() {
         return docIdMismatchAction;
     }
 
-    @Type(type = "conditionRuleAction")
-    @NotNull
+        @NotNull
     @Column(columnDefinition = "char(1)")
     public ConditionRuleAction getProjectMismatchAction() {
         return projectMismatchAction;

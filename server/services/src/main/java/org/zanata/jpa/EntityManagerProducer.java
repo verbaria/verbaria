@@ -20,14 +20,15 @@
  */
 package org.zanata.jpa;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Default;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.inject.Disposes;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Typed;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.hibernate.Session;
 import org.hibernate.search.FullTextSession;
@@ -94,6 +95,11 @@ public class EntityManagerProducer {
     @Default
     @RequestScoped
     @Deprecated
+    // @Typed restricts the bean's resolvable types to only Session — without
+    // it, Weld 5 sees Session extends EntityManager (Hibernate 6) and treats
+    // this producer as a second Default EntityManager source, conflicting
+    // with createEntityManager() above.
+    @Typed(Session.class)
     // TODO deprecate injection of hibernate session directly (it will be a CDI proxy and hibernate tend to cast it to some other interfaces internally)
     protected Session getSession(EntityManager entityManager) {
         return entityManager.unwrap(Session.class);

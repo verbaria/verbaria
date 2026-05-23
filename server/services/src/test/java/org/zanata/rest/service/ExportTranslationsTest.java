@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.StreamingOutput;
 
 import org.junit.Test;
 import org.zanata.common.LocaleId;

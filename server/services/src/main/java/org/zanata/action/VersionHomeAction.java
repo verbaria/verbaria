@@ -35,19 +35,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.enterprise.inject.Model;
-import javax.faces.application.FacesMessage;
-import javax.faces.bean.ViewScoped;
-import javax.validation.ConstraintViolationException;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.view.ViewScoped;
+import jakarta.validation.ConstraintViolationException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
-import org.richfaces.event.FileUploadEvent;
-import org.richfaces.model.UploadedFile;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
+import org.zanata.upload.FileUploadEvent;
+import org.zanata.upload.UploadedFile;
 import org.zanata.adapter.FileFormatAdapter.ParserOptions;
 import org.zanata.config.MTServiceURL;
 import org.zanata.dao.WebHookDAO;
@@ -102,7 +102,7 @@ import org.zanata.util.StatisticsUtil;
 import org.zanata.util.UrlUtil;
 import org.zanata.webtrans.shared.model.DocumentStatus;
 import org.zanata.webtrans.shared.util.TokenUtil;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -714,7 +714,7 @@ public class VersionHomeAction extends AbstractSortAction
             Set<DocumentType> documentTypes = translationFileServiceImpl
                     .getDocumentTypes(sourceFileUpload.getFileName());
             if (documentTypes.isEmpty()) {
-                return Optional.absent();
+                return Optional.empty();
             }
             type = documentTypes.iterator().next();
         } else {
@@ -730,7 +730,7 @@ public class VersionHomeAction extends AbstractSortAction
             uploadPotFile();
         } else {
             Optional<String> docType =
-                    Optional.fromNullable(sourceFileUpload.documentType);
+                    Optional.ofNullable(sourceFileUpload.documentType);
             Optional<DocumentType> documentTypeOpt = getDocumentType(docType);
             if (documentTypeOpt.isPresent() && translationFileServiceImpl
                     .hasAdapterFor(documentTypeOpt.get())) {
@@ -1001,7 +1001,7 @@ public class VersionHomeAction extends AbstractSortAction
                 translationFileUpload.setDocumentType(types.get(0).name());
             }
             Optional<String> docType =
-                    Optional.fromNullable(translationFileUpload.documentType);
+                    Optional.ofNullable(translationFileUpload.documentType);
             TranslationsResource transRes =
                     translationFileServiceImpl.parseTranslationFile(
                             translationFileUpload.getFileContents(),

@@ -2,7 +2,7 @@ package org.zanata.service.impl;
 
 import static org.zanata.service.impl.EntityListenerUtil.getFieldIndex;
 
-import org.apache.deltaspike.core.api.provider.BeanManagerProvider;
+import jakarta.enterprise.inject.spi.CDI;
 import org.hibernate.event.spi.PostCommitUpdateEventListener;
 import org.hibernate.event.spi.PostUpdateEvent;
 import org.hibernate.persister.entity.EntityPersister;
@@ -61,7 +61,7 @@ public class SlugEntityUpdatedListener implements
     }
 
     @Override
-    public boolean requiresPostCommitHanding(EntityPersister persister) {
+    public boolean requiresPostCommitHandling(EntityPersister persister) {
         // We must return true otherwise hibernate will not treat this as post commit event
         return true;
     }
@@ -69,14 +69,14 @@ public class SlugEntityUpdatedListener implements
     private void fireProjectIterationUpdateEvent(HProjectIteration iteration,
             String oldSlug) {
         // TODO use Event.fire()
-        BeanManagerProvider.getInstance().getBeanManager()
-                .fireEvent(new ProjectIterationUpdate(iteration, oldSlug));
+        CDI.current().getBeanManager()
+                .getEvent().fire(new ProjectIterationUpdate(iteration, oldSlug));
     }
 
     private void fireProjectUpdateEvent(HProject project, String oldSlug) {
         // TODO use Event.fire()
-        BeanManagerProvider.getInstance().getBeanManager()
-                .fireEvent(new ProjectUpdate(project, oldSlug));
+        CDI.current().getBeanManager()
+                .getEvent().fire(new ProjectUpdate(project, oldSlug));
     }
 
     @Override

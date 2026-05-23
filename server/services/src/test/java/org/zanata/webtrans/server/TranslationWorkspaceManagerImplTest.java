@@ -1,9 +1,9 @@
 package org.zanata.webtrans.server;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 import org.assertj.core.matcher.AssertionMatcher;
-import org.jglue.cdiunit.ProducerConfig;
+import io.github.cdiunit.ProducerConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -31,9 +31,9 @@ import org.zanata.webtrans.shared.rpc.ExitWorkspace;
 import org.zanata.webtrans.shared.rpc.WorkspaceContextUpdate;
 import org.zanata.webtrans.test.GWTTestData;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.zanata.webtrans.server.TranslationWorkspaceManagerImplTest.UseRealWorkspaceManagerFactory;
@@ -96,8 +96,8 @@ public class TranslationWorkspaceManagerImplTest {
     private TranslationWorkspace mockWorkspace;
     @Captor
     private ArgumentCaptor<ExitWorkspace> eventCaptor;
-    private Optional<String> oldProjectSlug = Optional.absent();
-    private Optional<String> oldIterationSlug = Optional.absent();
+    private Optional<String> oldProjectSlug = Optional.empty();
+    private Optional<String> oldIterationSlug = Optional.empty();
     @Produces @Mock
     private EntityManager entityManager;
 
@@ -228,7 +228,7 @@ public class TranslationWorkspaceManagerImplTest {
 
         spy.exitWorkspace("admin", null, "Administrator", "admin@example.com");
 
-        verifyZeroInteractions(accountDAO);
+        verifyNoMoreInteractions(accountDAO);
     }
 
     @Test

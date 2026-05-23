@@ -20,12 +20,12 @@
  */
 package org.zanata.servlet;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Produces;
-import javax.servlet.ServletContext;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Produces;
+import jakarta.servlet.ServletContext;
 
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import jakarta.enterprise.context.Initialized;
 import org.zanata.servlet.annotations.ContextPath;
 
 /**
@@ -36,7 +36,7 @@ import org.zanata.servlet.annotations.ContextPath;
 public class ContextPathProducer {
     private String contextPath;
 
-    void onContextCreation(@Observes @Initialized ServletContext context) {
+    void onContextCreation(@Observes @Initialized(jakarta.enterprise.context.ApplicationScoped.class) ServletContext context) {
         contextPath = context.getContextPath();
     }
 

@@ -29,10 +29,10 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.zanata.async.Async;
@@ -58,7 +58,7 @@ import org.zanata.service.TranslationStateCache;
 import org.zanata.service.VersionStateCache;
 import org.zanata.util.TranslationUtil;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -141,7 +141,7 @@ public class MergeTranslationsServiceImpl implements MergeTranslationsService {
             return AsyncTaskResult.completed();
         }
         Optional<MergeTranslationsTaskHandle> taskHandleOpt =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         if (taskHandleOpt.isPresent()) {
             prepareMergeTranslationsHandle(sourceVersion, targetVersion,
                     taskHandleOpt.get());

@@ -5,14 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Criteria;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
-import org.hibernate.criterion.Restrictions;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
-import javax.validation.constraints.NotNull;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.validation.constraints.NotNull;
 
 import org.zanata.model.HAccount;
 import org.zanata.model.HAccountRole;
@@ -37,10 +35,15 @@ public class AccountRoleDAO extends AbstractDAOImpl<HAccountRole, Integer> {
     }
 
     public HAccountRole findByName(String roleName) {
-        Criteria cr = getSession().createCriteria(HAccountRole.class);
-        cr.add(Restrictions.eq("name", roleName));
-        cr.setCacheable(true).setComment("AccountRoleDAO.findByName");
-        return (HAccountRole) cr.uniqueResult();
+        // Ported from Hibernate 5 Criteria → HQL.
+        return getSession()
+                .createQuery("from HAccountRole r where r.name = :name",
+                        HAccountRole.class)
+                .setParameter("name", roleName)
+                .setCacheable(true)
+                .setComment("AccountRoleDAO.findByName")
+                .uniqueResultOptional()
+                .orElse(null);
     }
 
     public @NotNull HAccountRole create(String roleName, HAccountRole.RoleType type,

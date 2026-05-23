@@ -30,10 +30,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Session;
 import org.hibernate.search.FullTextSession;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.transaction.UserTransaction;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.UserTransaction;
 
 import org.zanata.exception.EntityMissingException;
 import org.zanata.jpa.FullText;
@@ -140,7 +140,7 @@ public class TransMemoryDAO extends AbstractDAOImpl<TransMemory, Long> {
         return (TransMemoryUnit) getSession()
                 .createQuery(
                         "from TransMemoryUnit tu where tu.uniqueId = :uniqueId and tu.translationMemory.slug = :tmSlug")
-                .setString("uniqueId", uniqueId).setString("tmSlug", tmSlug)
+                .setParameter("uniqueId", uniqueId).setParameter("tmSlug", tmSlug)
                 .setCacheable(false).uniqueResult();
     }
 
@@ -148,6 +148,6 @@ public class TransMemoryDAO extends AbstractDAOImpl<TransMemory, Long> {
         return (Long) getSession()
                 .createQuery(
                         "select count(tu) from TransMemoryUnit tu where tu.translationMemory.slug = :tmSlug")
-                .setString("tmSlug", tmSlug).setCacheable(true).uniqueResult();
+                .setParameter("tmSlug", tmSlug).setCacheable(true).uniqueResult();
     }
 }

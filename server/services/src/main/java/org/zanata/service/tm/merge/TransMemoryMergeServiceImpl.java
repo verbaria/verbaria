@@ -34,12 +34,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import javax.mail.internet.InternetAddress;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
+import jakarta.mail.internet.InternetAddress;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -438,7 +438,7 @@ public class TransMemoryMergeServiceImpl implements TransMemoryMergeService {
         String projSlug = proj.getSlug();
         String verUrl = serverPath + "/iteration/view/" + projSlug + "/" + verSlug;
         String projUrl = serverPath + "/project/view/" + proj.getSlug();
-        List<? extends InternetAddress> toAddresses = singletonList(
+        List<InternetAddress> toAddresses = singletonList(
                 Addresses.getAddress(authenticatedAccount.getPerson()));
         TMMergeEmailContext settings = new TMMergeEmailContext(
                 toAddresses,

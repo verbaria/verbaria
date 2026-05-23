@@ -22,7 +22,7 @@
 package org.zanata.action;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static javax.faces.application.FacesMessage.SEVERITY_INFO;
+import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 import java.util.ArrayList;
@@ -31,16 +31,16 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.Session;
 import org.hibernate.criterion.NaturalIdentifier;
 import org.hibernate.criterion.Restrictions;
 import javax.annotation.Nullable;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
@@ -67,9 +67,9 @@ import org.zanata.webhook.events.VersionChangedEvent;
 import org.zanata.webtrans.shared.model.ValidationAction;
 import org.zanata.webtrans.shared.model.ValidationId;
 import org.zanata.webtrans.shared.validation.ValidationFactory;
-import javax.faces.application.FacesMessage;
-import javax.faces.event.ValueChangeEvent;
-import javax.persistence.EntityNotFoundException;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.event.ValueChangeEvent;
+import jakarta.persistence.EntityNotFoundException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -351,7 +351,7 @@ public class VersionHome extends SlugHome<HProjectIteration>
         if (!valid) {
             String validationMessages =
                     ResourceBundle.getBundle("ValidationMessages").getString(
-                            "javax.validation.constraints.Slug.message");
+                            "jakarta.validation.constraints.Slug.message");
             facesMessages.addToControl(componentId, validationMessages);
             return false;
         }

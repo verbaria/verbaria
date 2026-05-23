@@ -1,6 +1,6 @@
 package org.zanata.common;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "activityType")
 public enum ActivityType {

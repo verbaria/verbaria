@@ -21,9 +21,9 @@
 package org.zanata.rest.service;
 
 import java.util.Optional;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 
 import org.zanata.common.LocaleId;
 import org.zanata.dao.ProjectDAO;

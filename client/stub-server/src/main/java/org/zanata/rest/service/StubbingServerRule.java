@@ -56,7 +56,7 @@ public class StubbingServerRule implements TestRule {
         context.setContextPath("/");
         ServletHolder holder =
                 new ServletHolder(new HttpServlet30Dispatcher());
-        holder.setInitParameter("javax.ws.rs.Application",
+        holder.setInitParameter("jakarta.ws.rs.Application",
                 MockResourcesApplication.class.getCanonicalName());
         context.addServlet(holder, "/*");
         server.setHandler(context);

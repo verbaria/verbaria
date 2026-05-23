@@ -20,6 +20,8 @@
  */
 package org.zanata.model.type;
 
+
+import org.zanata.model.type.EntityType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlowTarget;

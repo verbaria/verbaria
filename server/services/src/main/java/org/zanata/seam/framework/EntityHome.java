@@ -3,16 +3,16 @@
 package org.zanata.seam.framework;
 
 import javax.annotation.Nonnull;
-import javax.annotation.PostConstruct;
-import javax.faces.application.FacesMessage;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
-import javax.transaction.Status;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import jakarta.annotation.PostConstruct;
+import jakarta.faces.application.FacesMessage;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.UserTransaction;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.model.ModelEntityBase;
@@ -23,8 +23,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 
-import static javax.transaction.Status.STATUS_ACTIVE;
-import static javax.transaction.Status.STATUS_MARKED_ROLLBACK;
+import static jakarta.transaction.Status.STATUS_ACTIVE;
+import static jakarta.transaction.Status.STATUS_MARKED_ROLLBACK;
 
 /**
  * Base class for components which provide persistence operations to a JPA-
@@ -178,7 +178,7 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
      * Flush any changes made to the managed entity instance to the underlying
      * database. <br />
      * If the update is successful, a log message is printed, a
-     * {@link javax.faces.application.FacesMessage} is added and a transaction
+     * {@link jakarta.faces.application.FacesMessage} is added and a transaction
      * success event raised.
      *
      * @return "updated" if the update is successful
@@ -198,7 +198,7 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
     /**
      * Persist unmanaged entity instance to the underlying database. If the
      * persist is successful, a log message is printed, a
-     * {@link javax.faces.application.FacesMessage } is added and a transaction
+     * {@link jakarta.faces.application.FacesMessage } is added and a transaction
      * success event raised.
      *
      * @return "persisted" if the persist is successful
@@ -218,7 +218,7 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
     /**
      * Remove managed entity instance from the Persistence Context and the
      * underlying database. If the remove is successful, a log message is
-     * printed, a {@link javax.faces.application.FacesMessage} is added and a
+     * printed, a {@link jakarta.faces.application.FacesMessage} is added and a
      * transaction success event raised.
      *
      * @return "removed" if the remove is successful
@@ -232,10 +232,10 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
     }
 
     /**
-     * Add a {@link javax.faces.application.FacesMessage} and log a message when
+     * Add a {@link jakarta.faces.application.FacesMessage} and log a message when
      * the entity instance is updated.
      * <p/>
-     * Utility method to add a {@link javax.faces.application.FacesMessage} from
+     * Utility method to add a {@link jakarta.faces.application.FacesMessage} from
      * the Seam managed resource bundle and log the entity when the
      * managed entity is updated.
      *
@@ -251,10 +251,10 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
     }
 
     /**
-     * Add a {@link javax.faces.application.FacesMessage} and log a message when
+     * Add a {@link jakarta.faces.application.FacesMessage} and log a message when
      * the entity instance is deleted.
      * <p/>
-     * Utility method to add a {@link javax.faces.application.FacesMessage} from
+     * Utility method to add a {@link jakarta.faces.application.FacesMessage} from
      * the Seam managed resource bundle and log the entity when the
      * managed entity is deleted.
      *
@@ -267,10 +267,10 @@ public abstract class EntityHome<E extends ModelEntityBase> implements
     }
 
     /**
-     * Add a {@link javax.faces.application.FacesMessage} and log a message when
+     * Add a {@link jakarta.faces.application.FacesMessage} and log a message when
      * the entity instance is created.
      * <p/>
-     * Utility method to add a {@link javax.faces.application.FacesMessage} from
+     * Utility method to add a {@link jakarta.faces.application.FacesMessage} from
      * the Seam managed resource bundle and log the entity when the
      * managed entity is updated.
      *

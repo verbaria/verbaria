@@ -21,11 +21,11 @@
 
 package org.zanata.service;
 
-import javax.enterprise.inject.Produces;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.persistence.EntityManager;
 
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Before;
 import org.junit.Test;
 import org.zanata.ZanataJpaTest;

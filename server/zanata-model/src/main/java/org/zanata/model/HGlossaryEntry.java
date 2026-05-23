@@ -22,28 +22,23 @@ package org.zanata.model;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapKeyJoinColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKeyJoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.zanata.hibernate.search.LocaleIdBridge;
 import org.zanata.util.GlossaryUtil;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
@@ -84,7 +79,6 @@ public class HGlossaryEntry extends ModelEntityBase {
     @NotNull
     @ManyToOne
     @JoinColumn(name = "glossaryId", nullable = false)
-    @IndexedEmbedded
     public Glossary getGlossary() {
         return glossary;
     }
@@ -92,8 +86,6 @@ public class HGlossaryEntry extends ModelEntityBase {
 
     @OneToOne
     @JoinColumn(name = "srcLocaleId", nullable = false)
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = LocaleIdBridge.class)
     public HLocale getSrcLocale() {
         return srcLocale;
     }

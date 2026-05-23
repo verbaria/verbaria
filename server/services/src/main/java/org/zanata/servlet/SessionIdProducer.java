@@ -20,11 +20,11 @@
  */
 package org.zanata.servlet;
 
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Produces;
-import javax.servlet.http.HttpSession;
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Produces;
+import jakarta.servlet.http.HttpSession;
+import jakarta.enterprise.context.Initialized;
 import org.zanata.servlet.annotations.SessionId;
 import java.io.Serializable;
 
@@ -40,7 +40,7 @@ public class SessionIdProducer implements Serializable {
 
     private String sessionId;
 
-    void onCreate(@Observes @Initialized HttpSession session) {
+    void onCreate(@Observes @Initialized(jakarta.enterprise.context.SessionScoped.class) HttpSession session) {
         sessionId = session.getId();
         log.debug("observing sessionId: {}", sessionId);
     }

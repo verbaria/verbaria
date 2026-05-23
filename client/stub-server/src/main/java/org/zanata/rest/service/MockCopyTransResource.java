@@ -21,7 +21,7 @@
 
 package org.zanata.rest.service;
 
-import javax.ws.rs.Path;
+import jakarta.ws.rs.Path;
 
 import org.zanata.rest.dto.CopyTransStatus;
 

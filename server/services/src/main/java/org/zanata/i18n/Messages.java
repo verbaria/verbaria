@@ -32,10 +32,10 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Alternative;
-import javax.enterprise.inject.Default;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Default;
+import jakarta.inject.Named;
 
 import org.zanata.action.LocaleSelectorAction;
 import org.zanata.events.LocaleSelectedEvent;
@@ -43,7 +43,7 @@ import org.zanata.util.EmptyEnumeration;
 import org.zanata.util.ServiceLocator;
 
 import javax.annotation.Nonnull;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.event.Observes;
 
 /**
  * Utility component to help with programmatic access to the message resource

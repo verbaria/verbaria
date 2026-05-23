@@ -1,10 +1,10 @@
 package org.zanata.rest.service;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Response;
 
 import org.zanata.rest.dto.VersionInfo;
 import org.zanata.util.VersionUtility;

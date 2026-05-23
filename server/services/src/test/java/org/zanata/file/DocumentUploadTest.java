@@ -1,6 +1,6 @@
 package org.zanata.file;
 
-import static javax.ws.rs.core.Response.Status.fromStatusCode;
+import static jakarta.ws.rs.core.Response.Status.fromStatusCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -10,11 +10,11 @@ import java.io.InputStream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.inject.Produces;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.enterprise.inject.Produces;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
-import org.jglue.cdiunit.ProducesAlternative;
+import io.github.cdiunit.ProducesAlternative;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.zanata.ZanataTest;

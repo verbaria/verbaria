@@ -23,7 +23,7 @@ package org.zanata.webtrans.client.presenter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -248,7 +248,7 @@ public class TransMemoryMergePresenterTest {
                 new TMMergeStartOrEndEvent("self", new Date(), editorClientId,
                         documentId, null, 10);
         presenter.onTMMergeStartOrEnd(event);
-        verifyZeroInteractions(messages, display);
+        verifyNoMoreInteractions(messages, display);
     }
 
     @Test

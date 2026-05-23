@@ -20,8 +20,8 @@
  */
 package org.zanata.ui.input;
 
-import javax.faces.component.FacesComponent;
-import javax.faces.component.html.HtmlInputText;
+import jakarta.faces.component.FacesComponent;
+import jakarta.faces.component.html.HtmlInputText;
 
 /**
  * This is a text input with the same properties as h:inputText but allows for

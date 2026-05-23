@@ -8,30 +8,18 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.kohsuke.args4j.spi.SubCommand;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.zanata.client.commands.NullAbortStrategy;
 import org.zanata.client.commands.ZanataCommand;
 import org.zanata.client.commands.stats.GetStatisticsOptionsImpl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-/**
- * @author Sean Flanigan <a
- *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
- *
- */
-@PrepareForTest(SubCommandHandler2.class)
-@PowerMockIgnore({ "com.sun.*", "org.apache.log4j.*", "org.xml.*", "javax.xml.*" })
-@RunWith(PowerMockRunner.class)
 public class ZanataClientTest {
     @Rule
     public ParameterRule<String> cmdNameRule = new ParameterRule<>(
@@ -179,30 +167,31 @@ public class ZanataClientTest {
      */
     @Test
     public void testStatsCommand() throws Exception {
-        mockStatic(SubCommandHandler2.class);
         GetStatisticsOptionsImpl mockOptions =
                 mock(GetStatisticsOptionsImpl.class);
         ZanataCommand mockCommand = mock(ZanataCommand.class);
 
-        when(
-                SubCommandHandler2.instantiate(
-                        Mockito.<SubCommandHandler2> anyObject(),
-                        Mockito.<SubCommand> anyObject())).thenReturn(
-                mockOptions);
-        when(mockOptions.initCommand()).thenReturn(mockCommand);
+        try (MockedStatic<SubCommandHandler2> mocked =
+                Mockito.mockStatic(SubCommandHandler2.class)) {
+            mocked.when(() -> SubCommandHandler2.instantiate(
+                    org.mockito.ArgumentMatchers.<SubCommandHandler2>any(),
+                    org.mockito.ArgumentMatchers.<SubCommand>any()))
+                    .thenReturn(mockOptions);
+            when(mockOptions.initCommand()).thenReturn(mockCommand);
 
-        String command = "stats";
-        String url = "https://zanata.example.com/";
-        String project = "aproject";
-        String version = "1.2";
-        client.processArgs(command, "--url", url, "--project", project,
-                "--project-version", version);
+            String command = "stats";
+            String url = "https://zanata.example.com/";
+            String project = "aproject";
+            String version = "1.2";
+            client.processArgs(command, "--url", url, "--project", project,
+                    "--project-version", version);
 
-        assertThat(err.toString(), CoreMatchers.is(""));
-        verify(mockOptions).setUrl(new URL(url));
-        verify(mockOptions).setProj(project);
-        verify(mockOptions).setProjectVersion(version);
-        verify(mockCommand).runWithActions();
+            assertThat(err.toString(), CoreMatchers.is(""));
+            verify(mockOptions).setUrl(new URL(url));
+            verify(mockOptions).setProj(project);
+            verify(mockOptions).setProjectVersion(version);
+            verify(mockCommand).runWithActions();
+        }
     }
 
     /**

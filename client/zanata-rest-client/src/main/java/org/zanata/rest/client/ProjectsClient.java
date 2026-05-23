@@ -21,8 +21,8 @@
 
 package org.zanata.rest.client;
 
-import javax.ws.rs.core.GenericType;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.MediaType;
 
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.service.ProjectsResource;

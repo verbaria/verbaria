@@ -5,7 +5,7 @@ import com.webcohesion.enunciate.metadata.Label;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A collection of links

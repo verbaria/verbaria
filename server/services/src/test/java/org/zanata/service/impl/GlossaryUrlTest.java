@@ -22,7 +22,7 @@
 package org.zanata.service.impl;
 
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -37,10 +37,10 @@ import org.zanata.servlet.annotations.ServerPath;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

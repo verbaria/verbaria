@@ -26,12 +26,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.annotation.Nonnull;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.context.SessionScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import javax.security.auth.Subject;
 import org.apache.deltaspike.cdise.api.ContextControl;
 import org.zanata.config.AsyncConfig;
@@ -47,7 +47,7 @@ import org.zanata.util.ServiceLocator;
  *         <a href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 @Named("asyncTaskManager")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class AsyncTaskManager {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(AsyncTaskManager.class);

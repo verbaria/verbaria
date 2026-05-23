@@ -2,7 +2,7 @@ package org.zanata.limits;
 
 import java.util.concurrent.TimeUnit;
 import org.zanata.util.RunnableEx;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * This class is used by RestLimitingSynchronousDispatcher to dispatch API calls

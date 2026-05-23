@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.ObjectUtils;
 import org.zanata.security.ZanataIdentity;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -120,7 +120,7 @@ public class AsyncTaskHandle<V> implements Serializable {
             return Optional
                     .of(timeElapsed * remainingUnits / this.currentProgress);
         } else {
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 

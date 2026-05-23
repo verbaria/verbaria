@@ -37,14 +37,13 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.TermQuery;
-import org.hibernate.Criteria;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.FullTextQuery;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import org.zanata.common.EntityStatus;
 import org.zanata.hibernate.search.CaseInsensitiveWhitespaceAnalyzer;
 import org.zanata.hibernate.search.IndexFieldLabels;
@@ -529,7 +528,7 @@ public class ProjectDAO extends AbstractDAOImpl<HProject, Long> {
                 .append("or lower(project.slug) like :filter))")
                 .append(") as projects order by name");
 
-        Query q = getSession().createSQLQuery(sb.toString())
+        Query q = getSession().createNativeQuery(sb.toString())
                 .addEntity("project", HProject.class)
                 .setParameter("personId", person.getId())
                 .setParameter("obsolete", EntityStatus.OBSOLETE.getInitial())
@@ -564,7 +563,7 @@ public class ProjectDAO extends AbstractDAOImpl<HProject, Long> {
                 .append(") as projects");
         sb.append(") as counts");
 
-        Query q = getSession().createSQLQuery(sb.toString())
+        Query q = getSession().createNativeQuery(sb.toString())
                 .setParameter("personId", person.getId())
                 .setParameter("obsolete", EntityStatus.OBSOLETE.getInitial())
                 .setParameter("filter", "%" + sqlFilter + "%");

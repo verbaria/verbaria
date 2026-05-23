@@ -3,11 +3,11 @@ package org.zanata.service.impl;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import javax.naming.Context;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.assertj.core.api.Assertions;
@@ -15,7 +15,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.Search;
-import org.jglue.cdiunit.AdditionalClasses;
+import io.github.cdiunit.AdditionalClasses;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -176,8 +176,8 @@ public class CopyTransServiceImplPerformanceTest extends ZanataTest {
         SessionFactory sessionFactory =
                 ((Session) em.getDelegate()).getSessionFactory();
         try {
-            sessionFactory.getCache().evictEntityRegions();
-            sessionFactory.getCache().evictCollectionRegions();
+            sessionFactory.getCache().evictAllRegions();
+            sessionFactory.getCache().evictDefaultQueryRegion();
         } catch (Exception e) {
             log.error(" *** Cache Exception " + e.getMessage());
         }

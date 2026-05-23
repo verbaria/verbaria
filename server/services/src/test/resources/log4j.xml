@@ -10,7 +10,7 @@
   </appender>
 
   <!--
-    NB Third-party code (eg javax.faces, DeltaSpike, Arquillian) which uses java.util.logging will be
+    NB Third-party code (eg jakarta.faces, DeltaSpike, Arquillian) which uses java.util.logging will be
     directed here by SLF4JBridgeHandler, but JUL Logger thresholds must be configured in both systems.
     Also, disabling logging here won't prevent unneeded JUL log messages from being created.
     See logging-test.properties.

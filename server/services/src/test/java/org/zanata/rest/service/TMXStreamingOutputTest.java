@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.StreamingOutput;
 import javax.xml.parsers.DocumentBuilder;
 
 import org.apache.commons.io.output.StringBuilderWriter;

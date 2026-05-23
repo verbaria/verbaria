@@ -20,13 +20,13 @@
  */
 package org.zanata.service.impl;
 
-import com.google.common.base.Optional;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityNotFoundException;
+import java.util.Optional;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityNotFoundException;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.adapter.po.PoWriter2;
 import org.zanata.async.Async;
 import org.zanata.async.AsyncTaskHandle;
@@ -91,7 +91,7 @@ public class TranslationArchiveServiceImpl
             String iterationSlug, String localeId, String userName,
             AsyncTaskHandle<String> handle) throws Exception {
         Optional<AsyncTaskHandle<String>> handleOpt =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         if (handleOpt.isPresent()) {
             prepareHandle(handleOpt.get(), projectSlug, iterationSlug);
         }

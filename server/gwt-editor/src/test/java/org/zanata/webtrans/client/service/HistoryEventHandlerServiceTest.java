@@ -76,7 +76,7 @@ public class HistoryEventHandlerServiceTest {
 
         service.processForDocumentListPresenter(token);
 
-        verifyZeroInteractions(documentListPresenter);
+        verifyNoMoreInteractions(documentListPresenter);
     }
 
     @Test
@@ -97,7 +97,7 @@ public class HistoryEventHandlerServiceTest {
     public void onProcessForAppPresenterWillDoNothingIfHistoryNotChanged() {
         service.processForAppPresenter(null);
 
-        verifyZeroInteractions(appPresenter);
+        verifyNoMoreInteractions(appPresenter);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class HistoryEventHandlerServiceTest {
 
         service.processForProjectWideSearch(token);
 
-        verifyZeroInteractions(searchResultsPresenter);
+        verifyNoMoreInteractions(searchResultsPresenter);
     }
 
     @Test
@@ -282,7 +282,7 @@ public class HistoryEventHandlerServiceTest {
         service.processForBookmarkedTextFlow(token);
 
         // Then:
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test
@@ -294,7 +294,7 @@ public class HistoryEventHandlerServiceTest {
         service.processForBookmarkedTextFlow(token);
 
         // Then:
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
 
     }
 
@@ -311,7 +311,7 @@ public class HistoryEventHandlerServiceTest {
         service.processForBookmarkedTextFlow(token);
 
         // Then:
-        verifyZeroInteractions(eventBus);
+        verifyNoMoreInteractions(eventBus);
     }
 
     @Test

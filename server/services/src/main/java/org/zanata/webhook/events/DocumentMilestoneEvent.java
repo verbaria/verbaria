@@ -20,7 +20,7 @@
  */
 package org.zanata.webhook.events;
 
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.zanata.common.LocaleId;
 import org.zanata.events.WebhookEventType;
 import org.zanata.model.type.WebhookType;

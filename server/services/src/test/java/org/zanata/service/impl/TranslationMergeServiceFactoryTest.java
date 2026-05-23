@@ -1,7 +1,7 @@
 package org.zanata.service.impl;
 
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -11,8 +11,8 @@ import org.zanata.model.HTextFlowTarget;
 import org.zanata.service.TranslationMergeService;
 import org.zanata.test.CdiUnitRunner;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

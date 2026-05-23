@@ -1,16 +1,16 @@
 package org.zanata.notification;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.jms.BytesMessage;
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
-import javax.jms.TextMessage;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.JMSException;
+import jakarta.jms.MapMessage;
+import jakarta.jms.Message;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.TextMessage;
 
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.deltaspike.SupportDeltaspikeCore;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.deltaspike.SupportDeltaspikeCore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,7 +43,7 @@ public class EmailQueueMessageReceiverTest {
                 mock(MapMessage.class))) {
             receiver.onMessage(message);
         }
-        verifyZeroInteractions(languageTeamHandler);
+        verifyNoMoreInteractions(languageTeamHandler);
     }
 
     @Test
@@ -52,7 +52,7 @@ public class EmailQueueMessageReceiverTest {
         ObjectMessage message = mock(ObjectMessage.class);
         when(message.getStringProperty(NotificationManager.MessagePropertiesKey.objectType.name())).thenReturn("unknownType");
         receiver.onMessage(message);
-        verifyZeroInteractions(languageTeamHandler);
+        verifyNoMoreInteractions(languageTeamHandler);
     }
 
     @Test

@@ -26,8 +26,8 @@ import com.google.gwt.event.shared.GwtEvent;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import net.customware.gwt.presenter.client.EventBus;
 import org.hibernate.transform.ResultTransformer;
-import org.jglue.cdiunit.ContextController;
-import org.jglue.cdiunit.ProducesAlternative;
+import io.github.cdiunit.ContextController;
+import io.github.cdiunit.ProducesAlternative;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,9 +69,9 @@ import org.zanata.webtrans.shared.rpc.GetTransUnitList;
 import org.zanata.webtrans.shared.rpc.GetTransUnitListResult;
 import org.zanata.webtrans.shared.rpc.GetTransUnitsNavigationResult;
 
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;

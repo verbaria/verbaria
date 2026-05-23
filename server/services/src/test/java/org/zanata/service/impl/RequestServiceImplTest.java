@@ -2,7 +2,7 @@ package org.zanata.service.impl;
 
 import org.dbunit.operation.DatabaseOperation;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -22,9 +22,9 @@ import org.zanata.service.EmailService;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.test.EventListener;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;

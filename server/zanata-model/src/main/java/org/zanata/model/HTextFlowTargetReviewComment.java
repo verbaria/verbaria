@@ -20,20 +20,19 @@
  */
 package org.zanata.model;
 
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
-import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Immutable;
-import org.hibernate.search.annotations.IndexedEmbedded;
 import com.google.common.base.Strings;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
@@ -55,7 +54,6 @@ public class HTextFlowTargetReviewComment extends ModelEntityBase {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_id")
-    @IndexedEmbedded
     private HTextFlowTarget textFlowTarget;
     @Lob
     private String comment;

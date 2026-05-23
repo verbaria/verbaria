@@ -24,7 +24,7 @@ package org.zanata.service.impl;
 import java.io.Serializable;
 import java.util.concurrent.locks.Lock;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 
 import com.google.common.util.concurrent.Striped;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -36,7 +36,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = { "GBU_GUAVA_BETA_CLASS_USAGE",
         "SE_BAD_FIELD" }, justification = "field Striped<Lock>")
 @Named("activityLockManager")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class ActivityLockManager implements Serializable {
     private static final long serialVersionUID = -7784287332726360272L;
     private static final int NUM_STRIPES = Runtime.getRuntime().availableProcessors() * 4;

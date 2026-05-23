@@ -25,7 +25,7 @@ import java.io.IOException;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import nu.xom.Element;
 

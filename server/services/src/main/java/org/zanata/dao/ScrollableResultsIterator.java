@@ -59,7 +59,10 @@ class ScrollableResultsIterator implements Iterator<Object[]>, Closeable {
                 return false;
             }
             if (scrollableResults.next()) {
-                nextRow = scrollableResults.get();
+                // Hibernate 6: ScrollableResults<R>.get() returns R directly.
+                // Wrap as Object[] to preserve Iterator<Object[]> contract.
+                Object row = scrollableResults.get();
+                nextRow = (row instanceof Object[]) ? (Object[]) row : new Object[]{row};
                 return true;
             } else {
                 close();

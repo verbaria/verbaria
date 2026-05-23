@@ -74,3 +74,5 @@ ehcache.disk.store.dir/
 frontend/src/main/web/jsconfig.json
 frontend/src/main/web/.vscode/launch.json
 frontend/src/main/web/.vscode/tasks.json
+
+.consulo/

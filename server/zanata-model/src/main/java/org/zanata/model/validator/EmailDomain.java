@@ -24,8 +24,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import javax.validation.Constraint;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 @Constraint(validatedBy = { EmailDomainValidator.class })
 @Target({ ElementType.METHOD, ElementType.FIELD })
@@ -33,7 +33,7 @@ import javax.validation.Payload;
 public @interface EmailDomain {
     Class<?>[] groups() default {};
 
-    String message() default "{javax.validation.constraints.PermittedEmailDomain.message}";
+    String message() default "{jakarta.validation.constraints.PermittedEmailDomain.message}";
 
     Class<? extends Payload>[] payload() default {};
 }

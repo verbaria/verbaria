@@ -20,8 +20,8 @@
  */
 package org.zanata.email;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 
 @FunctionalInterface
 interface MessageBuilder {

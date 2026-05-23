@@ -20,13 +20,13 @@
  */
 package org.zanata.async;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.zanata.util.ServiceLocator;
 
-import javax.inject.Inject;
-import javax.interceptor.AroundInvoke;
-import javax.interceptor.Interceptor;
-import javax.interceptor.InvocationContext;
+import jakarta.inject.Inject;
+import jakarta.interceptor.AroundInvoke;
+import jakarta.interceptor.Interceptor;
+import jakarta.interceptor.InvocationContext;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -75,7 +75,7 @@ public class AsyncMethodInterceptor {
             // If there is a Task handle parameter (only the first one will be
             // registered)
             final Optional<AsyncTaskHandle> handle =
-                    Optional.fromNullable(findHandleIfPresent(ctx
+                    Optional.ofNullable(findHandleIfPresent(ctx
                             .getParameters()));
 
             AsyncTask asyncTask = () -> {

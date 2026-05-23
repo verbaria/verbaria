@@ -22,13 +22,13 @@ package org.zanata.action;
 
 import java.io.Serializable;
 import java.util.Date;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Model;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Model;
 import javax.security.auth.login.LoginException;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.transaction.Transactional;
 import org.zanata.dao.PersonDAO;
 import org.zanata.exception.KeyNotFoundException;
 import org.zanata.model.HAccount;
@@ -39,7 +39,7 @@ import org.zanata.security.annotations.CheckLoggedIn;
 import org.zanata.service.impl.EmailChangeService;
 import org.zanata.ui.faces.FacesMessages;
 import org.zanata.util.UrlUtil;
-import static javax.faces.application.FacesMessage.SEVERITY_ERROR;
+import static jakarta.faces.application.FacesMessage.SEVERITY_ERROR;
 
 @Named("validateEmail")
 @RequestScoped

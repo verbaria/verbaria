@@ -20,6 +20,8 @@
  */
 package org.zanata.model;
 
+
+import org.zanata.model.type.EntityType;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,51 +29,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
-import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapKey;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.PostLoad;
-import javax.persistence.PostPersist;
-import javax.persistence.PostUpdate;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapKey;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PostUpdate;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.hibernate.annotations.TypeDefs;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.AnalyzerDiscriminator;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.Parameter;
 import org.zanata.common.ContentState;
 import org.zanata.common.HasContents;
 import org.zanata.common.LocaleId;
-import org.zanata.hibernate.search.ContentStateBridge;
-import org.zanata.hibernate.search.TextFlowTargetEntityIndexingInterceptor;
-import org.zanata.hibernate.search.IndexFieldLabels;
-import org.zanata.hibernate.search.LocaleIdBridge;
-import org.zanata.hibernate.search.StringListBridge;
-import org.zanata.hibernate.search.TextContainerAnalyzerDiscriminator;
-import org.zanata.model.type.EntityType;
-import org.zanata.model.type.EntityTypeType;
 import org.zanata.rest.dto.TranslationSourceType;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
-import org.zanata.model.type.TranslationSourceTypeType;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
 /**
@@ -84,11 +67,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 @Entity
 @EntityListeners({ HTextFlowTarget.EntityListener.class })
 @Cacheable
-@TypeDefs({
-        @TypeDef(name = "sourceType",
-                typeClass = TranslationSourceTypeType.class),
-        @TypeDef(name = "entityType", typeClass = EntityTypeType.class) })
-@Indexed(interceptor = TextFlowTargetEntityIndexingInterceptor.class)
 @GraphQLType(name = "TextFlowTarget")
 public class HTextFlowTarget extends ModelEntityBase
         implements HasContents, HasSimpleComment, ITextFlowTargetHistory,
@@ -119,8 +97,7 @@ public class HTextFlowTarget extends ModelEntityBase
     // Only for internal use (persistence transient)
     private Integer oldVersionNum;
 
-    @Type(type = "sourceType")
-    @Column(columnDefinition = "char(3)")
+        @Column(columnDefinition = "char(3)")
     public TranslationSourceType getSourceType() {
         return sourceType;
     }
@@ -151,8 +128,6 @@ public class HTextFlowTarget extends ModelEntityBase
     @NaturalId
     @ManyToOne(optional = false)
     @JoinColumn(name = "locale", nullable = false, updatable = false)
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = LocaleIdBridge.class)
     @NotNull
     public HLocale getLocale() {
         return locale;
@@ -166,8 +141,6 @@ public class HTextFlowTarget extends ModelEntityBase
     }
 
     @NotNull
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = ContentStateBridge.class)
     @Override
     @Nonnull
     public ContentState getState() {
@@ -220,7 +193,6 @@ public class HTextFlowTarget extends ModelEntityBase
     @NaturalId
     @ManyToOne
     @JoinColumn(name = "tf_id")
-    @IndexedEmbedded
     public HTextFlow getTextFlow() {
         return textFlow;
     }
@@ -245,8 +217,7 @@ public class HTextFlowTarget extends ModelEntityBase
         this.setContents(Arrays.asList(content));
     }
 
-    @Type(type = "entityType")
-    @Column(columnDefinition = "char(3)")
+        @Column(columnDefinition = "char(3)")
     public EntityType getCopiedEntityType() {
         return copiedEntityType;
     }
@@ -254,11 +225,6 @@ public class HTextFlowTarget extends ModelEntityBase
 
     @Override
     @Transient
-    @Field(name = IndexFieldLabels.CONTENT,
-            bridge = @FieldBridge(impl = StringListBridge.class,
-                    params = { @Parameter(name = "case", value = "fold"),
-                            @Parameter(name = "ngrams", value = "multisize") }))
-    @AnalyzerDiscriminator(impl = TextContainerAnalyzerDiscriminator.class)
     public List<String> getContents() {
         List<String> contents = new ArrayList<String>();
         boolean populating = false;

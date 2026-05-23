@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.zanata.rest.dto.DTOUtil;
 

@@ -24,10 +24,10 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.validator.constraints.NotEmpty;
 import com.google.common.base.Function;
@@ -93,7 +93,7 @@ public class HApplicationConfiguration extends ModelEntityBase {
     }
 
     @NotNull
-    @javax.persistence.Lob
+    @jakarta.persistence.Lob
     @Column(name = "config_value", nullable = false)
     public String getValue() {
         return value;

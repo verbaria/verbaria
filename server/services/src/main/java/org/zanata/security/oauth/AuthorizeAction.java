@@ -22,13 +22,14 @@ package org.zanata.security.oauth;
 
 import java.io.IOException;
 import java.util.Optional;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.deltaspike.core.api.common.DeltaSpike;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.zanata.cdi.DeltaSpike;
+import jakarta.transaction.Transactional;
 import org.apache.oltu.oauth2.as.response.OAuthASResponse;
 import org.apache.oltu.oauth2.common.OAuth;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
@@ -92,14 +93,14 @@ public class AuthorizeAction {
         try {
             String code = securityTokens.getAuthorizationCode(
                     authenticatedAccount.getUsername(), clientId);
-            OAuthResponse resp = OAuthASResponse
-                    .authorizationResponse(request,
-                            HttpServletResponse.SC_FOUND)
-                    .setCode(code).location(redirectUri).buildQueryMessage();
-            log.info("User click Allow. Redirect back to:{}",
-                    resp.getLocationUri());
-            FacesNavigationUtil.redirectToExternal(resp.getLocationUri());
-        } catch (OAuthSystemException | IOException e) {
+            String location = redirectUri
+                    + (redirectUri.contains("?") ? '&' : '?')
+                    + "code=" + java.net.URLEncoder.encode(code,
+                            java.nio.charset.StandardCharsets.UTF_8);
+            log.info("User click Allow. Redirect back to:{}", location);
+            FacesNavigationUtil.redirectToExternal(location);
+        } catch (IOException
+                | org.apache.oltu.oauth2.common.exception.OAuthSystemException e) {
             throw new RuntimeException(e);
         }
     }

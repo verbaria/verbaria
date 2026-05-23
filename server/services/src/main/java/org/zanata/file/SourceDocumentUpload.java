@@ -28,13 +28,13 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.Serializable;
 import javax.annotation.Nonnull;
-import javax.enterprise.context.Dependent;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.enterprise.context.Dependent;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FilenameUtils;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.adapter.FileFormatAdapter;
 import org.zanata.common.DocumentType;
@@ -63,7 +63,7 @@ import org.zanata.rest.service.VirusScanner;
 import org.zanata.security.ZanataIdentity;
 import org.zanata.service.DocumentService;
 import org.zanata.service.TranslationFileService;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 @Dependent
 @Named("sourceDocumentUploader")
@@ -132,7 +132,7 @@ public class SourceDocumentUpload implements Serializable {
             }
             if (isSinglePart(uploadForm)) {
                 totalChunks = 1;
-                tempFile = Optional.<File> absent();
+                tempFile = Optional.empty();
             } else {
                 HDocumentUpload previousParts =
                         documentUploadDAO.findById(uploadForm.getUploadId());
@@ -268,7 +268,7 @@ public class SourceDocumentUpload implements Serializable {
         }
         try {
             Optional<String> docType =
-                    Optional.fromNullable(uploadForm.getFileType());
+                    Optional.ofNullable(uploadForm.getFileType());
             LocaleId locale = LocaleId.EN_US;
             Resource doc =
                     translationFileServiceImpl.parseUpdatedAdapterDocumentFile(

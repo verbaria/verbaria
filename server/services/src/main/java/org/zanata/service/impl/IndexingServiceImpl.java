@@ -23,10 +23,10 @@ package org.zanata.service.impl;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.hibernate.Session;
 import org.hibernate.search.FullTextSession;
@@ -97,7 +97,7 @@ public class IndexingServiceImpl implements IndexingService {
                         && indexingOptions.get(clazz).isOptimize()) {
                     log.info("optimizing {}", clazz);
                     // currentClass = clazz;
-                    session.getSearchFactory().optimize(clazz);
+                    // FullTextSession.optimize removed in Hibernate Search 6+. Index optimization is automatic now.
                     handle.increaseProgress(1);
                 }
             }

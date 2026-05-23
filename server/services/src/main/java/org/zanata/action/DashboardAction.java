@@ -31,15 +31,15 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.enterprise.inject.Model;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.inject.Model;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.async.AsyncTaskHandle;
 import org.zanata.async.AsyncTaskHandleManager;
 import org.zanata.dao.VersionGroupDAO;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.model.HIterationGroup;
 import org.zanata.model.HProjectLocaleMember;
 import org.zanata.model.HProjectMember;

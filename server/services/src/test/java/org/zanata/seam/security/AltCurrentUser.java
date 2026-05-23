@@ -21,7 +21,7 @@
 package org.zanata.seam.security;
 
 import javax.annotation.Nullable;
-import javax.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Alternative;
 
 import org.zanata.model.HAccount;
 

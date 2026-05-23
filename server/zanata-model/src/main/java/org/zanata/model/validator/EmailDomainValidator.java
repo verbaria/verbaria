@@ -22,21 +22,19 @@ package org.zanata.model.validator;
 
 import java.io.Serializable;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 import com.google.common.base.Strings;
 
-/**
- * @author Patrick Huang <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class EmailDomainValidator
         implements ConstraintValidator<EmailDomain, String>,
         Serializable {
 
-    private static final long serialVersionUID = -6301906837677156304L;
+    private static final long serialVersionUID = 1L;
+
     private Provider<Set<String>> permittedEmailDomainsProvider;
 
     @Inject

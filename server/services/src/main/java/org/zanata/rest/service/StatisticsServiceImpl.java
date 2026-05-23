@@ -30,21 +30,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.persistence.EntityManager;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.persistence.EntityManager;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.hibernate.transform.ResultTransformer;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.ws.rs.core.Response;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.ws.rs.core.Response;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -79,7 +79,7 @@ import org.zanata.service.TranslationStateCache;
 import org.zanata.service.impl.LocaleServiceImpl;
 import org.zanata.util.DateUtil;
 import org.zanata.webtrans.shared.model.DocumentStatus;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Maps;
 
 import static org.apache.commons.lang3.StringUtils.abbreviate;
@@ -95,7 +95,7 @@ import static org.apache.commons.lang3.StringUtils.abbreviate;
 @Named("statisticsServiceImpl")
 @Path(StatisticsResource.SERVICE_PATH)
 @RequestScoped
-@Transactional(readOnly = true)
+@Transactional
 public class StatisticsServiceImpl implements StatisticsResource {
 
     @Inject
@@ -466,7 +466,7 @@ public class StatisticsServiceImpl implements StatisticsResource {
         if (userZone.getStandardOffset(0) != systemZone.getStandardOffset(0)) {
             userZoneOpt = Optional.of(userZone);
         } else {
-            userZoneOpt = Optional.absent();
+            userZoneOpt = Optional.empty();
         }
         List<TranslationMatrix> translationMatrixList =
                 textFlowTargetHistoryDAO.getUserTranslationMatrix(person,
@@ -503,7 +503,7 @@ public class StatisticsServiceImpl implements StatisticsResource {
         if (timezone.getStandardOffset(0) != systemZone.getStandardOffset(0)) {
             timezoneOpt = Optional.of(timezone);
         } else {
-            timezoneOpt = Optional.absent();
+            timezoneOpt = Optional.empty();
         }
         List<ProjectStatisticsMatrix> translationMatrixList =
                 textFlowTargetHistoryDAO.getProjectTranslationMatrix(version,

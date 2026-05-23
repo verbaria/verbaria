@@ -3,7 +3,7 @@ package org.zanata.rest.client;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 
 import org.junit.Test;
 
@@ -21,10 +21,10 @@ public class InvalidContentTypeFilterTest {
                     "  <html class=\"new-zanata-html\"><head>\n" +
                     "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n" +
                     "    <title>Zanata: Home</title>\n" +
-                    "    <link rel=\"shortcut icon\" href=\"/javax.faces.resource/jars/assets/img/logo/logo.ico\" type=\"image/x-icon\" />\n" +
+                    "    <link rel=\"shortcut icon\" href=\"/jakarta.faces.resource/jars/assets/img/logo/logo.ico\" type=\"image/x-icon\" />\n" +
                     "    <link type=\"text/css\" rel=\"stylesheet\" href=\"/resources/fontello/css/fontello.css\" />\n" +
-                    "    <link type=\"text/css\" rel=\"stylesheet\" class=\"user\" href=\"/javax.faces.resource/jars/assets/css/zanata.css\" />\n" +
-                    "    <link type=\"text/css\" rel=\"stylesheet\" href=\"/javax.faces.resource/jars/assets/css/style.min.css\" />";
+                    "    <link type=\"text/css\" rel=\"stylesheet\" class=\"user\" href=\"/jakarta.faces.resource/jars/assets/css/zanata.css\" />\n" +
+                    "    <link type=\"text/css\" rel=\"stylesheet\" href=\"/jakarta.faces.resource/jars/assets/css/style.min.css\" />";
 
     @Test
     public void testPatternMatch() {

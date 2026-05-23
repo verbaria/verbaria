@@ -25,7 +25,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.service.tm.merge.TransMemoryMergeServiceImpl.BATCH_SIZE;
 import static org.zanata.test.EntityTestData.makeApprovedHTextFlow;
@@ -37,10 +37,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -325,7 +325,7 @@ public class TransMemoryMergeServiceImplTest {
         transMemoryMergeService.executeMerge(action, asyncTaskHandle);
 
         // Then: we should have EMPTY trans unit update request
-        verifyZeroInteractions(translationService);
+        verifyNoMoreInteractions(translationService);
     }
 
     @Test

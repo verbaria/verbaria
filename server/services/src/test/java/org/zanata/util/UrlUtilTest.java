@@ -22,7 +22,7 @@
 package org.zanata.util;
 
 import org.apache.deltaspike.core.spi.scope.window.WindowContext;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -32,10 +32,10 @@ import org.zanata.servlet.annotations.ContextPath;
 import org.zanata.servlet.annotations.ServerPath;
 import org.zanata.test.CdiUnitRunner;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -82,10 +82,10 @@ public class UrlUtilTest extends ZanataTest {
         String contextPath = "/contextPath";
 
         HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-        when(request.getAttribute("javax.servlet.forward.request_uri")).thenReturn("true");
-        when(request.getAttribute("javax.servlet.forward.context_path")).thenReturn(contextPath);
-        when(request.getAttribute("javax.servlet.forward.servlet_path")).thenReturn("servletPath");
-        when(request.getAttribute("javax.servlet.forward.query_string")).thenReturn(queryString);
+        when(request.getAttribute("jakarta.servlet.forward.request_uri")).thenReturn("true");
+        when(request.getAttribute("jakarta.servlet.forward.context_path")).thenReturn(contextPath);
+        when(request.getAttribute("jakarta.servlet.forward.servlet_path")).thenReturn("servletPath");
+        when(request.getAttribute("jakarta.servlet.forward.query_string")).thenReturn(queryString);
 
         String localUrl = urlUtil.getLocalUrl(request);
         assertThat(localUrl).contains(queryString).contains(contextPath);

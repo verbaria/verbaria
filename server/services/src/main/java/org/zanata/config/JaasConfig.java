@@ -24,7 +24,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.spi.LoginModule;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 import java.io.Serializable;
 
 /**
@@ -35,7 +35,7 @@ import java.io.Serializable;
  */
 @Named("jaasConfig")
 
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class JaasConfig implements Serializable {
 
     private static final long serialVersionUID = -8707906261411142759L;

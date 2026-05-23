@@ -5,17 +5,17 @@ import java.text.DecimalFormat;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import javax.enterprise.context.Dependent;
-import javax.enterprise.inject.Model;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Model;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.security.annotations.CheckRole;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 import org.zanata.async.AsyncTaskHandle;
 import org.zanata.service.SearchIndexManager;
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 @Named("reindexAction")
 @Dependent

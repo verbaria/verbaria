@@ -21,11 +21,11 @@
 package org.zanata.action;
 
 import java.io.Serializable;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -40,9 +40,9 @@ import org.zanata.security.openid.OpenIdProviderType;
 import org.zanata.service.RegisterService;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.ui.faces.FacesMessages;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InSessionScope;
 
-import static javax.faces.application.FacesMessage.SEVERITY_ERROR;
+import static jakarta.faces.application.FacesMessage.SEVERITY_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import static org.zanata.action.AccountMergeAction.ObsoleteHolder;

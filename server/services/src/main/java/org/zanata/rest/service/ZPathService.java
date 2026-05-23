@@ -23,7 +23,7 @@ package org.zanata.rest.service;
 import java.io.Serializable;
 import java.text.MessageFormat;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
 
@@ -36,7 +36,7 @@ import org.zanata.model.HProjectIteration;
  * @since 2.0.0
  */
 @Named("zPathService")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 
 // TODO this should probably be Transactional (and not Dependent)
 public class ZPathService implements Serializable {

@@ -22,7 +22,7 @@
 package org.zanata.rest.service;
 
 import java.util.Set;
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.core.Application;
 
 import com.google.common.collect.ImmutableSet;
 

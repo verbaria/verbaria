@@ -22,18 +22,18 @@ package org.zanata.model;
 
 import java.io.Serializable;
 import java.util.Date;
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.validation.constraints.NotNull;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.BatchSize;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
@@ -66,7 +66,7 @@ public class HSimpleComment implements Serializable {
     }
 
     @NotNull
-    @javax.persistence.Lob
+    @jakarta.persistence.Lob
     public String getComment() {
         return comment;
     }

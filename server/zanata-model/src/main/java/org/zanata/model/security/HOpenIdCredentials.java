@@ -20,8 +20,8 @@
  */
 package org.zanata.model.security;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 
 import org.zanata.model.HAccount;
 import io.leangen.graphql.annotations.types.GraphQLType;

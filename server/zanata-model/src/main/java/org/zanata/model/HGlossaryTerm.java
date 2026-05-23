@@ -20,27 +20,16 @@
  */
 package org.zanata.model;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.hibernate.annotations.NaturalId;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.FilterCacheModeType;
-import org.hibernate.search.annotations.FullTextFilterDef;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.zanata.hibernate.search.LocaleFilterFactory;
-import org.zanata.hibernate.search.LocaleIdBridge;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
 /**
@@ -48,10 +37,6 @@ import io.leangen.graphql.annotations.types.GraphQLType;
  */
 @Entity
 @Cacheable
-@Indexed
-@FullTextFilterDef(name = "glossaryLocaleFilter",
-        impl = LocaleFilterFactory.class,
-        cache = FilterCacheModeType.INSTANCE_ONLY)
 @GraphQLType(name = "GlossaryTerm")
 public class HGlossaryTerm extends ModelEntityBase {
     private static final long serialVersionUID = 1854278563597070432L;
@@ -67,7 +52,6 @@ public class HGlossaryTerm extends ModelEntityBase {
 
     @NotNull
     @Size(max = 500)
-    @Field(analyzer = @Analyzer(impl = StandardAnalyzer.class))
     public String getContent() {
         return content;
     }
@@ -81,7 +65,6 @@ public class HGlossaryTerm extends ModelEntityBase {
     @NaturalId
     @ManyToOne
     @JoinColumn(name = "glossaryEntryId", nullable = false)
-    @IndexedEmbedded
     public HGlossaryEntry getGlossaryEntry() {
         return glossaryEntry;
     }
@@ -90,8 +73,6 @@ public class HGlossaryTerm extends ModelEntityBase {
     @NaturalId
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "localeId", nullable = false)
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = LocaleIdBridge.class)
     public HLocale getLocale() {
         return locale;
     }

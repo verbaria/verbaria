@@ -23,8 +23,8 @@ package org.zanata.service.impl;
 import java.util.List;
 import java.util.concurrent.Future;
 import javax.annotation.Nonnull;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import com.google.common.annotations.VisibleForTesting;
 import org.zanata.async.Async;
 import org.zanata.async.AsyncTaskResult;
@@ -41,7 +41,7 @@ import org.zanata.model.HTextFlow;
 import org.zanata.service.CopyTransService;
 import org.zanata.service.LocaleService;
 import org.zanata.service.TranslationStateCache;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Stopwatch;
 // Not @Transactional, because we use CopyTransWorkFactory.runCopyTransInNewTx
 
@@ -182,7 +182,7 @@ public class CopyTransServiceImpl implements CopyTransService {
     void copyTransForDocument(HDocument document,
             HCopyTransOptions copyTransOpts, CopyTransTaskHandle handle) {
         Optional<CopyTransTaskHandle> taskHandleOpt =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         if (taskHandleOpt.isPresent()) {
             prepareCopyTransHandle(document, taskHandleOpt.get());
         }
@@ -257,7 +257,7 @@ public class CopyTransServiceImpl implements CopyTransService {
             HCopyTransOptions copyTransOptions,
             @Nonnull CopyTransTaskHandle handle) {
         Optional<CopyTransTaskHandle> taskHandleOpt =
-                Optional.fromNullable(handle);
+                Optional.ofNullable(handle);
         if (taskHandleOpt.isPresent()) {
             prepareCopyTransHandle(iteration, taskHandleOpt.get());
         }

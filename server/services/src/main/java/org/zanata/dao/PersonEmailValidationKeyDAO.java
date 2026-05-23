@@ -20,11 +20,11 @@
  */
 package org.zanata.dao;
 
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.model.HPersonEmailValidationKey;
 
 @Named("personEmailValidationKeyDAO")
@@ -58,7 +58,7 @@ public class PersonEmailValidationKeyDAO extends
                 getSession()
                         .createQuery(
                                 "from HPersonEmailValidationKey as key where key.person.id= :personId");
-        query.setLong("personId", personId);
+        query.setParameter("personId", personId);
         query.setCacheable(false);
         query.setComment("PersonEmailValidationKeyDAO.findByPersonId");
         return (HPersonEmailValidationKey) query.uniqueResult();

@@ -22,12 +22,12 @@ package org.zanata.ui.faces;
 
 import org.zanata.util.ServiceLocator;
 
-import javax.faces.event.PhaseEvent;
-import javax.faces.event.PhaseId;
-import javax.faces.event.PhaseListener;
+import jakarta.faces.event.PhaseEvent;
+import jakarta.faces.event.PhaseId;
+import jakarta.faces.event.PhaseListener;
 
-import static javax.faces.event.PhaseId.ANY_PHASE;
-import static javax.faces.event.PhaseId.RENDER_RESPONSE;
+import static jakarta.faces.event.PhaseId.ANY_PHASE;
+import static jakarta.faces.event.PhaseId.RENDER_RESPONSE;
 
 /**
  * Phase listener that transfers messages from our own custom FacesMessages

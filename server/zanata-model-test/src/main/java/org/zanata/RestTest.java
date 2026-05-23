@@ -24,12 +24,12 @@ import java.net.URL;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
-import javax.enterprise.inject.spi.CDI;
+import jakarta.enterprise.inject.spi.CDI;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import org.apache.deltaspike.core.api.exclude.Exclude;
 import org.apache.deltaspike.core.api.projectstage.ProjectStage;
@@ -40,6 +40,7 @@ import org.dbunit.operation.DatabaseOperation;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +56,7 @@ import org.zanata.rest.ResourceRequestEnvironment;
 
 import com.google.common.collect.ImmutableMap;
 
-import static javax.ws.rs.core.Response.Status.Family.SUCCESSFUL;
+import static jakarta.ws.rs.core.Response.Status.Family.SUCCESSFUL;
 
 /**
  * Provides basic test utilities to test raw REST APIs and compatibility.
@@ -156,7 +157,7 @@ public abstract class RestTest {
 
     @Before
     public void signalBeforeTest() throws Exception {
-        ResteasyWebTarget webTarget = new ResteasyClientBuilder().build()
+        ResteasyWebTarget webTarget = new ResteasyClientBuilderImpl().build()
                 .target(getRestEndpointUrl() + "test/remote/signal/before");
         // test resources allow anonymous access
         Response response = webTarget
@@ -171,7 +172,7 @@ public abstract class RestTest {
 
     @After
     public void signalAfterTest() throws Exception {
-        ResteasyWebTarget webTarget = new ResteasyClientBuilder().build()
+        ResteasyWebTarget webTarget = new ResteasyClientBuilderImpl().build()
                 .target(getRestEndpointUrl() + "test/remote/signal/after");
         // test resources allow anonymous access
         Response response = webTarget

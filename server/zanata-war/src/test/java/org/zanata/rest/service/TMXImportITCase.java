@@ -22,8 +22,8 @@
 package org.zanata.rest.service;
 
 import java.io.ByteArrayInputStream;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import org.assertj.core.api.Assertions;
 import org.dbunit.operation.DatabaseOperation;

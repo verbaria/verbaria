@@ -1,20 +1,20 @@
 package org.zanata.email;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static javax.mail.Message.RecipientType.BCC;
+import static jakarta.mail.Message.RecipientType.BCC;
 
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Resource;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
+import jakarta.annotation.Resource;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 import com.oath.cyclops.types.persistent.PersistentMap;
 import cyclops.data.HashMap;
@@ -25,13 +25,13 @@ import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.log.CommonsLogLogChute;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.zanata.ApplicationConfiguration;
 import org.zanata.i18n.Messages;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.zanata.i18n.MessagesFactory;
 import org.zanata.servlet.annotations.ServerPath;
 import org.zanata.util.HtmlUtil;
@@ -41,7 +41,7 @@ import org.zanata.util.HtmlUtil;
  * template and send it via the default JavaMail Transport.
  */
 @Named("emailBuilder")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class EmailBuilder implements Serializable {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(EmailBuilder.class);
@@ -86,7 +86,7 @@ public class EmailBuilder implements Serializable {
      */
     public void sendMessage(VelocityEmailStrategy strategy,
             List<String> receivedReasons, InternetAddress... toAddresses) {
-        SendEmailKt.sendEmail(() -> {
+        SendEmail.sendEmail(() -> {
             MimeMessage email = new MimeMessage(mailSession);
             return buildMessage(email, strategy, toAddresses, receivedReasons);
         });
@@ -100,7 +100,7 @@ public class EmailBuilder implements Serializable {
      * @param msg
      * @param strategy
      * @return
-     * @throws javax.mail.MessagingException
+     * @throws jakarta.mail.MessagingException
      */
     @VisibleForTesting
     MimeMessage buildMessage(MimeMessage msg, VelocityEmailStrategy strategy,
@@ -111,8 +111,9 @@ public class EmailBuilder implements Serializable {
         Messages msgs = messagesFactory.getDefaultLocaleMessages();
         Optional<InternetAddress> from = strategy.getFromAddress();
         String fromName = msgs.get("jsf.Zanata");
-        msg.setFrom(from.or(
-                Addresses.getAddress(emailContext.getFromAddress(), fromName)));
+        // Guava Optional.or(value) → Java Optional.orElseGet(supplier).
+        msg.setFrom(from.orElseGet(
+                () -> Addresses.getAddress(emailContext.getFromAddress(), fromName)));
         Optional<InternetAddress[]> replyTo = strategy.getReplyToAddress();
         if (replyTo.isPresent()) {
             msg.setReplyTo(replyTo.get());
@@ -154,7 +155,7 @@ public class EmailBuilder implements Serializable {
      * components needed to create EmailBuilder at runtime.
      */
     @Named("emailContext")
-    @javax.enterprise.context.RequestScoped
+    @jakarta.enterprise.context.RequestScoped
     public static class Context {
 
         @Inject

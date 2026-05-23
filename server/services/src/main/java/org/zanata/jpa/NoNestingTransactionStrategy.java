@@ -20,12 +20,12 @@
  */
 package org.zanata.jpa;
 
-import javax.enterprise.inject.Alternative;
-import javax.interceptor.InvocationContext;
-import javax.persistence.EntityTransaction;
-import javax.transaction.Status;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.interceptor.InvocationContext;
+import jakarta.persistence.EntityTransaction;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.UserTransaction;
 import org.apache.deltaspike.jpa.impl.transaction.BeanManagedUserTransactionStrategy;
 import org.apache.deltaspike.jpa.impl.transaction.context.EntityManagerEntry;
 

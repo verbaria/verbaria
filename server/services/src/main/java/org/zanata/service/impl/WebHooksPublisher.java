@@ -22,12 +22,13 @@ package org.zanata.service.impl;
 
 import java.util.Optional;
 import javax.annotation.Nonnull;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.zanata.events.WebhookEventType;
 import org.zanata.util.HmacUtil;
@@ -53,7 +54,7 @@ public class WebHooksPublisher {
             @Nonnull String data, @Nonnull MediaType acceptType,
             @Nonnull MediaType mediaType, Optional<String> secretKey) {
         try {
-            ResteasyClient client = new ResteasyClientBuilder().build();
+            ResteasyClient client = new ResteasyClientBuilderImpl().build();
             ResteasyWebTarget target = client.target(callbackURL);
             Invocation.Builder postBuilder =
                     target.request().accept(acceptType);

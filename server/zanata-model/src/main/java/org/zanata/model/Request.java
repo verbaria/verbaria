@@ -20,26 +20,22 @@
  */
 package org.zanata.model;
 
+
+import org.zanata.model.type.RequestType;
 import java.util.Date;
 
-import javax.persistence.Access;
-import javax.persistence.AccessType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.hibernate.annotations.TypeDefs;
 import org.zanata.model.type.RequestState;
-import org.zanata.model.type.RequestStateType;
-import org.zanata.model.type.RequestType;
-import org.zanata.model.type.RequestTypeType;
 import io.leangen.graphql.annotations.GraphQLIgnore;
 
 /**
@@ -49,18 +45,14 @@ import io.leangen.graphql.annotations.GraphQLIgnore;
  */
 @Access(AccessType.FIELD)
 @Entity
-@TypeDefs({ @TypeDef(name = "requestState", typeClass = RequestStateType.class),
-        @TypeDef(name = "requestType", typeClass = RequestTypeType.class) })
 @Table(uniqueConstraints = @UniqueConstraint(name = "UK_entityId_validTo",
         columnNames = { "entityId", "validTo" }))
 @GraphQLIgnore
 public class Request extends TimeEntityBase {
     private static final long serialVersionUID = -7765625863647796620L;
-    @Type(type = "requestState")
-    @Column(nullable = true, columnDefinition = "char(1)")
+        @Column(nullable = true, columnDefinition = "char(1)")
     private RequestState state = RequestState.NEW;
-    @Type(type = "requestType")
-    @Column(nullable = false, columnDefinition = "char(2)")
+        @Column(nullable = false, columnDefinition = "char(2)")
     @NotNull
     private RequestType requestType;
     @Column(nullable = true)

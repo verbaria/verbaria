@@ -23,7 +23,7 @@ package org.zanata.security;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.apache.deltaspike.security.api.authorization.AccessDeniedException;
 import org.junit.Test;

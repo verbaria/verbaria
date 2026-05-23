@@ -22,7 +22,7 @@ package org.zanata.test;
 
 import java.util.Arrays;
 import java.util.List;
-import org.jglue.cdiunit.AdditionalClasses;
+import io.github.cdiunit.AdditionalClasses;
 import org.junit.runner.Runner;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.model.FrameworkField;
@@ -85,7 +85,7 @@ public class CdiUnitRunnerWithParameters extends CdiUnitRunner {
     }
 
     @Override
-    protected Object createTest() throws Exception {
+    protected Object createTest() {
         // TODO modify CdiRunner so that we can get the ParamTestCdiExtension
         // instance, and avoid the static setter method
         ParamTestCdiExtension.setCurrentTestParameters(parameters);

@@ -29,11 +29,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
-import javax.ws.rs.core.EntityTag;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.ws.rs.core.EntityTag;
 
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 import org.zanata.common.ContentState;
 import org.zanata.common.EntityStatus;
@@ -539,8 +539,8 @@ public class ProjectIterationDAO extends
         Query q = getSession().createQuery(query);
         q.setParameter("versionSlug", versionSlug);
         q.setParameter("projectSlug", projectSlug);
-        q.setTimestamp("fromDate", dataRange.getFromDate().toDate());
-        q.setTimestamp("toDate", dataRange.getToDate().toDate());
+        q.setParameter("fromDate", dataRange.getFromDate().toDate());
+        q.setParameter("toDate", dataRange.getToDate().toDate());
         q.setCacheable(true).setComment(
             "ProjectIterationDAO.getContributors");
         @SuppressWarnings("unchecked")

@@ -21,10 +21,11 @@
 package org.zanata.rest;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Map;
 
@@ -60,7 +61,7 @@ public abstract class ResourceRequest {
             throws IOException;
 
     public void run() throws Exception {
-        ResteasyWebTarget webTarget = new ResteasyClientBuilder().build()
+        ResteasyWebTarget webTarget = new ResteasyClientBuilderImpl().build()
                 .target(resourceUrl);
         Invocation.Builder builder = prepareRequest(webTarget);
         builder = prepareEnvironment(builder);
@@ -68,7 +69,7 @@ public abstract class ResourceRequest {
     }
 
     public Response runWithResult() {
-        ResteasyWebTarget webTarget = new ResteasyClientBuilder().build()
+        ResteasyWebTarget webTarget = new ResteasyClientBuilderImpl().build()
                 .target(resourceUrl);
         Invocation.Builder builder = prepareRequest(webTarget);
         builder = prepareEnvironment(builder);

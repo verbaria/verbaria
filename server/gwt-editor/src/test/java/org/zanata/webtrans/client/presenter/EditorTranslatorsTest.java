@@ -18,7 +18,7 @@ import org.zanata.webtrans.shared.model.UserPanelSessionItem;
 import java.util.Map;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.webtrans.test.GWTTestData.makeTransUnit;
 
@@ -111,6 +111,6 @@ public class EditorTranslatorsTest {
         editorTranslators.updateTranslator(display, new TransUnitId(1));
 
         // Then:
-        verifyZeroInteractions(editor1, editor2);
+        verifyNoMoreInteractions(editor1, editor2);
     }
 }

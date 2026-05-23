@@ -20,15 +20,15 @@
  */
 package org.zanata.security;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.faces.event.PhaseEvent;
-import javax.faces.event.PhaseId;
-import javax.faces.event.PhaseListener;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.faces.event.PhaseEvent;
+import jakarta.faces.event.PhaseId;
+import jakarta.faces.event.PhaseListener;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.deltaspike.core.api.common.DeltaSpike;
+import org.zanata.cdi.DeltaSpike;
 import org.apache.deltaspike.jsf.api.listener.phase.JsfPhaseListener;
 import org.zanata.config.AllowAnonymousAccess;
 import org.zanata.exception.NotLoggedInException;

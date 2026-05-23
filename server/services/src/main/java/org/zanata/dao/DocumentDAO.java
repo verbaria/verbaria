@@ -8,12 +8,12 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.hibernate.LobHelper;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
-import org.hibernate.type.TimestampType;
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
-import javax.validation.constraints.NotNull;
+import org.hibernate.type.StandardBasicTypes;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.validation.constraints.NotNull;
 
 import org.zanata.common.ContentState;
 import org.zanata.common.EntityStatus;
@@ -486,8 +486,8 @@ public class DocumentDAO extends AbstractDAOImpl<HDocument, Long> {
                 "select greatest(\n  d.lastChanged,\n  max(ifnull(tft.lastChanged, {d \'1753-01-01\'})),\n  max(ifnull(c.lastChanged, {d \'1753-01-01\'})),\n  max(ifnull(poth.lastChanged, {d \'1753-01-01\'}))\n) as latest\nfrom HDocument d\n  left outer join HTextFlow tf\n    on d.id = tf.document_id\n  left outer join HTextFlowTarget tft\n    on tft.tf_id = tf.id and tft.locale = :locale\n  left outer join HSimpleComment c\n    on c.id = tft.comment_id\n  left outer join HPoTargetHeader poth\n    on poth.document_id = d.id\n    and poth.targetLanguage = :locale\nwhere d.id = :doc\ngroup by d.lastChanged";
         Query query =
                 // ensure that mysql driver doesn't return byte[] :
-                getSession().createSQLQuery(sql)
-                        .addScalar("latest", TimestampType.INSTANCE)
+                getSession().createNativeQuery(sql)
+                        .addScalar("latest", StandardBasicTypes.TIMESTAMP)
                         .setParameter("locale", locale)
                         .setParameter("doc", doc);
         Timestamp timestamp = (Timestamp) query.uniqueResult();

@@ -25,11 +25,11 @@ import java.util.Date;
 
 import org.apache.commons.lang3.time.DateUtils;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.zanata.dao.PersonEmailValidationKeyDAO;
 import org.zanata.model.HPerson;
 import org.zanata.model.HPersonEmailValidationKey;

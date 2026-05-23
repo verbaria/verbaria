@@ -20,8 +20,8 @@
  */
 package org.zanata.action;
 
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,8 +45,8 @@ import org.zanata.service.RequestService;
 import org.zanata.test.CdiUnitRunner;
 import org.zanata.ui.faces.FacesMessages;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import java.util.Collections;
 import java.util.Date;

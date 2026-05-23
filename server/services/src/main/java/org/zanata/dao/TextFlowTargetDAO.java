@@ -4,12 +4,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.hibernate.Query;
-import org.hibernate.SQLQuery;
+import org.hibernate.query.Query;
+import org.hibernate.query.NativeQuery;
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.common.ContentState;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
@@ -226,7 +226,7 @@ public class TextFlowTargetDAO extends AbstractDAOImpl<HTextFlowTarget, Long>
      *         text flow.
      */
     @Override
-    @NativeQuery
+    @org.zanata.dao.NativeQuery
     public Optional<HTextFlowTarget> searchBestMatchTransMemory(
             HTextFlow textFlow, LocaleId targetLocaleId,
             LocaleId sourceLocaleId, boolean checkContext,
@@ -267,8 +267,8 @@ public class TextFlowTargetDAO extends AbstractDAOImpl<HTextFlowTarget, Long>
                 .append(" tft.lastChanged DESC ")
                 .append("LIMIT 1");
 
-        SQLQuery sqlQuery =
-                getSession().createSQLQuery(queryBuilder.toString());
+        NativeQuery sqlQuery =
+                getSession().createNativeQuery(queryBuilder.toString());
         sqlQuery.setParameter("textFlowId", textFlow.getId());
         sqlQuery.setParameter("contentHash", textFlow.getContentHash());
         sqlQuery.setParameter("resId", textFlow.getResId());

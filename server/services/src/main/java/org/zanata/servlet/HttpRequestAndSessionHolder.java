@@ -22,14 +22,14 @@ package org.zanata.servlet;
 
 import java.util.Optional;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.faces.context.FacesContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.faces.context.FacesContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
-import org.apache.deltaspike.core.api.lifecycle.Destroyed;
-import org.apache.deltaspike.core.api.lifecycle.Initialized;
+import jakarta.enterprise.context.Destroyed;
+import jakarta.enterprise.context.Initialized;
 
 /**
  * DeltaSpike will always inject a HttpServletRequest or HttpSession proxy
@@ -51,7 +51,7 @@ public class HttpRequestAndSessionHolder {
     private static String serverName;
     private static int serverPort;
 
-    void setFacesRequest(@Observes @Initialized FacesContext facesRequest) {
+    void setFacesRequest(@Observes @Initialized(jakarta.enterprise.context.RequestScoped.class) FacesContext facesRequest) {
         Object requestObj = facesRequest.getExternalContext().getRequest();
         if (requestObj instanceof HttpServletRequest) {
             HttpServletRequest request = (HttpServletRequest) requestObj;
@@ -68,7 +68,7 @@ public class HttpRequestAndSessionHolder {
         }
     }
 
-    void removeRequest(@Observes @Destroyed FacesContext facesContext) {
+    void removeRequest(@Observes @Destroyed(jakarta.enterprise.context.RequestScoped.class) FacesContext facesContext) {
         Object requestObj = facesContext.getExternalContext().getRequest();
         if (requestObj instanceof HttpServletRequest) {
             REQUEST.remove();

@@ -3,10 +3,10 @@ package org.zanata.security;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.PostLoad;
-import javax.persistence.PrePersist;
-import javax.persistence.PreRemove;
-import javax.persistence.PreUpdate;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreRemove;
+import jakarta.persistence.PreUpdate;
 
 import org.zanata.annotation.EntityRestrict;
 

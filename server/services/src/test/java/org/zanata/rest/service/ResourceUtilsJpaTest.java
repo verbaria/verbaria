@@ -3,7 +3,7 @@ package org.zanata.rest.service;
 import java.util.HashSet;
 import java.util.Set;
 import org.hibernate.Session;
-import org.jglue.cdiunit.InRequestScope;
+import io.github.cdiunit.InRequestScope;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -30,9 +30,9 @@ import com.google.common.collect.Sets;
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
 import org.zanata.test.CdiUnitRunner;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 @RunWith(CdiUnitRunner.class)
 public class ResourceUtilsJpaTest extends ZanataJpaTest {

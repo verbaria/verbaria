@@ -32,8 +32,8 @@ import org.zanata.apicompat.rest.dto.VersionInfo;
 import org.zanata.provider.DBUnitProvider;
 import org.zanata.rest.ResourceRequest;
 
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.Response;
 
 public class VersionRawCompatibilityITCase extends RestTest {
 

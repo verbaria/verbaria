@@ -24,7 +24,7 @@ package org.zanata.security;
 import org.zanata.model.HAccount;
 import org.zanata.util.Synchronized;
 
-import javax.enterprise.context.SessionScoped;
+import jakarta.enterprise.context.SessionScoped;
 import java.io.Serializable;
 
 /**

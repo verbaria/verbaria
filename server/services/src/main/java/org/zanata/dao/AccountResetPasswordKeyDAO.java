@@ -22,8 +22,8 @@ package org.zanata.dao;
 
 import org.hibernate.Session;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 import org.zanata.model.HAccountResetPasswordKey;
 
 @Named("accountResetPasswordKeyDAO")
@@ -45,7 +45,7 @@ public class AccountResetPasswordKeyDAO extends
         return (HAccountResetPasswordKey) getSession()
             .createQuery(
                 "from HAccountResetPasswordKey key where key.account.id = :accountId")
-            .setLong("accountId", accountId)
+            .setParameter("accountId", accountId)
             .setComment("AccountResetPasswordKeyDAO.findByAccount").uniqueResult();
     }
 

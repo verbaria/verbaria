@@ -20,7 +20,7 @@
  */
 package org.zanata.ui;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 import org.zanata.util.StatisticsUtil;
 
 /**
@@ -29,7 +29,7 @@ import org.zanata.util.StatisticsUtil;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
 @Named("statisticBar")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 
 public class StatisticBar {
 

@@ -21,10 +21,10 @@
 package org.zanata.action;
 
 import java.io.Serializable;
-import javax.enterprise.context.Dependent;
-import javax.enterprise.event.Observes;
-import javax.faces.application.FacesMessage;
-import javax.inject.Inject;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.event.Observes;
+import jakarta.faces.application.FacesMessage;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.deltaspike.core.api.scope.WindowScoped;
 import org.apache.deltaspike.core.util.ContextUtils;

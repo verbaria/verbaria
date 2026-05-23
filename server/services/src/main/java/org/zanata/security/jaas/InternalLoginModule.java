@@ -1,7 +1,8 @@
 package org.zanata.security.jaas;
+import org.zanata.security.Group;
 
 import java.io.IOException;
-import java.security.acl.Group;
+import org.zanata.security.Group;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

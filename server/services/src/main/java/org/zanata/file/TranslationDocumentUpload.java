@@ -29,11 +29,11 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.enterprise.context.Dependent;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.DocumentType;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
@@ -55,7 +55,7 @@ import org.zanata.security.ZanataIdentity;
 import org.zanata.service.TranslationFileService;
 import org.zanata.service.TranslationService;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 //TODO damason: add thorough unit testing
 
 @Dependent
@@ -91,7 +91,7 @@ public class TranslationDocumentUpload implements Serializable {
             int totalChunks;
             if (isSinglePart(uploadForm)) {
                 totalChunks = 1;
-                tempFile = Optional.<File> absent();
+                tempFile = Optional.empty();
             } else {
                 if (!uploadForm.getLast()) {
                     HDocumentUpload upload =
@@ -127,7 +127,7 @@ public class TranslationDocumentUpload implements Serializable {
                 // should probably take a
                 // type anyway
                 Optional<String> docType =
-                        Optional.fromNullable(uploadForm.getFileType());
+                        Optional.ofNullable(uploadForm.getFileType());
                 transRes =
                         translationFileServiceImpl.parseAdapterTranslationFile(
                                 tempFile.get(), id.getProjectSlug(),

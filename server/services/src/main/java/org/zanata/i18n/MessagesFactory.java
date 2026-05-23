@@ -22,9 +22,9 @@ package org.zanata.i18n;
 
 import java.io.Serializable;
 import java.util.Locale;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Named;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Named;
 
 import org.zanata.util.DefaultLocale;
 
@@ -36,7 +36,7 @@ import org.zanata.util.DefaultLocale;
  *         <a href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  */
 @Named("messagesFactory")
-@javax.enterprise.context.ApplicationScoped
+@jakarta.enterprise.context.ApplicationScoped
 public class MessagesFactory implements Serializable {
 
     private static final long serialVersionUID = 4503539056097043809L;

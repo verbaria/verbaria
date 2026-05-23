@@ -3,10 +3,10 @@ package org.zanata.common;
 import java.io.Serializable;
 
 import javax.annotation.Nonnull;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Size;
 
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public class LocaleId implements Serializable {
 

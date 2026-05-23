@@ -5,8 +5,8 @@ import com.webcohesion.enunciate.metadata.Label;
 
 import java.net.URI;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A single link to reference a URI

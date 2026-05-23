@@ -22,22 +22,18 @@ package org.zanata.model;
 
 import java.io.Serializable;
 import java.util.Set;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.validation.constraints.NotNull;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import org.zanata.model.type.RoleTypeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.validation.constraints.NotNull;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
 @Entity
-@TypeDef(name = "roleType", typeClass = RoleTypeType.class)
 @GraphQLType(name = "AccountRole")
 public class HAccountRole implements Serializable, HasUserFriendlyToString {
 
@@ -72,8 +68,7 @@ public class HAccountRole implements Serializable, HasUserFriendlyToString {
         return conditional;
     }
 
-    @Type(type = "roleType")
-    @NotNull
+        @NotNull
     @Column(columnDefinition = "char(1)")
     public RoleType getRoleType() {
         return roleType;

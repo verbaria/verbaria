@@ -1,13 +1,23 @@
 package org.zanata.util;
 
-import org.hibernate.criterion.MatchMode;
-
 /**
  * To make writing HQL easier.
  * @author Patrick Huang
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 public class HqlCriterion {
+
+    /**
+     * Wildcard placement for SQL {@code LIKE}. Replaces the removed Hibernate 5
+     * {@code org.hibernate.criterion.MatchMode}.
+     */
+    public enum MatchMode {
+        EXACT     { @Override public String toMatchString(String pattern) { return pattern; } },
+        START     { @Override public String toMatchString(String pattern) { return pattern + "%"; } },
+        END       { @Override public String toMatchString(String pattern) { return "%" + pattern; } },
+        ANYWHERE  { @Override public String toMatchString(String pattern) { return "%" + pattern + "%"; } };
+        public abstract String toMatchString(String pattern);
+    }
 
     public static String eq(String property, String namedParam) {
         return property + "=" + namedParam;

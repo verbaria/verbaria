@@ -20,45 +20,27 @@
  */
 package org.zanata.util;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
-import net.sf.okapi.common.exceptions.OkapiIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.steps.tokenization.Tokenizer;
-import net.sf.okapi.steps.tokenization.tokens.Tokens;
+import net.sf.okapi.steps.tokenization.Tokens;
 
-public class OkapiUtil {
+public final class OkapiUtil {
     private static final Logger log = LoggerFactory.getLogger(OkapiUtil.class);
 
     private OkapiUtil() {
     }
 
-    /**
-     * Validate a Zanata localeId to BCP-47 and return an equivalent Okapi LocaleId
-     * @param zanataLocale Zanata LocaleId to convert
-     * @return Okapi LocaleId, as-is to preserve case (no normalization)
-     * @throws IllegalArgumentException on validation failure
-     */
-    public static @Nonnull
-    LocaleId toOkapiLocale(@Nonnull org.zanata.common.LocaleId zanataLocale)
+    public static @NonNull
+    LocaleId toOkapiLocale(@NonNull org.zanata.common.LocaleId zanataLocale)
             throws IllegalArgumentException {
-        LocaleId.fromBCP47(zanataLocale.getId());
-        return new LocaleId(zanataLocale.getId(), false);
+        return LocaleId.fromBCP47(zanataLocale.getId());
     }
 
-    /**
-     * Count words using Okapi's WordCounter, which tries to implement the LISA
-     * standard <a href=
-     * "http://web.archive.org/web/20090403134742/http://www.lisa.org/Global-information-m.105.0.html"
-     * >GMX-V</a>
-     *
-     * @param s
-     * @param bcp47Locale
-     * @return
-     */
     public static long countWords(String s, String bcp47Locale) {
         if (s == null) {
             log.debug("null string");
@@ -75,22 +57,15 @@ public class OkapiUtil {
                 locale = LocaleId.ENGLISH;
             }
 
-            Tokens tokens = StringTokenizer.tokenizeString(s, locale, "WORD");
+            Tokens tokens;
+            synchronized (Tokenizer.class) {
+                tokens = Tokenizer.tokenize(s, locale, "WORD");
+            }
             return tokens.size();
         } catch (Exception e) {
-            Object[] args = new Object[] { s, bcp47Locale, e };
             log.error("unable to count words in string '{}' for locale '{}'",
-                    args);
+                    s, bcp47Locale, e);
             return 0;
-        }
-    }
-
-    private static class StringTokenizer extends Tokenizer {
-        public static Tokens tokenizeString(String text, LocaleId language,
-                String... tokenNames) {
-            synchronized (Tokenizer.class) {
-                return Tokenizer.tokenizeString(text, language, tokenNames);
-            }
         }
     }
 

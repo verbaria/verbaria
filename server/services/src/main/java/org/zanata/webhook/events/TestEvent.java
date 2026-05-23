@@ -1,10 +1,10 @@
 package org.zanata.webhook.events;
 
 import java.util.Date;
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.zanata.events.WebhookEventType;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Test Event WebHook

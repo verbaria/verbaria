@@ -22,11 +22,11 @@ package org.zanata.dao;
 
 import java.util.List;
 
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.RequestScoped;
 
 import org.zanata.common.LocaleId;
 import org.zanata.model.HLocale;
@@ -145,7 +145,7 @@ public class LocaleMemberDAO extends
 
         // We need to evict the HLocale to refresh member list within
         getSession().getSessionFactory().getCache()
-                .evictEntity(HLocale.class, locale.getId());
+                .evictEntityData(HLocale.class, locale.getId());
     }
 
     public HLocaleMember

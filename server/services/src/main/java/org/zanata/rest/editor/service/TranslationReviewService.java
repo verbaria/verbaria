@@ -20,11 +20,11 @@ import org.zanata.security.annotations.Authenticated;
 import org.zanata.service.LocaleService;
 import org.zanata.webtrans.shared.model.ReviewCriterionId;
 
-import javax.enterprise.context.RequestScoped;
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Response;
 
 @Path(TranslationReviewResource.SERVICE_PATH)
 @RequestScoped

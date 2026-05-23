@@ -33,14 +33,14 @@ import static org.zanata.security.annotations.SAMLAttribute.AttributeName.UID;
 import java.security.Principal;
 import java.util.Locale;
 
-import javax.enterprise.event.Event;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 
 import org.jboss.weld.exceptions.WeldException;
-import org.jglue.cdiunit.AdditionalClasses;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import io.github.cdiunit.AdditionalClasses;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

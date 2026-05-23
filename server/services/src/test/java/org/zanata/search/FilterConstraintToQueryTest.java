@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.zanata.rest.dto.TranslationSourceType.MACHINE_TRANS;
 import static org.zanata.search.FilterConstraintToQuery.Parameters.*;
 import java.util.List;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

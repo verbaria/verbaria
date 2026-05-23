@@ -8,9 +8,9 @@ import com.github.huangp.entityunit.entity.FixIdCallback;
 import com.github.huangp.entityunit.maker.FixedValueMaker;
 import com.ibm.icu.util.ULocale;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.deltaspike.jpa.api.transaction.Transactional;
-import org.hibernate.search.jpa.FullTextEntityManager;
-import org.hibernate.search.jpa.Search;
+import jakarta.transaction.Transactional;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.slf4j.Logger;
 import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;
@@ -28,10 +28,10 @@ import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.tm.TransMemoryUnit;
 
 import javax.annotation.Nullable;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import java.io.Serializable;
 import java.util.List;
 
@@ -78,15 +78,15 @@ public class SampleDataProfile implements Serializable {
         // TODO probably should delete cache as well
     }
 
-    // see also org.zanata.ZanataJpaTest.purgeLuceneIndexes(javax.persistence.EntityManager)
+    // Hibernate Search 7: use SearchSession#workspace().purge(entityType) to
+    // clear the index, then flush.  The old FullTextEntityManager API was
+    // dropped in HS 6.0.
     private void purgeLuceneIndexes() {
-        FullTextEntityManager em =
-                Search.getFullTextEntityManager(
-                        entityManagerFactory.createEntityManager());
+        EntityManager em = entityManagerFactory.createEntityManager();
         try {
-            // purge all @Indexed subclasses of Object
-            em.purgeAll(Object.class);
-            em.flushToIndexes();
+            SearchSession searchSession = Search.session(em);
+            searchSession.workspace().purge();
+            searchSession.workspace().flush();
         } finally {
             em.close();
         }

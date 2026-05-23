@@ -21,12 +21,12 @@
 package org.zanata.util;
 
 import org.apache.deltaspike.cdise.api.ContextControl;
-import org.apache.deltaspike.core.api.provider.BeanManagerProvider;
+import jakarta.enterprise.inject.spi.CDI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ContextNotActiveException;
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.ContextNotActiveException;
+import jakarta.enterprise.context.RequestScoped;
 import java.lang.annotation.Annotation;
 
 /**
@@ -69,7 +69,7 @@ public class ScopeHelper {
      */
     public static boolean isScopeActive(Class<? extends Annotation> scopeClass) {
         try {
-            return BeanManagerProvider.getInstance().getBeanManager().getContext(
+            return CDI.current().getBeanManager().getContext(
                     scopeClass).isActive();
         } catch (ContextNotActiveException e) {
             return false;

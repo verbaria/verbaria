@@ -1,9 +1,9 @@
 package org.zanata.dao;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.dbunit.operation.DatabaseOperation;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.junit.Test;
 import org.zanata.ArquillianTest;
 import org.zanata.model.HAccount;

@@ -21,10 +21,10 @@
 package org.zanata.rest.service;
 
 import javax.annotation.Nonnull;
-import javax.enterprise.context.Dependent;
-import javax.ws.rs.WebApplicationException;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.dao.ProjectDAO;

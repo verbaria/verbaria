@@ -2,10 +2,10 @@ package org.zanata.rest.editor.service;
 
 import java.io.Serializable;
 import java.util.List;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
 @Named("transUnitUtils")
-@javax.enterprise.context.Dependent
+@jakarta.enterprise.context.Dependent
 public class TransUnitUtils implements Serializable {
     private static final long serialVersionUID = 5128782948971430463L;
     public static final int MAX_SIZE = 200;

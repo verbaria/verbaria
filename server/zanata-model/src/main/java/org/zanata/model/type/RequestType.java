@@ -20,6 +20,8 @@
  */
 package org.zanata.model.type;
 
+
+import org.zanata.model.type.RequestType;
 /**
  * Request type with single char
  *

@@ -20,7 +20,7 @@
  */
 package org.zanata.security;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.apache.deltaspike.security.api.authorization.Secures;
 import org.zanata.security.annotations.CheckLoggedIn;

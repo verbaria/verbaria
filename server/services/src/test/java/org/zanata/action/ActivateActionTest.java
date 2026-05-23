@@ -21,8 +21,10 @@
 package org.zanata.action;
 
 import org.apache.deltaspike.core.api.scope.GroupedConversation;
-import org.jglue.cdiunit.InRequestScope;
-import org.jglue.cdiunit.InSessionScope;
+import org.apache.deltaspike.core.impl.scope.conversation.GroupedConversationArtifactProducer;
+import io.github.cdiunit.IgnoredClasses;
+import io.github.cdiunit.InRequestScope;
+import io.github.cdiunit.InSessionScope;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,8 +41,8 @@ import org.zanata.test.CdiUnitRunner;
 import org.zanata.ui.faces.FacesMessages;
 import org.zanata.util.UrlUtil;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.util.Date;
 
 import static org.mockito.Mockito.when;
@@ -51,6 +53,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @InSessionScope
 @InRequestScope
+// cdi-unit 5's DeltaSpike scope auto-discovery would otherwise install
+// DeltaSpike's real GroupedConversationArtifactProducer alongside the
+// @Produces @Mock below, yielding a WELD-001409 ambiguous-dependency error.
+@IgnoredClasses(GroupedConversationArtifactProducer.class)
 @RunWith(CdiUnitRunner.class)
 public class ActivateActionTest {
 

@@ -8,7 +8,7 @@ import java.util.Date;
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.StreamingOutput;
 import javax.xml.XMLConstants;
 
 import nu.xom.Attribute;
