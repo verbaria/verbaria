@@ -1,5 +1,8 @@
 package org.zanata.spring.security;
 
+import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
+
+import org.zanata.spring.vaadin.LoginView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,21 +11,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-/**
- * Spring Security configuration backed by the HAccount table.
- *
- * - Public: /, /explore, /languages, /glossary, /actuator/health,
- *   /account/login, /account/register, password-reset flows, the React
- *   bundles and static assets.
- * - Auth required: /admin/**, /dashboard/**, /profile/**, REST endpoints
- *   that change state.
- *
- * CSRF is disabled for the JSON REST routes (the React frontend uses
- * the apiServerUrl without a CSRF token) but kept for the Thymeleaf form
- * posts via a SameSite cookie.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -36,51 +26,20 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                // Public static + framework
-                .requestMatchers(
-                        "/", "/favicon.ico",
-                        "/explore", "/explore/**",
-                        "/languages", "/languages/**",
-                        "/glossary", "/glossary/**",
-                        "/actuator/health", "/actuator/info",
-                        "/account/login", "/account/register",
-                        "/account/password_reset_request", "/account/password_reset",
-                        "/account/activate", "/account/validate_email",
-                        "/account/openid", "/account/sso",
-                        "/account/inactive_account",
-                        "/error/**",
-                        "/resources/**", "/static/**",
-                        // React bundles + manifest
-                        "/*.js", "/*.css", "/*.map", "/*.json",
-                        "/messages/**"
-                ).permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().permitAll()
-            )
-            .formLogin(form -> form
-                .loginPage("/account/login")
-                .loginProcessingUrl("/account/login")
-                .defaultSuccessUrl("/dashboard", true)
-                .failureUrl("/account/login?error")
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/account/logout")
-                .logoutSuccessUrl("/")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
-            )
-            // CSRF on Thymeleaf forms via a JS-readable cookie; REST routes
-            // exempted so the React frontend's fetch() calls don't need a
-            // token wrapper.
+                    .requestMatchers(
+                            "/actuator/health", "/actuator/info",
+                            "/rest/**",
+                            "/error/**",
+                            "/resources/**", "/static/**",
+                            "/messages/**"
+                    ).permitAll())
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers(
-                        new AntPathRequestMatcher("/rest/**"),
-                        new AntPathRequestMatcher("/actuator/**")
-                )
-            );
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .ignoringRequestMatchers(
+                            PathPatternRequestMatcher.withDefaults().matcher("/rest/**"),
+                            PathPatternRequestMatcher.withDefaults().matcher("/actuator/**")))
+            .with(VaadinSecurityConfigurer.vaadin(), v -> v
+                    .loginView(LoginView.class));
         return http.build();
     }
 }

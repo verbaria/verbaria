@@ -33,7 +33,7 @@
   <properties>
     <!-- Spring Boot 3.4 needs JDK 17+; we target 21 to match the rest
          of the reactor. -->
-    <spring-boot.version>3.4.1</spring-boot.version>
+    <spring-boot.version>4.0.6</spring-boot.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
   </properties>
@@ -50,6 +50,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>com.vaadin</groupId>
+        <artifactId>vaadin-bom</artifactId>
+        <version>25.1.5</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <!-- Pin jboss-logging to 3.6.3.Final.  Spring Boot 3.4 ships
            3.6.1.Final whose Logger.getMessageLogger fails clinit on
            recent JDKs (24/25) with "given lookup does not have access
@@ -61,6 +68,55 @@
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
         <version>3.6.3.Final</version>
+      </dependency>
+      <!-- Spring Boot 4 ships Jackson 3.1 which needs jackson-annotations
+           2.19+ (JsonSerializeAs lives there). Parent reactor pins 2.18.2;
+           override so Jackson 3's JacksonAnnotationIntrospector clinit
+           finds the new annotation classes. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>2.21</version>
+      </dependency>
+      <!-- Parent reactor pins jsoup to 1.7.2 in test scope. Vaadin 25
+           needs it at runtime for AppShell parsing — override here. -->
+      <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.18.3</version>
+      </dependency>
+      <!-- Parent reactor pins Hibernate ORM to 6.6.4. Spring Boot 4
+           defaults to PhysicalNamingStrategySnakeCaseImpl which only
+           exists in Hibernate 7+. -->
+      <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-core</artifactId>
+        <version>7.2.7.Final</version>
+      </dependency>
+      <!-- Hibernate 7 / Spring Boot 4 use Jakarta Persistence 3.2 API
+           (FindOption, UpdateOption etc). Parent reactor pins 3.1.0. -->
+      <dependency>
+        <groupId>jakarta.persistence</groupId>
+        <artifactId>jakarta.persistence-api</artifactId>
+        <version>3.2.0</version>
+      </dependency>
+      <!-- Force every Hibernate Search artifact to the same 8.4 version
+           (parent reactor pulls 7.2.2 engine transitively, conflicting
+           with the 8.4.0.CR1 mapper-orm). -->
+      <dependency>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-engine</artifactId>
+        <version>8.4.0.CR1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-util-common</artifactId>
+        <version>8.4.0.CR1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-mapper-pojo-base</artifactId>
+        <version>8.4.0.CR1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -78,7 +134,7 @@
     <!-- Spring Boot starters -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -95,6 +151,22 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-spring-boot-starter</artifactId>
+    </dependency>
+    <!-- Vaadin 25 no longer pulls vaadin-dev transitively; add explicitly
+         so dev-mode bundle compile + hot reload work. -->
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-dev</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
     </dependency>
 
     <!-- PostgreSQL JDBC driver — target DB for the rewrite.  Schema
@@ -120,25 +192,6 @@
          ddl-auto=update generates the schema directly from entity
          mappings. -->
 
-    <!-- React UI: the zanata-frontend module's npm build emits its bundles
-         into META-INF/resources/, which Spring Boot's classpath static
-         handler serves at the application root.  No extra config needed —
-         opening http://localhost:8080/ will load index.html from the JAR. -->
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-frontend</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <!-- The 120 legacy JSF pages are being rewritten as Thymeleaf
-         templates page-by-page.  Adding the starter brings in the
-         template engine + Spring view resolver — Thymeleaf templates
-         live under src/main/resources/templates/. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-thymeleaf</artifactId>
-    </dependency>
-
     <!-- Zanata entity classes.  Kept as a JAR dependency for slice 2 so
          the new Spring app can run against the existing model without us
          having to move 101 entity files first; once everything works the
@@ -160,18 +213,15 @@
       <version>4.0.1</version>
     </dependency>
 
-    <!-- Hibernate Search 7 (Lucene backend).  The version comes from the
-         parent properties, NOT Spring Boot's BOM, because Boot doesn't
-         manage Search. -->
     <dependency>
       <groupId>org.hibernate.search</groupId>
       <artifactId>hibernate-search-mapper-orm</artifactId>
-      <version>${hibernate.search.version}</version>
+      <version>8.4.0.CR1</version>
     </dependency>
     <dependency>
       <groupId>org.hibernate.search</groupId>
       <artifactId>hibernate-search-backend-lucene</artifactId>
-      <version>${hibernate.search.version}</version>
+      <version>8.4.0.CR1</version>
     </dependency>
     <!-- Search uses Jandex 3 to scan annotations on startup.
          Parent dependencyManagement pins this to <scope>test</scope>;

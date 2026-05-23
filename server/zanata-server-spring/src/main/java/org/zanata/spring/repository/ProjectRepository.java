@@ -30,4 +30,11 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
     Page<HProject> search(@Param("q") String q, Pageable pageable);
 
     Optional<HProject> findBySlug(String slug);
+
+    @Query("""
+            select distinct p from HProject p
+            left join fetch p.projectIterations
+            where p.slug = :slug
+            """)
+    Optional<HProject> findBySlugWithIterations(@Param("slug") String slug);
 }
