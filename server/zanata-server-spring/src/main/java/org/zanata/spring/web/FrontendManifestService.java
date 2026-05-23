@@ -20,12 +20,9 @@ import jakarta.servlet.http.HttpServletResponse;
  * Reads zanata-frontend's webpack manifest.json once at startup and
  * exposes the hashed bundle filenames to controllers (via inject) and to
  * Thymeleaf templates (via a request-scope model attribute injected by
- * the bundled interceptor).
- *
- * Both the React SPA shell (FrontendShellController) and the legacy JSF
- * pages now ported to Thymeleaf need these so the same React chrome
- * (header, search, language picker) renders around server-rendered
- * page content.
+ * the bundled interceptor). The same React chrome (header, search,
+ * language picker) renders around both the SPA shell and server-rendered
+ * pages.
  */
 @Component
 public class FrontendManifestService implements WebMvcConfigurer {

@@ -12,25 +12,28 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HLocale;
+import org.zanata.spring.repository.LocaleMemberRepository;
 import org.zanata.spring.repository.LocaleRepository;
 
 /**
- * Replaces the legacy LocalesService.  The /languages React screen pulls
- * the full list and is also called for the locale picker on most other
- * screens, so this endpoint matters for the cross-screen UX.
+ * Locale endpoints. Drives the /languages React screen and the locale
+ * picker on most other screens.
  */
 @RestController
 @RequestMapping("/rest/locales")
 public class LocaleController {
 
     private final LocaleRepository localeRepository;
+    private final LocaleMemberRepository localeMemberRepository;
 
-    public LocaleController(LocaleRepository localeRepository) {
+    public LocaleController(LocaleRepository localeRepository,
+                            LocaleMemberRepository localeMemberRepository) {
         this.localeRepository = localeRepository;
+        this.localeMemberRepository = localeMemberRepository;
     }
 
     /**
-     * Mirrors the legacy LocalesService GET /rest/locales response shape:
+     * Response shape:
      * {totalCount, results: [{localeDetails, memberCount, requestCount}]}.
      * The /languages React screen reads results[i].localeDetails.localeId,
      * displayName, nativeName, etc.
@@ -46,7 +49,10 @@ public class LocaleController {
                 filter == null ? "" : filter, PageRequest.of(p, s));
 
         List<LanguageTeamSearchResult> results = pageResult.getContent().stream()
-                .map(l -> new LanguageTeamSearchResult(toLocaleDetails(l), 0, 0))
+                .map(l -> new LanguageTeamSearchResult(
+                        toLocaleDetails(l),
+                        l.getId() == null ? 0 : localeMemberRepository.countByLocaleId(l.getId()),
+                        0))
                 .collect(Collectors.toList());
 
         return new LocalesResults((int) pageResult.getTotalElements(), results);

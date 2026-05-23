@@ -2,16 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{_layout :: html(content=~{::main-content}, pageTitle=|Version - ${projectSlug}:${versionSlug}|)}">
 <!--
-  Direct Thymeleaf port of server/zanata-war/src/main/webapp/iteration/view.xhtml.
-
-  Markup, class names, anchor IDs and the overall two-column grid layout
-  are kept 1:1 with the original so style.css renders this identically
-  to the legacy JSF page.  Dynamic bits that were driven by the
-  versionHomeAction backing bean — overall statistics, document /
-  language counts, the More-Actions dropdown, the Copy-Trans / Merge /
-  TMX modals — are stubbed with placeholder counts/empty states so the
-  page boots without those CDI beans.  Each piece returns once its
-  matching REST endpoint moves over.
+  Version landing page: two-column grid with project breadcrumb, version
+  label, overall statistics summary and the Languages / Documents /
+  Settings tab strip.
 -->
 <body>
 <main-content th:fragment="main-content" th:remove="tag">

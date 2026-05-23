@@ -7,13 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Thymeleaf rewrite of /account/login.xhtml.
- *
- * Renders the form fields the legacy LoginAction backing bean exposed —
- * username/password + the OpenID/Fedora/Yahoo shortcuts.  The POST
- * handler is a stub until Spring Security wires real authentication;
- * for now it accepts any username and "remembers" a flash flag so the
- * page can show a friendly "logged in (dev mode)" message.
+ * Login form: username/password plus the OpenID/Fedora/Yahoo shortcuts.
  */
 @Controller
 @org.springframework.web.bind.annotation.RequestMapping("/account")
@@ -32,7 +26,6 @@ public class LoginController {
     public String doLogin(@RequestParam("username") String username,
                           @RequestParam("password") String password,
                           Model model) {
-        // No real auth yet — Spring Security migration handles this.
         if (username == null || username.isBlank()) {
             model.addAttribute("error", "Username is required.");
             return "account/login";

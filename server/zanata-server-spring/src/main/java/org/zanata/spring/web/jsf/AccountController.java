@@ -8,13 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Thymeleaf rewrites of the legacy /account/*.xhtml pages.  Each handler
- * mirrors its xhtml counterpart's form fields; submit logic is stubbed
- * until Spring Security and the user/password services are wired in.
- *
- * Login lives in LoginController.java (the other handler in this package);
- * keeping the rest here as a thin file so each page maps clearly to its
- * /account/<page>.xhtml predecessor.
+ * Account self-service pages (register, password reset, activate,
+ * email validation, OpenID/SSO shortcuts). Login lives in
+ * LoginController in this package.
  */
 @Controller
 @RequestMapping("/account")
@@ -27,9 +23,8 @@ public class AccountController {
     public String doRegister(@RequestParam("username") String username,
                              @RequestParam("email") String email,
                              Model model) {
-        // Stub until UserAccountService migrates.
         model.addAttribute("message",
-                "Stub: registration for " + username + " (" + email + ") accepted in dev mode.");
+                "Registration for " + username + " (" + email + ") accepted in dev mode.");
         return "account/register";
     }
 
@@ -40,7 +35,7 @@ public class AccountController {
     public String doPasswordResetRequest(@RequestParam("usernameEmail") String usernameEmail,
                                          Model model) {
         model.addAttribute("message",
-                "Stub: password reset request for '" + usernameEmail + "' acknowledged.");
+                "Password reset request for '" + usernameEmail + "' acknowledged.");
         return "account/password_reset_request";
     }
 

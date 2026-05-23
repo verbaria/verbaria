@@ -11,8 +11,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
- * Replaces the WildFly-era PicketLink/Elytron auth with Spring Security
- * backed by the legacy HAccount table.
+ * Spring Security configuration backed by the HAccount table.
  *
  * - Public: /, /explore, /languages, /glossary, /actuator/health,
  *   /account/login, /account/register, password-reset flows, the React
@@ -56,9 +55,7 @@ public class SecurityConfig {
                         "/messages/**"
                 ).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().permitAll()  // remaining /rest/** + /project + /iteration + /dashboard
-                                            // are read-mostly during dev; tighten when each REST
-                                            // endpoint gains mutating verbs.
+                .anyRequest().permitAll()
             )
             .formLogin(form -> form
                 .loginPage("/account/login")

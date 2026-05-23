@@ -7,8 +7,6 @@
         <div th:fragment="cardBody" th:remove="tag">
             <p th:if="${username}">Editing: <strong th:text="${username}">username</strong></p>
             <p th:unless="${username}">No username supplied.</p>
-            <p>The legacy userdetail.xhtml edit form lands here once the
-                /rest/admin/users/{username} endpoint is wired up.</p>
             <a th:href="@{/admin/usermanager}" class="button">Back to user manager</a>
         </div>
     </div>

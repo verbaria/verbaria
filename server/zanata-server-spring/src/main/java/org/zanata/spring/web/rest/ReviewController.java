@@ -18,9 +18,8 @@ import org.zanata.model.ReviewCriteria;
 import org.zanata.spring.repository.ReviewCriteriaRepository;
 
 /**
- * Backs the React /admin/review screen.  Persists review criteria to the
- * ReviewCriteria JPA entity — replaces the legacy ReviewService whose
- * paths and DTO this controller mirrors so the React client keeps working.
+ * Backs the React /admin/review screen. Persists review criteria to the
+ * ReviewCriteria JPA entity.
  */
 @RestController
 @RequestMapping("/rest/review")

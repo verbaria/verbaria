@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,16 +20,11 @@ import org.zanata.spring.repository.PersonRepository;
 import org.zanata.spring.repository.ProjectRepository;
 
 /**
- * Replacement for the legacy JAX-RS SearchService.  Mirrors the four
- * endpoints the React /explore screen drives:
+ * Search endpoints driven by the React /explore screen:
  *   GET /rest/search/projects?q=...
  *   GET /rest/search/groups?q=...
  *   GET /rest/search/people?q=...
  *   GET /rest/search/teams/language?q=...
- *
- * Response shape (SearchResults / *SearchResult records) intentionally
- * tracks the old one so the frontend's explore-actions don't have to
- * change.
  */
 @RestController
 @RequestMapping("/rest/search")
@@ -50,6 +46,7 @@ public class SearchController {
     }
 
     @GetMapping("/projects")
+    @Transactional(readOnly = true)
     public SearchResults searchProjects(
             @RequestParam(value = "q", defaultValue = "") String q,
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -64,10 +61,19 @@ public class SearchController {
                         p.getName(),
                         p.getDescription(),
                         p.getStatus() == null ? null : p.getStatus().name(),
-                        includeVersion ? List.of() : null))
+                        includeVersion ? versionsFor(p) : null))
                 .collect(Collectors.toList());
 
         return new SearchResults((int) projects.getTotalElements(), results, "Project");
+    }
+
+    private static List<ProjectVersionSearchResult> versionsFor(HProject p) {
+        if (p.getProjectIterations() == null) return List.of();
+        return p.getProjectIterations().stream()
+                .map(i -> new ProjectVersionSearchResult(
+                        i.getSlug(),
+                        i.getStatus() == null ? null : i.getStatus().name()))
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/groups")

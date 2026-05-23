@@ -15,13 +15,8 @@ import org.zanata.model.HApplicationConfiguration;
 import org.zanata.spring.repository.ApplicationConfigurationRepository;
 
 /**
- * Spring replacement for the legacy ServerSettingsService.  Reads/writes
- * the HApplicationConfiguration key/value table directly via JPA.
- *
- * The list of recognised keys mirrors the legacy controller — once the
- * /rest/admin/server-settings response shape is consumed by both the
- * React admin screen and existing scripts, both endpoints stay
- * compatible.
+ * Reads/writes the HApplicationConfiguration key/value table consumed by
+ * the React admin screen at /rest/admin/server-settings.
  */
 @RestController
 @RequestMapping("/rest/admin/server-settings")
@@ -112,8 +107,8 @@ public class AdminController {
     }
 
     public record Property(String key, Object value) {
-        /** Compatibility alias for the legacy `defaultValue` field used by
-         *  the React explore page's PropertyWithDBKey shape. */
+        /** Alias for the `defaultValue` field consumed by the React
+         *  explore page's PropertyWithDBKey shape. */
         public Object defaultValue() { return value; }
     }
 }

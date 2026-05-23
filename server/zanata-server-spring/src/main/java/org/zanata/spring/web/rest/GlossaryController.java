@@ -20,9 +20,8 @@ import org.zanata.spring.repository.GlossaryEntryRepository;
 import org.zanata.spring.repository.LocaleRepository;
 
 /**
- * Backs the React /glossary screen.  Queries HGlossaryEntry / HGlossaryTerm
- * directly via Spring Data; replaces the legacy GlossaryService for the
- * read-side endpoints the UI calls.  CRUD/upload still need porting.
+ * Backs the React /glossary screen. Queries HGlossaryEntry / HGlossaryTerm
+ * directly via Spring Data for the read-side endpoints the UI calls.
  */
 @RestController
 @RequestMapping("/rest/glossary")

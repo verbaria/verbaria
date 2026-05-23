@@ -2301,18 +2301,12 @@
     <module>zanata-liquibase</module>
     <module>zanata-model</module>
     <module>zanata-model-test</module>
-    <module>zanata-war</module>
-    <module>zanata-test-war</module>
-    <module>functional-test</module>
-    <!-- <module>zanata-dist</module> -->
-    <module>gwt-shared</module>
-    <module>gwt-test</module>
-    <module>gwt-editor</module>
     <module>security-common</module>
+    <!-- Spring Boot replacement for the legacy WildFly stack
+         (zanata-war / zanata-test-war / functional-test removed;
+         services/ still kept as porting reference until every
+         endpoint is migrated). -->
     <module>services</module>
-    <!-- New Spring Boot rewrite of the server, replacing the WildFly WAR
-         path.  Currently scaffold-only; files are being moved over from
-         zanata-model / services / zanata-war as the migration progresses. -->
     <module>zanata-server-spring</module>
   </modules>
 </project>

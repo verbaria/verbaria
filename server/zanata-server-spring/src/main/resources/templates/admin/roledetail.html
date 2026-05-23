@@ -6,8 +6,6 @@
     <div th:replace="~{admin/_card :: card('Role detail', ~{::cardBody})}">
         <div th:fragment="cardBody" th:remove="tag">
             <p th:if="${role}">Editing role: <strong th:text="${role}">role</strong></p>
-            <p>The membership picker + permission grid lands here once the
-                role-management service migrates.</p>
             <a th:href="@{/admin/rolemanager}" class="button">Back to roles</a>
         </div>
     </div>

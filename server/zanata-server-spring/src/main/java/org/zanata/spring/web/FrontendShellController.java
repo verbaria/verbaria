@@ -17,14 +17,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  * The webpack build emits hashed bundle filenames (e.g.
  * {@code frontend.eaf7bb22.cache.js}) and writes a manifest.json that maps
- * logical names like {@code frontend.js} to the hashed paths.  The legacy
- * WildFly deployment used FrontendAssets.java + a JSF template to inject
- * the hashed paths into the page; the Spring rewrite reads the same
- * manifest at startup and renders a static shell page in-line.
+ * logical names like {@code frontend.js} to the hashed paths. This controller
+ * reads the manifest at startup and renders a static shell page in-line.
  *
  * Catch-all paths route through here so the React router can take over —
  * e.g. {@code /explore}, {@code /glossary/project/foo} all return the same
- * index page.  Real REST endpoints (anything under {@code /rest/**} or
+ * index page. Real REST endpoints (anything under {@code /rest/**} or
  * {@code /api/**}) are matched by their own controllers first.
  */
 @Controller
@@ -57,21 +55,29 @@ public class FrontendShellController {
         return new FrontendManifest(raw);
     }
 
-    // Match every non-API path so React-router can take over.  REST and
+    // Match every non-API path so React-router can take over. REST and
     // static-asset handlers register their mappings first, so this only
-    // fires for paths Spring couldn't otherwise resolve.
-    // The React SPA owns most paths, but legacy JSF routes like
-    // /project/view/{slug} are being migrated to Thymeleaf one page at
-    // a time.  Spring's path matcher uses most-specific-wins, so
-    // dedicated @Controllers for those paths take precedence over the
-    // /project/{slug}/version/{v} pattern here.
-    // React Router has no route for "/" — the legacy app served a JSF
-    // dashboard there.  Redirect to /explore (the search/landing screen
-    // the React frontend treats as its home) so users land on real content
-    // instead of an empty #root.
+    // fires for paths Spring couldn't otherwise resolve. Spring's path
+    // matcher uses most-specific-wins, so dedicated @Controllers for
+    // server-rendered pages take precedence over the catch-all patterns
+    // here. Redirect "/" to /explore (the React frontend's landing screen)
+    // so users land on real content instead of an empty #root.
     @GetMapping("/")
     public RedirectView root() {
         return new RedirectView(contextPath + "/explore");
+    }
+
+    // The login form lives at /account/login (LoginController). Forward
+    // /login as an alias so the React shell doesn't catch it and render an
+    // empty #root.
+    @GetMapping("/login")
+    public RedirectView login() {
+        return new RedirectView(contextPath + "/account/login");
+    }
+
+    @GetMapping("/logout")
+    public RedirectView logout() {
+        return new RedirectView(contextPath + "/account/logout");
     }
 
     @GetMapping(value = {
@@ -82,16 +88,14 @@ public class FrontendShellController {
             "/admin/**",
             "/project/translate/**",
             "/project/{slug}/version/{version}",
-            "/project/{slug}/version/{version}/**",
-            "/login", "/login/**",
-            "/logout", "/logout/**"
+            "/project/{slug}/version/{version}/**"
     }, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public String index(jakarta.servlet.http.HttpServletRequest request) {
         // The translation editor ships as a separate webpack bundle
         // (editor.{hash}.cache.js / editor.{hash}.cache.css) and mounts
-        // under /project/translate/**.  Every other React route is served
-        // by the main "frontend" bundle.  Pick the right one based on the
+        // under /project/translate/**. Every other React route is served
+        // by the main "frontend" bundle. Pick the right one based on the
         // path so we don't have to fork the SPA into two shell controllers.
         String path = request.getRequestURI();
         boolean editor = path != null && path.startsWith("/project/translate");
@@ -117,9 +121,7 @@ public class FrontendShellController {
         // The React app reads window.config for apiUrl, current user, etc.
         // Without it config.js falls back to undefined/empty values which
         // breaks several screens (the app shows a blank page on /explore
-        // and the admin links never appear).  Until the auth + user
-        // endpoints are wired in, supply dev defaults that match what the
-        // legacy JSF template wrote at render time.
+        // and the admin links never appear).
         sb.append("  <script>window.config = {\n");
         sb.append("    apiServerUrl: \"").append(contextPath).append("/rest\",\n");
         // appUrl must NOT end with a slash — the editor concatenates
@@ -130,13 +132,10 @@ public class FrontendShellController {
         sb.append("    appUrl: \"").append(contextPath).append("\",\n");
         sb.append("    serverUrl: \"\",\n");
         sb.append("    appLocale: \"en-US\",\n");
-        // Root.js dereferences user.username unconditionally, so the
-        // anonymous case still needs a stub object (a real user lands
-        // here once the auth migration replaces this block).
         // Read the real authenticated principal from SecurityContext so the
-        // React UI sees the same user Spring Security sees.  Anonymous
-        // visitors still get a stub with isLoggedIn=false so React doesn't
-        // explode when it tries to read user.username.
+        // React UI sees the same user Spring Security sees. Anonymous
+        // visitors still get a placeholder with isLoggedIn=false so React
+        // doesn't explode when it tries to read user.username.
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean loggedIn = auth != null && auth.isAuthenticated()
                 && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);

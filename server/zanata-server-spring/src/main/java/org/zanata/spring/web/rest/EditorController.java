@@ -19,45 +19,70 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.PageRequest;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
+import org.zanata.model.HGlossaryEntry;
+import org.zanata.model.HGlossaryTerm;
 import org.zanata.model.HLocale;
+import org.zanata.model.HProject;
+import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.model.HTextFlowTargetHistory;
+import org.zanata.model.HTextFlowTargetReviewComment;
 import org.zanata.spring.repository.DocumentRepository;
+import org.zanata.spring.repository.GlossaryEntryRepository;
+import org.zanata.spring.repository.GlossaryTermRepository;
 import org.zanata.spring.repository.LocaleRepository;
+import org.zanata.spring.repository.ProjectIterationRepository;
 import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.repository.TextFlowRepository;
+import org.zanata.spring.repository.TextFlowTargetHistoryRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.repository.TextFlowTargetReviewCommentRepository;
 
 /**
- * Backs the React translation editor under /project/translate/**.  Reads
- * HDocument / HTextFlow / HTextFlowTarget directly from the database; saves
- * translations by upserting HTextFlowTarget rows.  The JSON shapes match
- * what the editor's redux watchers consume from the legacy JAX-RS
- * resources at server/services/src/main/java/org/zanata/rest/editor/*.
+ * Backs the React translation editor under /project/translate/**. Reads
+ * HDocument / HTextFlow / HTextFlowTarget directly from the database;
+ * saves translations by upserting HTextFlowTarget rows.
  */
 @RestController
 @RequestMapping("/rest")
 public class EditorController {
 
     private final ProjectRepository projectRepository;
+    private final ProjectIterationRepository iterationRepository;
     private final DocumentRepository documentRepository;
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository textFlowTargetRepository;
+    private final TextFlowTargetHistoryRepository historyRepository;
+    private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final LocaleRepository localeRepository;
+    private final GlossaryEntryRepository glossaryEntryRepository;
+    private final GlossaryTermRepository glossaryTermRepository;
 
     public EditorController(ProjectRepository projectRepository,
+                            ProjectIterationRepository iterationRepository,
                             DocumentRepository documentRepository,
                             TextFlowRepository textFlowRepository,
                             TextFlowTargetRepository textFlowTargetRepository,
-                            LocaleRepository localeRepository) {
+                            TextFlowTargetHistoryRepository historyRepository,
+                            TextFlowTargetReviewCommentRepository reviewCommentRepository,
+                            LocaleRepository localeRepository,
+                            GlossaryEntryRepository glossaryEntryRepository,
+                            GlossaryTermRepository glossaryTermRepository) {
         this.projectRepository = projectRepository;
+        this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.textFlowTargetRepository = textFlowTargetRepository;
+        this.historyRepository = historyRepository;
+        this.reviewCommentRepository = reviewCommentRepository;
         this.localeRepository = localeRepository;
+        this.glossaryEntryRepository = glossaryEntryRepository;
+        this.glossaryTermRepository = glossaryTermRepository;
     }
 
     @GetMapping("/project/{projectSlug}")
@@ -245,12 +270,28 @@ public class EditorController {
     }
 
     @GetMapping("/transhist/{localeId}/{transUnitId}/{projectSlug}")
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> transHistory(
             @PathVariable("localeId") String localeId,
             @PathVariable("transUnitId") long transUnitId,
             @PathVariable("projectSlug") String projectSlug,
             @RequestParam(value = "versionSlug", required = false) String versionSlug) {
-        return List.of();
+        List<HTextFlowTargetHistory> rows = historyRepository
+                .findByTextFlowAndLocale(transUnitId, new LocaleId(localeId));
+        List<Map<String, Object>> out = new ArrayList<>(rows.size());
+        for (HTextFlowTargetHistory h : rows) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("versionNum", h.getVersionNum() == null ? 0 : h.getVersionNum());
+            row.put("state", h.getState() == null ? ContentState.New.name() : h.getState().name());
+            row.put("contents", h.getContents() == null ? List.of() : h.getContents());
+            row.put("lastChanged", h.getLastChanged() == null ? null : h.getLastChanged().toString());
+            row.put("modifiedBy", h.getLastModifiedBy() == null ? null
+                    : (h.getLastModifiedBy().getAccount() == null
+                            ? h.getLastModifiedBy().getName()
+                            : h.getLastModifiedBy().getAccount().getUsername()));
+            out.add(row);
+        }
+        return out;
     }
 
     @GetMapping("/locales/ui")
@@ -275,35 +316,135 @@ public class EditorController {
             @RequestParam(value = "from",       required = false) String from,
             @RequestParam(value = "to",         required = false) String to,
             @RequestParam(value = "searchType", required = false) String searchType) {
+        // TM lookup needs Hibernate Search wiring on TransMemoryUnit; return empty until then.
         return List.of();
     }
 
     @GetMapping("/glossary/search")
-    public List<Object> glossarySearch(
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> glossarySearch(
             @RequestParam(value = "srcLocale",   required = false) String srcLocale,
             @RequestParam(value = "transLocale", required = false) String transLocale,
             @RequestParam(value = "project",     required = false) String project,
-            @RequestParam(value = "searchText",  required = false) String searchText) {
-        return List.of();
+            @RequestParam(value = "searchText",  required = false) String searchText,
+            @RequestParam(value = "maxResults",  defaultValue = "20") int maxResults) {
+        if (srcLocale == null || transLocale == null || searchText == null || searchText.isBlank()) {
+            return List.of();
+        }
+        int cap = Math.min(Math.max(1, maxResults), 200);
+        LocaleId src = new LocaleId(srcLocale);
+        LocaleId tgt = new LocaleId(transLocale);
+        List<HGlossaryEntry> entries = glossaryEntryRepository.searchByText(
+                src, tgt, searchText, PageRequest.of(0, cap));
+        List<Map<String, Object>> out = new ArrayList<>(entries.size());
+        for (HGlossaryEntry entry : entries) {
+            HGlossaryTerm srcTerm = entry.getGlossaryTerms().get(entry.getSrcLocale());
+            HGlossaryTerm tgtTerm = entry.getGlossaryTerms().entrySet().stream()
+                    .filter(e -> e.getKey() != null && e.getKey().getLocaleId() != null
+                            && tgt.equals(e.getKey().getLocaleId()))
+                    .map(Map.Entry::getValue)
+                    .findFirst().orElse(null);
+            if (srcTerm == null || tgtTerm == null) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", entry.getId());
+            row.put("source", srcTerm.getContent());
+            row.put("target", tgtTerm.getContent());
+            row.put("sourceLocale", srcLocale);
+            row.put("targetLocale", transLocale);
+            out.add(row);
+        }
+        return out;
     }
 
     @GetMapping("/glossary/details/{transLocale}")
-    public List<Object> glossaryDetails(
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> glossaryDetails(
             @PathVariable("transLocale") String transLocale,
             @RequestParam(value = "termIds", required = false) String termIds) {
-        return List.of();
+        if (termIds == null || termIds.isBlank()) return List.of();
+        List<Long> ids = Arrays.stream(termIds.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty())
+                .map(Long::parseLong).collect(Collectors.toList());
+        List<HGlossaryTerm> terms = glossaryTermRepository.findAllById(ids);
+        List<Map<String, Object>> out = new ArrayList<>(terms.size());
+        for (HGlossaryTerm term : terms) {
+            HGlossaryEntry entry = term.getGlossaryEntry();
+            HGlossaryTerm srcTerm = entry == null ? null
+                    : entry.getGlossaryTerms().get(entry.getSrcLocale());
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", term.getId());
+            row.put("content", term.getContent());
+            row.put("comment", term.getComment());
+            row.put("sourceContent", srcTerm == null ? null : srcTerm.getContent());
+            row.put("sourceComment", srcTerm == null ? null : srcTerm.getComment());
+            row.put("lastModifiedBy", term.getLastModifiedBy() == null ? null
+                    : (term.getLastModifiedBy().getAccount() == null
+                            ? term.getLastModifiedBy().getName()
+                            : term.getLastModifiedBy().getAccount().getUsername()));
+            row.put("lastModifiedDate", term.getLastChanged() == null ? null
+                    : term.getLastChanged().toString());
+            out.add(row);
+        }
+        return out;
     }
 
     @GetMapping("/project/{projectSlug}/version/{versionSlug}/validators")
-    public List<Object> validators(
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> validators(
             @PathVariable("projectSlug") String projectSlug,
             @PathVariable("versionSlug") String versionSlug) {
-        return List.of();
+        HProjectIteration iter = iterationRepository
+                .findByProjectAndSlug(projectSlug, versionSlug).orElse(null);
+        Map<String, String> custom = null;
+        if (iter != null && iter.getCustomizedValidations() != null
+                && !iter.getCustomizedValidations().isEmpty()) {
+            custom = iter.getCustomizedValidations();
+        } else if (iter != null) {
+            HProject project = iter.getProject();
+            if (project != null && project.getCustomizedValidations() != null
+                    && !project.getCustomizedValidations().isEmpty()) {
+                custom = project.getCustomizedValidations();
+            }
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (custom != null) {
+            for (Map.Entry<String, String> e : custom.entrySet()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", e.getKey());
+                row.put("state", e.getValue());
+                out.add(row);
+            }
+        } else {
+            // System default ValidationIds (mirrors org.zanata.webtrans.shared.model.ValidationId).
+            for (String id : DEFAULT_VALIDATION_IDS) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", id);
+                row.put("state", "Warning");
+                out.add(row);
+            }
+        }
+        return out;
     }
 
+    private static final List<String> DEFAULT_VALIDATION_IDS = List.of(
+            "HTML_XML", "NEW_LINE", "TAB", "JAVA_VARIABLES",
+            "XML_ENTITY", "PRINTF_VARIABLES", "PRINTF_XSI_EXTENSION");
+
     @GetMapping("/review/trans/{localeId}")
-    public List<Object> reviewTrans(@PathVariable("localeId") String localeId) {
-        return List.of();
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> reviewTrans(@PathVariable("localeId") String localeId) {
+        List<HTextFlowTargetReviewComment> rows = reviewCommentRepository
+                .findByLocale(new LocaleId(localeId));
+        List<Map<String, Object>> out = new ArrayList<>(rows.size());
+        for (HTextFlowTargetReviewComment c : rows) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", c.getId());
+            row.put("comment", c.getCommentText());
+            row.put("commenterName", c.getCommenterName());
+            row.put("creationDate", c.getCreationDate() == null ? null : c.getCreationDate().toString());
+            out.add(row);
+        }
+        return out;
     }
 
     private Map<Long, ContentState> targetStatesFor(List<HTextFlow> flows, LocaleId locale) {

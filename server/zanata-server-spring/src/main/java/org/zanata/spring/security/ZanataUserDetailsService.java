@@ -14,10 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zanata.spring.repository.AccountRepository;
 
 /**
- * Resolves Spring Security users by username against the legacy
- * HAccount table.  Roles flow through as ROLE_<name> authorities to
- * match Spring Security's hasRole() convention; the HAccountRole.name
- * column already stores values like "admin", "user" without prefix.
+ * Resolves Spring Security users by username against the HAccount table.
+ * Roles flow through as ROLE_&lt;name&gt; authorities to match Spring Security's
+ * hasRole() convention; the HAccountRole.name column already stores values
+ * like "admin", "user" without prefix.
  */
 @Service
 public class ZanataUserDetailsService implements UserDetailsService {

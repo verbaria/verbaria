@@ -50,4 +50,19 @@ public interface GlossaryEntryRepository
                 .map(row -> (Long) row[1])
                 .orElse(0L);
     }
+
+    @Query("""
+            select distinct src.glossaryEntry from HGlossaryTerm src
+            where src.locale.localeId = :srcLocale
+              and lower(src.content) like concat('%', lower(:searchText), '%')
+              and exists (
+                  select 1 from HGlossaryTerm tgt
+                  where tgt.glossaryEntry = src.glossaryEntry
+                    and tgt.locale.localeId = :transLocale
+              )
+            """)
+    List<HGlossaryEntry> searchByText(@Param("srcLocale") LocaleId srcLocale,
+                                      @Param("transLocale") LocaleId transLocale,
+                                      @Param("searchText") String searchText,
+                                      Pageable pageable);
 }

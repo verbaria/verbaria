@@ -11,10 +11,9 @@ import org.springframework.stereotype.Repository;
 import org.zanata.model.HProject;
 
 /**
- * Spring Data replacement for the bits of org.zanata.dao.ProjectDAO that the
- * /explore screen needs.  Mirrors the legacy filter behaviour: non-obsolete
- * non-read-only public projects, optionally filtered by name/slug/description
- * via a case-insensitive LIKE.
+ * Spring Data repository for the bits of HProject the /explore screen needs:
+ * non-obsolete non-read-only public projects, optionally filtered by
+ * name/slug/description via a case-insensitive LIKE.
  */
 @Repository
 public interface ProjectRepository extends JpaRepository<HProject, Long> {

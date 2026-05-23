@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Your Activity')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <div class="panel">
+        <div class="panel__header">
+            <h2 class="panel__heading">Your Activity</h2>
+        </div>
+        <form id="activity-list-form" class="l--push-bottom-0">
+            <div th:if="${activities == null or activities.isEmpty()}"
+                 class="l--pad-all-half bg--high">
+                <p><em>You have no activity.</em></p>
+                <p class="txt--meta">
+                    Translate or review something to start seeing activity here.
+                </p>
+            </div>
+            <ul th:if="${activities != null and !activities.isEmpty()}"
+                id="activity-list" class="list--panel loader__container">
+                <li th:each="activity : ${activities}"
+                    class="l--pad-all-half bg--higher--hover bg--faint reveal">
+                    <div class="activity-entry">
+                        <h3 class="list__title" th:text="${activity.activityType}">activity type</h3>
+                        <p class="txt--meta"
+                           th:text="${activity.approxTime != null ? #dates.format(activity.approxTime, 'd MMM yyyy HH:mm') : ''}">
+                            date
+                        </p>
+                        <p class="txt--understated"
+                           th:text="${activity.wordCount + ' words'}">word count</p>
+                    </div>
+                </li>
+            </ul>
+        </form>
+    </div>
+</main-content>
+</body>
+</html>

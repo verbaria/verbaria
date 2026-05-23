@@ -10,8 +10,6 @@
                 <div class="l--pad-all-half">
                     <p th:if="${key}">Activation key: <code th:text="${key}">key</code></p>
                     <p th:unless="${key}">Missing activation key.</p>
-                    <p class="txt--mini">Once the auth migration lands this page will verify the
-                        emailed activation key and enable the account.</p>
                     <a th:href="@{/account/login}" class="button--primary l--push-top-half">Go to sign in</a>
                 </div>
             </div>

@@ -2,15 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{_layout :: html(content=~{::main-content}, pageTitle=|Projects - ${project.name}|)}">
 <!--
-  Direct Thymeleaf port of server/zanata-war/src/main/webapp/project/project.xhtml.
-  Markup, CSS classes and div structure are kept 1:1 so /resources/assets/css/style.css
-  renders it identically to the legacy view; JSF EL is substituted with
-  Thymeleaf EL and `rendered` conditions become `th:if`.
-
-  RichFaces tab activation JS / AJAX-rendered statistics are stripped —
-  the static tab strip + first-tab content keep the visual layout but
-  navigation between tabs becomes a plain link (the React side already
-  serves the equivalent dashboard at /project/{slug}/version/{v}).
+  Project landing page. Static tab strip + first-tab content provide the
+  visual layout; navigation between tabs is via plain links (the React
+  side serves the equivalent dashboard at /project/{slug}/version/{v}).
 -->
 <body>
 <main-content th:fragment="main-content" th:remove="tag">

@@ -5,11 +5,8 @@
 <main-content th:fragment="main-content" th:remove="tag">
     <div th:replace="~{admin/_card :: card('Server monitoring', ~{::cardBody})}">
         <div th:fragment="cardBody" th:remove="tag">
-            <p>JavaMelody-style monitoring panel.  Spring Boot's Actuator
-                replaces this — view live health at
-                <a th:href="@{/actuator/health}">/actuator/health</a> and
-                metrics at <a th:href="@{/actuator/metrics}">/actuator/metrics</a>.
-            </p>
+            <p>Live health: <a th:href="@{/actuator/health}">/actuator/health</a>.</p>
+            <p>Metrics: <a th:href="@{/actuator/metrics}">/actuator/metrics</a>.</p>
         </div>
     </div>
 </main-content>

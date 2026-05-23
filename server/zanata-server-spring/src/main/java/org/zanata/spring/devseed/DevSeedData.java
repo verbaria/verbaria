@@ -27,9 +27,8 @@ import org.zanata.spring.repository.RoleRepository;
 
 /**
  * Inserts a handful of demo projects on startup so the React /explore screen
- * has something to render against the H2 in-memory database.  Active only
- * when the H2 datasource is in use (the default profile while the Postgres
- * schema migration is still in progress).
+ * has something to render against the H2 in-memory database. Active only
+ * when the H2 datasource is in use.
  */
 @Component
 @Profile("!postgres")
@@ -128,9 +127,7 @@ public class DevSeedData implements CommandLineRunner {
         p.setStatus(EntityStatus.ACTIVE);
         HProject saved = projectRepository.save(p);
         // HProject.projectIterations has no cascade = PERSIST, so the
-        // iteration has to be saved through its own repository.  Give
-        // every demo project a "master" version so /iteration/view +
-        // /project/translate/.../v/master have something to load.
+        // iteration has to be saved through its own repository.
         HProjectIteration v = new HProjectIteration();
         v.setSlug("master");
         v.setStatus(EntityStatus.ACTIVE);

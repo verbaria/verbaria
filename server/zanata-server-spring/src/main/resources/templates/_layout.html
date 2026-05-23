@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" class="no-js new-zanata template">
 <!--
-  Master Thymeleaf layout for legacy JSF rewrites.  Page skeleton tracks
-  server/zanata-war/src/main/webapp/WEB-INF/template/template.xhtml so
-  /resources/assets/css/style.css renders the page in the original Zanata
-  theme, and the React frontend bundle mounts into #root for the same
-  header / search / locale switcher chrome the legacy template relied on.
+  Master Thymeleaf layout. /resources/assets/css/style.css renders the
+  page in the standard Zanata theme; the React frontend bundle mounts
+  into #root to provide the header / search / locale-switcher chrome.
 
     .templateWrapper > .templateContainer
         > #root           (React: header, search, locale picker)
@@ -22,12 +20,12 @@
     <title th:text="|Zanata: ${pageTitle ?: ''}|">Zanata</title>
     <link rel="stylesheet" type="text/css" th:href="@{/resources/assets/css/style.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/resources/fontello/css/fontello.css}"/>
-    <!-- Browsers honouring `prefers-color-scheme: dark` would render the
-         legacy style.css's transparent body as black; force the original
-         light theme regardless of the OS preference.  Also reserve
-         vertical space at the bottom for the fixed nav-bar that the
-         legacy React bundle injects into #jsfReactRoot (~64px tall) —
-         without it long page content scrolls under the nav. -->
+    <!-- Browsers honouring `prefers-color-scheme: dark` would render
+         style.css's transparent body as black; force the light theme
+         regardless of OS preference. Also reserve vertical space at
+         the bottom for the fixed nav-bar the React bundle injects into
+         #jsfReactRoot (~64px tall) — without it long page content
+         scrolls under the nav. -->
     <style>
         html, body { background: #ffffff !important; color: #222 !important; }
         main.rootMain { padding-bottom: 64px; }
@@ -51,8 +49,8 @@
 <script type="application/javascript">
     /*<![CDATA[*/
     window.config = JSON.parse(JSON.stringify(document.getElementById('config').dataset));
-    // The React frontend bundle parses any JSON values out of the dataset;
-    // mirror what JSF used to write so the Header/UserMenu hydrate cleanly.
+    // The React frontend bundle parses any JSON values out of the dataset
+    // so the Header/UserMenu hydrate cleanly.
     if (typeof window.config.user === 'string') {
         try { window.config.user = JSON.parse(window.config.user); } catch (e) {}
     }
@@ -64,8 +62,9 @@
 
 <div class="templateWrapper">
     <div class="templateContainer">
-        <!-- React mounts the top header / search / language picker here. -->
-        <div id="root"></div>
+        <div id="root">
+            <th:block th:replace="~{_nav :: sideNav(loggedIn=${navLoggedIn ?: false}, isAdmin=${navIsAdmin ?: false}, username=${navUsername ?: ''})}"></th:block>
+        </div>
         <main role="main" class="rootMain">
             <div class="l__wrapper rootMain-content l--pad-top-half">
                 <div th:replace="${content}">page content goes here</div>
@@ -77,11 +76,9 @@
 </div>
 
 
-<!-- Bring in the React frontend bundle so the chrome renders.  The
-     legacy template.xhtml loaded `frontend.legacy.js` (not the modern
-     dashboard `frontend.js`); that bundle was designed to render
-     alongside JSF page bodies and matches the visual chrome the user
-     remembers. -->
+<!-- Bring in the React frontend bundle so the chrome renders. We load
+     `frontend.legacy.js` (not the dashboard `frontend.js`) — that bundle
+     is designed to render alongside server-rendered page bodies. -->
 <script th:if="${manifest != null and manifest.runtimeJs() != null}"
         th:src="@{|/${manifest.runtimeJs()}|}"></script>
 <script th:if="${manifest != null and manifest.intlPolyfillJs() != null}"

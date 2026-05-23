@@ -12,10 +12,9 @@ import org.zanata.spring.repository.ProjectRepository;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Thymeleaf rewrite of /iteration/view/{projectSlug}/{versionSlug}.xhtml.
- * The legacy versionHomeAction CDI bean is replaced by a direct repository
- * lookup; the page renders the project breadcrumb, version label, overall
- * statistics placeholder and the Languages / Documents / Groups tab strip.
+ * Renders /iteration/view/{projectSlug}/{versionSlug}: project breadcrumb,
+ * version label, overall statistics placeholder and the
+ * Languages / Documents / Groups tab strip.
  */
 @Controller
 public class IterationViewController {

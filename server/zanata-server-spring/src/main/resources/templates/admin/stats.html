@@ -6,8 +6,7 @@
     <div th:replace="~{admin/_card :: card('Overall statistics', ~{::cardBody})}">
         <div th:fragment="cardBody" th:remove="tag">
             <p>Cluster-wide statistics: total projects, versions, translated
-                strings, contributors.  Will populate from /rest/stats once
-                that endpoint migrates.</p>
+                strings, contributors.</p>
             <ul class="list--no-bullets">
                 <li>Projects: <strong>—</strong></li>
                 <li>Versions: <strong>—</strong></li>

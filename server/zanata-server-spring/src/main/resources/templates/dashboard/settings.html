@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{_layout :: html(content=~{::main-content}, pageTitle='Settings')}">
+<body>
+<main-content th:fragment="main-content" th:remove="tag">
+    <h1>Settings</h1>
+
+    <div class="tabs--vertical js-tabs">
+        <ul class="tabs__nav js-tabs-nav">
+            <li>
+                <a id="account_tab" class="js-url-mod is-active"
+                   th:href="@{/dashboard/settings/account}" data-content="#account">
+                    <i class="i i--left i--settings"></i>
+                    <span class="is-hidden--m-l-down">Account</span>
+                </a>
+            </li>
+            <li>
+                <a id="profile_tab" class="js-url-mod"
+                   th:href="@{/dashboard/settings/profile}" data-content="#profile-content">
+                    <i class="i i--left i--user"></i>
+                    <span class="is-hidden--m-l-down">Profile</span>
+                </a>
+            </li>
+            <li>
+                <a id="languages_tab" class="js-url-mod"
+                   th:href="@{/dashboard/settings/languages}" data-content="#languages">
+                    <i class="i i--left i--language"></i>
+                    <span class="is-hidden--m-l-down">Languages</span>
+                </a>
+            </li>
+            <li>
+                <a id="client_tab" class="js-url-mod"
+                   th:href="@{/dashboard/settings/client}" data-content="#client">
+                    <i class="i i--left i--code"></i>
+                    <span class="is-hidden--m-l-down">Client</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="tabsContent js-tabs-content">
+            <li class="is-active" id="account">
+                <h2 class="l--push-top-0 gamma d--bottom">Account Settings</h2>
+                <form th:if="${account != null}" id="email-update-form"
+                      class="l--constrain-large l--push-top-1"
+                      th:action="@{/dashboard/settings/email}" method="post">
+                    <div class="form__item l--push-bottom-1">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" maxlength="255"
+                               th:value="${person != null ? person.email : ''}"/>
+                    </div>
+                    <button id="updateEmailButton" type="submit" class="button">Update email</button>
+                </form>
+                <p th:if="${account == null}" class="txt--understated l--push-top-1">
+                    Sign in to update your account.
+                </p>
+            </li>
+            <li id="profile-content">
+                <h2 class="l--push-top-0 gamma d--bottom">Profile</h2>
+                <dl th:if="${person != null}" class="l--constrain-large">
+                    <dt>Name</dt>
+                    <dd th:text="${person.name}">name</dd>
+                    <dt>Username</dt>
+                    <dd th:text="${account != null ? account.username : ''}">username</dd>
+                </dl>
+            </li>
+            <li id="languages">
+                <h2 class="l--push-top-0 gamma d--bottom">Languages</h2>
+                <p class="txt--understated">No language preferences set.</p>
+            </li>
+            <li id="client">
+                <h2 class="l--push-top-0 gamma d--bottom">Client</h2>
+                <p class="txt--understated">No API key generated.</p>
+            </li>
+        </ul>
+    </div>
+</main-content>
+</body>
+</html>

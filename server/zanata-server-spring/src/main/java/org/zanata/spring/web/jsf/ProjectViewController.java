@@ -10,13 +10,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Thymeleaf rewrite of the legacy /project/view/{slug}.xhtml page.
- *
- * Replaces the JSF "projectHome" backing-bean + RichFaces tabbed layout
- * with a flat read-only page that the new Spring Boot server can render
- * without dragging the Faces / Weld / DeltaSpike stack in.  Editable
- * tabs (settings, people, languages) come later — this is the
- * read-mostly home page that links into them.
+ * Renders /project/view/{slug}: the project home page with links to
+ * versions, people, about and settings tabs.
  */
 @Controller
 public class ProjectViewController {
@@ -27,12 +22,17 @@ public class ProjectViewController {
         this.projectRepository = projectRepository;
     }
 
-    @GetMapping("/project/view/{slug}")
+    @GetMapping({
+            "/project/view/{slug}",
+            "/project/view/{slug}/versions",
+            "/project/view/{slug}/people",
+            "/project/view/{slug}/about",
+            "/project/view/{slug}/settings",
+            "/project/view/{slug}/settings/{section}"
+    })
     public String view(@PathVariable("slug") String slug, Model model,
                        HttpServletResponse response) throws IOException {
-        var match = projectRepository.findAll().stream()
-                .filter(p -> slug.equals(p.getSlug()))
-                .findFirst();
+        var match = projectRepository.findBySlug(slug);
         if (match.isEmpty()) {
             response.sendError(404, "Project not found: " + slug);
             return null;

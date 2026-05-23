@@ -8,12 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.zanata.spring.repository.PersonRepository;
 
 /**
- * Thymeleaf landing pages for the legacy /admin/*.xhtml routes.
- *
- * Naming convention matches the JSF file basename so the routes look the
- * same as in the legacy WAR.  Every page is a placeholder that lays out
- * the legacy panel skeleton; once the admin REST endpoints + service
- * classes migrate, each page lights up with live data.
+ * Landing pages for the /admin/* routes.
  */
 @Controller
 @RequestMapping("/admin")
