@@ -93,8 +93,7 @@ public class HApplicationConfiguration extends ModelEntityBase {
     }
 
     @NotNull
-    @jakarta.persistence.Lob
-    @Column(name = "config_value", nullable = false)
+    @Column(name = "config_value", nullable = false, columnDefinition = "text")
     public String getValue() {
         return value;
     }

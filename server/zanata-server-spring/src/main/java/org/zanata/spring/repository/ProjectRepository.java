@@ -34,6 +34,7 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
     @Query("""
             select distinct p from HProject p
             left join fetch p.projectIterations
+            left join fetch p.members
             where p.slug = :slug
             """)
     Optional<HProject> findBySlugWithIterations(@Param("slug") String slug);

@@ -1,37 +1,45 @@
----
-version: '2.1'
+# Local dev compose: Postgres + Spring Boot Zanata server.
+#
+#   docker compose -f server/docker/docker-compose.yml up --build
+#
+# UI:  http://localhost:8080/
+# DB:  postgres://postgres:1234@localhost:5432/zanata
+
 services:
   zanatadb:
-    image: mariadb:10.1
-    command: --character-set-server=utf8 --collation-server=utf8_general_ci
+    image: postgres:16
     environment:
-      MYSQL_ROOT_PASSWORD: supersecret
-      MYSQL_DATABASE: zanata
-      MYSQL_USER: zanata
-      MYSQL_PASSWORD: zanatapw
+      POSTGRES_DB: zanata
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "1234"
     volumes:
-      - $HOME/docker-volumes/zanata-mariadb:/var/lib/mysql:Z
+      - zanata-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d zanata"]
       interval: 3s
       timeout: 3s
-      retries: 10
+      retries: 20
+    ports:
+      - "5432:5432"
+
   zanata:
     depends_on:
       zanatadb:
         condition: service_healthy
-    # build: .
-    image: zanata-dev
-    links:
-      - zanatadb
+    build:
+      context: ../..
+      dockerfile: server/docker/Dockerfile
+    image: zanata-server
     environment:
-      DB_HOSTNAME: zanatadb
-      DB_SCHEMA: zanata
-      DB_USERNAME: zanata
-      DB_PASSWORD: zanatapw
-      # TODO MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
-      PREPEND_JAVA_OPTS: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/jboss/zanata"
+      ZANATA_DB_URL: jdbc:postgresql://zanatadb:5432/zanata?options=-c%20TimeZone%3DUTC
+      ZANATA_DB_USER: postgres
+      ZANATA_DB_PASSWORD: "1234"
+      JAVA_OPTS: "-XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/zanata"
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
-      - $HOME/docker-volumes/zanata:/opt/jboss/zanata:Z
+      - zanata-data:/opt/zanata
+
+volumes:
+  zanata-pgdata:
+  zanata-data:

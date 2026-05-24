@@ -1,0 +1,48 @@
+name: Build
+
+on:
+  push:
+    branches: [master, release]
+  pull_request:
+    branches: [master, release]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: zanata
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: "1234"
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d zanata"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build reactor (compile + unit tests)
+        run: mvn -B -V -e -ntp install -DskipITs
+      - name: Upload Spring Boot JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zanata-server-spring
+          path: server/zanata-server-spring/target/zanata-server-spring-*.jar
+          if-no-files-found: warn
+      - name: Upload CLI dist
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zanata-cli
+          path: client/zanata-cli/target/zanata-cli-*-dist.tar.gz
+          if-no-files-found: warn

@@ -38,4 +38,13 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
             """)
     List<Object[]> countByDocAndLocale(@Param("docId") Long docId,
                                        @Param("locale") LocaleId locale);
+
+    @Query("""
+            select t.locale, t.state, sum(t.textFlow.wordCount)
+            from HTextFlowTarget t
+            where t.textFlow.document.projectIteration.id = :id
+              and t.textFlow.obsolete = false
+            group by t.locale, t.state
+            """)
+    List<Object[]> aggregateWordsByLocaleAndState(@Param("id") Long iterId);
 }

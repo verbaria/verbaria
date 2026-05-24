@@ -1,33 +1,21 @@
-# TODO rename Dockerfile to Dockerfile.zanata-base
+# Zanata Spring Boot server image.
+#
+# Multi-stage build: stage 1 compiles the executable JAR with Maven; stage 2
+# is a slim JRE runtime. Build from the repo root:
+#
+#   docker build -t zanata-server -f server/docker/Dockerfile .
+#
+# At runtime, point ZANATA_DB_URL / ZANATA_DB_USER / ZANATA_DB_PASSWORD at a
+# reachable Postgres (see server/docker/docker-compose.yml).
 
-FROM jboss/wildfly:10.1.0.Final
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY . .
+RUN mvn -B -DskipTests -pl server/zanata-server-spring -am package
 
-# MAIL_USERNAME and MAIL_PASSWORD can not be empty as they are used in wildfly standalone-full*.xml.
-# If the smtp server does not require authentication, these single space values will be used
-ENV DB_HOSTNAME=zanatadb MAIL_HOST=localhost MAIL_USERNAME=' ' MAIL_PASSWORD=' '
-
-# create mysql module
-USER root
-COPY conf/mysql-module/ /opt/jboss/wildfly/modules/
-RUN yum -y install mysql-connector-java && yum clean all && \
-    ln -sf /usr/share/java/mysql-connector-java.jar /opt/jboss/wildfly/modules/com/mysql/main/mysql-connector-java.jar
-
-USER jboss
-
-COPY target/jboss-cli-jjs target/configure-app-server.js /tmp/
-
-# Uses JAVA_HOME and JBOSS_HOME vars from base image
-RUN /tmp/jboss-cli-jjs --language=es6 /tmp/configure-app-server.js -- \
-    --auth-internal --auth-openid --auth-saml2 --datasource \
-    --disable-file-logger --oauth --rundev --machine-translation
-
-# override the sun jdk module file to support java melody (com.sun.management.* for heap dump)
-# TODO remove this when https://github.com/javamelody/javamelody/issues/585 is resolved
-RUN sed -i '/<\/paths>/ i <path name="com/sun/management"/>' /opt/jboss/wildfly/modules/system/layers/base/sun/jdk/main/module.xml
-
-# Fix for: WFLYCTL0056: Could not rename /opt/jboss/wildfly/standalone/configuration/standalone_xml_history/current to
-RUN rm -rf /opt/jboss/wildfly/standalone/configuration/standalone_xml_history
-
-# Enable debugging of the appserver: --debug
-# Use standandlone-full: -c standalone-full.xml
-CMD ["/opt/jboss/wildfly/bin/standalone.sh", "--debug", "-b", "0.0.0.0", "-c", "standalone-full-ha.xml"]
+FROM eclipse-temurin:21-jre
+WORKDIR /opt/zanata
+COPY --from=build /src/server/zanata-server-spring/target/zanata-server-spring-*.jar /opt/zanata/zanata-server.jar
+EXPOSE 8080
+ENV JAVA_OPTS="-XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/zanata"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /opt/zanata/zanata-server.jar"]

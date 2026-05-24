@@ -18,7 +18,10 @@ public class AdminMonitoringView extends VerticalLayout {
         setSizeFull();
         setPadding(true);
         add(new H2("Monitoring"));
-        add(new Anchor("/actuator/health", "Health"));
-        add(new Anchor("/actuator/metrics", "Metrics"));
+        Anchor health = new Anchor("/actuator/health", "Health");
+        health.setTarget("_blank");
+        Anchor metrics = new Anchor("/actuator/metrics", "Metrics");
+        metrics.setTarget("_blank");
+        add(health, metrics);
     }
 }

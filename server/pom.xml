@@ -44,9 +44,6 @@
     <groovy.version>4.0.24</groovy.version>
     <icu4j.version>76.1</icu4j.version>
     <guava.version>33.4.0-jre</guava.version>
-    <!-- GWT moved to org.gwtproject groupId starting around 2.10. 2.13.0 is
-         current. See https://mvnrepository.com/artifact/org.gwtproject/gwt-user -->
-    <gwt.version>2.13.0</gwt.version>
     <!-- Lucene 9.x is what Hibernate Search 7.x targets -->
     <lucene.version>9.12.0</lucene.version>
     <org.mock-server.version>5.15.0</org.mock-server.version>
@@ -55,7 +52,6 @@
     <rewrite.version>10.0.2.Final</rewrite.version>
 
     <slf4j.version>2.0.16</slf4j.version>
-    <gwteventservice.version>1.2.1</gwteventservice.version>
     <okapi.version>1.47.0</okapi.version>
 
     <zanata.assets.version>10.4</zanata.assets.version>
@@ -779,25 +775,6 @@
         <version>2.2.1</version>
       </dependency>
 
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>services</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>zanata-frontend</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>gwt-editor</artifactId>
-        <classifier>classes</classifier>
-        <version>${project.version}</version>
-      </dependency>
-
       <!-- zanata api -->
       <dependency>
         <groupId>org.zanata</groupId>
@@ -978,27 +955,6 @@
 
       <dependency>
         <groupId>org.zanata</groupId>
-        <artifactId>gwt-shared</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>gwt-shared</artifactId>
-        <version>${project.version}</version>
-        <classifier>sources</classifier>
-        <scope>provided</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>gwt-test</artifactId>
-        <version>${project.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.zanata</groupId>
         <artifactId>zanata-liquibase</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -1064,23 +1020,6 @@
       </dependency>
 
       <dependency>
-        <groupId>org.gwtproject</groupId>
-        <artifactId>gwt-dev</artifactId>
-        <version>${gwt.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.gwtproject</groupId>
-        <artifactId>gwt-servlet</artifactId>
-        <version>${gwt.version}</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.fusesource.restygwt</groupId>
-        <artifactId>restygwt</artifactId>
-        <version>2.2.0</version>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>${jackson2.version}</version>
@@ -1103,28 +1042,6 @@
         <scope>provided</scope>
       </dependency>
 
-      <dependency>
-        <groupId>org.gwtproject</groupId>
-        <artifactId>gwt-user</artifactId>
-        <version>${gwt.version}</version>
-        <scope>provided</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.gwt.inject</groupId>
-        <artifactId>gin</artifactId>
-        <version>1.5.0</version>
-        <scope>provided</scope>
-      </dependency>
       <dependency>
         <groupId>com.google.inject</groupId>
         <artifactId>guice</artifactId>
@@ -1166,23 +1083,6 @@
         <groupId>org.dbunit</groupId>
         <artifactId>dbunit</artifactId>
         <version>2.4.9</version>
-      </dependency>
-
-      <dependency>
-        <groupId>de.novanic.gwteventservice</groupId>
-        <artifactId>gwteventservice</artifactId>
-        <version>${gwteventservice.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>de.novanic.gwteventservice</groupId>
-        <artifactId>eventservice-rpc</artifactId>
-        <version>${gwteventservice.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.novanic.gwteventservice</groupId>
-        <artifactId>eventservice</artifactId>
-        <version>${gwteventservice.version}</version>
       </dependency>
 
       <dependency>
@@ -1649,13 +1549,6 @@
       </dependency>
 
       <dependency>
-        <groupId>net.customware.gwt.presenter</groupId>
-        <artifactId>gwt-presenter</artifactId>
-        <version>1.1.1</version>
-        <scope>provided</scope>
-      </dependency>
-
-      <dependency>
         <groupId>jakarta.activation</groupId>
         <artifactId>jakarta.activation-api</artifactId>
         <version>2.1.3</version>
@@ -1827,18 +1720,6 @@
       <snapshots>
         <enabled>true</enabled>
         <updatePolicy>never</updatePolicy>
-      </snapshots>
-    </repository>
-    <!-- Needed for GWT snapshots -->
-    <repository>
-      <id>google-maven-snapshot-repository</id>
-      <name>Google Maven Snapshot Repository</name>
-      <url>https://oss.sonatype.org/content/repositories/google-snapshots/</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
       </snapshots>
     </repository>
     <!-- for kotlinx.html -->
@@ -2102,13 +1983,6 @@
           <artifactId>maven-war-plugin</artifactId>
           <version>3.4.0</version>
         </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>gwt-maven-plugin</artifactId>
-          <!-- gwt-maven-plugin's latest published version is 2.10.0 — independent
-               of the GWT compiler/runtime version (we use GWT 2.13.0). -->
-          <version>2.10.0</version>
-        </plugin>
         <!-- change maven-release-plugin back to defaults (instead of oss-parent's settings)  -->
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
@@ -2172,54 +2046,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-
-    <profile>
-      <id>jbosseap6</id>
-      <activation>
-        <property>
-          <name>appserver</name>
-          <value>jbosseap6</value>
-        </property>
-      </activation>
-      <properties>
-        <cargo.container>wildfly10x</cargo.container>
-        <cargo.installation>${env.EAP71_URL}</cargo.installation>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>wildfly8</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-        <property>
-          <name>appserver</name>
-          <value>wildfly8</value>
-        </property>
-      </activation>
-      <properties>
-        <cargo.container>wildfly10x</cargo.container>
-        <!-- used in the wildfly8 profile in zanata-war -->
-        <!-- This is the server version -->
-        <wildfly.version>10.1.0.Final</wildfly.version>
-        <!-- In case this profile was activated by default: -->
-        <appserver>wildfly8</appserver>
-        <!-- https leads to errors like
-             javax.net.ssl.SSLProtocolException: Server returned wrong cipher suite for session -->
-        <cargo.installation>http://repository.jboss.org/nexus/content/groups/developer/org/wildfly/wildfly-dist/${wildfly.version}/wildfly-dist-${wildfly.version}.zip</cargo.installation>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>build zanata-frontend module</id>
-      <activation>
-        <property>
-          <name>!excludeFrontend</name>
-        </property>
-      </activation>
-      <modules>
-        <module>zanata-frontend</module>
-      </modules>
     </profile>
 
     <profile>
@@ -2302,11 +2128,9 @@
     <module>zanata-model</module>
     <module>zanata-model-test</module>
     <module>security-common</module>
-    <!-- Spring Boot replacement for the legacy WildFly stack
-         (zanata-war / zanata-test-war / functional-test removed;
-         services/ still kept as porting reference until every
-         endpoint is migrated). -->
-    <module>services</module>
+    <!-- Spring Boot server. The legacy WildFly stack
+         (zanata-war / zanata-test-war / functional-test / services / gwt-*)
+         has been retired entirely; only this Spring module remains. -->
     <module>zanata-server-spring</module>
   </modules>
 </project>

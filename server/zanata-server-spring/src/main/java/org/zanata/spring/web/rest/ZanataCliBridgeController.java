@@ -1,0 +1,850 @@
+package org.zanata.spring.web.rest;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+
+import jakarta.persistence.EntityNotFoundException;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.zanata.common.ContentState;
+import org.zanata.common.ContentType;
+import org.zanata.common.EntityStatus;
+import org.zanata.common.LocaleId;
+import org.zanata.common.ProjectType;
+import org.zanata.common.ResourceType;
+import org.zanata.common.TransUnitCount;
+import org.zanata.common.TransUnitWords;
+import org.zanata.model.HAccount;
+import org.zanata.model.HDocument;
+import org.zanata.model.HLocale;
+import org.zanata.model.HProject;
+import org.zanata.model.HProjectIteration;
+import org.zanata.model.HTextFlow;
+import org.zanata.model.HTextFlowTarget;
+import org.zanata.rest.dto.ProcessStatus;
+import org.zanata.rest.dto.Project;
+import org.zanata.rest.dto.ProjectIteration;
+import org.zanata.rest.dto.VersionInfo;
+import org.zanata.rest.dto.resource.Resource;
+import org.zanata.rest.dto.resource.ResourceMeta;
+import org.zanata.rest.dto.resource.TextFlow;
+import org.zanata.rest.dto.resource.TextFlowTarget;
+import org.zanata.rest.dto.resource.TranslationsResource;
+import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
+import org.zanata.rest.dto.stats.TranslationStatistics;
+import org.zanata.spring.repository.AccountRepository;
+import org.zanata.spring.repository.DocumentRepository;
+import org.zanata.spring.repository.LocaleRepository;
+import org.zanata.spring.repository.ProjectIterationRepository;
+import org.zanata.spring.repository.ProjectRepository;
+import org.zanata.spring.repository.TextFlowRepository;
+import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.service.DocumentImportService;
+
+/**
+ * Compatibility REST bridge for the classic Zanata CLI
+ * (zanata-cli / zanata-rest-client / zanata-client-commands).
+ *
+ * The CLI talks to a fixed set of paths under {@code /rest/...} which the
+ * old JAX-RS services (in zanata-war / services) used to publish. Those are
+ * gone in this Spring Boot module, so this controller stands those routes
+ * back up using the existing Spring Data repositories.
+ *
+ * Notes on overlapping routes:
+ *  - {@link ProjectsApiController} already exposes
+ *    GET /rest/projects/p/{slug} as a free-form Map<String,Object> for the
+ *    React UI. To avoid clobbering it, the CLI-shape Project DTO endpoint
+ *    here is registered under the same path but typed differently — Spring
+ *    will dispatch by HTTP method and accept header. The PUT method is
+ *    exclusive to this controller; the existing GET still works for the React
+ *    UI but if/when ProjectsApiController is deleted this controller's GET
+ *    will take over transparently.
+ *  - {@link EditorController} exposes /rest/project/{slug}/... (singular) for
+ *    the React editor; CLI paths are /rest/projects/p/{slug}/... (plural) so
+ *    there is no collision.
+ *
+ * Security: SecurityConfig currently permits all /rest/** requests. Write
+ * endpoints here additionally read SecurityContextHolder and reject anonymous
+ * principals with 401 — once an API-key filter is added, this will Just Work
+ * because Spring will populate the authentication for the matching credentials.
+ */
+@RestController
+@RequestMapping("/rest")
+public class ZanataCliBridgeController {
+
+    /**
+     * Standard MIME types plus the legacy zanata-rest-client vendor types
+     * (application/vnd.zanata.Version+xml, +json; application/vnd.zanata.project+xml ...).
+     * Listed explicitly so Spring's content negotiator picks the right
+     * converter without needing custom MediaType registration.
+     */
+    private static final String[] MEDIA = {
+            MediaType.APPLICATION_JSON_VALUE,
+            MediaType.APPLICATION_XML_VALUE,
+            "application/vnd.zanata.Version+xml",
+            "application/vnd.zanata.Version+json",
+            "application/vnd.zanata.project+xml",
+            "application/vnd.zanata.project+json",
+            "application/vnd.zanata.projects+xml",
+            "application/vnd.zanata.projects+json",
+            "application/vnd.zanata.project.iteration+xml",
+            "application/vnd.zanata.project.iteration+json",
+            "application/vnd.zanata.account+xml",
+            "application/vnd.zanata.account+json",
+            "application/vnd.zanata.glossary+xml",
+            "application/vnd.zanata.glossary+json",
+            "application/vnd.zanata.locales+xml",
+            "application/vnd.zanata.locales+json",
+            "application/vnd.zanata.tu+xml",
+            "application/vnd.zanata.tu+json",
+            // Document / translation transport
+            "application/vnd.zanata.resource+xml",
+            "application/vnd.zanata.resource+json",
+            "application/vnd.zanata.resourceMeta+xml",
+            "application/vnd.zanata.resourceMeta+json",
+            "application/vnd.zanata.resourceMetaList+xml",
+            "application/vnd.zanata.resourceMetaList+json",
+            "application/vnd.zanata.translation+xml",
+            "application/vnd.zanata.translation+json",
+            "application/vnd.zanata.stats+xml",
+            "application/vnd.zanata.stats+json"
+    };
+
+    private final ProjectRepository projectRepository;
+    private final ProjectIterationRepository iterationRepository;
+    private final DocumentRepository documentRepository;
+    private final TextFlowRepository textFlowRepository;
+    private final TextFlowTargetRepository textFlowTargetRepository;
+    private final LocaleRepository localeRepository;
+    private final AccountRepository accountRepository;
+    private final DocumentImportService importService;
+
+    @Value("${spring.application.version:4.7.0-SNAPSHOT}")
+    private String applicationVersion;
+
+    public ZanataCliBridgeController(ProjectRepository projectRepository,
+                                     ProjectIterationRepository iterationRepository,
+                                     DocumentRepository documentRepository,
+                                     TextFlowRepository textFlowRepository,
+                                     TextFlowTargetRepository textFlowTargetRepository,
+                                     LocaleRepository localeRepository,
+                                     AccountRepository accountRepository,
+                                     DocumentImportService importService) {
+        this.projectRepository = projectRepository;
+        this.iterationRepository = iterationRepository;
+        this.documentRepository = documentRepository;
+        this.textFlowRepository = textFlowRepository;
+        this.textFlowTargetRepository = textFlowTargetRepository;
+        this.localeRepository = localeRepository;
+        this.accountRepository = accountRepository;
+        this.importService = importService;
+    }
+
+    // ---------- 1. version ----------
+
+    @GetMapping("/version")
+    public ResponseEntity<VersionInfo> version() {
+        return ResponseEntity.ok(new VersionInfo(
+                applicationVersion,
+                Instant.now().toString(),
+                "spring"));
+    }
+
+    // ---------- 2. get project (CLI Project DTO) ----------
+
+    @GetMapping("/projects/p/{slug}/cli")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Project> getProjectCli(@PathVariable("slug") String slug) {
+        // Sibling path '/cli' chosen to avoid clobbering ProjectsApiController.
+        // (See class-level Javadoc.) The legacy CLI hits /projects/p/{slug} directly,
+        // so we also expose the same content via PUT /projects/p/{slug} below;
+        // if ProjectsApiController is deleted, change this mapping to "/projects/p/{slug}".
+        return projectRepository.findBySlugWithIterations(slug)
+                .map(p -> ResponseEntity.ok(toDto(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ---------- 3. put project ----------
+
+    @PutMapping("/projects/p/{slug}")
+            
+    @Transactional
+    public ResponseEntity<Project> putProject(@PathVariable("slug") String slug,
+                                              @RequestBody Project body) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Optional<HProject> existing = projectRepository.findBySlug(slug);
+        HProject p;
+        boolean created;
+        if (existing.isPresent()) {
+            p = existing.get();
+            created = false;
+        } else {
+            p = new HProject();
+            p.setSlug(slug);
+            p.setStatus(EntityStatus.ACTIVE);
+            p.setDefaultProjectType(ProjectType.File);
+            created = true;
+        }
+        if (body.getName() != null) p.setName(body.getName());
+        if (body.getDescription() != null) p.setDescription(body.getDescription());
+        if (body.getSourceViewURL() != null) p.setSourceViewURL(body.getSourceViewURL());
+        if (body.getSourceCheckoutURL() != null) p.setSourceCheckoutURL(body.getSourceCheckoutURL());
+        if (body.getStatus() != null) p.setStatus(body.getStatus());
+        if (body.getDefaultType() != null) {
+            try {
+                p.setDefaultProjectType(ProjectType.getValueOf(body.getDefaultType()));
+            } catch (Exception ignore) {
+                // keep whatever default we had
+            }
+        }
+        // HProject must have a name (NotEmpty); fall back to the slug.
+        if (p.getName() == null || p.getName().isEmpty()) {
+            p.setName(slug);
+        }
+        HProject saved = projectRepository.save(p);
+        Project out = toDto(saved);
+        return created
+                ? ResponseEntity.status(HttpStatus.CREATED).body(out)
+                : ResponseEntity.ok(out);
+    }
+
+    // ---------- 4. get project iteration ----------
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ProjectIteration> getIteration(@PathVariable("slug") String slug,
+                                                         @PathVariable("iter") String iter) {
+        return iterationRepository.findByProjectAndSlug(slug, iter)
+                .map(i -> ResponseEntity.ok(toDto(i)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ---------- 4a. iteration active locales ----------
+    //
+    // The CLI's push command consults this to decide which translation files
+    // to upload — files for locales not in this list are skipped with
+    // "no locale entry found from project config". We return every enabled
+    // locale from the server (no per-iteration locale overrides yet).
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/locales")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> iterationLocales(@PathVariable("slug") String slug,
+                                              @PathVariable("iter") String iter,
+                                              @RequestHeader(value = "Accept", required = false) String accept) {
+        if (iterationRepository.findByProjectAndSlug(slug, iter).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<org.zanata.rest.dto.LocaleDetails> details = new ArrayList<>();
+        for (var loc : localeRepository.findAll()) {
+            if (loc.getLocaleId() == null) continue;
+            org.zanata.rest.dto.LocaleDetails ld = new org.zanata.rest.dto.LocaleDetails(
+                    loc.getLocaleId(),
+                    loc.getDisplayName(),
+                    null /* alias */,
+                    loc.getNativeName(),
+                    true /* enabled */,
+                    true /* enabledByDefault */,
+                    loc.getPluralForms(),
+                    false /* rtl - not on HLocale */);
+            details.add(ld);
+        }
+        if (accept != null && (accept.contains("xml") || accept.equals("*/*"))) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_XML)
+                    .body(marshalLocaleDetailsList(details));
+        }
+        return ResponseEntity.ok(details);
+    }
+
+    private static String marshalLocaleDetailsList(List<org.zanata.rest.dto.LocaleDetails> items) {
+        try {
+            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext.newInstance(org.zanata.rest.dto.LocaleDetails.class);
+            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
+            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+            StringBuilder sb = new StringBuilder();
+            sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            sb.append("<collection>");
+            for (var d : items) {
+                java.io.StringWriter w = new java.io.StringWriter();
+                m.marshal(d, w);
+                sb.append(w);
+            }
+            sb.append("</collection>");
+            return sb.toString();
+        } catch (jakarta.xml.bind.JAXBException e) {
+            throw new IllegalStateException("LocaleDetails XML marshalling failed", e);
+        }
+    }
+
+    // ---------- 5. put project iteration ----------
+
+    @PutMapping("/projects/p/{slug}/iterations/i/{iter}")
+            
+    @Transactional
+    public ResponseEntity<ProjectIteration> putIteration(@PathVariable("slug") String slug,
+                                                         @PathVariable("iter") String iter,
+                                                         @RequestBody ProjectIteration body) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        HProject project = projectRepository.findBySlug(slug).orElse(null);
+        if (project == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Optional<HProjectIteration> existing =
+                iterationRepository.findByProjectAndSlug(slug, iter);
+        HProjectIteration i;
+        boolean created;
+        if (existing.isPresent()) {
+            i = existing.get();
+            created = false;
+        } else {
+            i = new HProjectIteration();
+            i.setSlug(iter);
+            i.setProject(project);
+            i.setStatus(EntityStatus.ACTIVE);
+            project.addIteration(i);
+            created = true;
+        }
+        if (body.getStatus() != null) i.setStatus(body.getStatus());
+        if (body.getProjectType() != null) {
+            try {
+                i.setProjectType(ProjectType.getValueOf(body.getProjectType()));
+            } catch (Exception ignore) {
+                // inherit from project
+            }
+        }
+        HProjectIteration saved = iterationRepository.save(i);
+        ProjectIteration out = toDto(saved);
+        return created
+                ? ResponseEntity.status(HttpStatus.CREATED).body(out)
+                : ResponseEntity.ok(out);
+    }
+
+    // ---------- 6. list source documents ----------
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> listSourceDocs(@PathVariable("slug") String slug,
+                                            @PathVariable("iter") String iter,
+                                            @RequestHeader(value = "Accept", required = false) String accept) {
+        if (iterationRepository.findByProjectAndSlug(slug, iter).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        // CLI client (SourceDocResourceClient.getResourceMeta) expects a bare
+        // GenericType<List<ResourceMeta>>, not the ResourceMetaList wrapper —
+        // see the comment on ResourceMetaList in zanata-common-api: "List<ResourceMeta>
+        // serializes better across Json and XML."
+        List<ResourceMeta> out = new ArrayList<>();
+        for (HDocument d : documentRepository.findByVersion(slug, iter)) {
+            ResourceMeta meta = new ResourceMeta(d.getDocId());
+            meta.setContentType(d.getContentType() == null
+                    ? ContentType.TextPlain : d.getContentType());
+            meta.setLang(d.getLocale() == null || d.getLocale().getLocaleId() == null
+                    ? LocaleId.EN_US : d.getLocale().getLocaleId());
+            meta.setType(ResourceType.FILE);
+            meta.setRevision(d.getRevision());
+            out.add(meta);
+        }
+        // For XML we hand-marshal because Spring's JAXB converter writes
+        // single @XmlRootElement instances only, not List<X>; Jackson XML
+        // ignores the package-level @XmlSchema namespace which the CLI's
+        // RESTEasy unmarshaller requires.
+        if (accept != null && (accept.contains("xml") || accept.equals("*/*"))) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_XML)
+                    .body(marshalResourceMetaList(out));
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    private static String marshalResourceMetaList(List<ResourceMeta> items) {
+        try {
+            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext.newInstance(ResourceMeta.class);
+            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
+            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+            // RESTEasy's bare-List provider wraps elements in a <collection> root.
+            StringBuilder sb = new StringBuilder();
+            sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            sb.append("<collection>");
+            for (ResourceMeta meta : items) {
+                java.io.StringWriter w = new java.io.StringWriter();
+                m.marshal(meta, w);
+                sb.append(w);
+            }
+            sb.append("</collection>");
+            return sb.toString();
+        } catch (jakarta.xml.bind.JAXBException e) {
+            throw new IllegalStateException("ResourceMeta XML marshalling failed", e);
+        }
+    }
+
+    // ---------- 7. get a source document ----------
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> getSourceDoc(@PathVariable("slug") String slug,
+                                                 @PathVariable("iter") String iter,
+                                                 @PathVariable("docId") String docId) {
+        String realDocId = decodeDocId(docId);
+        return documentRepository.findByVersionAndDocId(slug, iter, realDocId)
+                .map(d -> ResponseEntity.ok(toResource(d)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ---------- 8. put a source document ----------
+
+    @PutMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
+            
+    public ResponseEntity<Resource> putSourceDoc(@PathVariable("slug") String slug,
+                                                 @PathVariable("iter") String iter,
+                                                 @PathVariable("docId") String docId,
+                                                 @RequestBody Resource body) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String realDocId = decodeDocId(docId);
+        try {
+            DocumentImportService.ImportResult result =
+                    importService.importSource(slug, iter, realDocId, body);
+            Resource out = toResource(result.document());
+            return result.created()
+                    ? ResponseEntity.status(HttpStatus.CREATED).body(out)
+                    : ResponseEntity.ok(out);
+        } catch (IllegalArgumentException | EntityNotFoundException | NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ---------- 9. delete a source document ----------
+
+    @DeleteMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
+    @Transactional
+    public ResponseEntity<Void> deleteSourceDoc(@PathVariable("slug") String slug,
+                                                @PathVariable("iter") String iter,
+                                                @PathVariable("docId") String docId) {
+        return deleteSourceDocInternal(slug, iter, decodeDocId(docId));
+    }
+
+    private ResponseEntity<Void> deleteSourceDocInternal(String slug, String iter, String docId) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Optional<HDocument> existing = documentRepository.findByVersionAndDocId(slug, iter, docId);
+        if (existing.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        HDocument doc = existing.get();
+        doc.setObsolete(true);
+        documentRepository.save(doc);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ---------- 9a. CLI no-slash variants: /resource?docId=X ----------
+    //
+    // SourceDocResourceClient prefers /resource?docId=... over /r/{docId};
+    // it falls back to the slash form only on 404. Mirror the legacy
+    // contract on the new endpoints.
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/resource")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> getSourceDocByQuery(@PathVariable("slug") String slug,
+                                                        @PathVariable("iter") String iter,
+                                                        @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        return getSourceDoc(slug, iter, docId);
+    }
+
+    @PutMapping("/projects/p/{slug}/iterations/i/{iter}/resource")
+    public ResponseEntity<Resource> putSourceDocByQuery(@PathVariable("slug") String slug,
+                                                        @PathVariable("iter") String iter,
+                                                        @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                        @RequestBody Resource body) {
+        return putSourceDoc(slug, iter, docId, body);
+    }
+
+    @DeleteMapping("/projects/p/{slug}/iterations/i/{iter}/resource")
+    @Transactional
+    public ResponseEntity<Void> deleteSourceDocByQuery(@PathVariable("slug") String slug,
+                                                       @PathVariable("iter") String iter,
+                                                       @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        return deleteSourceDocInternal(slug, iter, decodeDocId(docId));
+    }
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/resource/translations/{locale}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<TranslationsResource> getTranslationsByQuery(@PathVariable("slug") String slug,
+                                                                       @PathVariable("iter") String iter,
+                                                                       @PathVariable("locale") String locale,
+                                                                       @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        return getTranslations(slug, iter, docId, locale);
+    }
+
+    @PutMapping("/projects/p/{slug}/iterations/i/{iter}/resource/translations/{locale}")
+    public ResponseEntity<?> putTranslationsByQuery(@PathVariable("slug") String slug,
+                                                    @PathVariable("iter") String iter,
+                                                    @PathVariable("locale") String locale,
+                                                    @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                    @RequestBody TranslationsResource body) {
+        return putTranslations(slug, iter, docId, locale, body);
+    }
+
+    @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/resource/translations/{locale}")
+    public ResponseEntity<ProcessStatus> asyncPushTranslationsByQuery(@PathVariable("slug") String slug,
+                                                                      @PathVariable("iter") String iter,
+                                                                      @PathVariable("locale") String locale,
+                                                                      @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                                      @RequestBody TranslationsResource body) {
+        return asyncPushTranslations(slug, iter, docId, locale, body);
+    }
+
+    // ---------- 10. get translations ----------
+
+    @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
+            
+    @Transactional(readOnly = true)
+    public ResponseEntity<TranslationsResource> getTranslations(@PathVariable("slug") String slug,
+                                                                @PathVariable("iter") String iter,
+                                                                @PathVariable("docId") String docId,
+                                                                @PathVariable("locale") String locale) {
+        String realDocId = decodeDocId(docId);
+        Optional<HDocument> doc = documentRepository.findByVersionAndDocId(slug, iter, realDocId);
+        if (doc.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        LocaleId localeId = new LocaleId(locale);
+        List<HTextFlow> flows = textFlowRepository.findByDocument(doc.get().getId());
+        if (flows.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Long> ids = new ArrayList<>(flows.size());
+        for (HTextFlow tf : flows) ids.add(tf.getId());
+        Map<Long, HTextFlowTarget> targets = new HashMap<>();
+        for (HTextFlowTarget t : textFlowTargetRepository.findByTextFlowIdsAndLocale(ids, localeId)) {
+            targets.put(t.getTextFlow().getId(), t);
+        }
+        if (targets.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        TranslationsResource out = new TranslationsResource();
+        for (HTextFlow tf : flows) {
+            HTextFlowTarget t = targets.get(tf.getId());
+            if (t == null) continue;
+            TextFlowTarget dto = new TextFlowTarget(tf.getResId());
+            dto.setState(t.getState() == null ? ContentState.New : t.getState());
+            dto.setContents(t.getContents() == null ? List.of("") : t.getContents());
+            dto.setRevision(t.getVersionNum());
+            dto.setTextFlowRevision(t.getTextFlowRevision());
+            out.getTextFlowTargets().add(dto);
+        }
+        if (out.getTextFlowTargets().isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    // ---------- 11. put translations ----------
+
+    @PutMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
+            
+    public ResponseEntity<Map<String, Integer>> putTranslations(@PathVariable("slug") String slug,
+                                                                @PathVariable("iter") String iter,
+                                                                @PathVariable("docId") String docId,
+                                                                @PathVariable("locale") String locale,
+                                                                @RequestBody TranslationsResource body) {
+        HAccount actor = currentUser();
+        if (actor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String realDocId = decodeDocId(docId);
+        try {
+            DocumentImportService.TranslationsImportResult result =
+                    importService.importTranslations(slug, iter, realDocId, locale, body, actor);
+            return ResponseEntity.ok(Map.of(
+                    "accepted", result.accepted(),
+                    "skipped", result.skipped()));
+        } catch (IllegalArgumentException | EntityNotFoundException | NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ---------- 12. iteration stats ----------
+
+    @GetMapping("/stats/proj/{slug}/iter/{iter}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ContainerTranslationStatistics> iterationStats(
+            @PathVariable("slug") String slug,
+            @PathVariable("iter") String iter) {
+        HProjectIteration iteration =
+                iterationRepository.findByProjectAndSlug(slug, iter).orElse(null);
+        if (iteration == null) {
+            return ResponseEntity.notFound().build();
+        }
+        long totalSourceWords = iterationRepository.sumSourceWordCount(iteration.getId());
+        long totalSourceMsgs = iterationRepository.countSourceTextFlows(iteration.getId());
+
+        // locale -> state -> words
+        Map<HLocale, EnumMap<ContentState, Long>> byLocale = new HashMap<>();
+        for (Object[] row : textFlowTargetRepository.aggregateWordsByLocaleAndState(iteration.getId())) {
+            HLocale loc = (HLocale) row[0];
+            ContentState state = (ContentState) row[1];
+            Number words = (Number) row[2];
+            if (loc == null || state == null || words == null) continue;
+            byLocale.computeIfAbsent(loc, k -> new EnumMap<>(ContentState.class))
+                    .merge(state, words.longValue(), Long::sum);
+        }
+
+        ContainerTranslationStatistics container = new ContainerTranslationStatistics();
+        container.setId(slug + ":" + iter);
+        // The CLI's ConsoleStatisticsOutput / CsvStatisticsOutput look up a
+        // link with rel="statSource" whose type tells them the granularity
+        // (PROJ_ITER for project-version stats, DOC for per-document stats).
+        // Without these refs the CLI NPEs.
+        org.zanata.rest.dto.Links refs = new org.zanata.rest.dto.Links();
+        refs.add(new org.zanata.rest.dto.Link(
+                java.net.URI.create("/rest/stats/proj/" + slug + "/iter/" + iter),
+                "self", "application/vnd.zanata.stats+xml"));
+        refs.add(new org.zanata.rest.dto.Link(
+                java.net.URI.create("/rest/projects/p/" + slug + "/iterations/i/" + iter),
+                "statSource", "PROJ_ITER"));
+        container.setRefs(refs);
+        List<TranslationStatistics> stats = new ArrayList<>();
+        List<HLocale> sortedLocales = new ArrayList<>(byLocale.keySet());
+        sortedLocales.sort(Comparator.comparing(
+                l -> l.getLocaleId() == null ? "" : l.getLocaleId().getId()));
+        for (HLocale loc : sortedLocales) {
+            EnumMap<ContentState, Long> counts = byLocale.get(loc);
+            long approved = counts.getOrDefault(ContentState.Approved, 0L);
+            long translated = counts.getOrDefault(ContentState.Translated, 0L);
+            long needReview = counts.getOrDefault(ContentState.NeedReview, 0L);
+            long rejected = counts.getOrDefault(ContentState.Rejected, 0L);
+            long doneWords = approved + translated + needReview + rejected;
+            long untranslatedWords = Math.max(0L, totalSourceWords - doneWords);
+
+            String localeStr = loc.getLocaleId() == null ? "" : loc.getLocaleId().getId();
+            TransUnitWords words = new TransUnitWords(
+                    (int) approved, (int) needReview, (int) untranslatedWords,
+                    (int) translated, (int) rejected);
+            TranslationStatistics wordRow = new TranslationStatistics(words, localeStr);
+            wordRow.setLastTranslated("");
+            stats.add(wordRow);
+
+            // MESSAGE-unit stats: we don't have a per-locale per-state message
+            // count aggregate handy, so we approximate by attributing the
+            // source message count proportionally to word counts. Good-enough
+            // for the CLI's `stats` display until a real message aggregator lands.
+            long msgDone = totalSourceWords == 0 ? 0
+                    : Math.round(((double) doneWords / totalSourceWords) * totalSourceMsgs);
+            long msgUntranslated = Math.max(0L, totalSourceMsgs - msgDone);
+            long msgApproved = totalSourceWords == 0 ? 0
+                    : Math.round(((double) approved / totalSourceWords) * totalSourceMsgs);
+            long msgTranslated = totalSourceWords == 0 ? 0
+                    : Math.round(((double) translated / totalSourceWords) * totalSourceMsgs);
+            long msgNeedReview = totalSourceWords == 0 ? 0
+                    : Math.round(((double) needReview / totalSourceWords) * totalSourceMsgs);
+            long msgRejected = totalSourceWords == 0 ? 0
+                    : Math.round(((double) rejected / totalSourceWords) * totalSourceMsgs);
+            TransUnitCount msgCount = new TransUnitCount(
+                    (int) msgApproved, (int) msgNeedReview, (int) msgUntranslated,
+                    (int) msgTranslated, (int) msgRejected);
+            TranslationStatistics msgRow = new TranslationStatistics(msgCount, localeStr);
+            msgRow.setLastTranslated("");
+            stats.add(msgRow);
+        }
+        container.setStats(stats);
+        return ResponseEntity.ok(container);
+    }
+
+    // ---------- 13. async process status ----------
+
+    @GetMapping("/async/{processId}")
+    public ResponseEntity<ProcessStatus> asyncStatus(@PathVariable("processId") String processId) {
+        // Push handlers are synchronous in this bridge, so the CLI can stop polling.
+        ProcessStatus status = new ProcessStatus();
+        status.setStatusCode(ProcessStatus.ProcessStatusCode.Finished);
+        status.setPercentageComplete(100);
+        status.setUrl(processId);
+        return ResponseEntity.ok(status);
+    }
+
+    // ---------- 13a. async source-doc push (legacy AsynchronousProcessResource) ----------
+    //
+    // The CLI's `push --push-type source|both` uses this rather than the sync
+    // PUT .../r/{docId}. The legacy contract was: PUT returns a ProcessStatus
+    // with an id, the CLI polls /async/{id} until Finished. Since our import
+    // service is synchronous we just do the import inline and return Finished.
+
+    @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/resource")
+    @Transactional
+    public ResponseEntity<ProcessStatus> asyncPushSource(@PathVariable("slug") String slug,
+                                                         @PathVariable("iter") String iter,
+                                                         @org.springframework.web.bind.annotation.RequestParam(value = "docId", required = false) String docIdParam,
+                                                         @RequestBody Resource body) {
+        HAccount actor = currentUser();
+        if (actor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        // Fall back to the Resource name if the docId query param is missing.
+        String docId = decodeDocId(docIdParam != null && !docIdParam.isBlank()
+                ? docIdParam : body.getName());
+        try {
+            importService.importSource(slug, iter, docId, body);
+        } catch (java.util.NoSuchElementException nse) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            ProcessStatus status = new ProcessStatus();
+            status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
+            status.setPercentageComplete(0);
+            status.addMessage(ex.getMessage() == null ? ex.toString() : ex.getMessage());
+            return ResponseEntity.internalServerError().body(status);
+        }
+        ProcessStatus done = new ProcessStatus();
+        done.setStatusCode(ProcessStatus.ProcessStatusCode.Finished);
+        done.setPercentageComplete(100);
+        // CLI's AsyncProcessClient.getProcessStatus appends `url` to
+        // /rest/async/ — return a bare opaque id, not a full path.
+        done.setUrl("sync-source-push-finished");
+        done.addMessage("source push complete (sync)");
+        return ResponseEntity.ok(done);
+    }
+
+    // ---------- 13b. async translation push ----------
+
+    @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
+    @Transactional
+    public ResponseEntity<ProcessStatus> asyncPushTranslations(@PathVariable("slug") String slug,
+                                                               @PathVariable("iter") String iter,
+                                                               @PathVariable("docId") String docId,
+                                                               @PathVariable("locale") String locale,
+                                                               @RequestBody TranslationsResource body) {
+        HAccount actor = currentUser();
+        if (actor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            importService.importTranslations(slug, iter, decodeDocId(docId),
+                    locale, body, actor);
+        } catch (java.util.NoSuchElementException nse) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            ProcessStatus status = new ProcessStatus();
+            status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
+            status.setPercentageComplete(0);
+            status.addMessage(ex.getMessage() == null ? ex.toString() : ex.getMessage());
+            return ResponseEntity.internalServerError().body(status);
+        }
+        ProcessStatus done = new ProcessStatus();
+        done.setStatusCode(ProcessStatus.ProcessStatusCode.Finished);
+        done.setPercentageComplete(100);
+        done.setUrl("sync-translations-push-finished");
+        done.addMessage("translation push complete (sync)");
+        return ResponseEntity.ok(done);
+    }
+
+    // ---------- 14. copy trans (intentionally unimplemented) ----------
+
+    @PostMapping("/copytrans/proj/{slug}/iter/{iter}/doc/{docId}")
+    public ResponseEntity<ProcessStatus> copyTrans(@PathVariable("slug") String slug,
+                                                   @PathVariable("iter") String iter,
+                                                   @PathVariable("docId") String docId) {
+        ProcessStatus status = new ProcessStatus();
+        status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
+        status.setPercentageComplete(0);
+        status.addMessage("copyTrans is not implemented in the Spring bridge yet");
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(status);
+    }
+
+    // ---------- helpers ----------
+
+    /**
+     * The legacy Zanata REST API encodes slashes in docIds as commas because
+     * JAX-RS path segments don't tolerate slashes well.
+     */
+    private static String decodeDocId(String raw) {
+        return raw == null ? null : raw.replace(',', '/');
+    }
+
+    private HAccount currentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return null;
+        String name = auth.getName();
+        if (name == null || "anonymousUser".equals(name)) return null;
+        return accountRepository.findByUsername(name).orElse(null);
+    }
+
+    private static Project toDto(HProject p) {
+        Project dto = new Project();
+        dto.setId(p.getSlug());
+        dto.setName(p.getName() == null ? p.getSlug() : p.getName());
+        dto.setDescription(p.getDescription());
+        dto.setSourceViewURL(p.getSourceViewURL());
+        dto.setSourceCheckoutURL(p.getSourceCheckoutURL());
+        dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
+        dto.setDefaultType(p.getDefaultProjectType() == null
+                ? ProjectType.File.toString()
+                : p.getDefaultProjectType().toString());
+        List<ProjectIteration> iters = new ArrayList<>();
+        if (p.getProjectIterations() != null) {
+            for (HProjectIteration i : p.getProjectIterations()) {
+                iters.add(toDto(i));
+            }
+        }
+        dto.setIterations(iters);
+        return dto;
+    }
+
+    private static ProjectIteration toDto(HProjectIteration i) {
+        ProjectIteration dto = new ProjectIteration(i.getSlug());
+        dto.setStatus(i.getStatus() == null ? EntityStatus.ACTIVE : i.getStatus());
+        ProjectType pt = i.getProjectType();
+        if (pt != null) {
+            dto.setProjectType(pt.toString());
+        }
+        return dto;
+    }
+
+    private static Resource toResource(HDocument d) {
+        Resource r = new Resource(d.getDocId());
+        r.setContentType(d.getContentType() == null
+                ? ContentType.TextPlain : d.getContentType());
+        r.setLang(d.getLocale() == null || d.getLocale().getLocaleId() == null
+                ? LocaleId.EN_US : d.getLocale().getLocaleId());
+        r.setType(ResourceType.FILE);
+        r.setRevision(d.getRevision());
+        for (HTextFlow tf : d.getTextFlows()) {
+            if (tf.isObsolete()) continue;
+            TextFlow flowDto = new TextFlow(
+                    tf.getResId(),
+                    d.getLocale() == null || d.getLocale().getLocaleId() == null
+                            ? LocaleId.EN_US : d.getLocale().getLocaleId(),
+                    tf.getContents() == null ? List.<String>of("") : tf.getContents());
+            flowDto.setPlural(tf.isPlural());
+            flowDto.setRevision(tf.getRevision());
+            r.getTextFlows().add(flowDto);
+        }
+        return r;
+    }
+}

@@ -1,135 +1,107 @@
 # Zanata
 
-Zanata is a web-based system for translators to translate
-documentation and software online using a web-browser. It is
-written in Java and uses modern web technologies like JBoss EAP,
-CDI, GWT, Hibernate, and a REST API. It currently supports
-translation of DocBook/Publican documentation through PO
-files, and a number of other formats. Projects can be uploaded
-to and downloaded from a Zanata server using a Maven plugin or
-a command line client.
+Zanata is a web-based system for translators to translate documentation and
+software online using a web browser. It supports gettext PO, XLIFF, Java
+properties, glossary CSV/XLSX and several other formats, and provides a Maven
+plugin and a command-line client for uploading source and downloading
+translations.
 
-For *developers and writers*: By using Zanata for
-your document translations, you can open up your project for
-translations without opening your entire project in version
-control.
+This branch runs on a modernised stack:
 
-For *translators*: No need to deal with PO files,
-gettext or a version control system - just log in to the website, join
-a language team and start translating, with translation memory (history
-of similar translations) and the ability to see updates from other
-translators in seconds.
+| Layer          | Tech                                                |
+| -------------- | --------------------------------------------------- |
+| Runtime        | Java 21, Spring Boot 4.0.x                          |
+| Persistence    | Hibernate ORM 7.2, Hibernate Search 8.x, PostgreSQL |
+| UI             | Vaadin 25 (Aura theme), Line Awesome icons          |
+| Build          | Maven 3.9+ (multi-module reactor)                   |
+| Client         | Standalone CLI + Maven plugin (`zanata-cli`)        |
 
-Find out about Zanata here: http://zanata.org/
-
+The legacy WildFly / JSF / CDI / GWT / React stack has been retired during
+the migration; see `docs/migration-status.md` for what was dropped and what
+remains.
 
 Zanata is Free software, licensed under the [LGPL][].
 
 [LGPL]: http://www.gnu.org/licenses/lgpl-2.1.html
 
 
-## Developers: Building Zanata from source
+## Developers: building from source
 
 ### Prerequisites
 
-You will need:
-- Java SDK 8 (OpenJDK recommended)
-- zsh (for the build script)
-- npm (optional)
-- MySQL or MariaDB (optional)
-- JBoss EAP 7 or WildFly 10 (optional)
-- Linux or Mac OSX. Windows works too, sometimes.
+- JDK 21 (Eclipse Temurin or any other modern build)
+- Maven 3.9+
+- PostgreSQL 14+ (16 used in the docker-compose dev environment)
+- A POSIX shell (bash or zsh) — only required if you use the
+  optional `./build` helper
 
-A full build needs to download and install node, npm, mysql and WildFly/EAP,
-some of which are platform-dependent.
+### Build everything
 
-### Building
-
-The build script you need to know about is [./build](`./build`). It covers
-all your Zanata-building needs.
-Disclaimer: may not cover all your Zanata-building needs.
-
-The `-h` argument prints the build script's help.
-
-#### Building on Mac OS X and macOS Sierra
-
-Currently, there is an extra step needed to build Zanata on a Mac.
-For `./build` to work, you will need to point to the correct Java directory using
-the following command (using the correct JDK version on your Mac):
-
-`export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk1.8.X_XX.jdk/Contents/Home"`
-
-
-This JAVA_HOME workaround will not be needed in the next release of the
-Maven wrapper: io.takari:maven-wrapper:0.1.7.
-
-See [https://github.com/takari/maven-wrapper/pull/14](https://github.com/takari/maven-wrapper/pull/14) for details.
-
-#### Build everything with unit tests
-
-`./build --all` - Builds the entire project (client and server ) fairly
-quickly, skipping integration tests and static analysis (checkstyle, etc),
-but including unit tests.
-
-NB: If you need to run functional tests later without rebuilding, you should
-add `-i` to install the war file to your Maven repo after packaging.
-
-#### Quickly build a .war file for later tests or docker deployment
-
-`./build --server -iQ` - Builds and installs the project as quickly as possible,
-skipping all checks and verifications (i.e. tests, checkstyle, etc).
-
-The binaries will be installed to your Maven repo for usage in later
-(partial) builds and tests.
-
-#### Quickly build and run a server for testing
-
-`./build -w` - Builds zanata-war and starts a JBoss/WildFly server using the
-cargo plugin. This is intended for starting a Zanata instance with the aim of
-running functional tests from an IDE.
-
-#### Development using docker (experimental)
-
-For a quick Zanata development environment with Docker, please visit the [docker README](server/docker/README.md).
-
-### Commits
-
-These are the format rules for our git commit messages. This leads to **more readable messages** that are easy to follow when looking through the project history.
-
-#### Commit Message Format
-Each commit message consists of a header, a body and a footer. The header has a special format that includes a type, a scope and a subject:
-
-```
-<type>: <subject>
-<BLANK LINE>
-<Jira reference>
-<body>
+```bash
+mvn -DskipTests install
 ```
 
-#### Type
-Must be one of the following:
+This walks the root reactor: `build-tools`, `parent`, `api`, `common`,
+`client`, `server/zanata-server-spring`.
 
-- **revert**: Revert previous commit. Subject should be `This reverts commit <hash>`
-- **feat**: A new feature
-- **fix**: A bug fix
-- **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-- **refactor**: A code change that neither fixes a bug nor adds a feature
-- **perf**: A code change that improves performance
-- **test**: Adding missing tests
-- **chore**: Changes to the build process or auxiliary tools and libraries such as documentation generation
+### Run the server locally
 
-### Source code note
-Please note that any references to pull request numbers in commit
-messages (eg merge nodes) prior to 20 October 2016 are referring to the
-old repositories (before they were merged into the zanata-platform
-repository):
+#### Option A — Docker Compose (recommended)
 
-* https://github.com/zanata/zanata-api/pulls/
-* https://github.com/zanata/zanata-client/pulls/
-* https://github.com/zanata/zanata-common/pulls/
-* https://github.com/zanata/zanata-parent/pulls/
-* https://github.com/zanata/zanata-server/pulls/
+Brings up Postgres + the Spring Boot server in one shot:
 
-GitHub tries to auto-link numbers to pull requests, but such links will
-generally be incorrect for old commit messages.
+```bash
+docker compose -f server/docker/docker-compose.yml up --build
+```
+
+UI: <http://localhost:8080/>. Admin login is seeded as `admin` / `admin`.
+
+#### Option B — Maven on the host
+
+Start a Postgres reachable at `localhost:5432` with database `zanata` and
+user `postgres` / password `1234` (override via `ZANATA_DB_URL`,
+`ZANATA_DB_USER`, `ZANATA_DB_PASSWORD`), then:
+
+```bash
+mvn -pl server/zanata-server-spring spring-boot:run
+```
+
+The server seeds three accounts on first boot — `admin/admin`, `dev/dev`,
+`vistall/1234` — each with a deterministic API key the CLI smoke test uses.
+
+### Run the CLI against the new server
+
+```bash
+# build the CLI uber-assembly
+mvn -pl client/zanata-cli -DskipTests package
+
+# point it at the running server
+CLI=client/zanata-cli/target/appassembler/bin/zanata-cli
+$CLI version --url http://localhost:8080/ --user-config /dev/null \
+  --username admin --key b6d7044e9ee3b720c81dba7e3ea53d56
+```
+
+`list-remote`, `stats`, `push`, `pull`, `put-project`, `put-version`,
+`glossary-push`, `glossary-pull` all hit the bridge controller defined in
+`server/zanata-server-spring/src/main/java/org/zanata/spring/web/rest/ZanataCliBridgeController.java`.
+
+
+## Module layout
+
+```
+api/zanata-common-api         — JAX-RS interfaces + DTOs (shared)
+common/zanata-adapter-{po,xliff,properties,glossary}
+common/zanata-common-util
+client/{stub-server,zanata-rest-client,zanata-client-commands,
+        zanata-cli,zanata-maven-plugin}
+server/zanata-liquibase       — Liquibase migrations
+server/zanata-model           — JPA entities (Hibernate 7)
+server/zanata-model-test      — entity test fixtures
+server/security-common        — auth / role primitives
+server/zanata-server-spring   — Spring Boot app (REST + Vaadin UI)
+server/docker                 — Dockerfile + docker-compose
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome.

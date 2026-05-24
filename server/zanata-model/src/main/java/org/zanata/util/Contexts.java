@@ -35,16 +35,36 @@ import jakarta.enterprise.context.SessionScoped;
 @Deprecated
 public class Contexts {
 
+    // Spring Boot has no CDI BeanManager; DeltaSpike's BeanManagerProvider.isActive()
+    // triggers a static initializer that fails in this environment. Each of the
+    // checks below is wrapped so they return false safely. The legacy CDI path is
+    // preserved when a BeanManager *is* present (e.g. zanata-war).
+
     public static boolean isApplicationContextActive() {
-        return BeanManagerProvider.isActive() && ContextUtils.isContextActive(ApplicationScoped.class);
+        try {
+            return BeanManagerProvider.isActive()
+                    && ContextUtils.isContextActive(ApplicationScoped.class);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public static boolean isSessionContextActive() {
-        return BeanManagerProvider.isActive() && ContextUtils.isContextActive(SessionScoped.class);
+        try {
+            return BeanManagerProvider.isActive()
+                    && ContextUtils.isContextActive(SessionScoped.class);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public static boolean isRequestContextActive() {
-        return BeanManagerProvider.isActive() && ContextUtils.isContextActive(RequestScoped.class);
+        try {
+            return BeanManagerProvider.isActive()
+                    && ContextUtils.isContextActive(RequestScoped.class);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
 }

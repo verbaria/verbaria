@@ -70,6 +70,18 @@
       <artifactId>jaxb-runtime</artifactId>
     </dependency>
 
+    <!-- xalan pulls org.apache.xml.serializer.OutputPropertiesFactory from
+         its sibling serializer jar, but the latter is not declared as a
+         transitive dependency in xalan 2.7.3 — without it the CLI explodes
+         with NoClassDefFoundError when unmarshalling XML responses from
+         the new Spring server. -->
+    <dependency>
+      <groupId>xalan</groupId>
+      <artifactId>serializer</artifactId>
+      <version>2.7.3</version>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- Replace the above JAXB dependencies when 2.4.0 is released: -->
 
     <!-- https://stackoverflow.com/a/50251510/14379 -->

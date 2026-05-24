@@ -34,6 +34,13 @@ public class LanguagesView extends VerticalLayout {
 
         grid.setItems(localeRepository.findAll());
         grid.setSizeFull();
+        grid.addItemClickListener(e -> {
+            HLocale l = e.getItem();
+            if (l != null && l.getLocaleId() != null) {
+                getUI().ifPresent(ui -> ui.navigate(
+                        "language/" + l.getLocaleId().getId()));
+            }
+        });
 
         add(grid);
     }

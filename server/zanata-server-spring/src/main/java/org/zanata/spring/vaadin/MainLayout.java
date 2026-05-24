@@ -5,7 +5,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import org.vaadin.lineawesome.LineAwesomeIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
@@ -16,6 +16,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.zanata.spring.vaadin.admin.AdminHomeView;
 import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
 
 @AnonymousAllowed
@@ -76,13 +77,23 @@ public class MainLayout extends AppLayout {
 
     private SideNav createSideNav() {
         SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem("Explore",   ExploreView.class,       VaadinIcon.SEARCH.create()));
-        nav.addItem(new SideNavItem("Languages", LanguagesView.class,     VaadinIcon.GLOBE.create()));
-        nav.addItem(new SideNavItem("Glossary",  GlossaryView.class,      VaadinIcon.BOOK.create()));
+        nav.addItem(new SideNavItem("Explore",   ExploreView.class,       LineAwesomeIcon.SEARCH_SOLID.create()));
+        nav.addItem(new SideNavItem("Languages", LanguagesView.class,     LineAwesomeIcon.GLOBE_SOLID.create()));
+        nav.addItem(new SideNavItem("Glossary",  GlossaryView.class,      LineAwesomeIcon.BOOK_SOLID.create()));
         if (isAuthenticated()) {
-            nav.addItem(new SideNavItem("Dashboard", DashboardHomeView.class, VaadinIcon.DASHBOARD.create()));
+            nav.addItem(new SideNavItem("Dashboard", DashboardHomeView.class, LineAwesomeIcon.TACHOMETER_ALT_SOLID.create()));
+            nav.addItem(new SideNavItem("Profile",   org.zanata.spring.vaadin.profile.ProfileView.class, LineAwesomeIcon.USER_SOLID.create()));
+        }
+        if (isAdmin()) {
+            nav.addItem(new SideNavItem("Admin", AdminHomeView.class, LineAwesomeIcon.COG_SOLID.create()));
         }
         return nav;
+    }
+
+    private static boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
     private static boolean isAuthenticated() {

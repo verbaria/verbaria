@@ -32,8 +32,11 @@ spring:
     username: ${ZANATA_DB_USER:postgres}
     password: ${ZANATA_DB_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: false
 
   jpa:
+    open-in-view: true
     hibernate:
       # `update` so seeded data survives dev restarts.  Use
       # SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop for a fresh schema.
@@ -54,8 +57,12 @@ spring:
     # SPRING_THYMELEAF_CACHE=true in prod.
     cache: false
 
-# Plain logging — matches the WildFly default format roughly so the
-# transition is less jarring.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
 logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"

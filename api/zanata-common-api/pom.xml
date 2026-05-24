@@ -26,22 +26,6 @@
     <plugins>
 
       <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <configuration>
-          <rules>
-            <bannedDependencies>
-              <excludes combine.children="append">
-                <!-- For GWT compatibility, stick to guava -->
-                <exclude>commons-lang:commons-lang</exclude>
-                <exclude>org.apache.commons:commons-lang3</exclude>
-              </excludes>
-            </bannedDependencies>
-          </rules>
-        </configuration>
-      </plugin>
-
-      <!-- package up source files for GWT: http://stackoverflow.com/a/8731652/14379 -->
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
         <version>3.0.1</version>
@@ -250,71 +234,5 @@
     </dependency>
 
   </dependencies>
-
-  <profiles>
-    <profile>
-      <id>withShade</id>
-      <activation>
-        <property>
-          <name>skipShade</name>
-          <value>!true</value>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>compat</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
-                <configuration>
-                  <shadedArtifactAttached>true</shadedArtifactAttached>
-                  <shadedClassifierName>compat</shadedClassifierName>
-                  <artifactSet>
-                    <includes>
-                      <include>org.zanata:zanata-common-api</include>
-                    </includes>
-                  </artifactSet>
-                  <relocations>
-                    <relocation>
-                      <pattern>org.zanata</pattern>
-                      <shadedPattern>org.zanata.apicompat</shadedPattern>
-                    </relocation>
-                  </relocations>
-                </configuration>
-              </execution>
-              <execution>
-                <id>versioned-compat</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
-                <configuration>
-                  <shadedArtifactAttached>true</shadedArtifactAttached>
-                  <shadedClassifierName>compat_${version-as-java-package}</shadedClassifierName>
-                  <artifactSet>
-                    <includes>
-                      <include>org.zanata:zanata-common-api</include>
-                    </includes>
-                  </artifactSet>
-                  <relocations>
-                    <relocation>
-                      <pattern>org.zanata</pattern>
-                      <shadedPattern>org.zanata.${version-as-java-package}</shadedPattern>
-                    </relocation>
-                  </relocations>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
