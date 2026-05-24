@@ -86,6 +86,40 @@ public class DevSeedData implements CommandLineRunner {
         seedProjects();
         seedLocales();
         seedDocuments();
+        seedHomePage();
+    }
+
+    /**
+     * Sample Markdown for the public home page at "/" — so the new HomeView
+     * has something to render out of the box. Idempotent: only inserts the
+     * row when one doesn't already exist (admin edits via /admin/home-content
+     * survive restarts).
+     */
+    private void seedHomePage() {
+        if (configRepository.findByKey(HApplicationConfiguration.KEY_HOME_CONTENT).isPresent()) {
+            return;
+        }
+        HApplicationConfiguration row = new HApplicationConfiguration();
+        row.setKey(HApplicationConfiguration.KEY_HOME_CONTENT);
+        row.setValue("""
+                # Welcome to Zanata
+
+                Zanata is a web-based translation management system.
+                Translators work in the browser; developers push source
+                strings and pull translations via the CLI or Maven plugin.
+
+                ## Get started
+
+                * Browse [projects](/explore) and translation activity
+                * Sign in to start translating
+                * Admins can edit this page from the **Administration → Home page content** screen
+
+                _This text is stored as Markdown in the `pages.home.content`
+                application-configuration row and rendered through CommonMark + OWASP
+                HTML sanitiser, so anything an admin pastes is safe to display._
+                """);
+        configRepository.save(row);
+        log.info("Seeded default home page Markdown");
     }
 
     private void seedRolesAndAccounts() {

@@ -1,11 +1,3 @@
-# Default profile for the Spring Boot Zanata server.
-#
-# Slice 2: bring JPA online against the existing zanata-model entities and a
-# Postgres database.  The React shell from slice 1 still serves; once a
-# controller-backed endpoint exists React's /explore page will be able to
-# fetch real data.  Override DB credentials via environment variables — see
-# ZANATA_DB_* keys below.
-
 server:
   port: 8080
 
@@ -13,21 +5,11 @@ spring:
   application:
     name: zanata-server-spring
 
-  # Spring Security is fully wired now (see SecurityConfig.java).  The
-  # previous broad exclusions are gone — only ManagementWebSecurity is
-  # still off so actuator endpoints stay open during dev.
   autoconfigure:
     exclude:
       - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
 
   datasource:
-    # PostgreSQL is the canonical database now that the zanata-model
-    # entities have had their MySQL-isms (longtext, char-as-enum,
-    # reserved-word column names) rewritten.  Override via
-    # ZANATA_DB_URL / ZANATA_DB_USER / ZANATA_DB_PASSWORD.
-    # `options=-c TimeZone=UTC` keeps the Postgres docker image
-    # (which lacks EET tzdata) from rejecting the JVM's local zone
-    # during the connection handshake.
     url: ${ZANATA_DB_URL:jdbc:postgresql://localhost:5432/zanata?options=-c%20TimeZone%3DUTC}
     username: ${ZANATA_DB_USER:postgres}
     password: ${ZANATA_DB_PASSWORD:1234}
@@ -38,24 +20,13 @@ spring:
   jpa:
     open-in-view: true
     hibernate:
-      # `update` so seeded data survives dev restarts.  Use
-      # SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop for a fresh schema.
       ddl-auto: update
     properties:
       hibernate.jdbc.time_zone: UTC
-      # Legacy named queries use HQL-only extensions (aliased fetch join,
-      # implicit SELECT).  Relax JPA compliance so they parse; can revisit
-      # query-by-query later.
       hibernate.jpa.compliance.query: false
-      # Hibernate's default JsonFormatMapper is Jackson, which Spring Boot
-      # ships first-class — so we don't need the WildFly-era JSON-B / JAXB
-      # workaround here.
 
-  thymeleaf:
-    # Reload templates without restarting during dev so style/markup
-    # iterations land in the browser on a page refresh.  Toggle via
-    # SPRING_THYMELEAF_CACHE=true in prod.
-    cache: false
+vaadin:
+  allowed-packages: com.vaadin,org.vaadin,de.f0rce,org.zanata.spring.vaadin
 
 management:
   endpoints:

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import com.vaadin.componentfactory.Breadcrumb;
+import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
@@ -102,11 +104,13 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
         add(tabs);
     }
 
-    private Span buildBreadcrumb() {
-        Span crumb = new Span();
-        crumb.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        crumb.add(new RouterLink("Projects", ExploreView.class));
-        return crumb;
+    private Breadcrumbs buildBreadcrumb() {
+        Breadcrumbs crumbs = new Breadcrumbs();
+        crumbs.add(
+                new Breadcrumb("Home", "/"),
+                new Breadcrumb("Projects", "/explore", true)
+        );
+        return crumbs;
     }
 
     private HorizontalLayout buildHeading(HProject project, String slug) {

@@ -1,5 +1,6 @@
 package org.zanata.spring.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,4 +28,19 @@ public interface LocaleMemberRepository
             where m.id.supportedLanguage.id = :localeId
             """)
     long countByLocaleId(@Param("localeId") Long localeId);
+
+    @Query("""
+            select m from HLocaleMember m
+            join fetch m.id.person p
+            left join fetch p.account
+            where m.id.supportedLanguage = :locale
+            """)
+    List<HLocaleMember> findByLocale(@Param("locale") HLocale locale);
+
+    @Query("""
+            select m from HLocaleMember m
+            join fetch m.id.supportedLanguage
+            where m.id.person = :person
+            """)
+    List<HLocaleMember> findByPerson(@Param("person") HPerson person);
 }

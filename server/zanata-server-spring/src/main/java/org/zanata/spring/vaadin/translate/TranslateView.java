@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.vaadin.componentfactory.Breadcrumb;
+import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -196,21 +198,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
     }
 
-    private Span buildBreadcrumb() {
-        Span crumb = new Span();
-        crumb.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        crumb.add(new RouterLink("Projects", ExploreView.class));
-        crumb.add(new Span(" \u203A "));
-        crumb.add(new RouterLink(projectSlug, ProjectView.class,
-                new RouteParameters(new RouteParam("slug", projectSlug))));
-        crumb.add(new Span(" \u203A "));
-        crumb.add(new RouterLink(versionSlug, IterationView.class,
-                new RouteParameters(
-                        new RouteParam("projectSlug", projectSlug),
-                        new RouteParam("versionSlug", versionSlug))));
-        crumb.add(new Span(" \u203A "));
-        crumb.add(new Span(localeStr));
-        return crumb;
+    private Breadcrumbs buildBreadcrumb() {
+        Breadcrumbs crumbs = new Breadcrumbs();
+        crumbs.add(
+                new Breadcrumb("Home", "/"),
+                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(projectSlug, "/project/view/" + projectSlug),
+                new Breadcrumb(versionSlug,
+                        "/project/" + projectSlug + "/version/" + versionSlug),
+                new Breadcrumb(localeStr, "#", true)
+        );
+        return crumbs;
     }
 
     private Div buildRow(HTextFlow flow, Optional<HTextFlowTarget> existing,

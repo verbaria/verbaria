@@ -77,7 +77,9 @@ public class MainLayout extends AppLayout {
 
     private SideNav createSideNav() {
         SideNav nav = new SideNav();
+        nav.addItem(new SideNavItem("Home",      org.zanata.spring.vaadin.HomeView.class, LineAwesomeIcon.HOME_SOLID.create()));
         nav.addItem(new SideNavItem("Explore",   ExploreView.class,       LineAwesomeIcon.SEARCH_SOLID.create()));
+        nav.addItem(new SideNavItem("Groups",    org.zanata.spring.vaadin.group.GroupsView.class, LineAwesomeIcon.LAYER_GROUP_SOLID.create()));
         nav.addItem(new SideNavItem("Languages", LanguagesView.class,     LineAwesomeIcon.GLOBE_SOLID.create()));
         nav.addItem(new SideNavItem("Glossary",  GlossaryView.class,      LineAwesomeIcon.BOOK_SOLID.create()));
         if (isAuthenticated()) {

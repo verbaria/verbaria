@@ -2,6 +2,8 @@ package org.zanata.spring.vaadin.iteration;
 
 import java.util.List;
 
+import com.vaadin.componentfactory.Breadcrumb;
+import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
@@ -106,14 +108,14 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         add(tabs);
     }
 
-    private Span buildBreadcrumb(String projectSlug) {
-        Span crumb = new Span();
-        crumb.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        crumb.add(new RouterLink("Projects", ExploreView.class));
-        crumb.add(new Span(" \u203A "));
-        crumb.add(new RouterLink(projectSlug, ProjectView.class,
-                new RouteParameters(new RouteParam("slug", projectSlug))));
-        return crumb;
+    private Breadcrumbs buildBreadcrumb(String projectSlug) {
+        Breadcrumbs crumbs = new Breadcrumbs();
+        crumbs.add(
+                new Breadcrumb("Home", "/"),
+                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(projectSlug, "/project/view/" + projectSlug, true)
+        );
+        return crumbs;
     }
 
     private HorizontalLayout buildHeading(HProjectIteration iteration) {

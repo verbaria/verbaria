@@ -2128,9 +2128,6 @@
     <module>zanata-model</module>
     <module>zanata-model-test</module>
     <module>security-common</module>
-    <!-- Spring Boot server. The legacy WildFly stack
-         (zanata-war / zanata-test-war / functional-test / services / gwt-*)
-         has been retired entirely; only this Spring module remains. -->
     <module>zanata-server-spring</module>
   </modules>
 </project>
