@@ -202,10 +202,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
         heading.addClassNames(LumoUtility.Margin.NONE);
 
-        // Doc switcher with per-doc translation % so users can spot
-        // unfinished docs without clicking through each one.
+        // Doc switcher: a button labelled with the current doc that opens
+        // a modal Grid (sortable + filterable) showing every doc with its
+        // colored translation %. Replaces the cramped ComboBox dropdown.
         List<HDocument> allDocs = documentRepository.findByVersion(projectSlug, versionSlug);
-        com.vaadin.flow.component.select.Select<String> docSwitcher = null;
+        Button docSwitcher = null;
         if (allDocs.size() > 1) {
             Long iterId = doc.getProjectIteration() == null
                     ? null : doc.getProjectIteration().getId();
@@ -222,32 +223,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                             ((Number) row[1]).longValue());
                 }
             }
-            docSwitcher = new com.vaadin.flow.component.select.Select<>();
-            docSwitcher.setLabel("Document");
-            docSwitcher.setItems(allDocs.stream().map(HDocument::getDocId).toList());
-            docSwitcher.setValue(currentDocId);
-            docSwitcher.setWidth("420px");
             boolean viewingSource = sourceLocale != null
                     && sourceLocale.getId().equalsIgnoreCase(localeStr);
-            docSwitcher.setItemLabelGenerator(docId -> {
-                HDocument d = allDocs.stream()
-                        .filter(x -> docId.equals(x.getDocId()))
-                        .findFirst().orElse(null);
-                if (d == null) return docId;
-                long total = totalByDoc.getOrDefault(d.getId(), 0L);
-                long done = viewingSource
-                        ? total
-                        : translatedByDoc.getOrDefault(d.getId(), 0L);
-                int pct = total == 0 ? 0 : (int) Math.round(done * 100.0 / total);
-                return String.format("%s — %d%% (%d/%d)", docId, pct, done, total);
-            });
-            docSwitcher.addValueChangeListener(e -> {
-                if (e.getValue() == null || e.getValue().equals(currentDocId)) return;
-                UI.getCurrent().navigate(
-                        "translate/" + projectSlug + "/" + versionSlug + "/" + localeStr,
-                        com.vaadin.flow.router.QueryParameters.simple(
-                                java.util.Map.of("doc", e.getValue())));
-            });
+            docSwitcher = new Button(currentDocId + "  \u25BE");
+            docSwitcher.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            docSwitcher.getStyle().set("font-weight", "600");
+            docSwitcher.getStyle().set("max-width", "520px");
+            docSwitcher.getStyle().set("overflow", "hidden");
+            docSwitcher.getStyle().set("text-overflow", "ellipsis");
+            com.vaadin.flow.component.popover.Popover docPopover =
+                    buildDocPickerPopover(allDocs, totalByDoc, translatedByDoc, viewingSource);
+            docPopover.setTarget(docSwitcher);
+            add(docPopover);
         }
 
         Button statsBtn = new Button("Stats");
@@ -284,6 +271,107 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         add(rowsList);
 
         installDataProvider(docIdForProvider);
+    }
+
+    /** Popover anchored to the doc-switcher button: sortable, type-filterable Grid of every doc. */
+    private com.vaadin.flow.component.popover.Popover buildDocPickerPopover(
+            List<HDocument> allDocs,
+            java.util.Map<Long, Long> totalByDoc,
+            java.util.Map<Long, Long> translatedByDoc,
+            boolean viewingSource) {
+        com.vaadin.flow.component.popover.Popover pop =
+                new com.vaadin.flow.component.popover.Popover();
+        pop.setPosition(com.vaadin.flow.component.popover.PopoverPosition.BOTTOM);
+        pop.setWidth("760px");
+        pop.setHeight("70vh");
+        pop.setOpenOnClick(true);
+        pop.setModal(false);
+
+        TextField search = new TextField();
+        search.setPlaceholder("Filter by docId…");
+        search.setClearButtonVisible(true);
+        search.setWidthFull();
+        search.setValueChangeMode(ValueChangeMode.LAZY);
+        search.setValueChangeTimeout(150);
+
+        com.vaadin.flow.component.grid.Grid<HDocument> grid =
+                new com.vaadin.flow.component.grid.Grid<>();
+        grid.setSizeFull();
+        grid.setSelectionMode(com.vaadin.flow.component.grid.Grid.SelectionMode.NONE);
+
+        grid.addColumn(HDocument::getDocId)
+                .setHeader("Document")
+                .setFlexGrow(1)
+                .setSortable(true)
+                .setKey("docId");
+
+        java.util.function.ToIntFunction<HDocument> pctOf = d -> {
+            long total = totalByDoc.getOrDefault(d.getId(), 0L);
+            long done = viewingSource ? total
+                    : translatedByDoc.getOrDefault(d.getId(), 0L);
+            return total == 0 ? 0 : (int) Math.round(done * 100.0 / total);
+        };
+        grid.addComponentColumn(d -> {
+            long total = totalByDoc.getOrDefault(d.getId(), 0L);
+            long done = viewingSource ? total
+                    : translatedByDoc.getOrDefault(d.getId(), 0L);
+            int pct = pctOf.applyAsInt(d);
+            String color = pct == 100 ? "var(--aura-green-text)"
+                    : pct >= 50 ? "var(--aura-orange-text)"
+                    : "var(--aura-red-text)";
+            Span pill = new Span(String.format("%d%% (%d/%d)", pct, done, total));
+            pill.getStyle().set("color", color);
+            pill.getStyle().set("font-weight", "600");
+            pill.getStyle().set("font-variant-numeric", "tabular-nums");
+            return pill;
+        }).setHeader("Translated").setWidth("180px").setFlexGrow(0)
+                .setSortable(true).setComparator(java.util.Comparator.comparingInt(pctOf));
+
+        com.vaadin.flow.data.provider.ListDataProvider<HDocument> dp =
+                new com.vaadin.flow.data.provider.ListDataProvider<>(allDocs);
+        grid.setDataProvider(dp);
+        search.addValueChangeListener(e -> {
+            String q = e.getValue() == null ? "" : e.getValue().trim().toLowerCase();
+            dp.setFilter(d -> q.isEmpty() || d.getDocId().toLowerCase().contains(q));
+        });
+
+        grid.addItemClickListener(ev -> {
+            HDocument picked = ev.getItem();
+            if (picked == null) return;
+            org.slf4j.LoggerFactory.getLogger(TranslateView.class)
+                    .info("doc-picker → switch to {}", picked.getDocId());
+            // Close client-side first so the popover disappears instantly,
+            // independent of the server roundtrip for navigate().
+            pop.getElement().executeJs("this.opened = false;");
+            pop.close();
+            if (picked.getDocId().equals(currentDocId)) return;
+            UI.getCurrent().navigate(
+                    "translate/" + projectSlug + "/" + versionSlug + "/" + localeStr,
+                    com.vaadin.flow.router.QueryParameters.simple(
+                            java.util.Map.of("doc", picked.getDocId())));
+        });
+
+        // Search stays pinned at top, grid takes the rest and scrolls internally.
+        // The Popover content slot doesn't propagate its height down to flex
+        // children, so we give the body an explicit viewport-relative height
+        // matching the popover's 70vh.
+        search.getStyle().set("flex-shrink", "0");
+        grid.setSizeFull();
+        grid.getStyle().set("min-height", "0");
+        grid.getStyle().set("flex", "1 1 0");
+        grid.setAllRowsVisible(false);
+
+        VerticalLayout body = new VerticalLayout(search, grid);
+        body.setPadding(true);
+        body.setSpacing(true);
+        body.setWidthFull();
+        body.setHeight("calc(70vh - 2rem)");
+        body.setFlexGrow(0, search);
+        body.setFlexGrow(1, grid);
+        body.getStyle().set("min-height", "0");
+        body.getStyle().set("overflow", "hidden");
+        pop.add(body);
+        return pop;
     }
 
     private Div buildFilterBar() {
