@@ -19,8 +19,11 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.zanata.model.po.HPotEntryData;
+import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
+import org.zanata.util.HashUtil;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 import org.zanata.spring.repository.DocumentRepository;
@@ -125,6 +128,12 @@ public class DocumentImportService {
         int pos = 0;
         for (TextFlow incoming : incomingFlows) {
             if (incoming.getId() == null || incoming.getId().isEmpty()) continue;
+            // Defensive normalization: if a client (legacy CLI .properties
+            // push, custom REST caller, etc.) sends a raw property key as
+            // the TextFlow id, hash it now so the resId column never
+            // overflows or collides. The original key is preserved in
+            // PotEntryHeader.context (added below by applyPotEntryHeader).
+            normalizeIncomingId(incoming);
             HTextFlow tf = byResId.remove(incoming.getId());
             if (tf == null) {
                 tf = new HTextFlow(doc, incoming.getId());
@@ -148,6 +157,11 @@ public class DocumentImportService {
                     tf.setRevision(doc.getRevision());
                 }
             }
+            // Persist gettext-style metadata (context, references, flags).
+            // For .properties uploads SourceUploadService stuffs the original
+            // property key into context, so the editor's Details panel can
+            // still surface the human-readable identifier.
+            applyPotEntryHeader(tf, incoming);
             newOrder.add(tf);
             pos++;
         }
@@ -240,6 +254,61 @@ public class DocumentImportService {
             accepted++;
         }
         return new TranslationsImportResult(accepted, skipped);
+    }
+
+    /**
+     * Replace {@code incoming.id} with a hash when it's clearly not already
+     * one (anything but a lowercase 32-char hex string is treated as raw),
+     * and remember the original id in {@code PotEntryHeader.context} so the
+     * editor's Details panel can still surface it.
+     */
+    private static void normalizeIncomingId(TextFlow incoming) {
+        String id = incoming.getId();
+        if (id == null || id.isEmpty()) return;
+        if (looksLikeHexHash(id)) return;
+        String original = id;
+        incoming.setId(HashUtil.generateHash(original));
+        PotEntryHeader header = incoming.getExtensions(true)
+                .findByType(PotEntryHeader.class);
+        if (header == null) {
+            header = new PotEntryHeader();
+            header.setContext(original);
+            incoming.getExtensions(true).add(header);
+        } else if (header.getContext() == null || header.getContext().isEmpty()) {
+            header.setContext(original);
+        }
+    }
+
+    private static boolean looksLikeHexHash(String s) {
+        if (s.length() != 32) return false;
+        for (int i = 0; i < 32; i++) {
+            char c = s.charAt(i);
+            boolean hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+            if (!hex) return false;
+        }
+        return true;
+    }
+
+    private static void applyPotEntryHeader(HTextFlow tf, TextFlow incoming) {
+        PotEntryHeader header = incoming.getExtensions() == null
+                ? null : incoming.getExtensions().findByType(PotEntryHeader.class);
+        if (header == null) {
+            return;
+        }
+        HPotEntryData data = tf.getPotEntryData();
+        if (data == null) {
+            data = new HPotEntryData();
+            tf.setPotEntryData(data);
+        }
+        if (header.getContext() != null && !header.getContext().isEmpty()) {
+            data.setContext(header.getContext());
+        }
+        if (header.getFlags() != null && !header.getFlags().isEmpty()) {
+            data.setFlags(String.join(",", header.getFlags()));
+        }
+        if (header.getReferences() != null && !header.getReferences().isEmpty()) {
+            data.setReferences(String.join(",", header.getReferences()));
+        }
     }
 
     private HLocale resolveLocale(LocaleId localeId) {

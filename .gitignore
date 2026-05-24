@@ -76,3 +76,4 @@ frontend/src/main/web/.vscode/launch.json
 frontend/src/main/web/.vscode/tasks.json
 
 .consulo/
+.claude/

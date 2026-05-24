@@ -140,6 +140,7 @@ public class ZanataCliBridgeController {
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
     private final DocumentImportService importService;
+    private final org.zanata.spring.service.OfflineExportService offlineExportService;
 
     @Value("${spring.application.version:4.7.0-SNAPSHOT}")
     private String applicationVersion;
@@ -151,7 +152,8 @@ public class ZanataCliBridgeController {
                                      TextFlowTargetRepository textFlowTargetRepository,
                                      LocaleRepository localeRepository,
                                      AccountRepository accountRepository,
-                                     DocumentImportService importService) {
+                                     DocumentImportService importService,
+                                     org.zanata.spring.service.OfflineExportService offlineExportService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -160,6 +162,7 @@ public class ZanataCliBridgeController {
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
         this.importService = importService;
+        this.offlineExportService = offlineExportService;
     }
 
     // ---------- 1. version ----------
@@ -170,6 +173,74 @@ public class ZanataCliBridgeController {
                 applicationVersion,
                 Instant.now().toString(),
                 "spring"));
+    }
+
+    // ---------- 1a. list all projects (CLI init flow) ----------
+    //
+    // The CLI's `zanata-cli init` calls GET /rest/projects with
+    // Accept: application/xml when the user picks "select an existing
+    // project". Returns a top-level <projects><project .../>... list.
+
+    @GetMapping(value = "/projects",
+            produces = {MediaType.APPLICATION_XML_VALUE,
+                        MediaType.APPLICATION_JSON_VALUE,
+                        "application/vnd.zanata.projects+xml",
+                        "application/vnd.zanata.projects+json"})
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> listProjects(
+            @RequestHeader(value = "Accept", required = false) String accept) {
+        List<Project> dtos = new ArrayList<>();
+        for (HProject p : projectRepository.findAll()) {
+            // Skip soft-deleted projects so the CLI menu stays clean.
+            if (p.getStatus() == EntityStatus.OBSOLETE) continue;
+            Project dto = new Project();
+            dto.setId(p.getSlug());
+            dto.setName(p.getName() == null ? p.getSlug() : p.getName());
+            dto.setDescription(p.getDescription());
+            dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
+            dto.setDefaultType(p.getDefaultProjectType() == null
+                    ? ProjectType.File.toString()
+                    : p.getDefaultProjectType().toString());
+            // Iterations omitted on purpose — the CLI init only needs id/name
+            // for the picker, and including them blows up the response.
+            dtos.add(dto);
+        }
+        if (accept != null && accept.contains("xml")) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_XML)
+                    .body(marshalProjectsList(dtos));
+        }
+        return ResponseEntity.ok(dtos);
+    }
+
+    private static String marshalProjectsList(List<Project> items) {
+        try {
+            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext
+                    .newInstance(Projects.class);
+            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
+            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            java.io.StringWriter sw = new java.io.StringWriter();
+            m.marshal(new Projects(items), sw);
+            return sw.toString();
+        } catch (jakarta.xml.bind.JAXBException e) {
+            throw new RuntimeException("Failed to marshal projects list", e);
+        }
+    }
+
+    // The CLI's JAXB context expects every Zanata-API element to live in
+    // the http://zanata.org/namespace/api/ namespace (declared via package-
+    // info on org.zanata.rest.dto). Without the explicit namespace= here
+    // children would inherit our controller package's default ("") and the
+    // CLI fails with `unexpected element (uri:"", local:"project")`.
+    @jakarta.xml.bind.annotation.XmlRootElement(name = "projects",
+            namespace = org.zanata.common.Namespaces.ZANATA_API)
+    @jakarta.xml.bind.annotation.XmlAccessorType(jakarta.xml.bind.annotation.XmlAccessType.FIELD)
+    static class Projects {
+        @jakarta.xml.bind.annotation.XmlElement(name = "project",
+                namespace = org.zanata.common.Namespaces.ZANATA_API)
+        private List<Project> project;
+        public Projects() {}
+        public Projects(List<Project> project) { this.project = project; }
     }
 
     // ---------- 2. get project (CLI Project DTO) ----------
@@ -241,6 +312,64 @@ public class ZanataCliBridgeController {
         return iterationRepository.findByProjectAndSlug(slug, iter)
                 .map(i -> ResponseEntity.ok(toDto(i)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ---------- 4b. zanata.xml sample (CLI init step "Continue?") ----------
+    //
+    // Ports the legacy ConfigurationServiceImpl.getGeneralConfig builder
+    // (server/services/.../ConfigurationServiceImpl.java in the old repo)
+    // so `zanata-cli init` can fetch a starter zanata.xml after the user
+    // picks project+version.
+
+    @GetMapping(value = "/projects/p/{slug}/iterations/i/{iter}/config",
+            produces = {MediaType.APPLICATION_XML_VALUE,
+                        MediaType.TEXT_XML_VALUE,
+                        MediaType.APPLICATION_JSON_VALUE,
+                        "application/vnd.zanata.project.iteration+xml",
+                        "application/vnd.zanata.project.iteration+json"})
+    @Transactional(readOnly = true)
+    public ResponseEntity<String> sampleConfiguration(
+            @PathVariable("slug") String slug,
+            @PathVariable("iter") String iter,
+            @RequestHeader(value = "Host", required = false) String host,
+            @RequestHeader(value = "X-Forwarded-Host", required = false) String forwardedHost,
+            @RequestHeader(value = "X-Forwarded-Proto", required = false) String forwardedProto) {
+        var iteration = iterationRepository.findByProjectAndSlug(slug, iter);
+        if (iteration.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        ProjectType pt = iteration.get().getProjectType();
+        if (pt == null && iteration.get().getProject() != null) {
+            pt = iteration.get().getProject().getDefaultProjectType();
+        }
+        String baseUrl = resolveBaseUrl(host, forwardedHost, forwardedProto);
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+        xml.append("<config xmlns=\"http://zanata.org/namespace/config/\">\n");
+        xml.append("  <url>").append(baseUrl).append("</url>\n");
+        xml.append("  <project>").append(slug).append("</project>\n");
+        xml.append("  <project-version>").append(iter).append("</project-version>\n");
+        if (pt != null) {
+            xml.append("  <project-type>")
+                    .append(pt.toString().toLowerCase())
+                    .append("</project-type>\n");
+        } else {
+            xml.append("  <!-- <project-type>")
+                    .append("file|gettext|podir|properties|utf8properties|xliff|xml")
+                    .append("</project-type> -->\n");
+        }
+        xml.append("</config>\n");
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_XML)
+                .body(xml.toString());
+    }
+
+    private static String resolveBaseUrl(String host, String forwardedHost, String forwardedProto) {
+        String h = (forwardedHost != null && !forwardedHost.isBlank()) ? forwardedHost : host;
+        if (h == null || h.isBlank()) h = "localhost:8080";
+        String scheme = (forwardedProto != null && !forwardedProto.isBlank())
+                ? forwardedProto : "http";
+        return scheme + "://" + h + "/";
     }
 
     // ---------- 4a. iteration active locales ----------
@@ -775,6 +904,42 @@ public class ZanataCliBridgeController {
         status.setPercentageComplete(0);
         status.addMessage("copyTrans is not implemented in the Spring bridge yet");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(status);
+    }
+
+    // ---------- 15. download all docs for offline translation ----------
+    //
+    // GET /rest/file/translation/{project}/{iter}/{locale}/offlinepo
+    // returns a ZIP of one file per document, in the project's configured
+    // format (.po / .properties / .xlf). Same path the legacy "Download
+    // All for Offline Translation" menu item hits.
+
+    @GetMapping("/file/translation/{slug}/{iter}/{locale}/{fileType}")
+    public ResponseEntity<byte[]> downloadTranslationBundle(@PathVariable("slug") String slug,
+                                                            @PathVariable("iter") String iter,
+                                                            @PathVariable("locale") String locale,
+                                                            @PathVariable("fileType") String fileType) {
+        try {
+            org.zanata.spring.service.OfflineExportService.Bundle bundle =
+                    offlineExportService.zipForOfflineTranslation(slug, iter, new LocaleId(locale));
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"" + bundle.filename() + "\"")
+                    .header("Content-Type", bundle.contentType())
+                    .body(bundle.bytes());
+        } catch (java.io.IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/tm/projects/{slug}/iterations/{iter}")
+    public ResponseEntity<byte[]> exportTmx(@PathVariable("slug") String slug,
+                                            @PathVariable("iter") String iter,
+                                            @org.springframework.web.bind.annotation.RequestParam("locale") String locale) {
+        org.zanata.spring.service.OfflineExportService.Bundle bundle =
+                offlineExportService.tmx(slug, iter, new LocaleId(locale));
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + bundle.filename() + "\"")
+                .header("Content-Type", bundle.contentType())
+                .body(bundle.bytes());
     }
 
     // ---------- helpers ----------

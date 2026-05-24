@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.vaadin.componentfactory.Breadcrumb;
 import com.vaadin.componentfactory.Breadcrumbs;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -79,6 +80,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private String projectSlug;
     private String versionSlug;
     private String localeStr;
+    private String currentDocId;
 
     private final TextField filter = new TextField();
     private final Checkbox incompleteOnly = new Checkbox("Incomplete");
@@ -117,11 +119,35 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         currentLocale = new LocaleId(localeStr);
 
-        HDocument doc = documentRepository
-                .findByVersionAndDocId(projectSlug, versionSlug, "messages")
-                .orElseThrow(() -> new NotFoundException(
-                        "Document not found: " + projectSlug + "/" + versionSlug
-                                + "/messages"));
+        // Prefer an explicit ?doc= query param, fall back to the legacy
+        // "messages" docId for the demo about-fedora seed, then fall back to
+        // the first non-obsolete doc in the iteration. The proper fix is to
+        // add :docId to the route — pending until the editor supports
+        // switching docs in-place.
+        String docHint = event.getLocation().getQueryParameters()
+                .getSingleParameter("doc").orElse(null);
+        HDocument doc = null;
+        if (docHint != null && !docHint.isBlank()) {
+            doc = documentRepository
+                    .findByVersionAndDocId(projectSlug, versionSlug, docHint)
+                    .orElse(null);
+        }
+        if (doc == null) {
+            doc = documentRepository
+                    .findByVersionAndDocId(projectSlug, versionSlug, "messages")
+                    .orElse(null);
+        }
+        if (doc == null) {
+            List<HDocument> docs = documentRepository.findByVersion(projectSlug, versionSlug);
+            if (!docs.isEmpty()) {
+                doc = docs.get(0);
+            }
+        }
+        if (doc == null) {
+            throw new NotFoundException(
+                    "No documents found in " + projectSlug + "/" + versionSlug);
+        }
+        currentDocId = doc.getDocId();
 
         flows = textFlowRepository.findByDocument(doc.getId());
 
@@ -131,10 +157,46 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         headingRow.setWidthFull();
         headingRow.setAlignItems(FlexComponent.Alignment.CENTER);
         headingRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        H2 heading = new H2(projectSlug + " \u2192 " + localeStr);
+        H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
         heading.addClassNames(LumoUtility.Margin.NONE);
-        headingRow.add(heading, buildStatsBadge());
-        add(headingRow);
+
+        // Doc switcher — visible when the iteration has more than one doc.
+        List<HDocument> allDocs = documentRepository.findByVersion(projectSlug, versionSlug);
+        com.vaadin.flow.component.select.Select<String> docSwitcher = null;
+        if (allDocs.size() > 1) {
+            docSwitcher = new com.vaadin.flow.component.select.Select<>();
+            docSwitcher.setLabel("Document");
+            docSwitcher.setItems(allDocs.stream().map(HDocument::getDocId).toList());
+            docSwitcher.setValue(currentDocId);
+            docSwitcher.setWidth("260px");
+            docSwitcher.addValueChangeListener(e -> {
+                if (e.getValue() == null || e.getValue().equals(currentDocId)) return;
+                UI.getCurrent().navigate(
+                        "translate/" + projectSlug + "/" + versionSlug + "/" + localeStr,
+                        com.vaadin.flow.router.QueryParameters.simple(
+                                java.util.Map.of("doc", e.getValue())));
+            });
+        }
+
+        Button statsBtn = new Button("Stats");
+        statsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        statsBtn.setIcon(LineAwesomeIcon.CHART_BAR_SOLID.create());
+        com.vaadin.flow.component.popover.Popover statsPopover =
+                new com.vaadin.flow.component.popover.Popover();
+        statsPopover.setTarget(statsBtn);
+        statsPopover.add(buildStatsBadge());
+        statsPopover.setWidth("420px");
+
+        HorizontalLayout headingRight = new HorizontalLayout();
+        headingRight.setAlignItems(FlexComponent.Alignment.CENTER);
+        headingRight.setSpacing(true);
+        if (docSwitcher != null) {
+            headingRight.add(docSwitcher);
+        }
+        headingRight.add(statsBtn);
+
+        headingRow.add(heading, headingRight);
+        add(headingRow, statsPopover);
 
         add(buildFilterBar());
 
@@ -156,10 +218,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         incompleteOnly.addValueChangeListener(e -> refreshRows());
         completeOnly.addValueChangeListener(e -> refreshRows());
+        // Stop the label wrapping when the bar runs out of room.
+        incompleteOnly.getStyle().set("white-space", "nowrap");
+        completeOnly.getStyle().set("white-space", "nowrap");
 
         HorizontalLayout checks = new HorizontalLayout(incompleteOnly, completeOnly);
         checks.setAlignItems(FlexComponent.Alignment.CENTER);
         checks.setSpacing(true);
+        checks.getStyle().set("flex-shrink", "0");
+        checks.getStyle().set("white-space", "nowrap");
 
         HorizontalLayout bar = new HorizontalLayout(filter, checks);
         bar.setWidthFull();
@@ -182,9 +249,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         for (HTextFlow flow : flows) {
             String source = flow.getContents().isEmpty() ? "" : flow.getContents().get(0);
+            String contextKey = flow.getPotEntryData() == null
+                    ? null : flow.getPotEntryData().getContext();
             if (!q.isEmpty()
                     && !source.toLowerCase().contains(q)
-                    && !flow.getResId().toLowerCase().contains(q)) {
+                    && !flow.getResId().toLowerCase().contains(q)
+                    && (contextKey == null
+                        || !contextKey.toLowerCase().contains(q))) {
                 continue;
             }
             Optional<HTextFlowTarget> existing =
@@ -241,7 +312,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         left.getStyle().set("border-right", "1px solid var(--vaadin-border-color)");
         left.getStyle().set("padding-right", "1rem");
         left.getStyle().set("margin-right", "1rem");
-        Span resId = new Span(flow.getResId());
+        // Prefer the human-readable key (PotEntryData.context) over the
+        // 32-char MD5 hash that lives in resId. Falls back to the hash
+        // for legacy rows that have no context yet.
+        String displayKey = flow.getPotEntryData() != null
+                && flow.getPotEntryData().getContext() != null
+                && !flow.getPotEntryData().getContext().isEmpty()
+                ? flow.getPotEntryData().getContext()
+                : flow.getResId();
+        Span resId = new Span(displayKey);
         resId.addClassNames(LumoUtility.FontSize.XSMALL);
         resId.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         Paragraph srcText = new Paragraph(source);

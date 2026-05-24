@@ -54,18 +54,38 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     private final ProjectIterationRepository iterationRepository;
     private final TextFlowTargetRepository targetRepository;
     private final LocaleRepository localeRepository;
+    private final org.zanata.spring.repository.AccountRepository accountRepository;
 
     public ProjectView(ProjectRepository projectRepository,
                        ProjectIterationRepository iterationRepository,
                        TextFlowTargetRepository targetRepository,
-                       LocaleRepository localeRepository) {
+                       LocaleRepository localeRepository,
+                       org.zanata.spring.repository.AccountRepository accountRepository) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.targetRepository = targetRepository;
         this.localeRepository = localeRepository;
+        this.accountRepository = accountRepository;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
+    }
+
+    private boolean canManageProject(String projectSlug) {
+        var auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()
+                || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return false;
+        }
+        boolean admin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (admin) return true;
+        return accountRepository.findByUsername(auth.getName())
+                .map(a -> a.getPerson())
+                .flatMap(p -> projectRepository.findBySlugWithIterations(projectSlug)
+                        .map(proj -> proj.getMaintainers().contains(p)))
+                .orElse(false);
     }
 
     @Override
@@ -136,28 +156,74 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
         panel.getStyle().set("width", "100%");
 
+        com.vaadin.flow.component.select.Select<String> sort = new com.vaadin.flow.component.select.Select<>();
+        sort.setItems("Slug (Z-A)", "Slug (A-Z)", "Status", "Translated % (desc)", "Approved % (desc)");
+        sort.setValue("Slug (Z-A)");
+        sort.setWidth("220px");
+
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         H3 title = new H3("Versions");
         title.addClassNames(LumoUtility.Margin.NONE);
-        Anchor sort = new Anchor("#", "Sort \u25BE");
-        sort.addClassNames(LumoUtility.FontSize.SMALL);
-        sort.getStyle().set("color", "var(--vaadin-color-primary)");
-        header.add(title, sort);
+
+        HorizontalLayout right = new HorizontalLayout();
+        right.setAlignItems(FlexComponent.Alignment.CENTER);
+        right.setSpacing(true);
+        if (canManageProject(projectSlug)) {
+            com.vaadin.flow.component.button.Button addVersion =
+                    new com.vaadin.flow.component.button.Button("New version",
+                            LineAwesomeIcon.PLUS_SOLID.create(),
+                            e -> getUI().ifPresent(ui -> ui.navigate(
+                                    "project/" + projectSlug + "/add-version")));
+            addVersion.addThemeVariants(
+                    com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY,
+                    com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+            right.add(addVersion);
+        }
+        right.add(new Span("Sort"), sort);
+        header.add(title, right);
         panel.add(header);
 
-        Span counter = new Span("v " + iterations.size() + "   Search \u2315");
+        Span counter = new Span("v " + iterations.size());
         counter.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         counter.getStyle().set("display", "block");
         counter.getStyle().set("margin", "0.5rem 0 0.75rem 0");
         panel.add(counter);
 
-        for (HProjectIteration iter : iterations) {
-            panel.add(buildVersionRow(projectSlug, iter));
-        }
+        Div listContainer = new Div();
+        listContainer.setWidthFull();
+        panel.add(listContainer);
+        renderVersionList(listContainer, projectSlug, iterations, sort.getValue());
+        sort.addValueChangeListener(e ->
+                renderVersionList(listContainer, projectSlug, iterations, e.getValue()));
         return panel;
+    }
+
+    private void renderVersionList(Div container, String projectSlug,
+                                   List<HProjectIteration> iterations, String sortBy) {
+        container.removeAll();
+        java.util.Comparator<HProjectIteration> cmp = switch (sortBy == null ? "" : sortBy) {
+            case "Slug (A-Z)" -> java.util.Comparator
+                    .comparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
+            case "Status" -> java.util.Comparator
+                    .comparing((HProjectIteration i) -> i.getStatus() == null
+                            ? "" : i.getStatus().name())
+                    .thenComparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
+            case "Translated % (desc)" -> java.util.Comparator
+                    .comparingDouble((HProjectIteration i) -> -IterationStats
+                            .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
+                            .translatedPct);
+            case "Approved % (desc)" -> java.util.Comparator
+                    .comparingDouble((HProjectIteration i) -> -IterationStats
+                            .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
+                            .approvedPct);
+            default -> java.util.Comparator
+                    .comparing(HProjectIteration::getSlug, java.util.Comparator.reverseOrder());
+        };
+        iterations.stream().sorted(cmp)
+                .forEach(it -> container.add(buildVersionRow(projectSlug, it)));
     }
 
     private Div buildVersionRow(String projectSlug, HProjectIteration iter) {

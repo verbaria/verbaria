@@ -6,6 +6,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +27,8 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HApplicationConfiguration;
+import org.zanata.model.po.HPotEntryData;
+import org.zanata.util.HashUtil;
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.ApplicationConfigurationRepository;
 import org.zanata.spring.repository.DocumentRepository;
@@ -56,6 +60,8 @@ public class DevSeedData implements CommandLineRunner {
     private final TextFlowTargetRepository textFlowTargetRepository;
     private final ApplicationConfigurationRepository configRepository;
     private final PasswordEncoder passwordEncoder;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public DevSeedData(ProjectRepository projectRepository,
                        LocaleRepository localeRepository,
@@ -87,6 +93,75 @@ public class DevSeedData implements CommandLineRunner {
         seedLocales();
         seedDocuments();
         seedHomePage();
+        migrateRawResIdsToHash();
+    }
+
+    /**
+     * One-shot data migration: legacy / previously-seeded HTextFlow rows
+     * stored the raw property key (e.g. "msg.0") as resId. Hash them and
+     * stash the original key in HPotEntryData.context so the editor's
+     * Details panel can still show it.
+     *
+     * Uses native SQL because HTextFlow.resId is annotated {@code @NaturalId}
+     * which Hibernate treats as immutable on managed entities — JPA updates
+     * to the column throw {@code HibernateException: An immutable attribute
+     * [resId] within compound natural identifier ... was altered}. Native
+     * SQL bypasses that check.
+     *
+     * Targets/history reference the parent HTextFlow by FK to HTextFlow.id,
+     * not resId, so renaming the resId is safe.
+     */
+    private void migrateRawResIdsToHash() {
+        // Find rows whose res_id isn't already a 32-char lowercase hex hash.
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery("""
+                SELECT id, res_id
+                FROM htext_flow
+                WHERE res_id !~ '^[0-9a-f]{32}$'
+                """).getResultList();
+        if (rows.isEmpty()) return;
+
+        int migrated = 0;
+        for (Object[] row : rows) {
+            Long id = ((Number) row[0]).longValue();
+            String originalKey = (String) row[1];
+            String hashed = HashUtil.generateHash(originalKey);
+
+            entityManager.createNativeQuery(
+                    "UPDATE htext_flow SET res_id = :h WHERE id = :id")
+                    .setParameter("h", hashed)
+                    .setParameter("id", id)
+                    .executeUpdate();
+
+            // Upsert hpot_entry_data.context so the editor still shows the key.
+            Object existing = entityManager.createNativeQuery(
+                    "SELECT pot_entry_data_id FROM htext_flow WHERE id = :id")
+                    .setParameter("id", id)
+                    .getSingleResult();
+            if (existing == null) {
+                Number newId = (Number) entityManager.createNativeQuery(
+                        "INSERT INTO hpot_entry_data (context) VALUES (:k) RETURNING id")
+                        .setParameter("k", originalKey)
+                        .getSingleResult();
+                entityManager.createNativeQuery(
+                        "UPDATE htext_flow SET pot_entry_data_id = :pid WHERE id = :id")
+                        .setParameter("pid", newId.longValue())
+                        .setParameter("id", id)
+                        .executeUpdate();
+            } else {
+                Long pid = ((Number) existing).longValue();
+                entityManager.createNativeQuery("""
+                        UPDATE hpot_entry_data
+                        SET context = COALESCE(NULLIF(context, ''), :k)
+                        WHERE id = :pid
+                        """)
+                        .setParameter("k", originalKey)
+                        .setParameter("pid", pid)
+                        .executeUpdate();
+            }
+            migrated++;
+        }
+        log.info("Migrated {} HTextFlow rows to hashed resIds", migrated);
     }
 
     /**
@@ -275,9 +350,16 @@ public class DevSeedData implements CommandLineRunner {
                 List<HTextFlow> flows = new java.util.ArrayList<>();
                 for (int i = 0; i < SAMPLE_SOURCES.size(); i++) {
                     String src = SAMPLE_SOURCES.get(i);
-                    HTextFlow tf = new HTextFlow(doc, "msg." + i, src);
+                    // Match production behavior: resId is a hash, original
+                    // human-readable key (msg.N) lives in PotEntryData.context.
+                    String originalKey = "msg." + i;
+                    HTextFlow tf = new HTextFlow(doc,
+                            HashUtil.generateHash(originalKey), src);
                     tf.setRevision(1);
                     tf.setPos(i);
+                    HPotEntryData entry = new HPotEntryData();
+                    entry.setContext(originalKey);
+                    tf.setPotEntryData(entry);
                     flows.add(tf);
                 }
                 doc.setTextFlows(flows);

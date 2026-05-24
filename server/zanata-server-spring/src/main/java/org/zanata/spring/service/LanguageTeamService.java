@@ -103,12 +103,7 @@ public class LanguageTeamService {
         HPerson person = request.getRequest().getRequester().getPerson();
         HLocaleMember member = localeMemberRepository
                 .findByLocaleAndPerson(locale, person)
-                .orElseGet(() -> {
-                    HLocaleMember fresh = new HLocaleMember();
-                    fresh.getId().setPerson(person);
-                    fresh.getId().setSupportedLanguage(locale);
-                    return fresh;
-                });
+                .orElseGet(() -> new HLocaleMember(person, locale, false, false, false));
         if (request.isTranslator())   member.setTranslator(true);
         if (request.isReviewer())     member.setReviewer(true);
         if (request.isCoordinator())  member.setCoordinator(true);
@@ -150,12 +145,7 @@ public class LanguageTeamService {
         }
         HLocaleMember member = localeMemberRepository
                 .findByLocaleAndPerson(locale, person)
-                .orElseGet(() -> {
-                    HLocaleMember fresh = new HLocaleMember();
-                    fresh.getId().setPerson(person);
-                    fresh.getId().setSupportedLanguage(locale);
-                    return fresh;
-                });
+                .orElseGet(() -> new HLocaleMember(person, locale, false, false, false));
         member.setTranslator(translator);
         member.setReviewer(reviewer);
         member.setCoordinator(coordinator);

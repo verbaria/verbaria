@@ -13,7 +13,8 @@ import org.zanata.model.HTextFlow;
 public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
 
     @Query("""
-            select tf from HTextFlow tf
+            select distinct tf from HTextFlow tf
+            left join fetch tf.potEntryData
             where tf.document.id = :docId
               and tf.obsolete = false
             order by tf.pos

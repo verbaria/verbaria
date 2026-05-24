@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.vaadin.componentfactory.Breadcrumb;
 import com.vaadin.componentfactory.Breadcrumbs;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
@@ -57,14 +58,21 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private String currentProjectSlug;
     private String currentVersionSlug;
 
+    private final org.zanata.spring.service.SourceUploadService sourceUploadService;
+    private final org.zanata.spring.repository.AccountRepository accountRepository;
+
     public IterationView(ProjectIterationRepository iterationRepository,
                          DocumentRepository documentRepository,
                          TextFlowTargetRepository targetRepository,
-                         LocaleRepository localeRepository) {
+                         LocaleRepository localeRepository,
+                         org.zanata.spring.service.SourceUploadService sourceUploadService,
+                         org.zanata.spring.repository.AccountRepository accountRepository) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.localeRepository = localeRepository;
+        this.sourceUploadService = sourceUploadService;
+        this.accountRepository = accountRepository;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -173,6 +181,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
         panel.getStyle().set("width", "100%");
+        panel.getStyle().set("box-sizing", "border-box");
+        panel.getStyle().set("overflow-x", "hidden");
 
         com.vaadin.flow.component.select.Select<String> sortSelect =
                 new com.vaadin.flow.component.select.Select<>();
@@ -237,10 +247,20 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
     private Div buildLocaleRow(IterationStats.LocaleStats ls) {
         Div card = new Div();
-        card.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Border.BOTTOM,
-                LumoUtility.BorderColor.CONTRAST_10);
+        card.addClassNames("zanata-locale-row",
+                LumoUtility.Border.BOTTOM, LumoUtility.BorderColor.CONTRAST_10);
         card.getStyle().set("width", "100%");
+        card.getStyle().set("box-sizing", "border-box");
         card.getStyle().set("cursor", "pointer");
+        card.getStyle().set("padding", "0.85rem 1rem");
+        card.getStyle().set("overflow", "hidden");
+        card.getStyle().set("transition", "background-color 100ms ease-out");
+        // Hover state — matches the legacy row interaction.
+        card.getElement().executeJs(
+                "this.addEventListener('mouseenter', () => "
+                        + "this.style.backgroundColor='var(--vaadin-background-container)');"
+                        + "this.addEventListener('mouseleave', () => "
+                        + "this.style.backgroundColor='');");
         String localeIdStr = ls.locale.getLocaleId() == null
                 ? "" : ls.locale.getLocaleId().getId();
         if (!localeIdStr.isBlank()
@@ -263,7 +283,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             display = ls.locale.getLocaleId() == null ? "" : ls.locale.getLocaleId().getId();
         }
         Span name = new Span(display);
-        name.addClassNames(LumoUtility.FontSize.MEDIUM, LumoUtility.FontWeight.MEDIUM);
+        name.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+        // Aura ships --aura-blue-text (light/dark aware); fall back to the
+        // Lumo primary token if the theme ever changes.
+        name.getStyle().set("color",
+                "var(--aura-blue-text, var(--lumo-primary-text-color))");
         Span code = new Span(ls.locale.getLocaleId() == null
                 ? "" : ls.locale.getLocaleId().getId());
         code.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
@@ -273,14 +297,62 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         right.setPadding(false);
         right.setSpacing(false);
         right.setAlignItems(FlexComponent.Alignment.END);
-        Span pct = new Span(String.format("%.1f%%", ls.translatedPct));
-        pct.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+        Span pct = new Span(String.format("%.2f%%", ls.translatedPct));
+        pct.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
         pct.getStyle().set("color", "var(--aura-green)");
+        pct.getStyle().set("line-height", "1.1");
         Span tag = new Span("Translated");
         tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
         right.add(pct, tag);
 
-        row.add(left, right);
+        // Download / export actions tucked behind a single overflow (⋯) menu
+        // so the row's width doesn't grow. The legacy UI did the same — one
+        // dropdown in the top-right of the panel; here we put it per-row so
+        // each locale's bundle is one click away. Hidden for the source
+        // locale (en-US has nothing to download).
+        com.vaadin.flow.component.menubar.MenuBar overflow = null;
+        if (!localeIdStr.isBlank()
+                && !"en-US".equalsIgnoreCase(localeIdStr)
+                && currentProjectSlug != null && currentVersionSlug != null) {
+            overflow = new com.vaadin.flow.component.menubar.MenuBar();
+            overflow.addThemeVariants(
+                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
+                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL,
+                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_ICON);
+            com.vaadin.flow.component.contextmenu.MenuItem trigger =
+                    overflow.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
+            trigger.getElement().setAttribute("aria-label", "Downloads");
+            trigger.getElement().setAttribute("title", "Downloads");
+
+            String offlineHref = "/rest/file/translation/"
+                    + currentProjectSlug + "/" + currentVersionSlug + "/"
+                    + localeIdStr + "/offlinepo";
+            String tmxHref = "/rest/tm/projects/" + currentProjectSlug
+                    + "/iterations/" + currentVersionSlug
+                    + "?locale=" + localeIdStr;
+            trigger.getSubMenu().addItem("Download for offline translation",
+                    e -> UI.getCurrent().getPage().open(offlineHref, "_self"));
+            trigger.getSubMenu().addItem("Export TMX",
+                    e -> UI.getCurrent().getPage().open(tmxHref, "_self"));
+            // Stop the card's click listener from firing when the menu is clicked.
+            overflow.getElement().addEventListener("click", e -> {})
+                    .addEventData("event.stopPropagation()");
+        }
+
+        HorizontalLayout rightCol = new HorizontalLayout(right);
+        if (overflow != null) {
+            rightCol.add(overflow);
+        }
+        rightCol.setAlignItems(FlexComponent.Alignment.CENTER);
+        rightCol.setSpacing(true);
+        rightCol.getStyle().set("flex-shrink", "0");
+
+        left.getStyle().set("min-width", "0");
+        left.getStyle().set("flex", "1 1 auto");
+
+        row.add(left, rightCol);
+        row.setFlexGrow(1, left);
+        row.setFlexGrow(0, rightCol);
         card.add(row);
 
         ProgressBar bar = new ProgressBar(0.0, 1.0,
@@ -296,6 +368,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
         panel.getStyle().set("width", "100%");
+        panel.getStyle().set("box-sizing", "border-box");
+
+        if (canUpload()) {
+            panel.add(buildUploader());
+        }
 
         Grid<HDocument> grid = new Grid<>(HDocument.class, false);
         grid.addColumn(HDocument::getDocId).setHeader("Doc Id").setAutoWidth(true);
@@ -310,5 +387,54 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         grid.setAllRowsVisible(true);
         panel.add(grid);
         return panel;
+    }
+
+    private com.vaadin.flow.component.html.Div buildUploader() {
+        var buffer = new com.vaadin.flow.component.upload.receivers.MultiFileMemoryBuffer();
+        var upload = new com.vaadin.flow.component.upload.Upload(buffer);
+        upload.setAcceptedFileTypes(".properties", ".po", ".pot", ".xlf", ".xliff");
+        upload.setDropLabel(new com.vaadin.flow.component.html.Span(
+                "Drop a .properties / .po / .xlf file here, or click to upload"));
+        upload.addSucceededListener(e -> {
+            String filename = e.getFileName();
+            var actor = currentAccount();
+            if (actor == null) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Sign in to upload documents", 3000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                return;
+            }
+            try (java.io.InputStream in = buffer.getInputStream(filename)) {
+                var result = sourceUploadService.upload(
+                        currentProjectSlug, currentVersionSlug, filename, in, actor);
+                com.vaadin.flow.component.notification.Notification.show(
+                        (result.created() ? "Created" : "Updated") + " "
+                                + result.document().getDocId(),
+                        2500,
+                        com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
+                UI.getCurrent().getPage().reload();
+            } catch (Exception ex) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Upload failed: " + ex.getMessage(), 5000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+            }
+        });
+        com.vaadin.flow.component.html.Div wrap = new com.vaadin.flow.component.html.Div(upload);
+        wrap.getStyle().set("margin-bottom", "0.75rem");
+        return wrap;
+    }
+
+    private boolean canUpload() {
+        return currentAccount() != null;
+    }
+
+    private org.zanata.model.HAccount currentAccount() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()
+                || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return null;
+        }
+        return accountRepository.findByUsername(auth.getName()).orElse(null);
     }
 }

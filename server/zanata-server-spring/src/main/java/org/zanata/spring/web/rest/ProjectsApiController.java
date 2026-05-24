@@ -1,20 +1,29 @@
 package org.zanata.spring.web.rest;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.zanata.common.EntityStatus;
+import org.zanata.common.ProjectType;
+import org.zanata.model.HProject;
+import org.zanata.model.HProjectIteration;
+import org.zanata.rest.dto.Project;
+import org.zanata.rest.dto.ProjectIteration;
 import org.zanata.spring.repository.ProjectRepository;
 
 /**
- * Project-scoped REST endpoints the React UI hits under
- * /rest/projects/p/{slug}/... — read-side queries the glossary screen
- * makes when navigated to /glossary/project/{slug}.
+ * Project-scoped REST endpoints under {@code /rest/projects/p/{slug}/...}.
+ * Serves the legacy {@code Project} DTO so the CLI (Accept: application/xml)
+ * and the React glossary screen (Accept: application/json) both work
+ * through the same JAXB-annotated representation.
  */
 @RestController
 @RequestMapping("/rest/projects/p")
@@ -28,19 +37,16 @@ public class ProjectsApiController {
         this.projectRepository = projectRepository;
     }
 
-    @GetMapping("/{slug}")
+    @GetMapping(value = "/{slug}",
+            produces = {MediaType.APPLICATION_XML_VALUE,
+                        MediaType.APPLICATION_JSON_VALUE,
+                        "application/vnd.zanata.project+xml",
+                        "application/vnd.zanata.project+json"})
     @Transactional(readOnly = true)
-    public ResponseEntity<Map<String, Object>> project(@PathVariable("slug") String slug) {
-        return projectRepository.findBySlug(slug).map(p -> {
-            Map<String, Object> out = new LinkedHashMap<>();
-            out.put("id", p.getSlug());
-            out.put("name", p.getName() == null ? p.getSlug() : p.getName());
-            out.put("description", p.getDescription() == null ? "" : p.getDescription());
-            out.put("status", p.getStatus() == null ? "ACTIVE" : p.getStatus().name());
-            out.put("defaultType", p.getDefaultProjectType() == null
-                    ? "Gettext" : p.getDefaultProjectType().name());
-            return ResponseEntity.ok(out);
-        }).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<Project> project(@PathVariable("slug") String slug) {
+        return projectRepository.findBySlugWithIterations(slug)
+                .map(p -> ResponseEntity.ok(toDto(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
@@ -55,5 +61,32 @@ public class ProjectsApiController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(Map.of("name", GLOBAL_QUALIFIED_NAME));
+    }
+
+    private static Project toDto(HProject p) {
+        Project dto = new Project();
+        dto.setId(p.getSlug());
+        dto.setName(p.getName() == null ? p.getSlug() : p.getName());
+        dto.setDescription(p.getDescription());
+        dto.setSourceViewURL(p.getSourceViewURL());
+        dto.setSourceCheckoutURL(p.getSourceCheckoutURL());
+        dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
+        dto.setDefaultType(p.getDefaultProjectType() == null
+                ? ProjectType.File.toString()
+                : p.getDefaultProjectType().toString());
+        List<ProjectIteration> iters = new ArrayList<>();
+        if (p.getProjectIterations() != null) {
+            for (HProjectIteration i : p.getProjectIterations()) {
+                ProjectIteration ito = new ProjectIteration(i.getSlug());
+                ito.setStatus(i.getStatus() == null
+                        ? EntityStatus.ACTIVE : i.getStatus());
+                if (i.getProjectType() != null) {
+                    ito.setProjectType(i.getProjectType().toString());
+                }
+                iters.add(ito);
+            }
+        }
+        dto.setIterations(iters);
+        return dto;
     }
 }
