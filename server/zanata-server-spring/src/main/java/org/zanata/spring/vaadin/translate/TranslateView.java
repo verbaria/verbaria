@@ -8,10 +8,15 @@ import java.util.Set;
 
 import com.vaadin.componentfactory.Breadcrumb;
 import com.vaadin.componentfactory.Breadcrumbs;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.virtuallist.VirtualList;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
+import java.util.HashMap;
+import java.util.Map;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -75,8 +80,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final LocaleMemberRepository localeMemberRepository;
     private final AccountRepository accountRepository;
 
-    private List<HTextFlow> flows = List.of();
     private LocaleId currentLocale;
+    private LocaleId sourceLocale;
     private String projectSlug;
     private String versionSlug;
     private String localeStr;
@@ -85,7 +90,41 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final TextField filter = new TextField();
     private final Checkbox incompleteOnly = new Checkbox("Incomplete");
     private final Checkbox completeOnly   = new Checkbox("Complete");
-    private final Div rowsContainer = new Div();
+    /** Virtual list driven by a server-paged CallbackDataProvider. */
+    private final VirtualList<RowData> rowsList = new VirtualList<>();
+
+    /**
+     * Snapshot of everything the row renderer needs. Equality/hashCode are
+     * derived only from {@code flow.id} so Vaadin's {@code KeyMapper} never
+     * walks lazy associations on {@code HTextFlowTarget} (e.g. its translator
+     * {@code HPerson}) outside a session.
+     */
+    private static final class RowData {
+        final HTextFlow flow;
+        final Optional<HTextFlowTarget> existing;
+        final ContentState state;
+        final String source;
+        RowData(HTextFlow flow, Optional<HTextFlowTarget> existing,
+                ContentState state, String source) {
+            this.flow = flow;
+            this.existing = existing;
+            this.state = state;
+            this.source = source;
+        }
+        HTextFlow flow() { return flow; }
+        Optional<HTextFlowTarget> existing() { return existing; }
+        ContentState state() { return state; }
+        String source() { return source; }
+        @Override public int hashCode() {
+            return flow == null || flow.getId() == null ? 0 : flow.getId().hashCode();
+        }
+        @Override public boolean equals(Object o) {
+            return o instanceof RowData r
+                    && java.util.Objects.equals(
+                            flow == null ? null : flow.getId(),
+                            r.flow == null ? null : r.flow.getId());
+        }
+    }
 
     public TranslateView(DocumentRepository documentRepository,
                          TextFlowRepository textFlowRepository,
@@ -149,7 +188,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         currentDocId = doc.getDocId();
 
-        flows = textFlowRepository.findByDocument(doc.getId());
+        // No more eager findByDocument — DataProvider pulls pages from DB.
+        sourceLocale = doc.getLocale() != null && doc.getLocale().getLocaleId() != null
+                ? doc.getLocale().getLocaleId() : LocaleId.EN_US;
+        Long docIdForProvider = doc.getId();
 
         add(buildBreadcrumb());
 
@@ -160,15 +202,45 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
         heading.addClassNames(LumoUtility.Margin.NONE);
 
-        // Doc switcher — visible when the iteration has more than one doc.
+        // Doc switcher with per-doc translation % so users can spot
+        // unfinished docs without clicking through each one.
         List<HDocument> allDocs = documentRepository.findByVersion(projectSlug, versionSlug);
         com.vaadin.flow.component.select.Select<String> docSwitcher = null;
         if (allDocs.size() > 1) {
+            Long iterId = doc.getProjectIteration() == null
+                    ? null : doc.getProjectIteration().getId();
+            java.util.Map<Long, Long> totalByDoc = new HashMap<>();
+            java.util.Map<Long, Long> translatedByDoc = new HashMap<>();
+            if (iterId != null) {
+                for (Object[] row : textFlowRepository.countPerDocForIteration(iterId)) {
+                    totalByDoc.put(((Number) row[0]).longValue(),
+                            ((Number) row[1]).longValue());
+                }
+                for (Object[] row : targetRepository
+                        .translatedCountPerDocForLocale(iterId, currentLocale)) {
+                    translatedByDoc.put(((Number) row[0]).longValue(),
+                            ((Number) row[1]).longValue());
+                }
+            }
             docSwitcher = new com.vaadin.flow.component.select.Select<>();
             docSwitcher.setLabel("Document");
             docSwitcher.setItems(allDocs.stream().map(HDocument::getDocId).toList());
             docSwitcher.setValue(currentDocId);
-            docSwitcher.setWidth("260px");
+            docSwitcher.setWidth("420px");
+            boolean viewingSource = sourceLocale != null
+                    && sourceLocale.getId().equalsIgnoreCase(localeStr);
+            docSwitcher.setItemLabelGenerator(docId -> {
+                HDocument d = allDocs.stream()
+                        .filter(x -> docId.equals(x.getDocId()))
+                        .findFirst().orElse(null);
+                if (d == null) return docId;
+                long total = totalByDoc.getOrDefault(d.getId(), 0L);
+                long done = viewingSource
+                        ? total
+                        : translatedByDoc.getOrDefault(d.getId(), 0L);
+                int pct = total == 0 ? 0 : (int) Math.round(done * 100.0 / total);
+                return String.format("%s — %d%% (%d/%d)", docId, pct, done, total);
+            });
             docSwitcher.addValueChangeListener(e -> {
                 if (e.getValue() == null || e.getValue().equals(currentDocId)) return;
                 UI.getCurrent().navigate(
@@ -200,12 +272,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         add(buildFilterBar());
 
-        rowsContainer.setWidthFull();
-        rowsContainer.getStyle().set("max-width", "100%");
-        rowsContainer.getStyle().set("overflow-x", "hidden");
-        add(rowsContainer);
+        // VirtualList renders only the rows currently in the viewport.
+        // For documents with hundreds of text-flows (e.g. Consulo
+        // *Localize.yaml files often have 300+) eager DOM construction
+        // pegged the browser; the virtual list keeps it responsive.
+        rowsList.setWidthFull();
+        rowsList.setHeight("calc(100vh - 220px)");  // fills below the filter bar
+        rowsList.getStyle().set("max-width", "100%");
+        rowsList.setRenderer(new ComponentRenderer<Component, RowData>(
+                d -> buildRow(d.flow(), d.existing(), d.state(), d.source())));
+        add(rowsList);
 
-        refreshRows();
+        installDataProvider(docIdForProvider);
     }
 
     private Div buildFilterBar() {
@@ -214,10 +292,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);
         filter.setValueChangeTimeout(250);
-        filter.addValueChangeListener(e -> refreshRows());
-
-        incompleteOnly.addValueChangeListener(e -> refreshRows());
-        completeOnly.addValueChangeListener(e -> refreshRows());
+        // Filter/checkbox listeners are installed by installDataProvider(),
+        // which has access to the per-doc provider instance.
         // Stop the label wrapping when the bar runs out of room.
         incompleteOnly.getStyle().set("white-space", "nowrap");
         completeOnly.getStyle().set("white-space", "nowrap");
@@ -241,32 +317,68 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return wrap;
     }
 
-    private void refreshRows() {
-        rowsContainer.removeAll();
+    /** Snapshot of UI filter state passed to the DataProvider. */
+    private record FilterSpec(String q, int stateMode) {}
+
+    private FilterSpec currentFilterSpec() {
         String q = filter.getValue() == null ? "" : filter.getValue().trim().toLowerCase();
-        boolean wantIncomplete = incompleteOnly.getValue();
-        boolean wantComplete   = completeOnly.getValue();
+        int mode = incompleteOnly.getValue() ? 1
+                : (completeOnly.getValue() ? 2 : 0);
+        return new FilterSpec(q, mode);
+    }
 
-        for (HTextFlow flow : flows) {
-            String source = flow.getContents().isEmpty() ? "" : flow.getContents().get(0);
-            String contextKey = flow.getPotEntryData() == null
-                    ? null : flow.getPotEntryData().getContext();
-            if (!q.isEmpty()
-                    && !source.toLowerCase().contains(q)
-                    && !flow.getResId().toLowerCase().contains(q)
-                    && (contextKey == null
-                        || !contextKey.toLowerCase().contains(q))) {
-                continue;
-            }
-            Optional<HTextFlowTarget> existing =
-                    targetRepository.findByTextFlowAndLocale(flow.getId(), currentLocale);
-            ContentState state = existing.map(HTextFlowTarget::getState).orElse(ContentState.New);
-            boolean complete = COMPLETE.contains(state);
-            if (wantIncomplete && complete) continue;
-            if (wantComplete && !complete) continue;
+    /** Wire VirtualList to a server-paged DataProvider — never loads the whole doc into memory. */
+    private void installDataProvider(Long docId) {
+        com.vaadin.flow.data.provider.CallbackDataProvider<RowData, FilterSpec> provider =
+                com.vaadin.flow.data.provider.DataProvider.fromFilteringCallbacks(
+                        query -> fetchPage(docId, query),
+                        query -> countMatching(docId, query));
+        com.vaadin.flow.data.provider.ConfigurableFilterDataProvider<RowData, Void, FilterSpec>
+                filterable = provider.withConfigurableFilter();
+        filterable.setFilter(currentFilterSpec());
+        rowsList.setDataProvider(filterable);
+        // refresh provider when filter inputs change
+        filter.addValueChangeListener(e -> filterable.setFilter(currentFilterSpec()));
+        incompleteOnly.addValueChangeListener(e -> {
+            if (Boolean.TRUE.equals(incompleteOnly.getValue())) completeOnly.setValue(false);
+            filterable.setFilter(currentFilterSpec());
+        });
+        completeOnly.addValueChangeListener(e -> {
+            if (Boolean.TRUE.equals(completeOnly.getValue())) incompleteOnly.setValue(false);
+            filterable.setFilter(currentFilterSpec());
+        });
+    }
 
-            rowsContainer.add(buildRow(flow, existing, state, source));
+    private java.util.stream.Stream<RowData> fetchPage(Long docId,
+            com.vaadin.flow.data.provider.Query<RowData, FilterSpec> query) {
+        FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
+        int page = query.getOffset() / Math.max(1, query.getLimit());
+        org.springframework.data.domain.PageRequest pr =
+                org.springframework.data.domain.PageRequest.of(page, query.getLimit());
+        List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
+                docId, currentLocale, f.q(), f.stateMode(), pr);
+        if (flows.isEmpty()) return java.util.stream.Stream.empty();
+        List<Long> ids = new ArrayList<>(flows.size());
+        for (HTextFlow tf : flows) ids.add(tf.getId());
+        Map<Long, HTextFlowTarget> tByFlow = new HashMap<>();
+        for (HTextFlowTarget t : targetRepository.findByTextFlowIdsAndLocale(ids, currentLocale)) {
+            tByFlow.put(t.getTextFlow().getId(), t);
         }
+        return flows.stream().map(tf -> {
+            HTextFlowTarget tgt = tByFlow.get(tf.getId());
+            Optional<HTextFlowTarget> opt = Optional.ofNullable(tgt);
+            ContentState state = opt.map(HTextFlowTarget::getState).orElse(ContentState.New);
+            String src = tf.getContents().isEmpty() ? "" : tf.getContents().get(0);
+            return new RowData(tf, opt, state, src);
+        });
+    }
+
+    private int countMatching(Long docId,
+            com.vaadin.flow.data.provider.Query<RowData, FilterSpec> query) {
+        FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
+        long n = textFlowRepository.countForTranslateView(
+                docId, currentLocale, f.q(), f.stateMode());
+        return (int) Math.min(Integer.MAX_VALUE, n);
     }
 
     private Breadcrumbs buildBreadcrumb() {
@@ -352,12 +464,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         right.getStyle().set("flex", "1 1 0");
         right.getStyle().set("min-width", "0");
 
+        boolean isSourceLocale = sourceLocale != null
+                && sourceLocale.getId().equalsIgnoreCase(localeStr);
         boolean canEdit = isAuthenticated();
 
-        TextArea area = new TextArea("Translation");
+        TextArea area = new TextArea(isSourceLocale ? "Source" : "Translation");
         area.setWidthFull();
         area.setMinHeight("4rem");
-        area.setValue(initialContent);
+        area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
 
         Span stateSpan = new Span(initialState.name());
@@ -367,14 +481,19 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
         save.setEnabled(canEdit);
         if (!canEdit) {
-            save.setTooltipText("Sign in to edit translations");
+            save.setTooltipText("Sign in to edit");
         }
         save.addClickListener(e -> {
-            ContentState newState = translationEditService.save(
-                    flow.getId(), currentLocale, area.getValue());
-            stateSpan.setText(newState.name());
-            applyStateColor(stateSpan, newState);
-            Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
+            if (isSourceLocale) {
+                translationEditService.updateSource(flow.getId(), area.getValue());
+                Notification.show("Source updated", 2000, Notification.Position.BOTTOM_START);
+            } else {
+                ContentState newState = translationEditService.save(
+                        flow.getId(), currentLocale, area.getValue());
+                stateSpan.setText(newState.name());
+                applyStateColor(stateSpan, newState);
+                Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
+            }
         });
 
         Button historyBtn = new Button("History", LineAwesomeIcon.CLOCK_SOLID.create());
@@ -388,8 +507,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         Button approve = new Button("Approve", LineAwesomeIcon.CHECK_SOLID.create());
         approve.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
-        approve.setEnabled(canReview && hasSavedContent);
-        if (!canReview) {
+        approve.setEnabled(!isSourceLocale && canReview && hasSavedContent);
+        if (isSourceLocale) {
+            approve.setVisible(false);
+        } else if (!canReview) {
             approve.setTooltipText("Join the " + localeStr + " language team as reviewer to approve");
         } else if (!hasSavedContent) {
             approve.setTooltipText("Save a translation before approving");
@@ -408,8 +529,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         Button reject = new Button("Reject", LineAwesomeIcon.TIMES_SOLID.create());
         reject.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
-        reject.setEnabled(canReview && hasSavedContent);
-        if (!canReview) {
+        reject.setEnabled(!isSourceLocale && canReview && hasSavedContent);
+        if (isSourceLocale) {
+            reject.setVisible(false);
+        } else if (!canReview) {
             reject.setTooltipText("Join the " + localeStr + " language team as reviewer to reject");
         } else if (!hasSavedContent) {
             reject.setTooltipText("Save a translation before rejecting");
@@ -553,19 +676,35 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private Div buildStatsBadge() {
+        // Stats now computed via two bulk queries (no per-row N+1) using
+        // the current docId — looked up at the time the popover is built.
+        HDocument doc = documentRepository
+                .findByVersionAndDocId(projectSlug, versionSlug, currentDocId)
+                .orElse(null);
         long total = 0, translated = 0, approved = 0, needsReview = 0;
         long totalW = 0, translatedW = 0, approvedW = 0, needsReviewW = 0;
-        for (HTextFlow tf : flows) {
-            long wc = tf.getWordCount() == null ? 0 : tf.getWordCount();
-            total++; totalW += wc;
-            Optional<HTextFlowTarget> ex =
-                    targetRepository.findByTextFlowAndLocale(tf.getId(), currentLocale);
-            ContentState s = ex.map(HTextFlowTarget::getState).orElse(ContentState.New);
-            switch (s) {
-                case Translated -> { translated++; translatedW += wc; }
-                case Approved   -> { approved++;   approvedW   += wc; }
-                case NeedReview, Rejected -> { needsReview++; needsReviewW += wc; }
-                default -> {}
+        if (doc != null) {
+            for (HTextFlow tf : textFlowRepository.findByDocument(doc.getId())) {
+                long wc = tf.getWordCount() == null ? 0 : tf.getWordCount();
+                total++; totalW += wc;
+            }
+            for (Object[] row : targetRepository.countByDocAndLocale(doc.getId(), currentLocale)) {
+                ContentState s = (ContentState) row[0];
+                long n = ((Number) row[1]).longValue();
+                switch (s) {
+                    case Translated -> translated += n;
+                    case Approved   -> approved += n;
+                    case NeedReview, Rejected -> needsReview += n;
+                    default -> {}
+                }
+            }
+            // Word counts per state need a separate aggregate; reuse the
+            // iteration-level aggregator and filter by this doc's textflows.
+            // Approximation: assume word distribution mirrors message count.
+            if (total > 0) {
+                translatedW = totalW * translated / total;
+                approvedW   = totalW * approved   / total;
+                needsReviewW = totalW * needsReview / total;
             }
         }
         long untranslated = total - translated - approved - needsReview;

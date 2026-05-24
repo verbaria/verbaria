@@ -75,9 +75,14 @@ public class OptionsUtil {
         if (shouldFetchLocalesFromServer) {
             ConfigurableProjectOptions projectOptions =
                     (ConfigurableProjectOptions) opts;
-            LocaleList localeMappings = fetchLocalesFromServer(projectOptions,
-                    createClientFactoryWithoutVersionCheck(projectOptions));
-            projectOptions.setLocaleMapList(localeMappings);
+            boolean isProjectGlob = projectOptions.getProj() != null
+                    && (projectOptions.getProj().contains("*")
+                        || projectOptions.getProj().contains("?"));
+            if (!isProjectGlob) {
+                LocaleList localeMappings = fetchLocalesFromServer(projectOptions,
+                        createClientFactoryWithoutVersionCheck(projectOptions));
+                projectOptions.setLocaleMapList(localeMappings);
+            }
         }
     }
 

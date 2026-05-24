@@ -66,11 +66,26 @@ public final class IterationStats {
                                          LocaleRepository localeRepository) {
         long totalSourceWords = iterationRepository.sumSourceWordCount(iterationId);
 
+        // Prefer the project's customized locale list when overrideLocales=true;
+        // else fall back to every active server locale.
         List<HLocale> enabledLocales = new ArrayList<>();
-        for (HLocale l : localeRepository.findAll()) {
-            if (l.isActive() && l.isEnabledByDefault()) {
-                enabledLocales.add(l);
+        var customized = iterationRepository.findProjectLocales(iterationId);
+        if (customized.isPresent()) {
+            for (HLocale l : customized.get()) {
+                if (l.isActive()) enabledLocales.add(l);
             }
+        }
+        if (enabledLocales.isEmpty()) {
+            for (HLocale l : localeRepository.findAll()) {
+                if (l.isActive()) enabledLocales.add(l);
+            }
+        }
+        // Always include the project's source locale (so users can edit
+        // source strings) even if it's not in customizedLocales.
+        HLocale source = iterationRepository.findProjectSourceLocale(iterationId).orElse(null);
+        if (source != null && source.isActive()
+                && enabledLocales.stream().noneMatch(l -> l.getId().equals(source.getId()))) {
+            enabledLocales.add(source);
         }
         enabledLocales.sort(Comparator.comparing(
                 l -> (l.getDisplayName() == null ? "" : l.getDisplayName()),

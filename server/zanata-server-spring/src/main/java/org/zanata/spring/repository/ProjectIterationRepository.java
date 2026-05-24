@@ -21,12 +21,42 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
 
     @Query("""
             select i from HProjectIteration i
-            left join fetch i.project
+            left join fetch i.project p
+            left join fetch p.defaultSourceLocale
             where i.slug = :versionSlug
               and i.project.slug = :projectSlug
             """)
     Optional<HProjectIteration> findFullByProjectAndSlug(@Param("projectSlug") String projectSlug,
                                                          @Param("versionSlug") String versionSlug);
+
+    /**
+     * Returns the project's {@code customizedLocales} set when
+     * {@code overrideLocales=true}; otherwise empty (caller falls back to
+     * the server-wide active locale list).
+     */
+    @Query("""
+            select cl from HProjectIteration i
+            join i.project p
+            join p.customizedLocales cl
+            where i.id = :iterId
+              and p.overrideLocales = true
+            """)
+    java.util.List<org.zanata.model.HLocale> findCustomizedLocalesIfOverride(
+            @Param("iterId") Long iterId);
+
+    default Optional<java.util.Collection<org.zanata.model.HLocale>> findProjectLocales(Long iterId) {
+        java.util.List<org.zanata.model.HLocale> list = findCustomizedLocalesIfOverride(iterId);
+        return list == null || list.isEmpty()
+                ? Optional.empty() : Optional.of(list);
+    }
+
+    @Query("""
+            select p.defaultSourceLocale from HProjectIteration i
+            join i.project p
+            where i.id = :iterId
+              and p.defaultSourceLocale is not null
+            """)
+    Optional<org.zanata.model.HLocale> findProjectSourceLocale(@Param("iterId") Long iterId);
 
     @Query("""
             select count(tf) from HTextFlow tf

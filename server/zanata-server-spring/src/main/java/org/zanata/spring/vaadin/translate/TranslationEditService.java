@@ -34,6 +34,20 @@ public class TranslationEditService {
     }
 
     @Transactional
+    public void updateSource(Long textFlowId, String newSource) {
+        HTextFlow textFlow = textFlowRepository.findById(textFlowId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "TextFlow not found: " + textFlowId));
+        String oldSource = textFlow.getContents() == null || textFlow.getContents().isEmpty()
+                ? "" : textFlow.getContents().get(0);
+        String fresh = newSource == null ? "" : newSource;
+        if (oldSource.equals(fresh)) return;
+        textFlow.setContents(List.of(fresh));
+        textFlow.setRevision(textFlow.getRevision() + 1);
+        textFlowRepository.save(textFlow);
+    }
+
+    @Transactional
     public ContentState changeState(Long textFlowId, LocaleId localeId, ContentState newState) {
         HTextFlow textFlow = textFlowRepository.findById(textFlowId)
                 .orElseThrow(() -> new IllegalArgumentException(

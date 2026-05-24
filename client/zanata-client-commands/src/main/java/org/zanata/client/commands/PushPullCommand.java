@@ -88,13 +88,18 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
         if (opts instanceof PullOptions) {
             this.loadETagCache(((PullOptions) opts).getCacheDir());
         }
-        sourceDocResourceClient =
-                getClientFactory().getSourceDocResourceClient(opts.getProj(),
-                        opts.getProjectVersion());
-        transDocResourceClient =
-                getClientFactory().getTransDocResourceClient(opts.getProj(),
-                        opts.getProjectVersion());
+        rebuildProjectScopedClients();
         statsClient = getClientFactory().getStatisticsClient();
+    }
+
+    protected void rebuildProjectScopedClients() {
+        if (getOpts().getProj() == null) return;
+        sourceDocResourceClient =
+                getClientFactory().getSourceDocResourceClient(getOpts().getProj(),
+                        getOpts().getProjectVersion());
+        transDocResourceClient =
+                getClientFactory().getTransDocResourceClient(getOpts().getProj(),
+                        getOpts().getProjectVersion());
     }
 
     public PushPullCommand(O opts) {

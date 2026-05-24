@@ -65,6 +65,12 @@ public abstract class AbstractPushPullOptionsImpl<O extends PushPullOptions>
     }
 
     @Override
+    public void setLocaleMapList(LocaleList locales) {
+        super.setLocaleMapList(locales);
+        this.effectiveLocales = null;
+    }
+
+    @Override
     public String getSrcDirParameterName() {
         return "--src-dir";
     }

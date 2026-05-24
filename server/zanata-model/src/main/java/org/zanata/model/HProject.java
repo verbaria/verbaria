@@ -42,6 +42,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
@@ -110,6 +111,17 @@ public class HProject extends SlugEntityBase
     private List<WebHook> webHooks = Lists.newArrayList();
     @Enumerated(EnumType.STRING)
     private ProjectType defaultProjectType;
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "default_source_locale_id")
+    private HLocale defaultSourceLocale;
+
+    public HLocale getDefaultSourceLocale() {
+        return defaultSourceLocale;
+    }
+
+    public void setDefaultSourceLocale(HLocale defaultSourceLocale) {
+        this.defaultSourceLocale = defaultSourceLocale;
+    }
 
     /**
      * Immutable set of maintainers for this project.

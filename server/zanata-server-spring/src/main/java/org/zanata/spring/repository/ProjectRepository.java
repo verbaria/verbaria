@@ -38,4 +38,12 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
             where p.slug = :slug
             """)
     Optional<HProject> findBySlugWithIterations(@Param("slug") String slug);
+
+    @Query("""
+            select distinct p from HProject p
+            left join fetch p.customizedLocales
+            left join fetch p.defaultSourceLocale
+            where p.slug = :slug
+            """)
+    Optional<HProject> findBySlugWithLocales(@Param("slug") String slug);
 }

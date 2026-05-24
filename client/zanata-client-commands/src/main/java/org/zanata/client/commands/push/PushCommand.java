@@ -76,6 +76,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         strategies.put(PROJECT_TYPE_PUBLICAN, new GettextDirStrategy());
         strategies.put(PROJECT_TYPE_XLIFF, new XliffStrategy());
         strategies.put(PROJECT_TYPE_XML, new XmlStrategy());
+        strategies.put(PROJECT_TYPE_CONSULO, new YamlStrategy());
         strategies.put(
                 PROJECT_TYPE_OFFLINE_PO,
                 new OfflinePoStrategy(getClientFactory()
@@ -215,6 +216,11 @@ public class PushCommand extends PushPullCommand<PushOptions> {
 
     @Override
     public void run() throws Exception {
+        String proj = getOpts().getProj();
+        if (proj != null && (proj.contains("*") || proj.contains("?"))) {
+            runForProjectGlob(proj);
+            return;
+        }
         checkOptions();
         logOptions(log, getOpts());
         pushCurrentModule();
@@ -234,6 +240,107 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         "found {} docs in obsolete modules (or no module).  use -Dzanata.deleteObsoleteModules to delete them",
                         obsoleteDocs.size());
             }
+        }
+    }
+
+    private void runForProjectGlob(String pattern) throws Exception {
+        if (getOpts().getPushType() != PushPullType.Trans) {
+            log.info("Project glob ({}) only supports trans push; coercing --push-type to trans", pattern);
+            if (getOpts() instanceof PushOptionsImpl impl) {
+                impl.setPushType("trans");
+            }
+        }
+        java.io.File srcDir = getOpts().getSrcDir();
+        AbstractPushStrategy strat = getStrategy(getOpts());
+        java.util.Set<String> localDocs = strat.findDocNames(
+                srcDir, getOpts().getIncludes(), getOpts().getExcludes(),
+                getOpts().getDefaultExcludes(), getOpts().getCaseSensitive(),
+                getOpts().getExcludeLocaleFilenames());
+        if (localDocs.isEmpty()) {
+            log.info("No local translation files found in {}", srcDir);
+            return;
+        }
+        java.util.Map<String, java.util.List<String>> byProject = new java.util.LinkedHashMap<>();
+        java.util.List<String> unknown = new java.util.ArrayList<>();
+        for (String docName : localDocs) {
+            String slug = lookupProjectForDoc(docName);
+            if (slug == null) {
+                unknown.add(docName);
+                continue;
+            }
+            byProject.computeIfAbsent(slug, k -> new java.util.ArrayList<>()).add(docName);
+        }
+        if (!unknown.isEmpty()) {
+            log.info("Skipping {} doc(s) with no project on the server (use -X to list them)",
+                    unknown.size());
+            log.debug("Unmatched docs: {}", unknown);
+        }
+        log.info("Multi-project trans push: {} docs routed to {} projects",
+                byProject.size() == 0 ? 0 : localDocs.size() - unknown.size(),
+                byProject.size());
+        String originalProj = getOpts().getProj();
+        java.util.List<String> originalIncludes = getOpts().getIncludes();
+        boolean originalInteractive = getOpts().isInteractiveMode();
+        // The dispatcher line above is the explicit intent; skip per-project
+        // "are you sure?" prompts inside the loop.
+        if (originalInteractive) getOpts().setInteractiveMode(false);
+        try {
+            int ok = 0, fail = 0;
+            for (var e : byProject.entrySet()) {
+                String slug = e.getKey();
+                java.util.List<String> docs = e.getValue();
+                log.info("--- pushing {} doc(s) → project {} ---", docs.size(), slug);
+                getOpts().setProj(slug);
+                String includes = String.join(",", docs.stream()
+                        .map(d -> "**/" + d + ".yaml").toList());
+                getOpts().setIncludes(includes);
+                try {
+                    org.zanata.client.config.LocaleList ll =
+                            org.zanata.client.commands.OptionsUtil.fetchLocalesFromServer(
+                                    getOpts(), getClientFactory());
+                    getOpts().setLocaleMapList(ll);
+                    rebuildProjectScopedClients();
+                    checkOptions();
+                    pushCurrentModule();
+                    ok++;
+                } catch (Exception ex) {
+                    log.warn("push failed for {}: {}", slug, ex.getMessage());
+                    fail++;
+                }
+            }
+            log.info("Multi-project trans push done: {} ok, {} failed, {} unmatched",
+                    ok, fail, unknown.size());
+        } finally {
+            getOpts().setProj(originalProj);
+            getOpts().setIncludes(String.join(",", originalIncludes));
+            if (originalInteractive) getOpts().setInteractiveMode(true);
+        }
+    }
+
+    private String lookupProjectForDoc(String docName) {
+        try {
+            String url = getOpts().getUrl().toString();
+            if (!url.endsWith("/")) url += "/";
+            url += "rest/find-doc?docId=" +
+                    java.net.URLEncoder.encode(docName, java.nio.charset.StandardCharsets.UTF_8);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
+                    java.net.URI.create(url).toURL().openConnection();
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("X-Auth-User", getOpts().getUsername());
+            conn.setRequestProperty("X-Auth-Token", getOpts().getKey());
+            if (conn.getResponseCode() != 200) return null;
+            String body;
+            try (var in = conn.getInputStream()) {
+                body = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+            int idx = body.indexOf("\"project\"");
+            if (idx < 0) return null;
+            int q1 = body.indexOf('"', body.indexOf(':', idx) + 1);
+            int q2 = body.indexOf('"', q1 + 1);
+            return q1 > 0 && q2 > q1 ? body.substring(q1 + 1, q2) : null;
+        } catch (Exception ex) {
+            log.debug("lookupProjectForDoc({}) failed: {}", docName, ex.getMessage());
+            return null;
         }
     }
 

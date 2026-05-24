@@ -50,6 +50,8 @@ public class DocNameWithoutExt {
                 return DocNameWithExt.from(name, "xml");
             case File:
                 throw new IllegalArgumentException("You cannot use document name without extension with FILE project type");
+            case Consulo:
+                return DocNameWithExt.from(name, "yaml");
         }
         throw new IllegalStateException("Cannot determine file extension for this project type: " + projectType);
     }

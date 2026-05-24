@@ -57,6 +57,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
     private String currentProjectSlug;
     private String currentVersionSlug;
+    private String currentSourceLocaleId = "en-US";
 
     private final org.zanata.spring.service.SourceUploadService sourceUploadService;
     private final org.zanata.spring.repository.AccountRepository accountRepository;
@@ -90,6 +91,12 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                 .findFullByProjectAndSlug(projectSlug, versionSlug)
                 .orElseThrow(() -> new NotFoundException(
                         "Version not found: " + projectSlug + "/" + versionSlug));
+        if (iteration.getProject() != null
+                && iteration.getProject().getDefaultSourceLocale() != null
+                && iteration.getProject().getDefaultSourceLocale().getLocaleId() != null) {
+            this.currentSourceLocaleId =
+                    iteration.getProject().getDefaultSourceLocale().getLocaleId().getId();
+        }
 
         IterationStats stats = IterationStats.compute(iteration.getId(),
                 iterationRepository, targetRepository, localeRepository);
@@ -203,7 +210,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         header.add(title, sortBox);
         panel.add(header);
 
-        Span counter = new Span(stats.localeCount + " languages");
+        Span counter = new Span(stats.perLocale.size() + " languages");
         counter.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         counter.getStyle().set("display", "block");
         counter.getStyle().set("margin", "0.5rem 0 0.75rem 0");
@@ -242,7 +249,15 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                             ? "" : ls.locale.getLocaleId().getId(),
                     String.CASE_INSENSITIVE_ORDER);
         };
-        rows.stream().sorted(cmp).forEach(ls -> container.add(buildLocaleRow(ls)));
+        // Source locale always first, then everything else by the chosen sort.
+        java.util.Comparator<IterationStats.LocaleStats> finalCmp =
+                java.util.Comparator.<IterationStats.LocaleStats, Integer>comparing(
+                        ls -> currentSourceLocaleId.equalsIgnoreCase(
+                                ls.locale.getLocaleId() == null ? ""
+                                        : ls.locale.getLocaleId().getId())
+                                ? 0 : 1)
+                        .thenComparing(cmp);
+        rows.stream().sorted(finalCmp).forEach(ls -> container.add(buildLocaleRow(ls)));
     }
 
     private Div buildLocaleRow(IterationStats.LocaleStats ls) {
@@ -297,13 +312,24 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         right.setPadding(false);
         right.setSpacing(false);
         right.setAlignItems(FlexComponent.Alignment.END);
-        Span pct = new Span(String.format("%.2f%%", ls.translatedPct));
-        pct.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
-        pct.getStyle().set("color", "var(--aura-green)");
-        pct.getStyle().set("line-height", "1.1");
-        Span tag = new Span("Translated");
-        tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
-        right.add(pct, tag);
+        boolean isSource = currentSourceLocaleId.equalsIgnoreCase(localeIdStr);
+        if (isSource) {
+            Span src = new Span("Source");
+            src.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+            src.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            src.getStyle().set("line-height", "1.1");
+            Span tag = new Span("Primary contribution");
+            tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+            right.add(src, tag);
+        } else {
+            Span pct = new Span(String.format("%.2f%%", ls.translatedPct));
+            pct.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
+            pct.getStyle().set("color", "var(--aura-green)");
+            pct.getStyle().set("line-height", "1.1");
+            Span tag = new Span("Translated");
+            tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+            right.add(pct, tag);
+        }
 
         // Download / export actions tucked behind a single overflow (⋯) menu
         // so the row's width doesn't grow. The legacy UI did the same — one
@@ -312,7 +338,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         // locale (en-US has nothing to download).
         com.vaadin.flow.component.menubar.MenuBar overflow = null;
         if (!localeIdStr.isBlank()
-                && !"en-US".equalsIgnoreCase(localeIdStr)
+                && !currentSourceLocaleId.equalsIgnoreCase(localeIdStr)
                 && currentProjectSlug != null && currentVersionSlug != null) {
             overflow = new com.vaadin.flow.component.menubar.MenuBar();
             overflow.addThemeVariants(
@@ -355,11 +381,13 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         row.setFlexGrow(0, rightCol);
         card.add(row);
 
-        ProgressBar bar = new ProgressBar(0.0, 1.0,
-                Math.max(0.0, Math.min(1.0, ls.translatedPct / 100.0)));
-        bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
-        bar.getStyle().set("margin-top", "0.4rem");
-        card.add(bar);
+        if (!isSource) {
+            ProgressBar bar = new ProgressBar(0.0, 1.0,
+                    Math.max(0.0, Math.min(1.0, ls.translatedPct / 100.0)));
+            bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
+            bar.getStyle().set("margin-top", "0.4rem");
+            card.add(bar);
+        }
         return card;
     }
 

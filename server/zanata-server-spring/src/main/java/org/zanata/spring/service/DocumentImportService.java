@@ -267,7 +267,8 @@ public class DocumentImportService {
         if (id == null || id.isEmpty()) return;
         if (looksLikeHexHash(id)) return;
         String original = id;
-        incoming.setId(HashUtil.generateHash(original));
+        incoming.setId(HashUtil.generateHash(
+                original.toLowerCase(java.util.Locale.ROOT)));
         PotEntryHeader header = incoming.getExtensions(true)
                 .findByType(PotEntryHeader.class);
         if (header == null) {

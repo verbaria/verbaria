@@ -57,6 +57,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         strategies.put(PROJECT_TYPE_XLIFF, XliffStrategy.class);
         strategies.put(PROJECT_TYPE_XML, XmlStrategy.class);
         strategies.put(PROJECT_TYPE_OFFLINE_PO, OfflinePoStrategy.class);
+        strategies.put(PROJECT_TYPE_CONSULO, YamlStrategy.class);
     }
 
     public PullCommand(PullOptions opts) {
@@ -79,6 +80,60 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 clazz.getDeclaredConstructor(PullOptions.class);
         assert ctor != null : "strategy must have constructor which accepts PullOptions";
         return ctor.newInstance(getOpts());
+    }
+
+    private void runForProjectGlob(String pattern) throws Exception {
+        java.util.LinkedHashSet<String> resolved = new java.util.LinkedHashSet<>();
+        org.zanata.rest.dto.Project[] all =
+                getClientFactory().getProjectsClient().getProjects();
+        String regex = globToRegex(pattern);
+        for (org.zanata.rest.dto.Project p : all) {
+            if (p.getId() != null && p.getId().matches(regex)) {
+                resolved.add(p.getId());
+            }
+        }
+        log.info("Multi-project pull: {} projects matched", resolved.size());
+        String originalProj = getOpts().getProj();
+        try {
+            int ok = 0, fail = 0;
+            for (String slug : resolved) {
+                log.info("--- pulling project: {} ---", slug);
+                getOpts().setProj(slug);
+                try {
+                    org.zanata.client.config.LocaleList ll =
+                            org.zanata.client.commands.OptionsUtil.fetchLocalesFromServer(
+                                    getOpts(), getClientFactory());
+                    getOpts().setLocaleMapList(ll);
+                    rebuildProjectScopedClients();
+                    run();
+                    ok++;
+                } catch (Exception ex) {
+                    log.warn("pull failed for project {}: {}", slug, ex.getMessage());
+                    fail++;
+                }
+            }
+            log.info("Multi-project pull done: {} ok, {} failed", ok, fail);
+        } finally {
+            getOpts().setProj(originalProj);
+        }
+    }
+
+    private static String globToRegex(String glob) {
+        StringBuilder sb = new StringBuilder("^");
+        for (int i = 0; i < glob.length(); i++) {
+            char c = glob.charAt(i);
+            if (c == '*') {
+                sb.append(".*");
+                if (i + 1 < glob.length() && glob.charAt(i + 1) == '*') i++;
+            } else if (c == '?') {
+                sb.append('.');
+            } else if ("\\.[]{}()+-^$|".indexOf(c) >= 0) {
+                sb.append('\\').append(c);
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.append('$').toString();
     }
 
     private void logOptions() {
@@ -144,6 +199,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     @SuppressFBWarnings({"SLF4J_FORMAT_SHOULD_BE_CONST"})
     @Override
     public void run() throws Exception {
+        String proj = getOpts().getProj();
+        if (proj != null && (proj.contains("*") || proj.contains("?"))) {
+            runForProjectGlob(proj);
+            return;
+        }
         logOptions();
 
         LocaleList locales = getOpts().getLocaleMapList();

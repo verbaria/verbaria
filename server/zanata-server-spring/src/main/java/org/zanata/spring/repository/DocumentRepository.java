@@ -32,4 +32,13 @@ public interface DocumentRepository extends JpaRepository<HDocument, Long> {
     Optional<HDocument> findByVersionAndDocId(@Param("projectSlug") String projectSlug,
                                               @Param("versionSlug") String versionSlug,
                                               @Param("docId") String docId);
+
+    @Query("""
+            select d from HDocument d
+            join fetch d.projectIteration pi
+            join fetch pi.project
+            where d.docId = :docId
+              and d.obsolete = false
+            """)
+    List<HDocument> findByDocIdAcrossProjects(@Param("docId") String docId);
 }

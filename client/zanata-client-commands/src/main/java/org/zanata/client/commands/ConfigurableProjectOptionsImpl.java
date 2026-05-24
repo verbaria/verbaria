@@ -218,5 +218,4 @@ public abstract class ConfigurableProjectOptionsImpl extends
         }
         return ImmutableList.copyOf(rules);
     }
-
 }

@@ -30,7 +30,7 @@ import static org.zanata.common.DocumentType.*;
 @XmlType(name = "projectTypeType")
 @XmlEnum(String.class)
 public enum ProjectType {
-    Utf8Properties, Properties, Gettext, Podir, Xliff, Xml, File;
+    Utf8Properties, Properties, Gettext, Podir, Xliff, Xml, File, Consulo;
 
     private static final String OBSOLETE_PROJECT_TYPE_RAW = "raw";
     protected static final String PROJECT_TYPE_OFFLINE_PO = "offlinepo";
@@ -103,6 +103,10 @@ public enum ProjectType {
                 return Arrays.asList(XML);
             case File:
                 return fileProjectSourceDocTypes();
+            case Consulo:
+                // No DocumentType enum value for YAML — handled by the
+                // server YAML adapter outside the legacy DocumentType matrix.
+                return Arrays.asList();
             default:
                 throw new IllegalStateException("unexpected value");
         }

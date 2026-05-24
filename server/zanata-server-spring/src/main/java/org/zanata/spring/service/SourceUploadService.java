@@ -17,6 +17,7 @@ import org.zanata.model.HAccount;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
+import org.zanata.spring.adapter.yaml.YamlReader;
 import org.zanata.util.HashUtil;
 
 /**
@@ -75,10 +76,18 @@ public class SourceUploadService {
             } finally {
                 tmp.delete();
             }
+        } else if (lower.endsWith(".yaml") || lower.endsWith(".yml")) {
+            // Consulo-style localization YAML — each top-level key is a
+            // TextFlow whose source content is its `text:` field. Filename
+            // stems (e.g. consulo.ui.ex.UILocalize) are globally unique
+            // across the Consulo platform + every plugin, so we can use
+            // them as docIds without prefixing.
+            resource = new YamlReader().extractTemplate(baseDocId, in);
+            hashTextFlowIds(resource);
         } else {
             throw new IllegalArgumentException(
                     "Unsupported file extension: " + fileName
-                            + " (accepted: .properties, .po, .pot, .xlf, .xliff)");
+                            + " (accepted: .properties, .po, .pot, .xlf, .xliff, .yaml, .yml)");
         }
         return documentImportService.importSource(projectSlug, versionSlug,
                 baseDocId, resource);
@@ -101,7 +110,10 @@ public class SourceUploadService {
             if (originalKey == null || originalKey.isEmpty()) {
                 continue;
             }
-            String hashed = HashUtil.generateHash(originalKey);
+            // Keys are case-insensitive — normalize to lowercase before
+            // hashing so "Button.OK" and "button.ok" map to the same resId.
+            String hashed = HashUtil.generateHash(
+                    originalKey.toLowerCase(java.util.Locale.ROOT));
             tf.setId(hashed);
             // Preserve the original key for display. If the PoReader2 stored
             // a header here already (it never does for .properties), keep it.

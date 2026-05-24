@@ -141,6 +141,7 @@ public class ZanataCliBridgeController {
     private final AccountRepository accountRepository;
     private final DocumentImportService importService;
     private final org.zanata.spring.service.OfflineExportService offlineExportService;
+    private final org.zanata.spring.service.SourceUploadService sourceUploadService;
 
     @Value("${spring.application.version:4.7.0-SNAPSHOT}")
     private String applicationVersion;
@@ -153,7 +154,8 @@ public class ZanataCliBridgeController {
                                      LocaleRepository localeRepository,
                                      AccountRepository accountRepository,
                                      DocumentImportService importService,
-                                     org.zanata.spring.service.OfflineExportService offlineExportService) {
+                                     org.zanata.spring.service.OfflineExportService offlineExportService,
+                                     org.zanata.spring.service.SourceUploadService sourceUploadService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -163,6 +165,7 @@ public class ZanataCliBridgeController {
         this.accountRepository = accountRepository;
         this.importService = importService;
         this.offlineExportService = offlineExportService;
+        this.sourceUploadService = sourceUploadService;
     }
 
     // ---------- 1. version ----------
@@ -384,11 +387,24 @@ public class ZanataCliBridgeController {
     public ResponseEntity<?> iterationLocales(@PathVariable("slug") String slug,
                                               @PathVariable("iter") String iter,
                                               @RequestHeader(value = "Accept", required = false) String accept) {
-        if (iterationRepository.findByProjectAndSlug(slug, iter).isEmpty()) {
+        var iterOpt = iterationRepository.findByProjectAndSlug(slug, iter);
+        if (iterOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        // Project-customized locale set (when overrideLocales=true) → returns
+        // only those locales; else fall back to every active server locale.
+        var customized = iterationRepository.findProjectLocales(iterOpt.get().getId());
+        Iterable<org.zanata.model.HLocale> source = customized.isPresent()
+                ? customized.get() : localeRepository.findAll();
+        // Always include the project's source locale so the CLI can write
+        // source-edit pushes back even when it's not in customizedLocales.
+        var projectSource = iterationRepository.findProjectSourceLocale(iterOpt.get().getId());
+        java.util.LinkedHashMap<Long, org.zanata.model.HLocale> uniq = new java.util.LinkedHashMap<>();
+        for (var l : source) if (l.isActive()) uniq.put(l.getId(), l);
+        projectSource.filter(org.zanata.model.HLocale::isActive)
+                .ifPresent(l -> uniq.putIfAbsent(l.getId(), l));
         List<org.zanata.rest.dto.LocaleDetails> details = new ArrayList<>();
-        for (var loc : localeRepository.findAll()) {
+        for (var loc : uniq.values()) {
             if (loc.getLocaleId() == null) continue;
             org.zanata.rest.dto.LocaleDetails ld = new org.zanata.rest.dto.LocaleDetails(
                     loc.getLocaleId(),
@@ -930,6 +946,104 @@ public class ZanataCliBridgeController {
         }
     }
 
+    @GetMapping(value = "/find-doc",
+            produces = {org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
+                    org.springframework.http.MediaType.APPLICATION_XML_VALUE})
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> findDocByDocId(
+            @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        String real = decodeDocId(docId);
+        var rows = documentRepository.findByDocIdAcrossProjects(real);
+        if (rows.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var d = rows.get(0);
+        var iter = d.getProjectIteration();
+        return ResponseEntity.ok(java.util.Map.of(
+                "docId", d.getDocId(),
+                "project", iter.getProject() == null ? null : iter.getProject().getSlug(),
+                "version", iter.getSlug()));
+    }
+
+    // ---------- 14a. raw-file source upload (YAML / properties / po) ----------
+    //
+    // Lets curl / scripts push a source file's raw bytes without first
+    // converting to a Resource DTO. The server runs SourceUploadService
+    // (same code path the Vaadin upload widget uses) so the .yaml,
+    // .properties, .po, .pot, .xlf, .xliff branches all just work.
+
+    @org.springframework.web.bind.annotation.PostMapping(
+            value = "/file/source/{slug}/{iter}",
+            consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadSourceFile(
+            @PathVariable("slug") String slug,
+            @PathVariable("iter") String iter,
+            @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @org.springframework.web.bind.annotation.RequestParam(value = "docId", required = false) String docIdOverride) {
+        HAccount actor = currentUser();
+        if (actor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try (java.io.InputStream in = file.getInputStream()) {
+            String fileName = docIdOverride != null && !docIdOverride.isBlank()
+                    // If caller forced a docId, append the original extension
+                    // so SourceUploadService still dispatches on it.
+                    ? docIdOverride + "." + extOf(file.getOriginalFilename())
+                    : file.getOriginalFilename();
+            DocumentImportService.ImportResult result =
+                    sourceUploadService.upload(slug, iter, fileName, in, actor);
+            return ResponseEntity.ok(java.util.Map.of(
+                    "docId", result.document().getDocId(),
+                    "created", result.created(),
+                    "revision", result.document().getRevision()));
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "error", iae.getMessage() == null ? iae.toString() : iae.getMessage()));
+        } catch (java.io.IOException ioe) {
+            return ResponseEntity.internalServerError().body(java.util.Map.of(
+                    "error", ioe.getMessage() == null ? ioe.toString() : ioe.getMessage()));
+        }
+    }
+
+    private static String extOf(String fileName) {
+        if (fileName == null) return "yaml";
+        int dot = fileName.lastIndexOf('.');
+        return dot < 0 ? "yaml" : fileName.substring(dot + 1);
+    }
+
+    // ---------- 15a. per-doc YAML download (Consulo localize) ----------
+    //
+    // GET /rest/file/translation/{slug}/{iter}/{locale}/yaml?docId=foo
+    // returns the rendered Consulo-style YAML for one document. Used by
+    // the Yaml project-type CLI pull strategy — one file at a time, not
+    // a ZIP, so the CLI can lay them out under LOCALIZE-LIB/<locale>/.
+
+    // Distinct URL prefix so Spring's path matcher doesn't compete with
+    // the ZIP-bundle endpoint at /file/translation/{slug}/{iter}/{locale}/{fileType}.
+    @GetMapping(value = "/yaml/translation/{slug}/{iter}/{locale}",
+            produces = {"application/x-yaml", "text/yaml",
+                    org.springframework.http.MediaType.TEXT_PLAIN_VALUE,
+                    org.springframework.http.MediaType.ALL_VALUE})
+    public ResponseEntity<byte[]> downloadYamlForDoc(@PathVariable("slug") String slug,
+                                                     @PathVariable("iter") String iter,
+                                                     @PathVariable("locale") String locale,
+                                                     @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        try {
+            var bundle = offlineExportService.yamlForDoc(slug, iter,
+                    decodeDocId(docId), new LocaleId(locale));
+            if (bundle.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok()
+                    .header("Content-Disposition",
+                            "attachment; filename=\"" + bundle.get().filename() + "\"")
+                    .header("Content-Type", bundle.get().contentType())
+                    .body(bundle.get().bytes());
+        } catch (java.io.IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/tm/projects/{slug}/iterations/{iter}")
     public ResponseEntity<byte[]> exportTmx(@PathVariable("slug") String slug,
                                             @PathVariable("iter") String iter,
@@ -1008,6 +1122,14 @@ public class ZanataCliBridgeController {
                     tf.getContents() == null ? List.<String>of("") : tf.getContents());
             flowDto.setPlural(tf.isPlural());
             flowDto.setRevision(tf.getRevision());
+            if (tf.getPotEntryData() != null
+                    && tf.getPotEntryData().getContext() != null
+                    && !tf.getPotEntryData().getContext().isEmpty()) {
+                org.zanata.rest.dto.extensions.gettext.PotEntryHeader peh =
+                        new org.zanata.rest.dto.extensions.gettext.PotEntryHeader();
+                peh.setContext(tf.getPotEntryData().getContext());
+                flowDto.getExtensions(true).add(peh);
+            }
             r.getTextFlows().add(flowDto);
         }
         return r;

@@ -7,8 +7,11 @@ import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -20,9 +23,15 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.zanata.common.EntityStatus;
 import org.zanata.common.ProjectType;
+import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
+import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
@@ -32,9 +41,12 @@ import org.zanata.spring.vaadin.MainLayout;
 public class ProjectSettingsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final ProjectRepository projectRepository;
+    private final LocaleRepository localeRepository;
 
-    public ProjectSettingsView(ProjectRepository projectRepository) {
+    public ProjectSettingsView(ProjectRepository projectRepository,
+                               LocaleRepository localeRepository) {
         this.projectRepository = projectRepository;
+        this.localeRepository = localeRepository;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -44,7 +56,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
         String slug = event.getRouteParameters().get("slug").orElse("");
-        HProject project = projectRepository.findBySlug(slug)
+        HProject project = projectRepository.findBySlugWithLocales(slug)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + slug));
 
         Breadcrumbs crumbs = new Breadcrumbs();
@@ -73,11 +85,38 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         TextField sourceCheckout = new TextField("Source checkout URL");
         sourceCheckout.setValue(project.getSourceCheckoutURL() == null ? "" : project.getSourceCheckoutURL());
 
+        ComboBox<HLocale> sourceLocale = new ComboBox<>("Source language");
+        List<HLocale> allLocales = localeRepository.findAll();
+        sourceLocale.setItems(allLocales);
+        sourceLocale.setItemLabelGenerator(this::localeLabel);
+        if (project.getDefaultSourceLocale() != null) {
+            sourceLocale.setValue(project.getDefaultSourceLocale());
+        }
+
         FormLayout form = new FormLayout(name, description, defaultType, status,
-                sourceView, sourceCheckout);
+                sourceLocale, sourceView, sourceCheckout);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
+
+        add(new H3("Target languages"));
+        Paragraph hint = new Paragraph(
+                "Pick which locales translators can target. "
+                + "Empty = inherit from the server-wide locale list.");
+        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        hint.getStyle().set("margin", "0 0 0.5rem 0");
+        add(hint);
+
+        MultiSelectComboBox<HLocale> targetLocales =
+                new MultiSelectComboBox<>("Target locales");
+        targetLocales.setItems(allLocales);
+        targetLocales.setItemLabelGenerator(this::localeLabel);
+        targetLocales.setWidthFull();
+        targetLocales.setAllowCustomValue(false);
+        if (project.getCustomizedLocales() != null) {
+            targetLocales.setValue(project.getCustomizedLocales());
+        }
+        add(targetLocales);
 
         Button save = new Button("Save", e -> {
             project.setName(name.getValue());
@@ -86,6 +125,10 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
             project.setStatus(status.getValue());
             project.setSourceViewURL(sourceView.getValue());
             project.setSourceCheckoutURL(sourceCheckout.getValue());
+            project.setDefaultSourceLocale(sourceLocale.getValue());
+            Set<HLocale> picked = new LinkedHashSet<>(targetLocales.getValue());
+            project.setCustomizedLocales(picked);
+            project.setOverrideLocales(!picked.isEmpty());
             projectRepository.save(project);
             Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
         });
@@ -93,5 +136,12 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         Button back = new Button("Back to project",
                 e -> getUI().ifPresent(ui -> ui.navigate("project/view/" + slug)));
         add(new HorizontalLayout(save, back));
+    }
+
+    private String localeLabel(HLocale l) {
+        if (l == null) return "";
+        String code = l.getLocaleId() == null ? "?" : l.getLocaleId().getId();
+        String display = l.getDisplayName();
+        return display == null || display.isBlank() ? code : display + " (" + code + ")";
     }
 }

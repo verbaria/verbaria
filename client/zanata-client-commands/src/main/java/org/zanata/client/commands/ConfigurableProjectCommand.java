@@ -40,6 +40,7 @@ public abstract class ConfigurableProjectCommand<O extends ConfigurableProjectOp
     protected static final String PROJECT_TYPE_PUBLICAN = "podir";
     protected static final String PROJECT_TYPE_XLIFF = "xliff";
     protected static final String PROJECT_TYPE_XML = "xml";
+    protected static final String PROJECT_TYPE_CONSULO = "consulo";
 
     public ConfigurableProjectCommand(O opts) {
         super(opts, null);

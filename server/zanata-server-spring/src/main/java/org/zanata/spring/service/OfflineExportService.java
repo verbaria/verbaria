@@ -13,12 +13,18 @@ import java.util.zip.ZipOutputStream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.io.OutputStreamWriter;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.zanata.adapter.po.PoWriter2;
 import org.zanata.adapter.properties.PropWriter;
 import org.zanata.adapter.xliff.XliffWriter;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
+import org.zanata.spring.adapter.yaml.YamlWriter;
+import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.common.dto.TranslatedDoc;
 import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
@@ -61,6 +67,24 @@ public class OfflineExportService {
     public record Bundle(String filename, String contentType, byte[] bytes) {}
 
     /**
+     * Produce a single translated YAML for one document + locale, suitable
+     * for direct download by {@code zanata-cli pull --project-type yaml}.
+     * Returns empty Optional if the document doesn't exist.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Bundle> yamlForDoc(String projectSlug, String versionSlug,
+                                       String docId, LocaleId locale) throws IOException {
+        Optional<HDocument> docOpt = documentRepository
+                .findByVersionAndDocId(projectSlug, versionSlug, docId);
+        if (docOpt.isEmpty()) return Optional.empty();
+        HDocument doc = docOpt.get();
+        Resource source = toResource(doc);
+        TranslationsResource trans = toTranslations(doc, locale);
+        byte[] body = writeYaml(source, trans);
+        return Optional.of(new Bundle(docId + ".yaml", "application/x-yaml", body));
+    }
+
+    /**
      * ZIP of one file per non-obsolete document for the given locale, in
      * the project's configured format.
      */
@@ -100,6 +124,7 @@ public class OfflineExportService {
         return switch (type) {
             case Properties, Utf8Properties -> ".properties";
             case Xliff -> ".xlf";
+            case Consulo -> ".yaml";
             case Gettext, Podir, Xml, File -> ".po";
         };
     }
@@ -116,7 +141,45 @@ public class OfflineExportService {
             case Properties -> writeProperties(source, trans, locale, PropWriter.CHARSET.Latin1);
             case Utf8Properties -> writeProperties(source, trans, locale, PropWriter.CHARSET.UTF8);
             case Xliff -> writeXliff(source, trans, locale);
+            case Consulo -> writeYaml(source, trans);
         };
+    }
+
+    // Package-private so yamlForDoc above can call directly without going through writeOne's enum.
+    byte[] writeYaml(Resource source, TranslationsResource trans) throws IOException {
+        // Build resId → translation map for O(1) lookups.
+        Map<String, String> translatedByResId = new LinkedHashMap<>();
+        if (trans.getTextFlowTargets() != null) {
+            for (TextFlowTarget t : trans.getTextFlowTargets()) {
+                String c = firstContent(t.getContents());
+                if (!c.isEmpty()) translatedByResId.put(t.getResId(), c);
+            }
+        }
+        // Preserve source order; key each entry by its original human key.
+        Map<String, String> entries = new LinkedHashMap<>();
+        for (TextFlow tf : source.getTextFlows()) {
+            String translation = translatedByResId.get(tf.getId());
+            if (translation == null) continue;
+            String humanKey = humanKey(tf);
+            if (humanKey == null) continue;
+            entries.put(humanKey, translation);
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+            new YamlWriter().write(w, entries);
+        }
+        return out.toByteArray();
+    }
+
+    /** Original human-readable key from PotEntryHeader.context, falling back to resId. */
+    private static String humanKey(TextFlow tf) {
+        if (tf.getExtensions() != null) {
+            PotEntryHeader h = tf.getExtensions().findByType(PotEntryHeader.class);
+            if (h != null && h.getContext() != null && !h.getContext().isEmpty()) {
+                return h.getContext();
+            }
+        }
+        return tf.getId();
     }
 
     private byte[] writeProperties(Resource source, TranslationsResource trans,
@@ -202,6 +265,16 @@ public class OfflineExportService {
                     firstContent(tf.getContents()));
             xf.setPlural(Boolean.TRUE.equals(tf.isPlural()));
             xf.setRevision(tf.getRevision());
+            // Re-attach the original human key (PotEntryData.context) so
+            // YAML/PO export can emit something readable instead of the
+            // 32-char resId hash.
+            if (tf.getPotEntryData() != null
+                    && tf.getPotEntryData().getContext() != null
+                    && !tf.getPotEntryData().getContext().isEmpty()) {
+                PotEntryHeader header = new PotEntryHeader();
+                header.setContext(tf.getPotEntryData().getContext());
+                xf.getExtensions(true).add(header);
+            }
             out.add(xf);
         }
         r.getTextFlows().addAll(out);

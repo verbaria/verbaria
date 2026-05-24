@@ -47,4 +47,17 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
             group by t.locale, t.state
             """)
     List<Object[]> aggregateWordsByLocaleAndState(@Param("id") Long iterId);
+
+    @Query("""
+            select t.textFlow.document.id, count(t)
+            from HTextFlowTarget t
+            where t.textFlow.document.projectIteration.id = :id
+              and t.locale.localeId = :locale
+              and t.textFlow.obsolete = false
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+            group by t.textFlow.document.id
+            """)
+    List<Object[]> translatedCountPerDocForLocale(@Param("id") Long iterId,
+                                                  @Param("locale") LocaleId locale);
 }
