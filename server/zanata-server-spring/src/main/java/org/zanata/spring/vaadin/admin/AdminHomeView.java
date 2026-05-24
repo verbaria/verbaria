@@ -23,6 +23,7 @@ public class AdminHomeView extends VerticalLayout {
         add(new RouterLink("Manage projects", AdminProjectsView.class));
         add(new RouterLink("Manage groups", AdminGroupsView.class));
         add(new RouterLink("Server settings", AdminServerSettingsView.class));
+        add(new RouterLink("AI translation", AdminAiSettingsView.class));
         add(new RouterLink("User manager", AdminUserManagerView.class));
         add(new RouterLink("Create user", AdminCreateUserView.class));
         add(new RouterLink("Role manager", AdminRoleManagerView.class));

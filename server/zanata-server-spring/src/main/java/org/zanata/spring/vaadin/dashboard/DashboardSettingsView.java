@@ -3,6 +3,7 @@ package org.zanata.spring.vaadin.dashboard;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Anchor;
@@ -35,6 +36,7 @@ import org.zanata.model.HLocaleMember;
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.LocaleMemberRepository;
 import org.zanata.spring.service.UserSettingsService;
+import org.zanata.spring.service.ai.AiPolicyService;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "dashboard/settings", layout = MainLayout.class)
@@ -45,13 +47,16 @@ public class DashboardSettingsView extends VerticalLayout {
     private final AccountRepository accountRepository;
     private final LocaleMemberRepository localeMemberRepository;
     private final UserSettingsService userSettingsService;
+    private final AiPolicyService aiPolicy;
 
     public DashboardSettingsView(AccountRepository accountRepository,
                                  LocaleMemberRepository localeMemberRepository,
-                                 UserSettingsService userSettingsService) {
+                                 UserSettingsService userSettingsService,
+                                 AiPolicyService aiPolicy) {
         this.accountRepository = accountRepository;
         this.localeMemberRepository = localeMemberRepository;
         this.userSettingsService = userSettingsService;
+        this.aiPolicy = aiPolicy;
 
         setSizeFull();
         setPadding(true);
@@ -160,6 +165,27 @@ public class DashboardSettingsView extends VerticalLayout {
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
         card.add(sectionTitle("Public profile"), form, save);
+
+        // --- per-user "allow AI translation" toggle ---
+        // Hidden entirely when the admin hasn't enabled the AI feature.
+        if (aiPolicy.isGloballyEnabled()) {
+            card.add(spacer());
+            card.add(sectionTitle("AI translation"));
+            Checkbox allowAi = new Checkbox("Show \"Translate with AI\" buttons in the editor");
+            allowAi.setValue(aiPolicy.isAllowedForUser(account.getUsername()));
+            allowAi.addValueChangeListener(e -> {
+                aiPolicy.setAllowedForUser(account.getUsername(),
+                        Boolean.TRUE.equals(e.getValue()));
+                toast("AI preference saved", false);
+            });
+            Paragraph aiHint = new Paragraph(
+                    "Turn off to hide the per-row magic-wand and \"AI translate missing\" "
+                            + "actions when you open a translation editor.");
+            aiHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            aiHint.getStyle().set("font-size", "0.85rem");
+            aiHint.getStyle().set("margin", "0.25rem 0 0 0");
+            card.add(allowAi, aiHint);
+        }
         return card;
     }
 

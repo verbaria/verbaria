@@ -58,8 +58,10 @@ import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.TextFlowRepository;
 import org.zanata.spring.repository.TextFlowTargetHistoryRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.service.ai.AiPolicyService;
 import org.zanata.spring.vaadin.ExploreView;
 import org.zanata.spring.vaadin.MainLayout;
+import org.zanata.spring.vaadin.ProgressDialogService;
 import org.zanata.spring.vaadin.iteration.IterationView;
 import org.zanata.spring.vaadin.project.ProjectView;
 
@@ -133,7 +135,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          TranslationEditService translationEditService,
                          LocaleRepository localeRepository,
                          LocaleMemberRepository localeMemberRepository,
-                         AccountRepository accountRepository) {
+                         AccountRepository accountRepository,
+                         org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry,
+                         AiPolicyService aiPolicy,
+                         ProgressDialogService progressDialogs) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
@@ -142,10 +147,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
         this.accountRepository = accountRepository;
+        this.aiRegistry = aiRegistry;
+        this.aiPolicy = aiPolicy;
+        this.progressDialogs = progressDialogs;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
     }
+
+    private final org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry;
+    private final AiPolicyService aiPolicy;
+    private final ProgressDialogService progressDialogs;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -252,6 +264,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         if (docSwitcher != null) {
             headingRight.add(docSwitcher);
         }
+        boolean atSourceLocale = sourceLocale != null
+                && sourceLocale.getId().equalsIgnoreCase(localeStr);
+        if (!atSourceLocale && aiPolicy.canCurrentUserUseAi()) {
+            headingRight.add(buildBulkAiButton(doc));
+        }
         headingRight.add(statsBtn);
 
         headingRow.add(heading, headingRight);
@@ -271,6 +288,67 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         add(rowsList);
 
         installDataProvider(docIdForProvider);
+    }
+
+    private com.vaadin.flow.component.menubar.MenuBar buildBulkAiButton(HDocument doc) {
+        com.vaadin.flow.component.menubar.MenuBar mb = new com.vaadin.flow.component.menubar.MenuBar();
+        mb.addThemeVariants(
+                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY,
+                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL);
+        var item = mb.addItem("AI translate missing");
+        item.getElement().setAttribute("title", "Use AI to fill in untranslated entries");
+        for (var provider : aiRegistry.available()) {
+            item.getSubMenu().addItem(provider.displayName(), e -> runBulkAi(doc, provider));
+        }
+        return mb;
+    }
+
+    private void runBulkAi(HDocument doc, org.zanata.spring.service.ai.TranslationProvider provider) {
+        List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
+                doc.getId(), currentLocale, "", 1,
+                org.springframework.data.domain.PageRequest.of(0, 1000));
+        if (flows.isEmpty()) {
+            Notification.show("Nothing to translate", 2000, Notification.Position.BOTTOM_START);
+            return;
+        }
+        List<org.zanata.spring.service.ai.TranslationProvider.TranslationRequest> reqs =
+                new ArrayList<>(flows.size());
+        for (HTextFlow tf : flows) {
+            String src = tf.getContents().isEmpty() ? "" : tf.getContents().get(0);
+            String ctx = tf.getPotEntryData() == null ? null : tf.getPotEntryData().getContext();
+            reqs.add(new org.zanata.spring.service.ai.TranslationProvider.TranslationRequest(
+                    src, sourceLocale, currentLocale, ctx));
+        }
+
+        int total = reqs.size();
+        String title = "Translating with " + provider.displayName();
+        progressDialogs.run(title, handle -> {
+            handle.update(0, total, "Sending to " + provider.displayName() + "…");
+            List<String> out = provider.translateBatch(reqs,
+                    (done, t) -> handle.update(done, t,
+                            "Translated " + done + " of " + t + " entries"));
+            handle.update(total, total, "Saving translations…");
+            int saved = 0;
+            for (int i = 0; i < flows.size(); i++) {
+                String translated = out.get(i);
+                if (translated == null || translated.isBlank()) continue;
+                try {
+                    translationEditService.save(flows.get(i).getId(), currentLocale, translated);
+                    saved++;
+                } catch (Exception ignore) {
+                }
+            }
+            return saved;
+        }).whenComplete((saved, err) -> {
+            if (err != null) {
+                Notification.show("AI translate failed: " + err.getMessage(),
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+            Notification.show("AI filled " + saved + " of " + total + " entries",
+                    4000, Notification.Position.BOTTOM_START);
+            rowsList.getDataProvider().refreshAll();
+        });
     }
 
     /** Popover anchored to the doc-switcher button: sortable, type-filterable Grid of every doc. */
@@ -590,6 +668,42 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         historyPanel.setVisible(false);
         historyBtn.addClickListener(e -> historyPanel.setVisible(!historyPanel.isVisible()));
 
+        // Per-row "AI translate" — gated by the global flag, provider availability,
+        // and the per-user opt-in. Source locale never gets the button.
+        com.vaadin.flow.component.menubar.MenuBar aiBtn = null;
+        if (!isSourceLocale && aiPolicy.canCurrentUserUseAi()) {
+            aiBtn = new com.vaadin.flow.component.menubar.MenuBar();
+            aiBtn.addThemeVariants(
+                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
+                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL);
+            var trigger = aiBtn.addItem(LineAwesomeIcon.MAGIC_SOLID.create());
+            trigger.getElement().setAttribute("aria-label", "Translate with AI");
+            trigger.getElement().setAttribute("title", "Translate with AI");
+            for (var provider : aiRegistry.available()) {
+                trigger.getSubMenu().addItem(provider.displayName(), ev -> {
+                    String ctx = flow.getPotEntryData() == null ? null
+                            : flow.getPotEntryData().getContext();
+                    progressDialogs.run("Translating with " + provider.displayName(),
+                            handle -> {
+                                handle.status("Calling " + provider.displayName() + "…");
+                                return provider.translate(source, sourceLocale, currentLocale, ctx);
+                            })
+                            .whenComplete((out, err) -> {
+                                if (err != null) {
+                                    Notification.show("AI translate failed: " + err.getMessage(),
+                                            5000, Notification.Position.MIDDLE);
+                                    return;
+                                }
+                                if (out != null && !out.isBlank()) {
+                                    area.setValue(out);
+                                    Notification.show("Filled by " + provider.displayName(),
+                                            2000, Notification.Position.BOTTOM_START);
+                                }
+                            });
+                });
+            }
+        }
+
         boolean canReview = canReviewLocale();
         boolean hasSavedContent = !initialContent.isBlank();
 
@@ -639,6 +753,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         HorizontalLayout actionRow = new HorizontalLayout(
                 save, approve, reject, historyBtn, stateSpan);
+        if (aiBtn != null) actionRow.add(aiBtn);
         actionRow.setAlignItems(FlexComponent.Alignment.CENTER);
         actionRow.setSpacing(true);
         actionRow.getStyle().set("margin-top", "0.4rem");
