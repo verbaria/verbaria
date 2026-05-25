@@ -47,11 +47,14 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
 
     private final ContactAdminService contactAdminService;
     private final LocaleSelector localeSelector;
+    private final LoginDialogService loginDialogService;
 
     public MainLayout(ContactAdminService contactAdminService,
-                      LocaleSelector localeSelector) {
+                      LocaleSelector localeSelector,
+                      LoginDialogService loginDialogService) {
         this.contactAdminService = contactAdminService;
         this.localeSelector = localeSelector;
+        this.loginDialogService = loginDialogService;
         // Apply the persisted-locale cookie BEFORE children render. Reading
         // the cookie doesn't need the session, only the inbound HttpServletRequest
         // — which is available here because MainLayout is instantiated during
@@ -178,12 +181,14 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
             footer.add(LineAwesomeIcon.USER_SOLID.create(), user,
                     contact, buildLocalePicker(), logout);
         } else {
-            Anchor login = new Anchor("/login", getTranslation("auth.signIn"));
-            Span sep = new Span("·");
-            sep.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            Anchor register = new Anchor("/account/register", getTranslation("auth.signUp"));
+            // Single "Sign in / Sign up" entry — opens the popover in place,
+            // which has tabs for both flows. No navigation away from the
+            // current view.
+            Button signInOrUp = new Button(getTranslation("auth.signInOrUp"),
+                    e -> loginDialogService.open());
+            signInOrUp.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
             HorizontalLayout row = new HorizontalLayout(
-                    LineAwesomeIcon.USER_SOLID.create(), login, sep, register,
+                    LineAwesomeIcon.USER_SOLID.create(), signInOrUp,
                     buildLocalePicker());
             row.setSpacing(true);
             row.setPadding(false);

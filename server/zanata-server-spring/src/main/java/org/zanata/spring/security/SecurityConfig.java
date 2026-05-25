@@ -6,8 +6,12 @@ import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.vaadin.LoginView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -22,6 +26,20 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Expose the AuthenticationManager so {@link org.zanata.spring.vaadin.LoginDialogService}
+     * can authenticate users programmatically (popover sign-in flow). Without
+     * this bean, Spring Security keeps the manager internal and Vaadin can't
+     * call into it from a {@code LoginListener}.
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(UserDetailsService uds,
+                                                       PasswordEncoder encoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(uds);
+        provider.setPasswordEncoder(encoder);
+        return new ProviderManager(provider);
     }
 
     @Bean

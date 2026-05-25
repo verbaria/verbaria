@@ -1,0 +1,279 @@
+package org.zanata.spring.vaadin;
+
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.zanata.spring.service.AccountRegistrationService;
+
+/**
+ * Single entry point for the sign-in / sign-up popover. Views call
+ * {@link #open()} or {@link #open(String)} — they never touch the dialog,
+ * tabs, or {@link AuthenticationManager} directly. That keeps the UI
+ * abstraction stable: swap the dialog implementation here and no caller
+ * changes.
+ *
+ * <p>Both flows authenticate in place via {@link AuthenticationManager},
+ * persist the resulting {@link SecurityContext} to the HttpSession, and
+ * reload the current page so the layout re-renders with the authenticated
+ * user. The sign-in flow never navigates away from the current view.
+ */
+@org.springframework.stereotype.Component
+public class LoginDialogService {
+
+    private final AuthenticationManager authenticationManager;
+    private final AccountRegistrationService registrationService;
+    private final SecurityContextRepository securityContextRepository =
+            new HttpSessionSecurityContextRepository();
+
+    public LoginDialogService(AuthenticationManager authenticationManager,
+                              AccountRegistrationService registrationService) {
+        this.authenticationManager = authenticationManager;
+        this.registrationService = registrationService;
+    }
+
+    /** Open the popover. On success, reload the current page in place. */
+    public void open() {
+        open(null);
+    }
+
+    /**
+     * Open the popover. On success, navigate to {@code returnPath} (used by
+     * the {@code /login} route to honour Spring Security's SavedRequest URL).
+     * Pass {@code null} to just reload the current page.
+     */
+    public void open(String returnPath) {
+        UI ui = UI.getCurrent();
+        if (ui == null) return;
+
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Zanata");
+        dialog.setModal(true);
+        dialog.setDraggable(false);
+        dialog.setResizable(false);
+        dialog.setCloseOnEsc(true);
+        dialog.setCloseOnOutsideClick(true);
+        dialog.setWidth("420px");
+
+        Tabs tabs = new Tabs();
+        Tab signInTab = new Tab(ui.getTranslation("login.tabSignIn"));
+        Tab signUpTab = new Tab(ui.getTranslation("login.tabSignUp"));
+        tabs.add(signInTab, signUpTab);
+        tabs.setSelectedTab(signInTab);
+
+        VerticalLayout signInPanel = buildSignInPanel(ui, dialog, returnPath);
+        VerticalLayout signUpPanel = buildSignUpPanel(ui, dialog, returnPath);
+        signUpPanel.setVisible(false);
+
+        tabs.addSelectedChangeListener(e -> {
+            boolean signIn = e.getSelectedTab() == signInTab;
+            signInPanel.setVisible(signIn);
+            signUpPanel.setVisible(!signIn);
+        });
+
+        dialog.add(tabs, signInPanel, signUpPanel);
+        dialog.open();
+    }
+
+    // ------------------------------------------------------------------
+    // Sign-in panel
+    // ------------------------------------------------------------------
+    private VerticalLayout buildSignInPanel(UI ui, Dialog dialog, String returnPath) {
+        VerticalLayout panel = sectionLayout();
+
+        TextField username = new TextField(ui.getTranslation("login.username"));
+        username.setWidthFull();
+        username.setAutofocus(true);
+        PasswordField password = new PasswordField(ui.getTranslation("login.password"));
+        password.setWidthFull();
+
+        Div errorBanner = new Div(ui.getTranslation("login.errorMessage"));
+        // Theme-agnostic error color — Aura ships --aura-red-text (light/dark
+        // aware), fall back to Vaadin's input-field invalid token if Aura
+        // isn't loaded.
+        errorBanner.getStyle().set("color",
+                "var(--aura-red-text, var(--vaadin-input-field-invalid-text-color))");
+        errorBanner.getStyle().set("font-size", "0.9rem");
+        errorBanner.setVisible(false);
+
+        Button submit = new Button(ui.getTranslation("login.submit"));
+        submit.addThemeVariants(ButtonVariant.PRIMARY);
+        submit.setWidthFull();
+        // Visual breathing room — fields and the submit shouldn't touch.
+        submit.getStyle().set("margin-top", "1rem");
+        Runnable trySubmit = () -> {
+            errorBanner.setVisible(false);
+            try {
+                authenticate(username.getValue(), password.getValue());
+                dialog.close();
+                finishSuccess(ui, returnPath);
+            } catch (AuthenticationException ex) {
+                errorBanner.setVisible(true);
+            }
+        };
+        submit.addClickListener(e -> trySubmit.run());
+        // Enter on either field submits.
+        username.addKeyDownListener(Key.ENTER, e -> trySubmit.run());
+        password.addKeyDownListener(Key.ENTER, e -> trySubmit.run());
+
+        FormLayout form = new FormLayout(username, password);
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
+        panel.add(form, errorBanner, submit);
+        return panel;
+    }
+
+    // ------------------------------------------------------------------
+    // Sign-up panel
+    // ------------------------------------------------------------------
+    private VerticalLayout buildSignUpPanel(UI ui, Dialog dialog, String returnPath) {
+        VerticalLayout panel = sectionLayout();
+
+        TextField name = new TextField(ui.getTranslation("account.register.name"));
+        name.setWidthFull();
+        TextField username = new TextField(ui.getTranslation("account.register.username"));
+        username.setHelperText(ui.getTranslation("account.register.usernameHint"));
+        username.setWidthFull();
+        EmailField email = new EmailField(ui.getTranslation("account.register.email"));
+        email.setWidthFull();
+        PasswordField password = new PasswordField(ui.getTranslation("account.register.password"));
+        password.setHelperText(ui.getTranslation("account.register.passwordHint"));
+        password.setWidthFull();
+
+        // Honeypot — bots fill every input. Real users never see this.
+        TextField honeypot = new TextField();
+        honeypot.getStyle().set("display", "none");
+        honeypot.setTabIndex(-1);
+        honeypot.setVisible(false);
+
+        Div errorBanner = new Div();
+        // Theme-agnostic error color — Aura ships --aura-red-text (light/dark
+        // aware), fall back to Vaadin's input-field invalid token if Aura
+        // isn't loaded.
+        errorBanner.getStyle().set("color",
+                "var(--aura-red-text, var(--vaadin-input-field-invalid-text-color))");
+        errorBanner.getStyle().set("font-size", "0.9rem");
+        errorBanner.getStyle().set("margin", "0.25rem 0");
+        errorBanner.setVisible(false);
+
+        Button submit = new Button(ui.getTranslation("account.register.submit"));
+        submit.addThemeVariants(ButtonVariant.PRIMARY);
+        submit.setWidthFull();
+        submit.getStyle().set("margin-top", "1rem");
+        submit.addClickListener(e -> {
+            errorBanner.setVisible(false);
+            // Drop honeypot-tripped requests silently.
+            if (honeypot.getValue() != null && !honeypot.getValue().isEmpty()) {
+                dialog.close();
+                return;
+            }
+            try {
+                registrationService.register(username.getValue(), password.getValue(),
+                        name.getValue(), email.getValue());
+                // Auto-sign-in after a successful registration so the user
+                // lands on the authenticated UI without a second prompt.
+                try {
+                    authenticate(username.getValue(), password.getValue());
+                    dialog.close();
+                    finishSuccess(ui, returnPath);
+                } catch (AuthenticationException ignore) {
+                    dialog.close();
+                    Notification n = Notification.show(
+                            ui.getTranslation("account.register.success"),
+                            3500, Notification.Position.BOTTOM_CENTER);
+                    n.addThemeVariants(NotificationVariant.SUCCESS);
+                }
+            } catch (AccountRegistrationService.RegistrationException ex) {
+                errorBanner.setText(ex.getMessage());
+                errorBanner.setVisible(true);
+            } catch (RuntimeException ex) {
+                errorBanner.setText(ui.getTranslation("account.register.failed",
+                        ex.getMessage()));
+                errorBanner.setVisible(true);
+            }
+        });
+
+        FormLayout form = new FormLayout(name, username, email, password, honeypot);
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
+        panel.add(form, errorBanner, submit);
+        return panel;
+    }
+
+    /**
+     * Shared layout for both panels — comfortable vertical spacing between
+     * the form and the submit button so they don't visually collide.
+     */
+    private static VerticalLayout sectionLayout() {
+        VerticalLayout col = new VerticalLayout();
+        col.setPadding(false);
+        col.setMargin(false);
+        col.setSpacing(true);
+        col.setWidthFull();
+        col.getStyle().set("padding-top", "0.75rem");
+        col.getStyle().set("padding-bottom", "0.25rem");
+        col.setAlignItems(FlexComponent.Alignment.STRETCH);
+        return col;
+    }
+
+    // ------------------------------------------------------------------
+    // Auth helpers
+    // ------------------------------------------------------------------
+    private void authenticate(String username, String password) {
+        UsernamePasswordAuthenticationToken request =
+                UsernamePasswordAuthenticationToken.unauthenticated(username, password);
+        Authentication result = authenticationManager.authenticate(request);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(result);
+        SecurityContextHolder.setContext(context);
+        // Persist to the HttpSession so subsequent requests see the auth.
+        HttpServletRequest httpReq = currentHttpRequest();
+        HttpServletResponse httpResp = currentHttpResponse();
+        if (httpReq != null && httpResp != null) {
+            securityContextRepository.saveContext(context, httpReq, httpResp);
+        }
+    }
+
+    private static void finishSuccess(UI ui, String returnPath) {
+        if (returnPath != null && !returnPath.isBlank()) {
+            ui.getPage().setLocation(returnPath);
+        } else {
+            ui.getPage().reload();
+        }
+    }
+
+    private static HttpServletRequest currentHttpRequest() {
+        var req = VaadinService.getCurrentRequest();
+        return req instanceof VaadinServletRequest vsr
+                ? vsr.getHttpServletRequest() : null;
+    }
+
+    private static HttpServletResponse currentHttpResponse() {
+        var resp = VaadinService.getCurrentResponse();
+        return resp instanceof VaadinServletResponse vsr
+                ? vsr.getHttpServletResponse() : null;
+    }
+}
