@@ -72,7 +72,7 @@ public class LoginDialogService {
         if (ui == null) return;
 
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Zanata");
+        dialog.setHeaderTitle(ui.getTranslation("brand.name"));
         dialog.setModal(true);
         dialog.setDraggable(false);
         dialog.setResizable(false);

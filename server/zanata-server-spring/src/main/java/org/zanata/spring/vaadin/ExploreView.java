@@ -68,7 +68,8 @@ public class ExploreView extends VerticalLayout implements TitleKey {
         setAlignItems(FlexComponent.Alignment.CENTER);
 
         TextField search = new TextField();
-        search.setPlaceholder(getTranslation("explore.searchPlaceholder"));
+        search.setPlaceholder(getTranslation("explore.searchPlaceholder",
+                getTranslation("brand.name")));
         search.setWidth("520px");
         search.setClearButtonVisible(true);
         search.setValueChangeMode(ValueChangeMode.LAZY);

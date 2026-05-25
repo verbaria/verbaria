@@ -16,7 +16,6 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -224,9 +223,7 @@ public class MainLayout extends AppLayout
                 + ".zanata-toolbar .crumbs { flex: 1 1 auto; min-width: 0;"
                 + "  overflow: hidden; }"
                 + ".zanata-toolbar .controls { display: flex; align-items: center;"
-                + "  gap: 0.25rem; flex: 0 0 auto; }"
-                + "vaadin-app-layout[primary-section=\"drawer\"][drawer-opened]:not([overlay]) "
-                + "  vaadin-drawer-toggle.nav-reopen-toggle { display: none; }";
+                + "  gap: 0.25rem; flex: 0 0 auto; }";
         getElement().executeJs(
                 "if (!document.getElementById('zanata-toolbar-css')) {"
                 + "  const s = document.createElement('style');"
@@ -237,15 +234,13 @@ public class MainLayout extends AppLayout
     }
 
     /**
-     * The in-content toolbar: drawer reopen toggle (auto-hides when drawer
-     * is open), the per-view breadcrumbs (left), and the global controls
-     * cluster on the right (theme toggle, locale picker, sign-in / user
-     * menu).
+     * The in-content toolbar: drawer toggle (single, always-visible), the
+     * per-view breadcrumbs (left), and the global controls cluster on the
+     * right (theme toggle, locale picker, sign-in / user menu).
      */
     private Component buildToolbar() {
-        DrawerToggle navToggle = new DrawerToggle();
-        navToggle.setAriaLabel(getTranslation("nav.openMenu"));
-        navToggle.addClassName("nav-reopen-toggle");
+        DrawerToggle drawerToggle = new DrawerToggle();
+        drawerToggle.setAriaLabel(getTranslation("nav.toggleMenu"));
 
         breadcrumbsSlot.addClassName("crumbs");
 
@@ -253,29 +248,36 @@ public class MainLayout extends AppLayout
                 buildAuthControl());
         controls.addClassName("controls");
 
-        Div row = new Div(navToggle, breadcrumbsSlot, controls);
+        Div row = new Div(drawerToggle, breadcrumbsSlot, controls);
         row.addClassName("zanata-toolbar");
         return row;
     }
 
     private void addDrawerContent() {
-        DrawerToggle toggle = new DrawerToggle();
-        toggle.setAriaLabel(getTranslation("nav.toggleMenu"));
-        toggle.getStyle().set("margin", "0");
-
-        Image logo = new Image("/resources/assets/img/logo/logo-text.svg", "Zanata");
-        logo.setHeight("22px");
-        logo.getStyle().set("max-width", "140px");
+        // No toggle inside the drawer header — the toolbar holds the single
+        // drawer toggle (opens AND closes). Drops the CSS hack that used to
+        // hide the in-toolbar "reopen" toggle while the drawer was open.
+        //
+        // Brand mark is text, not an SVG — one bundle key controls the
+        // wordmark, the theme controls the colour, and we don't ship a
+        // separate asset to keep in sync with rebrands.
+        Span logo = new Span(getTranslation("brand.name"));
+        logo.getStyle().set("font-size", "1.35rem");
+        logo.getStyle().set("font-weight", "700");
+        logo.getStyle().set("letter-spacing", "-0.02em");
+        logo.getStyle().set("color",
+                "var(--aura-blue-text, var(--vaadin-input-field-label-color))");
+        logo.getStyle().set("line-height", "1");
         Anchor home = new Anchor("/", logo);
         home.getStyle().set("display", "flex");
         home.getStyle().set("align-items", "center");
+        home.getStyle().set("text-decoration", "none");
         home.getStyle().set("flex", "1 1 auto");
         home.getStyle().set("min-width", "0");
 
-        Div header = new Div(toggle, home);
+        Div header = new Div(home);
         header.getStyle().set("display", "flex");
         header.getStyle().set("align-items", "center");
-        header.getStyle().set("gap", "0.5rem");
         header.getStyle().set("padding", "0.75rem 1rem");
         header.getStyle().set("box-sizing", "border-box");
         header.setWidthFull();

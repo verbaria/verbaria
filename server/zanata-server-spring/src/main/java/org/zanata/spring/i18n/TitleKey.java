@@ -8,15 +8,15 @@ import com.vaadin.flow.router.HasDynamicTitle;
  * Mixin for any {@link com.vaadin.flow.component.Component} view that wants a
  * locale-aware browser tab title. Implement and return the bundle key from
  * {@link #pageTitleKey()}; this class assembles the full title as
- * {@code "<translated key> | Zanata"} and serves it via
+ * {@code "<translated key> | <brand.name>"} and serves it via
  * {@link HasDynamicTitle#getPageTitle()}.
  *
  * <p>Replaces the static {@code @PageTitle("…")} annotation, which can't read
  * the {@link com.vaadin.flow.i18n.I18NProvider} because the annotation value
  * is resolved at class-load time, not per request.</p>
  *
- * <p>The "{@code | Zanata}" suffix is shared and not translated — product
- * names typically aren't.</p>
+ * <p>The product name comes from the {@code brand.name} bundle key — change
+ * the brand in one place and every tab title updates.</p>
  */
 public interface TitleKey extends HasDynamicTitle {
 
@@ -30,9 +30,9 @@ public interface TitleKey extends HasDynamicTitle {
     default String getPageTitle() {
         UI ui = UI.getCurrent();
         Object[] args = pageTitleArgs();
-        String base = ui == null
-                ? "!" + pageTitleKey() + "!"
-                : ui.getTranslation(pageTitleKey(), args == null ? new Object[0] : args);
-        return base + " | Zanata";
+        if (ui == null) return "!" + pageTitleKey() + "!";
+        String base = ui.getTranslation(pageTitleKey(),
+                args == null ? new Object[0] : args);
+        return base + " | " + ui.getTranslation("brand.name");
     }
 }

@@ -266,7 +266,9 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
             return card;
         }
 
-        Paragraph intro = new Paragraph(getTranslation("dashboardSettings.client.intro"));
+        Paragraph intro = new Paragraph(getTranslation(
+                "dashboardSettings.client.intro",
+                getTranslation("brand.name")));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
 
         // --- API key row ---
@@ -320,7 +322,8 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
                     } else {
                         ConfirmDialog dlg = new ConfirmDialog(
                                 getTranslation("dashboardSettings.client.regenConfirmTitle"),
-                                getTranslation("dashboardSettings.client.regenConfirmBody"),
+                                getTranslation("dashboardSettings.client.regenConfirmBody",
+                                        getTranslation("brand.name")),
                                 getTranslation("dashboardSettings.client.regenConfirmBtn"),
                                 ev -> doIt.run(),
                                 getTranslation("common.cancel"), ev -> {});
