@@ -2,7 +2,22 @@ package org.zanata.spring.vaadin.project;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.select.Select;
 
 import com.vaadin.componentfactory.Breadcrumb;
 import com.vaadin.componentfactory.Breadcrumbs;
@@ -22,8 +37,8 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
@@ -38,6 +53,7 @@ import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HProjectMember;
 import org.zanata.model.ProjectRole;
+import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.PersonRepository;
 import org.zanata.spring.repository.ProjectIterationRepository;
@@ -50,15 +66,17 @@ import org.zanata.spring.vaadin.iteration.IterationView;
 import org.zanata.spring.vaadin.stats.IterationStats;
 
 @Route(value = "project/view/:slug", layout = MainLayout.class)
-@PageTitle("Project | Zanata")
 @AnonymousAllowed
-public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.project"; }
+
 
     private final ProjectRepository projectRepository;
     private final ProjectIterationRepository iterationRepository;
     private final TextFlowTargetRepository targetRepository;
     private final LocaleRepository localeRepository;
-    private final org.zanata.spring.repository.AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
     private final PersonRepository personRepository;
     private final ProjectMembershipService membershipService;
 
@@ -68,7 +86,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                        ProjectIterationRepository iterationRepository,
                        TextFlowTargetRepository targetRepository,
                        LocaleRepository localeRepository,
-                       org.zanata.spring.repository.AccountRepository accountRepository,
+                       AccountRepository accountRepository,
                        PersonRepository personRepository,
                        ProjectMembershipService membershipService) {
         this.projectRepository = projectRepository;
@@ -127,12 +145,12 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                 .thenComparing(HProjectIteration::getSlug, Comparator.reverseOrder()));
 
         // Person → roles aggregation for the People panel.
-        java.util.Map<HPerson, java.util.EnumSet<ProjectRole>> rolesByPerson =
-                new java.util.LinkedHashMap<>();
+        Map<HPerson, EnumSet<ProjectRole>> rolesByPerson =
+                new LinkedHashMap<>();
         for (HProjectMember m : withMembers.getMembers()) {
             if (m.getPerson() == null) continue;
             rolesByPerson.computeIfAbsent(m.getPerson(),
-                    k -> java.util.EnumSet.noneOf(ProjectRole.class)).add(m.getRole());
+                    k -> EnumSet.noneOf(ProjectRole.class)).add(m.getRole());
         }
         List<HPerson> people = new ArrayList<>(rolesByPerson.keySet());
         people.sort(Comparator.comparing(
@@ -141,12 +159,12 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
 
         TabSheet tabs = new TabSheet();
         tabs.setWidthFull();
-        tabs.add(tabWithBadge("Versions", iterations.size()),
+        tabs.add(tabWithBadge(getTranslation("project.tab.versions"), iterations.size()),
                 buildVersionsPanel(slug, iterations));
-        tabs.add(tabWithBadge("People", people.size()),
+        tabs.add(tabWithBadge(getTranslation("project.tab.people"), people.size()),
                 buildPeoplePanel(people, rolesByPerson));
-        tabs.add(new Tab("Glossary"), buildGlossaryPanel(slug));
-        tabs.add(new Tab("About"), buildAboutPanel(project));
+        tabs.add(new Tab(getTranslation("project.tab.glossary")), buildGlossaryPanel(slug));
+        tabs.add(new Tab(getTranslation("project.tab.about")), buildAboutPanel(project));
         add(tabs);
     }
 
@@ -162,27 +180,21 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
         panel.getStyle().set("width", "100%");
 
-        H3 title = new H3("Project glossary");
+        H3 title = new H3(getTranslation("project.tab.glossary"));
         title.addClassNames(LumoUtility.Margin.NONE);
         panel.add(title);
 
-        Paragraph intro = new Paragraph(
-                "A project glossary lets you pin preferred translations specific "
-                + "to this project. It overrides the system glossary in the "
-                + "editor's term suggestions.");
+        Paragraph intro = new Paragraph(getTranslation("project.glossary.intro"));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         intro.getStyle().set("margin", "0.5rem 0");
         panel.add(intro);
 
-        Paragraph empty = new Paragraph(
-                "No project-specific glossary entries yet. Glossary CRUD lives in the "
-                + "system glossary view today — qualified-name filtering for "
-                + "per-project entries will land in a follow-up.");
+        Paragraph empty = new Paragraph(getTranslation("project.glossary.empty"));
         empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         empty.getStyle().set("margin", "0.25rem 0");
         panel.add(empty);
 
-        Anchor systemGlossary = new Anchor("/glossary", "Open the system glossary →");
+        Anchor systemGlossary = new Anchor("/glossary", getTranslation("project.glossary.systemLink"));
         systemGlossary.getStyle().set("color",
                 "var(--aura-blue-text, var(--lumo-primary-text-color))");
         panel.add(systemGlossary);
@@ -192,8 +204,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     private Breadcrumbs buildBreadcrumb() {
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore", true)
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore", true)
         );
         return crumbs;
     }
@@ -221,7 +233,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
         panel.getStyle().set("width", "100%");
 
-        com.vaadin.flow.component.select.Select<String> sort = new com.vaadin.flow.component.select.Select<>();
+        Select<String> sort = new Select<>();
         sort.setItems("Slug (Z-A)", "Slug (A-Z)", "Status", "Translated % (desc)", "Approved % (desc)");
         sort.setValue("Slug (Z-A)");
         sort.setWidth("220px");
@@ -237,14 +249,14 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
         right.setAlignItems(FlexComponent.Alignment.CENTER);
         right.setSpacing(true);
         if (canManageProject(projectSlug)) {
-            com.vaadin.flow.component.button.Button addVersion =
-                    new com.vaadin.flow.component.button.Button("New version",
+            Button addVersion =
+                    new Button("New version",
                             LineAwesomeIcon.PLUS_SOLID.create(),
                             e -> getUI().ifPresent(ui -> ui.navigate(
                                     "project/" + projectSlug + "/add-version")));
             addVersion.addThemeVariants(
-                    com.vaadin.flow.component.button.ButtonVariant.PRIMARY,
-                    com.vaadin.flow.component.button.ButtonVariant.SMALL);
+                    ButtonVariant.PRIMARY,
+                    ButtonVariant.SMALL);
             right.add(addVersion);
         }
         right.add(new Span("Sort"), sort);
@@ -269,23 +281,23 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     private void renderVersionList(Div container, String projectSlug,
                                    List<HProjectIteration> iterations, String sortBy) {
         container.removeAll();
-        java.util.Comparator<HProjectIteration> cmp = switch (sortBy == null ? "" : sortBy) {
-            case "Slug (A-Z)" -> java.util.Comparator
+        Comparator<HProjectIteration> cmp = switch (sortBy == null ? "" : sortBy) {
+            case "Slug (A-Z)" -> Comparator
                     .comparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
-            case "Status" -> java.util.Comparator
+            case "Status" -> Comparator
                     .comparing((HProjectIteration i) -> i.getStatus() == null
                             ? "" : i.getStatus().name())
                     .thenComparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
-            case "Translated % (desc)" -> java.util.Comparator
+            case "Translated % (desc)" -> Comparator
                     .comparingDouble((HProjectIteration i) -> -IterationStats
                             .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
                             .translatedPct);
-            case "Approved % (desc)" -> java.util.Comparator
+            case "Approved % (desc)" -> Comparator
                     .comparingDouble((HProjectIteration i) -> -IterationStats
                             .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
                             .approvedPct);
-            default -> java.util.Comparator
-                    .comparing(HProjectIteration::getSlug, java.util.Comparator.reverseOrder());
+            default -> Comparator
+                    .comparing(HProjectIteration::getSlug, Comparator.reverseOrder());
         };
         iterations.stream().sorted(cmp)
                 .forEach(it -> container.add(buildVersionRow(projectSlug, it)));
@@ -356,7 +368,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Div buildPeoplePanel(List<HPerson> people,
-                                 java.util.Map<HPerson, java.util.EnumSet<ProjectRole>> rolesByPerson) {
+                                 Map<HPerson, EnumSet<ProjectRole>> rolesByPerson) {
         Div panel = new Div();
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
@@ -372,11 +384,11 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
         title.addClassNames(LumoUtility.Margin.NONE);
         header.add(title);
         if (canManage) {
-            com.vaadin.flow.component.button.Button add = new com.vaadin.flow.component.button.Button(
+            Button add = new Button(
                     "Add someone",
                     LineAwesomeIcon.USER_PLUS_SOLID.create(),
                     e -> openAddPersonDialog());
-            add.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
+            add.addThemeVariants(ButtonVariant.PRIMARY);
             header.add(add);
         }
         panel.add(header);
@@ -390,20 +402,20 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
         grid.addColumn(p -> p.getEmail() == null ? "" : p.getEmail())
                 .setHeader("Email").setAutoWidth(true);
         grid.addColumn(p -> {
-            var rs = rolesByPerson.getOrDefault(p, java.util.EnumSet.noneOf(ProjectRole.class));
+            var rs = rolesByPerson.getOrDefault(p, EnumSet.noneOf(ProjectRole.class));
             return rs.isEmpty() ? "—"
-                    : rs.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(", "));
+                    : rs.stream().map(Enum::name).collect(Collectors.joining(", "));
         }).setHeader("Roles").setAutoWidth(true);
         if (canManage) {
             grid.addComponentColumn(p -> {
-                com.vaadin.flow.component.button.Button manage =
-                        new com.vaadin.flow.component.button.Button("Manage permissions",
+                Button manage =
+                        new Button("Manage permissions",
                                 LineAwesomeIcon.USER_COG_SOLID.create(),
                                 e -> openManagePermissionsDialog(p, rolesByPerson.getOrDefault(p,
-                                        java.util.EnumSet.noneOf(ProjectRole.class))));
+                                        EnumSet.noneOf(ProjectRole.class))));
                 manage.addThemeVariants(
-                        com.vaadin.flow.component.button.ButtonVariant.TERTIARY,
-                        com.vaadin.flow.component.button.ButtonVariant.SMALL);
+                        ButtonVariant.TERTIARY,
+                        ButtonVariant.SMALL);
                 return manage;
             }).setHeader("Actions").setAutoWidth(true);
         }
@@ -414,33 +426,33 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void openAddPersonDialog() {
-        com.vaadin.flow.component.dialog.Dialog dlg =
-                new com.vaadin.flow.component.dialog.Dialog();
+        Dialog dlg =
+                new Dialog();
         dlg.setHeaderTitle("Add team member");
         dlg.setWidth("520px");
         dlg.setCloseOnEsc(true);
 
-        com.vaadin.flow.component.combobox.ComboBox<HPerson> personPicker =
-                new com.vaadin.flow.component.combobox.ComboBox<>("Search user");
+        ComboBox<HPerson> personPicker =
+                new ComboBox<>("Search user");
         personPicker.setItemLabelGenerator(this::personLabel);
         personPicker.setWidthFull();
         personPicker.setItems(query -> personRepository.search(
                         query.getFilter().orElse(""),
-                        org.springframework.data.domain.PageRequest.of(
+                        PageRequest.of(
                                 query.getPage(), query.getPageSize()))
                 .stream());
 
-        com.vaadin.flow.component.checkbox.CheckboxGroup<ProjectRole> roleGroup =
-                new com.vaadin.flow.component.checkbox.CheckboxGroup<>("Roles");
+        CheckboxGroup<ProjectRole> roleGroup =
+                new CheckboxGroup<>("Roles");
         roleGroup.setItems(ProjectRole.values());
-        roleGroup.setValue(java.util.Set.of(ProjectRole.Maintainer));
+        roleGroup.setValue(Set.of(ProjectRole.Maintainer));
         roleGroup.setHelperText(
                 "Maintainer = full control. TranslationMaintainer = manage translators only.");
 
-        com.vaadin.flow.component.button.Button cancel = new com.vaadin.flow.component.button.Button(
+        Button cancel = new Button(
                 "Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
-        com.vaadin.flow.component.button.Button save = new com.vaadin.flow.component.button.Button(
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
+        Button save = new Button(
                 "Add person", e -> {
                     if (personPicker.getValue() == null) {
                         personPicker.setInvalid(true);
@@ -455,18 +467,18 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                     try {
                         membershipService.addMember(currentSlug,
                                 personPicker.getValue().getId(), roleGroup.getValue());
-                        com.vaadin.flow.component.notification.Notification.show(
+                        Notification.show(
                                 "Added " + personLabel(personPicker.getValue()),
-                                2500, com.vaadin.flow.component.notification.Notification.Position.BOTTOM_END);
+                                2500, Notification.Position.BOTTOM_END);
                         dlg.close();
-                        com.vaadin.flow.component.UI.getCurrent().getPage().reload();
+                        UI.getCurrent().getPage().reload();
                     } catch (Exception ex) {
-                        com.vaadin.flow.component.notification.Notification.show(
+                        Notification.show(
                                 "Failed: " + ex.getMessage(), 4000,
-                                com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                                Notification.Position.MIDDLE);
                     }
                 });
-        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         dlg.add(personPicker, roleGroup);
         dlg.getFooter().add(cancel, save);
@@ -474,43 +486,43 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void openManagePermissionsDialog(HPerson person,
-                                             java.util.EnumSet<ProjectRole> currentRoles) {
-        com.vaadin.flow.component.dialog.Dialog dlg =
-                new com.vaadin.flow.component.dialog.Dialog();
+                                             EnumSet<ProjectRole> currentRoles) {
+        Dialog dlg =
+                new Dialog();
         dlg.setHeaderTitle("Manage permissions — " + personLabel(person));
         dlg.setWidth("480px");
         dlg.setCloseOnEsc(true);
 
-        com.vaadin.flow.component.checkbox.CheckboxGroup<ProjectRole> roleGroup =
-                new com.vaadin.flow.component.checkbox.CheckboxGroup<>("Roles");
+        CheckboxGroup<ProjectRole> roleGroup =
+                new CheckboxGroup<>("Roles");
         roleGroup.setItems(ProjectRole.values());
         roleGroup.setValue(currentRoles);
         roleGroup.setHelperText(
                 "Clearing all roles removes the person from the team. "
                 + "Projects must keep at least one Maintainer.");
 
-        com.vaadin.flow.component.button.Button cancel = new com.vaadin.flow.component.button.Button(
+        Button cancel = new Button(
                 "Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
-        com.vaadin.flow.component.button.Button save = new com.vaadin.flow.component.button.Button(
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
+        Button save = new Button(
                 roleGroup.getValue().isEmpty() ? "Remove from team" : "Save permissions",
                 e -> {
                     try {
                         membershipService.setProjectRoles(currentSlug,
                                 person.getId(), roleGroup.getValue());
-                        com.vaadin.flow.component.notification.Notification.show(
+                        Notification.show(
                                 roleGroup.getValue().isEmpty()
                                         ? "Removed from team" : "Permissions saved",
-                                2500, com.vaadin.flow.component.notification.Notification.Position.BOTTOM_END);
+                                2500, Notification.Position.BOTTOM_END);
                         dlg.close();
-                        com.vaadin.flow.component.UI.getCurrent().getPage().reload();
+                        UI.getCurrent().getPage().reload();
                     } catch (Exception ex) {
-                        com.vaadin.flow.component.notification.Notification.show(
+                        Notification.show(
                                 "Failed: " + ex.getMessage(), 5000,
-                                com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                                Notification.Position.MIDDLE);
                     }
                 });
-        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
         roleGroup.addValueChangeListener(ev -> save.setText(
                 ev.getValue().isEmpty() ? "Remove from team" : "Save permissions"));
 

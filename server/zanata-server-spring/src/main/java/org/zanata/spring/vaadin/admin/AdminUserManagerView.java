@@ -8,8 +8,8 @@ import com.vaadin.flow.data.provider.ConfigurableFilterDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.util.stream.Collectors;
@@ -22,17 +22,19 @@ import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/usermanager", layout = MainLayout.class)
-@PageTitle("User Manager | Zanata")
 @RolesAllowed("ADMIN")
-public class AdminUserManagerView extends VerticalLayout {
+public class AdminUserManagerView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.userManager"; }
+
 
     public AdminUserManagerView(AccountRepository accountRepository) {
         setSizeFull();
         setPadding(true);
-        add(new H2("User Manager"));
+        add(new H2(getTranslation("page.userManager")));
 
         TextField filter = new TextField();
-        filter.setPlaceholder("Filter by username…");
+        filter.setPlaceholder(getTranslation("admin.users.filterPlaceholder"));
         filter.setClearButtonVisible(true);
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);
@@ -40,13 +42,15 @@ public class AdminUserManagerView extends VerticalLayout {
         add(filter);
 
         Grid<HAccount> grid = new Grid<>(HAccount.class, false);
-        grid.addColumn(HAccount::getUsername).setHeader("Username").setAutoWidth(true);
-        grid.addColumn(HAccount::isEnabled).setHeader("Enabled").setAutoWidth(true);
+        grid.addColumn(HAccount::getUsername)
+                .setHeader(getTranslation("admin.users.usernameCol")).setAutoWidth(true);
+        grid.addColumn(HAccount::isEnabled)
+                .setHeader(getTranslation("admin.users.enabledCol")).setAutoWidth(true);
         grid.addColumn(a -> a.getRoles() == null ? ""
                 : a.getRoles().stream()
                         .map(HAccountRole::getName)
                         .collect(Collectors.joining(", ")))
-                .setHeader("Roles");
+                .setHeader(getTranslation("admin.users.rolesCol"));
 
         // Server-paged DataProvider — never loads more than the visible page
         // even when there are tens of thousands of accounts. Filter applied

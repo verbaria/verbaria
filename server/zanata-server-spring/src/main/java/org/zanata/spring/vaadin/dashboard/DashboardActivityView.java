@@ -7,8 +7,8 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -35,9 +35,11 @@ import org.zanata.spring.vaadin.MainLayout;
  * straight back into context from the timeline.
  */
 @Route(value = "dashboard/activity", layout = MainLayout.class)
-@PageTitle("Activity | Zanata")
 @AnonymousAllowed
-public class DashboardActivityView extends VerticalLayout {
+public class DashboardActivityView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.activity"; }
+
 
     private final ProjectIterationRepository iterationRepository;
     private final DocumentRepository documentRepository;
@@ -50,7 +52,7 @@ public class DashboardActivityView extends VerticalLayout {
         setSizeFull();
         setPadding(true);
 
-        H2 heading = new H2("Activity");
+        H2 heading = new H2(getTranslation("dashboardActivity.title"));
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean signedIn = auth != null && auth.isAuthenticated()
@@ -61,14 +63,13 @@ public class DashboardActivityView extends VerticalLayout {
                 : Collections.emptyList();
 
         if (!signedIn) {
-            Paragraph signIn = new Paragraph("Sign in to see your activity.");
+            Paragraph signIn = new Paragraph(getTranslation("dashboardActivity.signInToSee"));
             signIn.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             add(heading, signIn);
             return;
         }
         if (activities.isEmpty()) {
-            Paragraph empty = new Paragraph(
-                    "No activity yet — translate or review something to see it here.");
+            Paragraph empty = new Paragraph(getTranslation("dashboardActivity.empty"));
             empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             add(heading, empty);
             return;
@@ -76,13 +77,13 @@ public class DashboardActivityView extends VerticalLayout {
 
         Grid<Activity> grid = new Grid<>(Activity.class, false);
         grid.addColumn(a -> a.getActivityType() == null ? "" : friendly(a.getActivityType().name()))
-                .setHeader("Activity").setAutoWidth(true).setFlexGrow(0);
+                .setHeader(getTranslation("dashboardActivity.colActivity")).setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(this::contextLinks)
-                .setHeader("Where").setFlexGrow(1);
-        grid.addColumn(a -> a.getWordCount() <= 0 ? "" : a.getWordCount() + " w")
-                .setHeader("Words").setAutoWidth(true).setFlexGrow(0);
+                .setHeader(getTranslation("dashboardActivity.colWhere")).setFlexGrow(1);
+        grid.addColumn(a -> a.getWordCount() <= 0 ? "" : getTranslation("dashboardActivity.wordCount", a.getWordCount()))
+                .setHeader(getTranslation("dashboardActivity.colWords")).setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(a -> a.getApproxTime() == null ? "" : a.getApproxTime().toString())
-                .setHeader("When").setAutoWidth(true).setFlexGrow(0);
+                .setHeader(getTranslation("dashboardActivity.colWhen")).setAutoWidth(true).setFlexGrow(0);
         grid.setItems(activities);
         grid.setAllRowsVisible(true);
 

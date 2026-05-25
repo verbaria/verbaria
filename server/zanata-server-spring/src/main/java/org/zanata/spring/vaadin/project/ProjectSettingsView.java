@@ -20,8 +20,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -38,9 +38,11 @@ import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/view/:slug/settings", layout = MainLayout.class)
-@PageTitle("Project settings | Zanata")
 @PermitAll
-public class ProjectSettingsView extends VerticalLayout implements BeforeEnterObserver {
+public class ProjectSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.projectSettings"; }
+
 
     private final ProjectRepository projectRepository;
     private final LocaleRepository localeRepository;
@@ -63,31 +65,31 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
 
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
                 new Breadcrumb(slug, "/project/view/" + slug),
-                new Breadcrumb("Settings", "#", true));
+                new Breadcrumb(getTranslation("page.settings"), "#", true));
         add(crumbs);
         add(new H2(project.getName() == null ? slug : project.getName()));
 
-        TextField name = new TextField("Name");
+        TextField name = new TextField(getTranslation("projectCreate.name"));
         name.setValue(project.getName() == null ? "" : project.getName());
-        TextArea description = new TextArea("Description");
+        TextArea description = new TextArea(getTranslation("projectCreate.description"));
         description.setMaxLength(255);
         description.setValue(project.getDescription() == null ? "" : project.getDescription());
-        ComboBox<ProjectType> defaultType = new ComboBox<>("Default project type");
+        ComboBox<ProjectType> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
         defaultType.setItems(ProjectType.values());
         defaultType.setValue(project.getDefaultProjectType() == null
                 ? ProjectType.Gettext : project.getDefaultProjectType());
-        ComboBox<EntityStatus> status = new ComboBox<>("Status");
+        ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("projectCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY, EntityStatus.OBSOLETE);
         status.setValue(project.getStatus() == null ? EntityStatus.ACTIVE : project.getStatus());
-        TextField sourceView = new TextField("Source view URL");
+        TextField sourceView = new TextField(getTranslation("projectSettings.sourceViewUrl"));
         sourceView.setValue(project.getSourceViewURL() == null ? "" : project.getSourceViewURL());
-        TextField sourceCheckout = new TextField("Source checkout URL");
+        TextField sourceCheckout = new TextField(getTranslation("projectSettings.sourceCheckoutUrl"));
         sourceCheckout.setValue(project.getSourceCheckoutURL() == null ? "" : project.getSourceCheckoutURL());
 
-        ComboBox<HLocale> sourceLocale = new ComboBox<>("Source language");
+        ComboBox<HLocale> sourceLocale = new ComboBox<>(getTranslation("projectCreate.sourceLocale"));
         List<HLocale> allLocales = localeRepository.findAll();
         sourceLocale.setItems(allLocales);
         sourceLocale.setItemLabelGenerator(this::localeLabel);
@@ -101,16 +103,14 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
 
-        add(new H3("Target languages"));
-        Paragraph hint = new Paragraph(
-                "Pick which locales translators can target. "
-                + "Empty = inherit from the server-wide locale list.");
+        add(new H3(getTranslation("projectSettings.targetLanguages")));
+        Paragraph hint = new Paragraph(getTranslation("projectSettings.targetLanguagesHint"));
         hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         hint.getStyle().set("margin", "0 0 0.5rem 0");
         add(hint);
 
         MultiSelectComboBox<HLocale> targetLocales =
-                new MultiSelectComboBox<>("Target locales");
+                new MultiSelectComboBox<>(getTranslation("projectSettings.targetLocales"));
         targetLocales.setItems(allLocales);
         targetLocales.setItemLabelGenerator(this::localeLabel);
         targetLocales.setWidthFull();
@@ -121,11 +121,8 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         add(targetLocales);
 
         // --- Validations card ---
-        add(new H3("Validations"));
-        Paragraph valHint = new Paragraph(
-                "Per-validation behavior: OFF skips it, WARN highlights non-conformance "
-                + "without blocking save, ERROR blocks save until fixed. Empty = inherit "
-                + "the server defaults.");
+        add(new H3(getTranslation("projectSettings.validations")));
+        Paragraph valHint = new Paragraph(getTranslation("projectSettings.validationsHint"));
         valHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         valHint.getStyle().set("margin", "0 0 0.5rem 0");
         add(valHint);
@@ -148,7 +145,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         }
         add(valForm);
 
-        Button save = new Button("Save", e -> {
+        Button save = new Button(getTranslation("common.save"), e -> {
             project.setName(name.getValue());
             project.setDescription(description.getValue());
             project.setDefaultProjectType(defaultType.getValue());
@@ -169,10 +166,10 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
             });
             project.setCustomizedValidations(validations);
             projectRepository.save(project);
-            Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
+            Notification.show(getTranslation("common.saved"), 2000, Notification.Position.BOTTOM_START);
         });
         save.addThemeVariants(ButtonVariant.PRIMARY);
-        Button back = new Button("Back to project",
+        Button back = new Button(getTranslation("projectSettings.back"),
                 e -> getUI().ifPresent(ui -> ui.navigate("project/view/" + slug)));
         add(new HorizontalLayout(save, back));
     }
@@ -189,15 +186,15 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
      * by {@code HProject.customizedValidations}, values are human-readable
      * labels from the legacy validation framework / docs.
      */
-    private static Map<String, String> validationCatalog() {
+    private Map<String, String> validationCatalog() {
         Map<String, String> m = new LinkedHashMap<>();
-        m.put("HTML_XML", "HTML / XML tags");
-        m.put("JAVA_VARIABLES", "Java variables ({0}, {x})");
-        m.put("NEW_LINE", "Leading / trailing newlines");
-        m.put("PRINTF_VARIABLES", "Printf variables (%s, %d)");
-        m.put("PRINTF_XSI_EXTENSION", "Positional printf (%1$s)");
-        m.put("TAB", "Tab characters (\\t)");
-        m.put("XML_ENTITY", "XML entity references");
+        m.put("HTML_XML", getTranslation("projectSettings.validation.htmlXml"));
+        m.put("JAVA_VARIABLES", getTranslation("projectSettings.validation.javaVariables"));
+        m.put("NEW_LINE", getTranslation("projectSettings.validation.newLine"));
+        m.put("PRINTF_VARIABLES", getTranslation("projectSettings.validation.printfVariables"));
+        m.put("PRINTF_XSI_EXTENSION", getTranslation("projectSettings.validation.printfXsi"));
+        m.put("TAB", getTranslation("projectSettings.validation.tab"));
+        m.put("XML_ENTITY", getTranslation("projectSettings.validation.xmlEntity"));
         return m;
     }
 }

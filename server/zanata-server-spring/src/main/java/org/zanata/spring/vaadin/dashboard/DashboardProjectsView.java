@@ -5,8 +5,8 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.springframework.data.domain.PageRequest;
@@ -16,20 +16,22 @@ import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "dashboard/projects", layout = MainLayout.class)
-@PageTitle("My Projects | Zanata")
 @AnonymousAllowed
-public class DashboardProjectsView extends VerticalLayout {
+public class DashboardProjectsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.myProjects"; }
+
 
     public DashboardProjectsView(ProjectRepository projectRepository) {
         setSizeFull();
         setPadding(true);
 
-        H2 heading = new H2("My Projects");
+        H2 heading = new H2(getTranslation("dashboardProjects.title"));
 
         Grid<HProject> grid = new Grid<>(HProject.class, false);
-        grid.addColumn(HProject::getName).setHeader("Name").setAutoWidth(true);
-        grid.addColumn(HProject::getSlug).setHeader("Slug").setAutoWidth(true);
-        grid.addColumn(HProject::getDescription).setHeader("Description");
+        grid.addColumn(HProject::getName).setHeader(getTranslation("dashboardProjects.colName")).setAutoWidth(true);
+        grid.addColumn(HProject::getSlug).setHeader(getTranslation("dashboardProjects.colSlug")).setAutoWidth(true);
+        grid.addColumn(HProject::getDescription).setHeader(getTranslation("dashboardProjects.colDescription"));
 
         // Server-paged DataProvider — never loads the full project table.
         CallbackDataProvider<HProject, Void> dp = DataProvider.fromCallbacks(

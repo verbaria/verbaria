@@ -13,8 +13,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.model.HIterationGroup;
@@ -23,9 +23,11 @@ import org.zanata.spring.repository.IterationGroupRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "group/create", layout = MainLayout.class)
-@PageTitle("New group | Zanata")
 @PermitAll
-public class GroupCreateView extends VerticalLayout {
+public class GroupCreateView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.newGroup"; }
+
 
     public GroupCreateView(IterationGroupRepository groupRepository,
                            AccountRepository accountRepository) {
@@ -35,33 +37,33 @@ public class GroupCreateView extends VerticalLayout {
 
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Groups", "/groups"),
-                new Breadcrumb("New group", "#", true));
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("nav.groups"), "/groups"),
+                new Breadcrumb(getTranslation("groupCreate.crumb"), "#", true));
         add(crumbs);
-        add(new H2("New version group"));
+        add(new H2(getTranslation("groupCreate.heading")));
 
-        TextField slug = new TextField("Group ID");
+        TextField slug = new TextField(getTranslation("groupCreate.groupId"));
         slug.setRequiredIndicatorVisible(true);
-        TextField name = new TextField("Name");
+        TextField name = new TextField(getTranslation("groupCreate.name"));
         name.setRequiredIndicatorVisible(true);
-        TextArea description = new TextArea("Description");
+        TextArea description = new TextArea(getTranslation("groupCreate.description"));
         description.setMaxLength(255);
         FormLayout form = new FormLayout(slug, name, description);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
 
-        Button create = new Button("Create", e -> {
+        Button create = new Button(getTranslation("groupCreate.submitBtn"), e -> {
             if (slug.getValue() == null || slug.getValue().isBlank()
                     || name.getValue() == null || name.getValue().isBlank()) {
-                Notification.show("Group ID and Name are required.", 3000,
+                Notification.show(getTranslation("groupCreate.requiredFields"), 3000,
                         Notification.Position.MIDDLE);
                 return;
             }
             String s = slug.getValue().trim();
             if (groupRepository.findBySlug(s).isPresent()) {
-                Notification.show("A group with id '" + s + "' already exists.",
+                Notification.show(getTranslation("groupCreate.duplicate", s),
                         3000, Notification.Position.MIDDLE);
                 return;
             }
@@ -77,12 +79,12 @@ public class GroupCreateView extends VerticalLayout {
                         .ifPresent(person -> g.getMaintainers().add(person));
             }
             groupRepository.save(g);
-            Notification.show("Created group " + s, 2500,
+            Notification.show(getTranslation("groupCreate.success", s), 2500,
                     Notification.Position.BOTTOM_START);
             getUI().ifPresent(ui -> ui.navigate("group/view/" + s));
         });
         create.addThemeVariants(ButtonVariant.PRIMARY);
-        Button cancel = new Button("Cancel",
+        Button cancel = new Button(getTranslation("common.cancel"),
                 e -> getUI().ifPresent(ui -> ui.navigate("groups")));
         add(new HorizontalLayout(create, cancel));
     }

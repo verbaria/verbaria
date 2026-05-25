@@ -10,8 +10,8 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 
 import org.springframework.data.domain.PageRequest;
@@ -25,18 +25,20 @@ import org.zanata.spring.vaadin.project.ProjectSettingsView;
 import org.zanata.spring.vaadin.project.ProjectView;
 
 @Route(value = "admin/projects", layout = MainLayout.class)
-@PageTitle("Manage projects | Zanata admin")
 @RolesAllowed("ADMIN")
-public class AdminProjectsView extends VerticalLayout {
+public class AdminProjectsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.myProjects"; }
+
 
     public AdminProjectsView(ProjectRepository projectRepository) {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
 
-        HorizontalLayout header = new HorizontalLayout(new H2("Manage projects"));
+        HorizontalLayout header = new HorizontalLayout(new H2(getTranslation("page.myProjects")));
         header.setWidthFull();
-        Button create = new Button("New project",
+        Button create = new Button(getTranslation("projectCreate.title"),
                 e -> getUI().ifPresent(ui -> ui.navigate(ProjectCreateView.class)));
         create.addThemeVariants(ButtonVariant.PRIMARY);
         header.add(create);
@@ -45,24 +47,24 @@ public class AdminProjectsView extends VerticalLayout {
         Grid<HProject> grid = new Grid<>(HProject.class, false);
         grid.addComponentColumn(p -> new RouterLink(p.getSlug(), ProjectView.class,
                 new com.vaadin.flow.router.RouteParameters("slug", p.getSlug())))
-                .setHeader("Slug").setAutoWidth(true);
+                .setHeader(getTranslation("admin.projects.slugCol")).setAutoWidth(true);
         grid.addColumn(p -> p.getName() == null ? "" : p.getName())
-                .setHeader("Name").setAutoWidth(true);
+                .setHeader(getTranslation("admin.projects.nameCol")).setAutoWidth(true);
         grid.addColumn(p -> p.getDefaultProjectType() == null
                 ? "" : p.getDefaultProjectType().name())
-                .setHeader("Type").setAutoWidth(true);
+                .setHeader(getTranslation("admin.projects.typeCol")).setAutoWidth(true);
         grid.addComponentColumn(p -> statusEditor(p, projectRepository))
-                .setHeader("Status").setAutoWidth(true);
+                .setHeader(getTranslation("admin.projects.statusCol")).setAutoWidth(true);
         grid.addComponentColumn(p -> {
             HorizontalLayout actions = new HorizontalLayout();
-            Button settings = new Button("Settings",
+            Button settings = new Button(getTranslation("page.settings"),
                     e -> getUI().ifPresent(ui ->
                             ui.navigate("project/view/" + p.getSlug() + "/settings")));
             settings.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-            Button obsolete = new Button("Mark obsolete", e -> {
+            Button obsolete = new Button(getTranslation("admin.projects.markObsolete"), e -> {
                 p.setStatus(EntityStatus.OBSOLETE);
                 projectRepository.save(p);
-                Notification.show("Project " + p.getSlug() + " marked obsolete",
+                Notification.show(getTranslation("admin.projects.markedObsolete", p.getSlug()),
                         2500, Notification.Position.BOTTOM_START);
                 getUI().ifPresent(ui -> ui.getPage().reload());
             });
@@ -70,7 +72,7 @@ public class AdminProjectsView extends VerticalLayout {
             obsolete.setEnabled(p.getStatus() != EntityStatus.OBSOLETE);
             actions.add(settings, obsolete);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader(getTranslation("admin.projects.actionsCol")).setAutoWidth(true);
         // Server-paged DataProvider so admins managing hundreds of projects
         // don't pay a full-table scan to render this view.
         com.vaadin.flow.data.provider.CallbackDataProvider<HProject, Void> dp =

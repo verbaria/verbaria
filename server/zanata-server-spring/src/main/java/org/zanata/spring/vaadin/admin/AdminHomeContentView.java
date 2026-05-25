@@ -11,8 +11,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import de.f0rce.ace.AceEditor;
@@ -34,9 +34,11 @@ import org.zanata.spring.vaadin.MainLayout;
  * so changes are visible immediately.</p>
  */
 @Route(value = "admin/home-content", layout = MainLayout.class)
-@PageTitle("Home page content | Zanata admin")
 @RolesAllowed("ADMIN")
-public class AdminHomeContentView extends VerticalLayout {
+public class AdminHomeContentView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.homeContent"; }
+
 
     public AdminHomeContentView(HomeContentService homeContentService,
                                 MarkdownRenderer markdownRenderer) {
@@ -44,11 +46,9 @@ public class AdminHomeContentView extends VerticalLayout {
         setPadding(true);
         setSpacing(true);
 
-        H3 title = new H3("Home page content");
+        H3 title = new H3(getTranslation("adminHomeContent.heading"));
         title.addClassNames(LumoUtility.Margin.NONE);
-        Paragraph hint = new Paragraph(
-                "Markdown is rendered on the public home page ( / ). "
-                        + "HTML inside the markdown is sanitised before rendering.");
+        Paragraph hint = new Paragraph(getTranslation("adminHomeContent.hint"));
         hint.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL,
                 LumoUtility.Margin.NONE);
         add(title, hint);
@@ -79,22 +79,22 @@ public class AdminHomeContentView extends VerticalLayout {
                 preview.getElement().setProperty("innerHTML",
                         markdownRenderer.render(e.getValue())));
 
-        Div editorPane = wrap("Markdown source", editor);
-        Div previewPane = wrap("Preview", preview);
+        Div editorPane = wrap(getTranslation("adminHomeContent.markdownSource"), editor);
+        Div previewPane = wrap(getTranslation("adminHomeContent.preview"), preview);
         HorizontalLayout split = new HorizontalLayout(editorPane, previewPane);
         split.setSizeFull();
         split.setFlexGrow(1, editorPane, previewPane);
         split.setSpacing(true);
         add(split);
 
-        Button save = new Button("Save", e -> {
+        Button save = new Button(getTranslation("adminHomeContent.save"), e -> {
             homeContentService.save(editor.getValue());
-            Notification.show("Home page saved", 2500,
+            Notification.show(getTranslation("adminHomeContent.saved"), 2500,
                     Notification.Position.BOTTOM_START);
         });
         save.addThemeVariants(ButtonVariant.PRIMARY);
 
-        Button reset = new Button("Reload from server", e -> {
+        Button reset = new Button(getTranslation("adminHomeContent.reload"), e -> {
             String fresh = homeContentService.getMarkdown();
             editor.setValue(fresh);
             preview.getElement().setProperty("innerHTML",

@@ -6,8 +6,8 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.util.LinkedHashMap;
@@ -19,9 +19,11 @@ import org.zanata.spring.repository.ApplicationConfigurationRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/server_settings", layout = MainLayout.class)
-@PageTitle("Server Settings | Zanata")
 @RolesAllowed("ADMIN")
-public class AdminServerSettingsView extends VerticalLayout {
+public class AdminServerSettingsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.serverSettings"; }
+
 
     private static final List<String> KEYS = List.of(
             HApplicationConfiguration.KEY_ADMIN_EMAIL,
@@ -49,7 +51,7 @@ public class AdminServerSettingsView extends VerticalLayout {
     public AdminServerSettingsView(ApplicationConfigurationRepository repo) {
         setSizeFull();
         setPadding(true);
-        add(new H2("Server Settings"));
+        add(new H2(getTranslation("adminServerSettings.heading")));
 
         Map<String, TextField> fields = new LinkedHashMap<>();
         FormLayout form = new FormLayout();
@@ -63,7 +65,7 @@ public class AdminServerSettingsView extends VerticalLayout {
             form.add(field);
         }
 
-        Button save = new Button("Save", e -> {
+        Button save = new Button(getTranslation("adminServerSettings.save"), e -> {
             fields.forEach((key, field) -> {
                 HApplicationConfiguration row = repo.findByKey(key).orElseGet(() -> {
                     HApplicationConfiguration n = new HApplicationConfiguration();
@@ -73,7 +75,7 @@ public class AdminServerSettingsView extends VerticalLayout {
                 row.setValue(field.getValue() == null ? "" : field.getValue());
                 repo.save(row);
             });
-            Notification.show("Saved");
+            Notification.show(getTranslation("adminServerSettings.saved"));
         });
 
         add(form, save);

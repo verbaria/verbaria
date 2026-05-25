@@ -13,8 +13,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -37,8 +37,10 @@ import org.zanata.spring.vaadin.project.ProjectView;
 
 @AnonymousAllowed
 @Route(value = "explore", layout = MainLayout.class)
-@PageTitle("Explore | Zanata")
-public class ExploreView extends VerticalLayout {
+public class ExploreView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.explore"; }
+
 
     private static final int PAGE_SIZE = 10;
 
@@ -66,7 +68,7 @@ public class ExploreView extends VerticalLayout {
         setAlignItems(FlexComponent.Alignment.CENTER);
 
         TextField search = new TextField();
-        search.setPlaceholder("Search Zanata\u2026");
+        search.setPlaceholder(getTranslation("explore.searchPlaceholder"));
         search.setWidth("520px");
         search.setClearButtonVisible(true);
         search.setValueChangeMode(ValueChangeMode.LAZY);
@@ -87,9 +89,9 @@ public class ExploreView extends VerticalLayout {
         sections.setWidth("760px");
         sections.getStyle().set("max-width", "100%");
 
-        projectsSection = new Section<>("PROJECTS", LineAwesomeIcon.FOLDER,
+        projectsSection = new Section<>(getTranslation("explore.section.projects"), LineAwesomeIcon.FOLDER,
                 p -> projectRow(p));
-        groupsSection = new Section<>("GROUPS", LineAwesomeIcon.FOLDER,
+        groupsSection = new Section<>(getTranslation("explore.section.groups"), LineAwesomeIcon.FOLDER,
                 g -> groupRow(g));
 
         sections.add(projectsSection, groupsSection);
@@ -108,7 +110,7 @@ public class ExploreView extends VerticalLayout {
                 new com.vaadin.flow.router.RouteParameters("slug", p.getSlug()));
         title.getStyle().set("font-weight", "600");
         title.getStyle().set("display", "block");
-        Span desc = new Span(p.getName() == null ? "" : "Project: " + p.getName());
+        Span desc = new Span(p.getName() == null ? "" : getTranslation("explore.projectPrefix", p.getName()));
         desc.getStyle().set("font-style", "italic");
         desc.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
         Div d = new Div(title, desc);
@@ -130,7 +132,7 @@ public class ExploreView extends VerticalLayout {
     }
 
     private Component personRow(HPerson p) {
-        Span name = new Span(p.getName() == null ? "(unnamed)" : p.getName());
+        Span name = new Span(p.getName() == null ? getTranslation("explore.unnamed") : p.getName());
         name.getStyle().set("font-weight", "600");
         name.getStyle().set("display", "block");
         Span email = new Span(p.getEmail() == null ? "" : p.getEmail());
@@ -216,13 +218,13 @@ public class ExploreView extends VerticalLayout {
             Page<T> page = loader.apply(PageRequest.of(currentPage, PAGE_SIZE));
             totalPages = Math.max(1, page.getTotalPages());
             countSpan.setText(String.valueOf(page.getTotalElements()));
-            pageInfo.setText((currentPage + 1) + " of " + totalPages);
+            pageInfo.setText(getTranslation("explore.pageInfo", (currentPage + 1), totalPages));
             prev.setEnabled(currentPage > 0);
             next.setEnabled(currentPage + 1 < totalPages);
             list.removeAll();
             List<T> items = page.getContent();
             if (items.isEmpty()) {
-                Paragraph empty = new Paragraph("No results");
+                Paragraph empty = new Paragraph(getTranslation("explore.noResults"));
                 empty.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
                 list.add(empty);
             } else {

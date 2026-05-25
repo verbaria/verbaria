@@ -1,10 +1,20 @@
 package org.zanata.spring.vaadin.translate;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
+import java.util.stream.Stream;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.zanata.spring.service.ai.TranslationProvider;
+import org.zanata.spring.service.ai.TranslationProviderRegistry;
 
 import com.vaadin.componentfactory.Breadcrumb;
 import com.vaadin.componentfactory.Breadcrumbs;
@@ -13,7 +23,18 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
+import com.vaadin.flow.component.popover.Popover;
+import com.vaadin.flow.component.popover.PopoverPosition;
 import com.vaadin.flow.component.virtuallist.VirtualList;
+import com.vaadin.flow.data.provider.CallbackDataProvider;
+import com.vaadin.flow.data.provider.ConfigurableFilterDataProvider;
+import com.vaadin.flow.data.provider.DataProvider;
+import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,8 +53,8 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
@@ -72,9 +93,11 @@ import org.zanata.spring.vaadin.iteration.IterationView;
 import org.zanata.spring.vaadin.project.ProjectView;
 
 @Route(value = "translate/:projectSlug/:versionSlug/:localeId", layout = MainLayout.class)
-@PageTitle("Translate | Zanata")
 @AnonymousAllowed
-public class TranslateView extends VerticalLayout implements BeforeEnterObserver {
+public class TranslateView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.translate"; }
+
 
 
     private static final Set<ContentState> COMPLETE = EnumSet.of(
@@ -98,8 +121,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private String currentDocId;
 
     private final TextField filter = new TextField();
-    private final Checkbox incompleteOnly = new Checkbox("Incomplete");
-    private final Checkbox completeOnly   = new Checkbox("Complete");
+    // Labels set lazily in beforeEnter() so getTranslation() resolves with
+    // the right UI locale (field initializers run before MainLayout applies
+    // the cookie-stored locale).
+    private final Checkbox incompleteOnly = new Checkbox();
+    private final Checkbox completeOnly   = new Checkbox();
     /** Virtual list driven by a server-paged CallbackDataProvider. */
     private final VirtualList<RowData> rowsList = new VirtualList<>();
 
@@ -130,7 +156,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         @Override public boolean equals(Object o) {
             return o instanceof RowData r
-                    && java.util.Objects.equals(
+                    && Objects.equals(
                             flow == null ? null : flow.getId(),
                             r.flow == null ? null : r.flow.getId());
         }
@@ -145,7 +171,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          LocaleRepository localeRepository,
                          LocaleMemberRepository localeMemberRepository,
                          AccountRepository accountRepository,
-                         org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry,
+                         TranslationProviderRegistry aiRegistry,
                          AiPolicyService aiPolicy,
                          ProgressDialogService progressDialogs,
                          EditorPreferencesService editorPreferences) {
@@ -167,7 +193,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         setSpacing(true);
     }
 
-    private final org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry;
+    private final TranslationProviderRegistry aiRegistry;
     private final AiPolicyService aiPolicy;
     private final ProgressDialogService progressDialogs;
     private final EditorPreferencesService editorPreferences;
@@ -180,10 +206,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * {@code prefs.autoOpenHistory()} default. We persist the explicit
      * open/closed state here so user toggles stick across renders.
      */
-    private final java.util.Set<Long> historyExpanded =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
-    private final java.util.Set<Long> historyCollapsed =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<Long> historyExpanded =
+            ConcurrentHashMap.newKeySet();
+    private final Set<Long> historyCollapsed =
+            ConcurrentHashMap.newKeySet();
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -193,7 +219,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         versionSlug = event.getRouteParameters().get("versionSlug").orElse("");
         localeStr   = event.getRouteParameters().get("localeId").orElse("");
         if (projectSlug.isBlank() || versionSlug.isBlank() || localeStr.isBlank()) {
-            throw new NotFoundException("Missing route parameters");
+            throw new NotFoundException(getTranslation("translate.error.missingRouteParams"));
         }
         currentLocale = new LocaleId(localeStr);
 
@@ -223,7 +249,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         if (doc == null) {
             throw new NotFoundException(
-                    "No documents found in " + projectSlug + "/" + versionSlug);
+                    getTranslation("translate.error.noDocsFound", projectSlug, versionSlug));
         }
         currentDocId = doc.getDocId();
 
@@ -255,9 +281,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         docSwitcher.getStyle().set("max-width", "520px");
         docSwitcher.getStyle().set("overflow", "hidden");
         docSwitcher.getStyle().set("text-overflow", "ellipsis");
-        com.vaadin.flow.component.popover.Popover docPopover =
-                new com.vaadin.flow.component.popover.Popover();
-        docPopover.setPosition(com.vaadin.flow.component.popover.PopoverPosition.BOTTOM);
+        Popover docPopover =
+                new Popover();
+        docPopover.setPosition(PopoverPosition.BOTTOM);
         docPopover.setWidth("760px");
         docPopover.setHeight("70vh");
         docPopover.setOpenOnClick(false); // we trigger manually after the load
@@ -270,11 +296,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // Stats popover — same pattern. buildStatsBadge() runs findByDocument
         // over the entire version (slow on large versions like Consulo) so
         // it gets the same visible progress treatment.
-        Button statsBtn = new Button("Stats");
+        Button statsBtn = new Button(getTranslation("translate.stats"));
         statsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         statsBtn.setIcon(LineAwesomeIcon.CHART_BAR_SOLID.create());
-        com.vaadin.flow.component.popover.Popover statsPopover =
-                new com.vaadin.flow.component.popover.Popover();
+        Popover statsPopover =
+                new Popover();
         statsPopover.setTarget(statsBtn);
         statsPopover.setWidth("420px");
         statsPopover.setOpenOnClick(false);
@@ -297,8 +323,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 e -> openEditorSettings());
         prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
                 ButtonVariant.LUMO_ICON);
-        prefsBtn.getElement().setAttribute("title", "Editor settings");
-        prefsBtn.getElement().setAttribute("aria-label", "Editor settings");
+        prefsBtn.getElement().setAttribute("title", getTranslation("translate.editorSettings"));
+        prefsBtn.getElement().setAttribute("aria-label", getTranslation("translate.editorSettings"));
         headingRight.add(prefsBtn);
 
         headingRow.add(heading, headingRight);
@@ -331,68 +357,53 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * but changes don't persist.
      */
     private void openEditorSettings() {
-        com.vaadin.flow.component.dialog.Dialog dlg =
-                new com.vaadin.flow.component.dialog.Dialog();
-        dlg.setHeaderTitle("Editor settings");
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("editor.settings.title"));
         dlg.setWidth("420px");
-        // Multiple ways out so the dialog never traps the user, even when
-        // Save would be a no-op (anonymous = preferences not persisted).
         dlg.setCloseOnEsc(true);
         dlg.setCloseOnOutsideClick(true);
 
-        // Header close (X) — small but always present, mirrors common UX.
         Button closeX = new Button(LineAwesomeIcon.TIMES_SOLID.create(), e -> dlg.close());
         closeX.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
-        closeX.getElement().setAttribute("aria-label", "Close");
-        closeX.getElement().setAttribute("title", "Close");
+        closeX.getElement().setAttribute("aria-label", getTranslation("common.close"));
+        closeX.getElement().setAttribute("title", getTranslation("common.close"));
         dlg.getHeader().add(closeX);
 
-        com.vaadin.flow.component.checkbox.Checkbox compact =
-                new com.vaadin.flow.component.checkbox.Checkbox("Compact rows");
+        Checkbox compact = new Checkbox(getTranslation("editor.settings.compact"));
         compact.setValue(prefs.compactRows());
-        compact.setHelperText("Tighter padding so more rows fit in the viewport.");
+        compact.setHelperText(getTranslation("editor.settings.compactHint"));
 
-        com.vaadin.flow.component.checkbox.Checkbox showReview =
-                new com.vaadin.flow.component.checkbox.Checkbox("Show review comments inline");
+        Checkbox showReview = new Checkbox(getTranslation("editor.settings.showReview"));
         showReview.setValue(prefs.showReviewComments());
-        showReview.setHelperText("Render rejection reasons at the top of the History panel.");
+        showReview.setHelperText(getTranslation("editor.settings.showReviewHint"));
 
-        com.vaadin.flow.component.checkbox.Checkbox autoHistory =
-                new com.vaadin.flow.component.checkbox.Checkbox("Open history panel by default");
+        Checkbox autoHistory = new Checkbox(getTranslation("editor.settings.autoOpenHistory"));
         autoHistory.setValue(prefs.autoOpenHistory());
 
         boolean signedIn = isAuthenticated();
         if (!signedIn) {
-            Paragraph note = new Paragraph(
-                    "Sign in to persist these preferences. Changes will apply to "
-                    + "this browser session only.");
+            Paragraph note = new Paragraph(getTranslation("editor.settings.signInToPersist"));
             note.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             note.getStyle().set("font-size", "0.85rem");
             note.getStyle().set("margin", "0 0 0.5rem 0");
             dlg.add(note);
         }
 
-        Button cancel = new Button("Cancel", e -> dlg.close());
+        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
         cancel.addThemeVariants(ButtonVariant.TERTIARY);
-        Button save = new Button("Save", e -> {
+        Button save = new Button(getTranslation("common.save"), e -> {
             var next = new EditorPreferencesService.Prefs(
                     Boolean.TRUE.equals(compact.getValue()),
                     Boolean.TRUE.equals(showReview.getValue()),
                     Boolean.TRUE.equals(autoHistory.getValue()));
-            // Signed-in: persists to HAccountOption.
-            // Anonymous: stashed on UI via ComponentUtil — survives in-app
-            // navigation but is gone on full browser reload (which is fine
-            // because we never reload the page from here any more).
             editorPreferences.save(next);
             prefs = next;
-            // Refresh the data provider so already-rendered rows pick up
-            // the new prefs (compact rows, autoOpenHistory, etc.) without
-            // throwing away the whole UI via page.reload().
             if (rowsList.getDataProvider() != null) {
                 rowsList.getDataProvider().refreshAll();
             }
-            Notification.show(signedIn ? "Editor settings saved"
-                            : "Applied for this session",
+            Notification.show(getTranslation(signedIn
+                            ? "editor.settings.savedSignedIn"
+                            : "editor.settings.savedAnonymous"),
                     2000, Notification.Position.BOTTOM_END);
             dlg.close();
         });
@@ -405,25 +416,31 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     /** Modal cheat-sheet of the editor's keyboard shortcuts. */
     private void openShortcutsHelp() {
-        com.vaadin.flow.component.dialog.Dialog dlg =
-                new com.vaadin.flow.component.dialog.Dialog();
-        dlg.setHeaderTitle("Keyboard shortcuts");
+        Dialog dlg =
+                new Dialog();
+        dlg.setHeaderTitle(getTranslation("translate.shortcuts.dialogTitle"));
         dlg.setWidth("520px");
         dlg.setCloseOnEsc(true);
 
         String html = "<table style=\"border-collapse:collapse;width:100%;font-size:0.9rem\">"
-                + row("Alt+Y", "Show this help")
-                + row("Esc", "Close any open dialog")
-                + row("Alt+G", "Copy source text into translation")
-                + row("Alt+X", "Clear translation field")
-                + row("Ctrl+Enter", "Save as Translated")
-                + row("Ctrl+S", "Save as fuzzy (Need review)")
+                + row(getTranslation("translate.shortcuts.shortcutAltY"),
+                        getTranslation("translate.shortcuts.descShowHelp"))
+                + row(getTranslation("translate.shortcuts.shortcutEsc"),
+                        getTranslation("translate.shortcuts.descCloseAny"))
+                + row(getTranslation("translate.shortcuts.shortcutAltG"),
+                        getTranslation("translate.shortcuts.descCopySource"))
+                + row(getTranslation("translate.shortcuts.shortcutAltX"),
+                        getTranslation("translate.shortcuts.descClearTranslation"))
+                + row(getTranslation("translate.shortcuts.shortcutCtrlEnter"),
+                        getTranslation("translate.shortcuts.descSaveTranslated"))
+                + row(getTranslation("translate.shortcuts.shortcutCtrlS"),
+                        getTranslation("translate.shortcuts.descSaveFuzzy"))
                 + "</table>";
         Div content = new Div();
         content.getElement().setProperty("innerHTML", html);
         dlg.add(content);
 
-        Button close = new Button("Close", e -> dlg.close());
+        Button close = new Button(getTranslation("progress.close"), e -> dlg.close());
         close.addThemeVariants(ButtonVariant.TERTIARY);
         dlg.getFooter().add(close);
         dlg.open();
@@ -435,44 +452,46 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 + "</td><td style=\"padding:0.3rem 0.5rem\">" + desc + "</td></tr>";
     }
 
-    private com.vaadin.flow.component.menubar.MenuBar buildBulkAiButton(HDocument doc) {
-        com.vaadin.flow.component.menubar.MenuBar mb = new com.vaadin.flow.component.menubar.MenuBar();
+    private MenuBar buildBulkAiButton(HDocument doc) {
+        MenuBar mb = new MenuBar();
         mb.addThemeVariants(
-                com.vaadin.flow.component.menubar.MenuBarVariant.TERTIARY,
-                com.vaadin.flow.component.menubar.MenuBarVariant.SMALL);
-        var item = mb.addItem("AI translate missing");
-        item.getElement().setAttribute("title", "Use AI to fill in untranslated entries");
+                MenuBarVariant.TERTIARY,
+                MenuBarVariant.SMALL);
+        var item = mb.addItem(getTranslation("translate.action.aiBulk"));
+        item.getElement().setAttribute("title", getTranslation("translate.action.aiTooltip"));
         for (var provider : aiRegistry.available()) {
             item.getSubMenu().addItem(provider.displayName(), e -> runBulkAi(doc, provider));
         }
         return mb;
     }
 
-    private void runBulkAi(HDocument doc, org.zanata.spring.service.ai.TranslationProvider provider) {
+    private void runBulkAi(HDocument doc, TranslationProvider provider) {
         List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
                 doc.getId(), currentLocale, "", 1,
-                org.springframework.data.domain.PageRequest.of(0, 1000));
+                PageRequest.of(0, 1000));
         if (flows.isEmpty()) {
-            Notification.show("Nothing to translate", 2000, Notification.Position.BOTTOM_START);
+            Notification.show(getTranslation("translate.bulkAi.nothing"),
+                    2000, Notification.Position.BOTTOM_START);
             return;
         }
-        List<org.zanata.spring.service.ai.TranslationProvider.TranslationRequest> reqs =
+        List<TranslationProvider.TranslationRequest> reqs =
                 new ArrayList<>(flows.size());
         for (HTextFlow tf : flows) {
             String src = tf.getContents().isEmpty() ? "" : tf.getContents().get(0);
             String ctx = tf.getPotEntryData() == null ? null : tf.getPotEntryData().getContext();
-            reqs.add(new org.zanata.spring.service.ai.TranslationProvider.TranslationRequest(
+            reqs.add(new TranslationProvider.TranslationRequest(
                     src, sourceLocale, currentLocale, ctx));
         }
 
         int total = reqs.size();
-        String title = "Translating with " + provider.displayName();
+        String providerName = provider.displayName();
+        String title = getTranslation("ai.translate.bulkRunning", providerName);
         progressDialogs.run(title, handle -> {
-            handle.update(0, total, "Sending to " + provider.displayName() + "…");
+            handle.update(0, total, handle.t("ai.translate.bulkProgress", 0, total));
             List<String> out = provider.translateBatch(reqs,
                     (done, t) -> handle.update(done, t,
-                            "Translated " + done + " of " + t + " entries"));
-            handle.update(total, total, "Saving translations…");
+                            handle.t("ai.translate.bulkProgress", done, t)));
+            handle.update(total, total, handle.t("ai.translate.bulkSaving"));
             int saved = 0;
             for (int i = 0; i < flows.size(); i++) {
                 String translated = out.get(i);
@@ -486,11 +505,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             return saved;
         }).whenComplete((saved, err) -> {
             if (err != null) {
-                Notification.show("AI translate failed: " + err.getMessage(),
+                Notification.show(getTranslation("translate.bulkAi.failed", err.getMessage()),
                         5000, Notification.Position.MIDDLE);
                 return;
             }
-            Notification.show("AI filled " + saved + " of " + total + " entries",
+            Notification.show(getTranslation("translate.bulkAi.result", saved, total),
                     4000, Notification.Position.BOTTOM_START);
             rowsList.getDataProvider().refreshAll();
         });
@@ -502,43 +521,45 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * modal (visible status + progress bar), then populates the popover
      * with the rendered grid and opens it.
      */
-    private void openDocPickerVia(com.vaadin.flow.component.popover.Popover pop,
+    private void openDocPickerVia(Popover pop,
                                   Button trigger, Long iterId, boolean viewingSource) {
         trigger.setEnabled(false);
-        progressDialogs.run("Loading documents…", handle -> {
-            handle.update(0, 3, "Listing documents in " + versionSlug + "…");
+        String capturedVersionSlug = versionSlug;
+        String capturedLocaleStr = localeStr;
+        progressDialogs.run(getTranslation("translate.docSwitcher.title"), handle -> {
+            handle.update(0, 3, handle.t("translate.docSwitcher.listing", capturedVersionSlug));
             List<HDocument> allDocs = documentRepository
                     .findByVersion(projectSlug, versionSlug);
-            handle.update(1, 3, "Counting text-flows per document…");
-            java.util.Map<Long, Long> totalByDoc = new HashMap<>();
-            java.util.Map<Long, Long> translatedByDoc = new HashMap<>();
+            handle.update(1, 3, handle.t("translate.docSwitcher.countingTextFlows"));
+            Map<Long, Long> totalByDoc = new HashMap<>();
+            Map<Long, Long> translatedByDoc = new HashMap<>();
             if (iterId != null) {
                 for (Object[] row : textFlowRepository.countPerDocForIteration(iterId)) {
                     totalByDoc.put(((Number) row[0]).longValue(),
                             ((Number) row[1]).longValue());
                 }
-                handle.update(2, 3, "Counting translated entries for " + localeStr + "…");
+                handle.update(2, 3, handle.t("translate.docSwitcher.countingTranslated", capturedLocaleStr));
                 for (Object[] row : targetRepository
                         .translatedCountPerDocForLocale(iterId, currentLocale)) {
                     translatedByDoc.put(((Number) row[0]).longValue(),
                             ((Number) row[1]).longValue());
                 }
             }
-            handle.update(3, 3, "Rendering grid…");
+            handle.update(3, 3, handle.t("translate.docSwitcher.rendering"));
             return new Object[] { allDocs, totalByDoc, translatedByDoc };
         }).whenComplete((data, err) -> {
             trigger.setEnabled(true);
             if (err != null) {
-                Notification.show("Loading docs failed: " + err.getMessage(),
+                Notification.show(getTranslation("translate.action.history.empty", err.getMessage()),
                         5000, Notification.Position.MIDDLE);
                 return;
             }
             @SuppressWarnings("unchecked")
             List<HDocument> allDocs = (List<HDocument>) data[0];
             @SuppressWarnings("unchecked")
-            java.util.Map<Long, Long> totalByDoc = (java.util.Map<Long, Long>) data[1];
+            Map<Long, Long> totalByDoc = (Map<Long, Long>) data[1];
             @SuppressWarnings("unchecked")
-            java.util.Map<Long, Long> translatedByDoc = (java.util.Map<Long, Long>) data[2];
+            Map<Long, Long> translatedByDoc = (Map<Long, Long>) data[2];
             VerticalLayout body = buildDocPickerBody(
                     allDocs, totalByDoc, translatedByDoc, viewingSource, pop);
             pop.removeAll();
@@ -552,15 +573,22 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * heavy aggregation runs in the ProgressDialogService modal, then the
      * built badge is dropped into the popover which then opens.
      */
-    private void openStatsVia(com.vaadin.flow.component.popover.Popover pop, Button trigger) {
+    private void openStatsVia(Popover pop, Button trigger) {
         trigger.setEnabled(false);
-        progressDialogs.run("Computing stats…", handle -> {
-            handle.status("Aggregating word counts for " + currentDocId + "…");
-            return buildStatsBadge();
+        String capturedDocId = currentDocId;
+        // Capture translations on the UI thread; the worker thread can't call getTranslation().
+        StatLabels labels = new StatLabels(
+                getTranslation("translate.stats.row.approved"),
+                getTranslation("translate.stats.row.translated"),
+                getTranslation("translate.stats.row.needsReview"),
+                getTranslation("translate.stats.row.untranslated"));
+        progressDialogs.run(getTranslation("translate.stats.computing"), handle -> {
+            handle.status(handle.t("translate.stats.aggregating", capturedDocId));
+            return buildStatsBadge(labels, handle);
         }).whenComplete((badge, err) -> {
             trigger.setEnabled(true);
             if (err != null) {
-                Notification.show("Stats failed: " + err.getMessage(),
+                Notification.show(getTranslation("common.failed", err.getMessage()),
                         5000, Notification.Position.MIDDLE);
                 return;
             }
@@ -573,29 +601,29 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     /** Body for the doc picker — formerly the bulk of buildDocPickerPopover. */
     private VerticalLayout buildDocPickerBody(
             List<HDocument> allDocs,
-            java.util.Map<Long, Long> totalByDoc,
-            java.util.Map<Long, Long> translatedByDoc,
+            Map<Long, Long> totalByDoc,
+            Map<Long, Long> translatedByDoc,
             boolean viewingSource,
-            com.vaadin.flow.component.popover.Popover pop) {
+            Popover pop) {
         TextField search = new TextField();
-        search.setPlaceholder("Filter by docId…");
+        search.setPlaceholder(getTranslation("translate.docSwitcher.searchPlaceholder"));
         search.setClearButtonVisible(true);
         search.setWidthFull();
         search.setValueChangeMode(ValueChangeMode.LAZY);
         search.setValueChangeTimeout(150);
 
-        com.vaadin.flow.component.grid.Grid<HDocument> grid =
-                new com.vaadin.flow.component.grid.Grid<>();
+        Grid<HDocument> grid =
+                new Grid<>();
         grid.setSizeFull();
-        grid.setSelectionMode(com.vaadin.flow.component.grid.Grid.SelectionMode.NONE);
+        grid.setSelectionMode(Grid.SelectionMode.NONE);
 
         grid.addColumn(HDocument::getDocId)
-                .setHeader("Document")
+                .setHeader(getTranslation("translate.docPicker.column.document"))
                 .setFlexGrow(1)
                 .setSortable(true)
                 .setKey("docId");
 
-        java.util.function.ToIntFunction<HDocument> pctOf = d -> {
+        ToIntFunction<HDocument> pctOf = d -> {
             long total = totalByDoc.getOrDefault(d.getId(), 0L);
             long done = viewingSource ? total
                     : translatedByDoc.getOrDefault(d.getId(), 0L);
@@ -614,11 +642,12 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             pill.getStyle().set("font-weight", "600");
             pill.getStyle().set("font-variant-numeric", "tabular-nums");
             return pill;
-        }).setHeader("Translated").setWidth("180px").setFlexGrow(0)
-                .setSortable(true).setComparator(java.util.Comparator.comparingInt(pctOf));
+        }).setHeader(getTranslation("translate.docPicker.column.translated"))
+                .setWidth("180px").setFlexGrow(0)
+                .setSortable(true).setComparator(Comparator.comparingInt(pctOf));
 
-        com.vaadin.flow.data.provider.ListDataProvider<HDocument> dp =
-                new com.vaadin.flow.data.provider.ListDataProvider<>(allDocs);
+        ListDataProvider<HDocument> dp =
+                new ListDataProvider<>(allDocs);
         grid.setDataProvider(dp);
         search.addValueChangeListener(e -> {
             String q = e.getValue() == null ? "" : e.getValue().trim().toLowerCase();
@@ -628,7 +657,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         grid.addItemClickListener(ev -> {
             HDocument picked = ev.getItem();
             if (picked == null) return;
-            org.slf4j.LoggerFactory.getLogger(TranslateView.class)
+            LoggerFactory.getLogger(TranslateView.class)
                     .info("doc-picker → switch to {}", picked.getDocId());
             // Close client-side first so the popover disappears instantly,
             // independent of the server roundtrip for navigate().
@@ -638,7 +667,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             UI.getCurrent().navigate(
                     "translate/" + projectSlug + "/" + versionSlug + "/" + localeStr,
                     com.vaadin.flow.router.QueryParameters.simple(
-                            java.util.Map.of("doc", picked.getDocId())));
+                            Map.of("doc", picked.getDocId())));
         });
 
         // Search stays pinned at top, grid takes the rest and scrolls internally.
@@ -664,7 +693,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private Div buildFilterBar() {
-        filter.setPlaceholder("Click to see available filter terms (separate by space)");
+        filter.setPlaceholder(getTranslation("translate.filter.placeholder"));
+        incompleteOnly.setLabel(getTranslation("translate.filter.incomplete"));
+        completeOnly.setLabel(getTranslation("translate.filter.complete"));
         filter.setClearButtonVisible(true);
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);
@@ -706,11 +737,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     /** Wire VirtualList to a server-paged DataProvider — never loads the whole doc into memory. */
     private void installDataProvider(Long docId) {
-        com.vaadin.flow.data.provider.CallbackDataProvider<RowData, FilterSpec> provider =
-                com.vaadin.flow.data.provider.DataProvider.fromFilteringCallbacks(
+        CallbackDataProvider<RowData, FilterSpec> provider =
+                DataProvider.fromFilteringCallbacks(
                         query -> fetchPage(docId, query),
                         query -> countMatching(docId, query));
-        com.vaadin.flow.data.provider.ConfigurableFilterDataProvider<RowData, Void, FilterSpec>
+        ConfigurableFilterDataProvider<RowData, Void, FilterSpec>
                 filterable = provider.withConfigurableFilter();
         filterable.setFilter(currentFilterSpec());
         rowsList.setDataProvider(filterable);
@@ -726,15 +757,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         });
     }
 
-    private java.util.stream.Stream<RowData> fetchPage(Long docId,
-            com.vaadin.flow.data.provider.Query<RowData, FilterSpec> query) {
+    private Stream<RowData> fetchPage(Long docId,
+            Query<RowData, FilterSpec> query) {
         FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
         int page = query.getOffset() / Math.max(1, query.getLimit());
-        org.springframework.data.domain.PageRequest pr =
-                org.springframework.data.domain.PageRequest.of(page, query.getLimit());
+        PageRequest pr =
+                PageRequest.of(page, query.getLimit());
         List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
                 docId, currentLocale, f.q(), f.stateMode(), pr);
-        if (flows.isEmpty()) return java.util.stream.Stream.empty();
+        if (flows.isEmpty()) return Stream.empty();
         List<Long> ids = new ArrayList<>(flows.size());
         for (HTextFlow tf : flows) ids.add(tf.getId());
         Map<Long, HTextFlowTarget> tByFlow = new HashMap<>();
@@ -751,7 +782,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private int countMatching(Long docId,
-            com.vaadin.flow.data.provider.Query<RowData, FilterSpec> query) {
+            Query<RowData, FilterSpec> query) {
         FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
         long n = textFlowRepository.countForTranslateView(
                 docId, currentLocale, f.q(), f.stateMode());
@@ -761,8 +792,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private Breadcrumbs buildBreadcrumb() {
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
                 new Breadcrumb(projectSlug, "/project/view/" + projectSlug),
                 new Breadcrumb(versionSlug,
                         "/project/" + projectSlug + "/version/" + versionSlug),
@@ -817,7 +848,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         srcText.addClassNames(LumoUtility.Margin.NONE);
         srcText.getStyle().set("white-space", "pre-wrap");
 
-        Button detailsBtn = new Button("Details", LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
+        Button detailsBtn = new Button(getTranslation("translate.action.details"),
+                LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
         detailsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         // Bookmark / permalink — copies a deep link to this text flow to the
         // clipboard. Replaces the older "Link" panel which only displayed it.
@@ -825,8 +857,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 e -> copyPermalink(flow.getId()));
         bookmarkBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
                 ButtonVariant.LUMO_ICON);
-        bookmarkBtn.getElement().setAttribute("title", "Copy permalink to this string");
-        bookmarkBtn.getElement().setAttribute("aria-label", "Copy permalink");
+        String bookmarkTip = getTranslation("translate.action.bookmarkTooltip");
+        bookmarkBtn.getElement().setAttribute("title", bookmarkTip);
+        bookmarkBtn.getElement().setAttribute("aria-label", bookmarkTip);
 
         Div detailsPanel = buildDetailsPanel(flow);
         detailsPanel.setVisible(false);
@@ -849,7 +882,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 && sourceLocale.getId().equalsIgnoreCase(localeStr);
         boolean canEdit = isAuthenticated();
 
-        TextArea area = new TextArea(isSourceLocale ? "Source" : "Translation");
+        TextArea area = new TextArea(getTranslation(
+                isSourceLocale ? "translate.row.source" : "translate.row.translation"));
         area.setWidthFull();
         area.setMinHeight("4rem");
         area.setValue(isSourceLocale ? source : initialContent);
@@ -870,22 +904,24 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Span stateSpan = new Span(initialState.name());
         applyStateColor(stateSpan, initialState);
 
-        Button save = new Button("Save");
+        Button save = new Button(getTranslation("translate.row.save"));
         save.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
         save.setEnabled(canEdit);
         if (!canEdit) {
-            save.setTooltipText("Sign in to edit");
+            save.setTooltipText(getTranslation("translate.tooltip.signInToEdit"));
         }
         save.addClickListener(e -> {
             if (isSourceLocale) {
                 translationEditService.updateSource(flow.getId(), area.getValue());
-                Notification.show("Source updated", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("translate.row.savedSource"),
+                        2000, Notification.Position.BOTTOM_START);
             } else {
                 ContentState newState = translationEditService.save(
                         flow.getId(), currentLocale, area.getValue());
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
-                Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("translate.row.saved"),
+                        2000, Notification.Position.BOTTOM_START);
             }
         });
         // Ctrl+Enter — save as Translated (matches legacy + Zanata docs).
@@ -902,10 +938,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                                 flow.getId(), currentLocale, ContentState.NeedReview);
                         stateSpan.setText(ns.name());
                         applyStateColor(stateSpan, ns);
-                        Notification.show("Saved as fuzzy", 2000,
-                                Notification.Position.BOTTOM_START);
+                        Notification.show(getTranslation("translate.row.savedFuzzy"),
+                                2000, Notification.Position.BOTTOM_START);
                     } catch (Exception ex) {
-                        Notification.show("Save fuzzy failed: " + ex.getMessage(),
+                        Notification.show(getTranslation("translate.row.saveFuzzyFailed", ex.getMessage()),
                                 4000, Notification.Position.MIDDLE);
                     }
                 }, Key.KEY_S, KeyModifier.CONTROL).listenOn(area)
@@ -913,7 +949,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             }
         }
 
-        Button historyBtn = new Button("History", LineAwesomeIcon.CLOCK_SOLID.create());
+        Button historyBtn = new Button(getTranslation("translate.action.history"),
+                LineAwesomeIcon.CLOCK_SOLID.create());
         historyBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         Div historyPanel = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
         // Initial visibility: explicit user toggle wins over the global pref.
@@ -942,33 +979,34 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         // Per-row "AI translate" — gated by the global flag, provider availability,
         // and the per-user opt-in. Source locale never gets the button.
-        com.vaadin.flow.component.menubar.MenuBar aiBtn = null;
+        MenuBar aiBtn = null;
         if (!isSourceLocale && aiPolicy.canCurrentUserUseAi()) {
-            aiBtn = new com.vaadin.flow.component.menubar.MenuBar();
+            aiBtn = new MenuBar();
             aiBtn.addThemeVariants(
-                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
-                    com.vaadin.flow.component.menubar.MenuBarVariant.SMALL);
+                    MenuBarVariant.LUMO_TERTIARY_INLINE,
+                    MenuBarVariant.SMALL);
             var trigger = aiBtn.addItem(LineAwesomeIcon.MAGIC_SOLID.create());
-            trigger.getElement().setAttribute("aria-label", "Translate with AI");
-            trigger.getElement().setAttribute("title", "Translate with AI");
+            trigger.getElement().setAttribute("aria-label", getTranslation("translate.action.aiPerRow"));
+            trigger.getElement().setAttribute("title", getTranslation("translate.action.aiPerRow"));
             for (var provider : aiRegistry.available()) {
                 trigger.getSubMenu().addItem(provider.displayName(), ev -> {
                     String ctx = flow.getPotEntryData() == null ? null
                             : flow.getPotEntryData().getContext();
-                    progressDialogs.run("Translating with " + provider.displayName(),
+                    String providerName = provider.displayName();
+                    progressDialogs.run(getTranslation("ai.translate.bulkRunning", providerName),
                             handle -> {
-                                handle.status("Calling " + provider.displayName() + "…");
+                                handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
                                 return provider.translate(source, sourceLocale, currentLocale, ctx);
                             })
                             .whenComplete((out, err) -> {
                                 if (err != null) {
-                                    Notification.show("AI translate failed: " + err.getMessage(),
+                                    Notification.show(getTranslation("ai.translate.failed", err.getMessage()),
                                             5000, Notification.Position.MIDDLE);
                                     return;
                                 }
                                 if (out != null && !out.isBlank()) {
                                     area.setValue(out);
-                                    Notification.show("Filled by " + provider.displayName(),
+                                    Notification.show(getTranslation("ai.translate.filledBy", providerName),
                                             2000, Notification.Position.BOTTOM_START);
                                 }
                             });
@@ -979,15 +1017,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         boolean canReview = canReviewLocale();
         boolean hasSavedContent = !initialContent.isBlank();
 
-        Button approve = new Button("Approve", LineAwesomeIcon.CHECK_SOLID.create());
+        Button approve = new Button(getTranslation("translate.action.approve"),
+                LineAwesomeIcon.CHECK_SOLID.create());
         approve.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
         approve.setEnabled(!isSourceLocale && canReview && hasSavedContent);
         if (isSourceLocale) {
             approve.setVisible(false);
         } else if (!canReview) {
-            approve.setTooltipText("Join the " + localeStr + " language team as reviewer to approve");
+            approve.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
+                    localeStr, getTranslation("translate.row.approveTip.review")));
         } else if (!hasSavedContent) {
-            approve.setTooltipText("Save a translation before approving");
+            approve.setTooltipText(getTranslation("translate.tooltip.saveBeforeReview",
+                    getTranslation("translate.row.approveTip.review")));
         }
         approve.addClickListener(e -> {
             try {
@@ -995,21 +1036,26 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                         flow.getId(), currentLocale, ContentState.Approved);
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
-                Notification.show("Approved", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("translate.approve.success"),
+                        2000, Notification.Position.BOTTOM_START);
             } catch (Exception ex) {
-                Notification.show("Approve failed: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
+                Notification.show(getTranslation("translate.row.approveFailed", ex.getMessage()),
+                        4000, Notification.Position.MIDDLE);
             }
         });
 
-        Button reject = new Button("Reject", LineAwesomeIcon.TIMES_SOLID.create());
+        Button reject = new Button(getTranslation("translate.action.reject"),
+                LineAwesomeIcon.TIMES_SOLID.create());
         reject.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
         reject.setEnabled(!isSourceLocale && canReview && hasSavedContent);
         if (isSourceLocale) {
             reject.setVisible(false);
         } else if (!canReview) {
-            reject.setTooltipText("Join the " + localeStr + " language team as reviewer to reject");
+            reject.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
+                    localeStr, getTranslation("translate.row.rejectTip.review")));
         } else if (!hasSavedContent) {
-            reject.setTooltipText("Save a translation before rejecting");
+            reject.setTooltipText(getTranslation("translate.tooltip.saveBeforeReview",
+                    getTranslation("translate.row.rejectTip.review")));
         }
         reject.addClickListener(e -> openRejectDialog(flow, stateSpan, historyPanel));
 
@@ -1039,14 +1085,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         d.getStyle().set("margin-top", "0.5rem");
         d.getStyle().set("font-size", "0.875rem");
         List<String> rows = new ArrayList<>();
-        rows.add(label("Resource ID:", flow.getResId()));
-        rows.add(label("Message Context:", noContent(flow.getPotEntryData() == null
+        rows.add(label(getTranslation("translate.details.resourceId"), flow.getResId()));
+        rows.add(label(getTranslation("translate.details.messageContext"), noContent(flow.getPotEntryData() == null
                 ? null : flow.getPotEntryData().getContext())));
-        rows.add(label("Reference:", noContent(flow.getPotEntryData() == null
+        rows.add(label(getTranslation("translate.details.reference"), noContent(flow.getPotEntryData() == null
                 ? null : flow.getPotEntryData().getReferences())));
-        rows.add(label("Flags:", noContent(flow.getPotEntryData() == null
+        rows.add(label(getTranslation("translate.details.flags"), noContent(flow.getPotEntryData() == null
                 ? null : flow.getPotEntryData().getFlags())));
-        rows.add(label("Source Comment:", noContent(flow.getComment() == null
+        rows.add(label(getTranslation("translate.details.sourceComment"), noContent(flow.getComment() == null
                 ? null : String.valueOf(flow.getComment()))));
         for (String r : rows) {
             Paragraph p = new Paragraph();
@@ -1066,7 +1112,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * typing against any saved version.
      */
     private Div buildHistoryPanel(Long textFlowId, String savedContent,
-                                  java.util.function.Supplier<String> liveContent) {
+                                  Supplier<String> liveContent) {
         Div d = new Div();
         d.getStyle().set("background", "var(--vaadin-background-color)");
         d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
@@ -1080,9 +1126,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // the user has disabled "Show review comments inline" in editor settings.
         List<HTextFlowTargetReviewComment> comments = prefs.showReviewComments()
                 ? reviewCommentRepository.findByTextFlowAndLocale(textFlowId, currentLocale)
-                : java.util.List.of();
+                : List.of();
         if (!comments.isEmpty()) {
-            Span header = new Span("Review comments");
+            Span header = new Span(getTranslation("translate.history.review"));
             header.getStyle().set("font-weight", "600");
             header.getStyle().set("display", "block");
             header.getStyle().set("margin-bottom", "0.3rem");
@@ -1095,8 +1141,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 entry.getStyle().set("margin", "0.25rem 0");
                 String who = c.getCommenterName() == null ? "" : c.getCommenterName();
                 String when = c.getCreationDate() == null ? "" : " — " + c.getCreationDate();
-                Span meta = new Span("by " + who
-                        + " (target v" + c.getTargetVersion() + ")" + when);
+                Span meta = new Span(getTranslation("translate.history.commentBy",
+                        who, c.getTargetVersion(), when));
                 meta.getStyle().set("color", "var(--vaadin-text-color-secondary)");
                 meta.getStyle().set("font-size", "0.8rem");
                 Paragraph p = new Paragraph(c.getCommentText());
@@ -1115,7 +1161,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // Build the version rows: every persisted HTextFlowTargetHistory +
         // the current saved target (rendered as "current") + the live
         // unsaved value when it differs from saved.
-        List<HistoryRow> rows = new java.util.ArrayList<>();
+        List<HistoryRow> rows = new ArrayList<>();
         List<HTextFlowTargetHistory> hist =
                 historyRepository.findByTextFlowAndLocale(textFlowId, currentLocale);
         for (HTextFlowTargetHistory h : hist) {
@@ -1144,51 +1190,53 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // Live (unsaved) typed value, only if it differs from the saved one
         String live = liveContent == null ? null : liveContent.get();
         if (live != null && !live.isEmpty()
-                && !java.util.Objects.equals(live, savedContent)) {
-            rows.add(new HistoryRow("Unsaved", "—", "you", "—", live));
+                && !Objects.equals(live, savedContent)) {
+            rows.add(new HistoryRow(getTranslation("translate.history.unsavedRow"),
+                    "—", getTranslation("translate.history.you"), "—", live));
         }
 
         if (rows.isEmpty() && comments.isEmpty()) {
-            Paragraph empty = new Paragraph("No previous versions.");
+            Paragraph empty = new Paragraph(getTranslation("translate.history.empty.noVersions"));
             empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             empty.getStyle().set("margin", "0");
             d.add(empty);
             return d;
         }
 
-        com.vaadin.flow.component.grid.Grid<HistoryRow> grid =
-                new com.vaadin.flow.component.grid.Grid<>();
+        Grid<HistoryRow> grid =
+                new Grid<>();
         grid.setItems(rows);
         grid.setAllRowsVisible(true);
-        grid.setSelectionMode(com.vaadin.flow.component.grid.Grid.SelectionMode.MULTI);
-        grid.addColumn(HistoryRow::version).setHeader("Version")
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+        grid.addColumn(HistoryRow::version).setHeader(getTranslation("translate.history.col.version"))
                 .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::state).setHeader("State")
+        grid.addColumn(HistoryRow::state).setHeader(getTranslation("translate.history.col.state"))
                 .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::modifier).setHeader("By")
+        grid.addColumn(HistoryRow::modifier).setHeader(getTranslation("translate.history.col.by"))
                 .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::when).setHeader("When")
+        grid.addColumn(HistoryRow::when).setHeader(getTranslation("translate.history.col.when"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(r -> {
             String c = r.content() == null ? "" : r.content();
             return c.length() > 120 ? c.substring(0, 117) + "…" : c;
-        }).setHeader("Content").setFlexGrow(1);
+        }).setHeader(getTranslation("translate.history.col.content")).setFlexGrow(1);
 
-        Button compare = new Button("Compare selected", LineAwesomeIcon.NOT_EQUAL_SOLID.create());
+        Button compare = new Button(getTranslation("translate.history.compareSelected"),
+                LineAwesomeIcon.NOT_EQUAL_SOLID.create());
         compare.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         compare.setEnabled(false);
-        Span hint = new Span("Select exactly 2 rows to compare");
+        Span hint = new Span(getTranslation("translate.history.selectExactlyTwo"));
         hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         hint.getStyle().set("font-size", "0.8rem");
         hint.getStyle().set("margin-left", "0.5rem");
         grid.asMultiSelect().addSelectionListener(ev -> {
             int n = ev.getValue().size();
             compare.setEnabled(n == 2);
-            hint.setText(n == 2 ? "Click compare to see the diff"
-                    : "Select exactly 2 rows to compare (selected: " + n + ")");
+            hint.setText(n == 2 ? getTranslation("translate.history.clickToCompare")
+                    : getTranslation("translate.history.selectionCount", n));
         });
         compare.addClickListener(ev -> {
-            var sel = new java.util.ArrayList<>(grid.getSelectedItems());
+            var sel = new ArrayList<>(grid.getSelectedItems());
             if (sel.size() != 2) return;
             openDiffDialog(sel.get(0), sel.get(1));
         });
@@ -1206,8 +1254,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     /** Open a side-by-side diff of two history rows in a modal dialog. */
     private void openDiffDialog(HistoryRow a, HistoryRow b) {
-        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
-        dlg.setHeaderTitle("Compare " + a.version() + " ↔ " + b.version());
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("translate.diff.title", a.version(), b.version()));
         dlg.setWidth("min(900px, 90vw)");
         dlg.setHeight("min(600px, 80vh)");
         dlg.setCloseOnEsc(true);
@@ -1225,8 +1273,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         body.add(left, right);
 
         dlg.add(body);
-        com.vaadin.flow.component.button.Button close =
-                new com.vaadin.flow.component.button.Button("Close", e -> dlg.close());
+        Button close =
+                new Button(getTranslation("progress.close"), e -> dlg.close());
         close.addThemeVariants(ButtonVariant.TERTIARY);
         dlg.getFooter().add(close);
         dlg.open();
@@ -1312,7 +1360,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
-    private static String firstContent(java.util.List<String> contents) {
+    private static String firstContent(List<String> contents) {
         if (contents == null || contents.isEmpty()) return "";
         String c = contents.get(0);
         return c == null ? "" : c;
@@ -1325,29 +1373,27 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * history panel is re-rendered in place.
      */
     private void openRejectDialog(HTextFlow flow, Span stateSpan, Div historyPanel) {
-        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
-        dlg.setHeaderTitle("Reject translation");
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("translate.reject.title"));
         dlg.setWidth("480px");
         dlg.setCloseOnEsc(true);
         dlg.setCloseOnOutsideClick(false);
 
-        Paragraph intro = new Paragraph(
-                "Tell the translator why this translation needs to change. "
-                + "The reason is shown in the history panel.");
+        Paragraph intro = new Paragraph(getTranslation("translate.reject.intro"));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         intro.getStyle().set("margin", "0 0 0.75rem 0");
         intro.getStyle().set("font-size", "0.9rem");
 
-        TextArea reason = new TextArea("Reason for rejection");
+        TextArea reason = new TextArea(getTranslation("translate.reject.reasonLabel"));
         reason.setWidthFull();
         reason.setMinHeight("6rem");
         reason.setRequired(true);
         reason.setValueChangeMode(ValueChangeMode.EAGER);
 
-        Button confirm = new Button("Confirm rejection");
+        Button confirm = new Button(getTranslation("translate.reject.confirm"));
         confirm.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.ERROR);
         confirm.setEnabled(false);
-        Button cancel = new Button("Cancel", e -> dlg.close());
+        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
         cancel.addThemeVariants(ButtonVariant.TERTIARY);
 
         // "Confirm rejection" will not work until a reason has been entered.
@@ -1370,10 +1416,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 historyPanel.getElement().removeAllChildren();
                 fresh.getChildren().forEach(child -> historyPanel.getElement()
                         .appendChild(child.getElement()));
-                Notification.show("Rejected", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("translate.reject.success"), 2000, Notification.Position.BOTTOM_START);
                 dlg.close();
             } catch (Exception ex) {
-                Notification.show("Reject failed: " + ex.getMessage(),
+                Notification.show(getTranslation("translate.row.rejectFailed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
             }
         });
@@ -1402,14 +1448,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         UI.getCurrent().getPage().executeJs(
                 "const u = new URL($0, location.origin).toString();"
                 + "navigator.clipboard.writeText(u);", href);
-        Notification.show("Link copied to clipboard",
+        Notification.show(getTranslation("translate.permalink.copied"),
                 1800, Notification.Position.BOTTOM_START);
     }
 
     private String label(String k, String v) {
         return "<strong>" + k + "</strong> "
                 + (v == null || v.isBlank()
-                    ? "<span style=\"color: var(--vaadin-text-color-secondary)\">No content</span>"
+                    ? "<span style=\"color: var(--vaadin-text-color-secondary)\">"
+                            + escape(getTranslation("translate.details.noContent")) + "</span>"
                     : escape(v));
     }
 
@@ -1443,7 +1490,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 .orElse(false);
     }
 
-    private Div buildStatsBadge() {
+    /** Pre-translated stat labels — captured on the UI thread then passed
+     *  into the background worker that builds the stats badge. */
+    private record StatLabels(String approved, String translated,
+                              String needsReview, String untranslated) {}
+
+    private Div buildStatsBadge(StatLabels labels,
+                                ProgressDialogService.Handle handle) {
         // Stats now computed via two bulk queries (no per-row N+1) using
         // the current docId — looked up at the time the popover is built.
         HDocument doc = documentRepository
@@ -1487,16 +1540,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         badge.getStyle().set("font-size", "0.85rem");
         badge.getStyle().set("min-width", "420px");
 
-        Div top = new Div(new Span(String.format("%.1f%% translated  \u00b7  %d / %d words  \u00b7  %d / %d messages",
-                pct, translatedW + approvedW, totalW, translated + approved, total)));
+        Div top = new Div(new Span(handle.t("translate.stats.translatedSummary",
+                String.format("%.1f", pct),
+                translatedW + approvedW, totalW,
+                translated + approved, total)));
         top.getStyle().set("font-weight", "600");
         top.getStyle().set("margin-bottom", "0.4rem");
         badge.add(top);
 
-        badge.add(statRow("Approved",     approvedW,     approved));
-        badge.add(statRow("Translated",   translatedW,   translated));
-        badge.add(statRow("Needs review", needsReviewW,  needsReview));
-        badge.add(statRow("Untranslated", untranslatedW, untranslated));
+        badge.add(statRow(labels.approved(),     approvedW,     approved));
+        badge.add(statRow(labels.translated(),   translatedW,   translated));
+        badge.add(statRow(labels.needsReview(), needsReviewW,  needsReview));
+        badge.add(statRow(labels.untranslated(), untranslatedW, untranslated));
         return badge;
     }
 

@@ -20,8 +20,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 
 import org.zanata.common.EntityStatus;
 import org.zanata.model.HProject;
@@ -31,9 +31,11 @@ import org.zanata.spring.service.IterationCopyService;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/:slug/add-version", layout = MainLayout.class)
-@PageTitle("New version | Zanata")
 @PermitAll
-public class VersionCreateView extends VerticalLayout implements BeforeEnterObserver {
+public class VersionCreateView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.newVersion"; }
+
 
     private final ProjectRepository projectRepository;
     private final IterationCopyService iterationCopyService;
@@ -56,39 +58,39 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
 
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
                 new Breadcrumb(slug, "/project/view/" + slug),
-                new Breadcrumb("New version", "#", true));
+                new Breadcrumb(getTranslation("versionCreate.crumb"), "#", true));
         add(crumbs);
 
-        add(new H2("New version for " + (project.getName() == null ? slug : project.getName())));
+        add(new H2(getTranslation("versionCreate.headingFor", project.getName() == null ? slug : project.getName())));
 
-        TextField versionSlug = new TextField("Version ID");
+        TextField versionSlug = new TextField(getTranslation("versionCreate.versionId"));
         versionSlug.setRequiredIndicatorVisible(true);
-        versionSlug.setHelperText("e.g. master, 1.0, dev");
+        versionSlug.setHelperText(getTranslation("versionCreate.versionIdHint"));
 
-        ComboBox<EntityStatus> status = new ComboBox<>("Status");
+        ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("versionCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY);
         status.setValue(EntityStatus.ACTIVE);
 
         List<HProjectIteration> existing = new ArrayList<>(project.getProjectIterations());
         existing.sort(Comparator.comparing(HProjectIteration::getSlug,
                 String.CASE_INSENSITIVE_ORDER));
-        ComboBox<HProjectIteration> copyFrom = new ComboBox<>("Copy from existing version");
+        ComboBox<HProjectIteration> copyFrom = new ComboBox<>(getTranslation("versionCreate.copyFromExisting"));
         copyFrom.setItems(existing);
         copyFrom.setItemLabelGenerator(HProjectIteration::getSlug);
         copyFrom.setClearButtonVisible(true);
-        copyFrom.setHelperText("Optional — pre-populate from another version");
+        copyFrom.setHelperText(getTranslation("versionCreate.copyFromHint"));
 
-        ComboBox<IterationCopyService.CopyMode> copyMode = new ComboBox<>("Copy what");
+        ComboBox<IterationCopyService.CopyMode> copyMode = new ComboBox<>(getTranslation("versionCreate.copyWhat"));
         copyMode.setItems(IterationCopyService.CopyMode.NONE,
                 IterationCopyService.CopyMode.SOURCE_ONLY,
                 IterationCopyService.CopyMode.SOURCE_AND_TRANSLATIONS);
         copyMode.setItemLabelGenerator(m -> switch (m) {
-            case NONE -> "Nothing (empty version)";
-            case SOURCE_ONLY -> "Source documents only";
-            case SOURCE_AND_TRANSLATIONS -> "Source + translations";
+            case NONE -> getTranslation("versionCreate.copyMode.none");
+            case SOURCE_ONLY -> getTranslation("versionCreate.copyMode.sourceOnly");
+            case SOURCE_AND_TRANSLATIONS -> getTranslation("versionCreate.copyMode.sourceAndTranslations");
         });
         copyMode.setValue(IterationCopyService.CopyMode.NONE);
         copyMode.setEnabled(false);
@@ -105,9 +107,9 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
 
-        Button create = new Button("Create version", e -> {
+        Button create = new Button(getTranslation("versionCreate.submit"), e -> {
             if (versionSlug.getValue() == null || versionSlug.getValue().isBlank()) {
-                Notification.show("Version ID is required", 3000,
+                Notification.show(getTranslation("versionCreate.versionIdRequired"), 3000,
                         Notification.Position.MIDDLE);
                 return;
             }
@@ -120,7 +122,7 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
             try {
                 iterationCopyService.create(slug, versionSlug.getValue().trim(),
                         status.getValue(), src, mode);
-                Notification.show("Created version " + versionSlug.getValue(),
+                Notification.show(getTranslation("versionCreate.success", versionSlug.getValue()),
                         2500, Notification.Position.BOTTOM_START);
                 getUI().ifPresent(ui -> ui.navigate("project/" + slug
                         + "/version/" + versionSlug.getValue().trim()));
@@ -129,7 +131,7 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
             }
         });
         create.addThemeVariants(ButtonVariant.PRIMARY);
-        Button cancel = new Button("Cancel",
+        Button cancel = new Button(getTranslation("common.cancel"),
                 e -> getUI().ifPresent(ui -> ui.navigate("project/view/" + slug)));
         add(new HorizontalLayout(create, cancel));
     }

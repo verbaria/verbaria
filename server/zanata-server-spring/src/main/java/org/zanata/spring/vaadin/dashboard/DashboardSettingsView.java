@@ -20,8 +20,8 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -40,9 +40,11 @@ import org.zanata.spring.service.ai.AiPolicyService;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "dashboard/settings", layout = MainLayout.class)
-@PageTitle("Settings | Zanata")
 @PermitAll
-public class DashboardSettingsView extends VerticalLayout {
+public class DashboardSettingsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.settings"; }
+
 
     private final AccountRepository accountRepository;
     private final LocaleMemberRepository localeMemberRepository;
@@ -63,14 +65,14 @@ public class DashboardSettingsView extends VerticalLayout {
         getStyle().set("max-width", "1000px");
         getStyle().set("margin", "0 auto");
 
-        H2 heading = new H2("Settings");
+        H2 heading = new H2(getTranslation("dashboardSettings.title"));
 
         TabSheet tabs = new TabSheet();
         tabs.setWidthFull();
-        tabs.add("Account", buildAccountTab());
-        tabs.add("Profile", buildProfileTab());
-        tabs.add("Languages", buildLanguagesTab());
-        tabs.add("Client", buildClientTab());
+        tabs.add(getTranslation("dashboardSettings.tab.account"), buildAccountTab());
+        tabs.add(getTranslation("dashboardSettings.tab.profile"), buildProfileTab());
+        tabs.add(getTranslation("dashboardSettings.tab.languages"), buildLanguagesTab());
+        tabs.add(getTranslation("dashboardSettings.tab.client"), buildClientTab());
 
         add(heading, tabs);
     }
@@ -85,29 +87,31 @@ public class DashboardSettingsView extends VerticalLayout {
             return card;
         }
 
-        TextField email = new TextField("Email");
+        TextField email = new TextField(getTranslation("dashboardSettings.account.email"));
         if (account.getPerson() != null && account.getPerson().getEmail() != null) {
             email.setValue(account.getPerson().getEmail());
         }
         email.setWidth("360px");
 
-        Button updateEmail = new Button("Update email", LineAwesomeIcon.SAVE_SOLID.create(),
+        Button updateEmail = new Button(getTranslation("dashboardSettings.account.updateEmail"),
+                LineAwesomeIcon.SAVE_SOLID.create(),
                 e -> {
                     userSettingsService.updateProfile(account.getUsername(), null, email.getValue());
-                    toast("Email saved", false);
+                    toast(getTranslation("dashboardSettings.account.emailSaved"), false);
                 });
         updateEmail.addThemeVariants(ButtonVariant.PRIMARY);
 
-        PasswordField oldPw = new PasswordField("Current password");
-        PasswordField newPw = new PasswordField("New password");
-        PasswordField confirmPw = new PasswordField("Confirm new password");
-        Button changePw = new Button("Change password", LineAwesomeIcon.KEY_SOLID.create(), e -> {
+        PasswordField oldPw = new PasswordField(getTranslation("dashboardSettings.account.currentPassword"));
+        PasswordField newPw = new PasswordField(getTranslation("dashboardSettings.account.newPassword"));
+        PasswordField confirmPw = new PasswordField(getTranslation("dashboardSettings.account.confirmPassword"));
+        Button changePw = new Button(getTranslation("dashboardSettings.account.changePassword"),
+                LineAwesomeIcon.KEY_SOLID.create(), e -> {
             if (!newPw.getValue().equals(confirmPw.getValue())) {
-                toast("New password and confirmation do not match", true);
+                toast(getTranslation("dashboardSettings.account.passwordMismatch"), true);
                 return;
             }
             if (newPw.getValue().length() < 6) {
-                toast("Password must be at least 6 characters", true);
+                toast(getTranslation("dashboardSettings.account.passwordTooShort"), true);
                 return;
             }
             boolean ok = userSettingsService.changePassword(account.getUsername(),
@@ -116,9 +120,9 @@ public class DashboardSettingsView extends VerticalLayout {
                 oldPw.clear();
                 newPw.clear();
                 confirmPw.clear();
-                toast("Password changed", false);
+                toast(getTranslation("dashboardSettings.account.passwordChanged"), false);
             } else {
-                toast("Current password is incorrect", true);
+                toast(getTranslation("dashboardSettings.account.passwordIncorrect"), true);
             }
         });
 
@@ -126,13 +130,13 @@ public class DashboardSettingsView extends VerticalLayout {
         pwForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 3));
 
-        card.add(sectionTitle("Email"));
+        card.add(sectionTitle(getTranslation("dashboardSettings.account.emailSection")));
         card.add(new HorizontalLayout(email, updateEmail) {{
             setAlignItems(FlexComponent.Alignment.END);
             setSpacing(true);
         }});
         card.add(spacer());
-        card.add(sectionTitle("Change password"));
+        card.add(sectionTitle(getTranslation("dashboardSettings.account.changePasswordSection")));
         card.add(pwForm, changePw);
         return card;
     }
@@ -146,41 +150,40 @@ public class DashboardSettingsView extends VerticalLayout {
             card.add(notSignedIn());
             return card;
         }
-        TextField username = new TextField("Username");
+        TextField username = new TextField(getTranslation("dashboardSettings.profile.username"));
         username.setReadOnly(true);
         username.setValue(account.getUsername() == null ? "" : account.getUsername());
 
-        TextField displayName = new TextField("Display name");
+        TextField displayName = new TextField(getTranslation("dashboardSettings.profile.displayName"));
         if (account.getPerson() != null && account.getPerson().getName() != null) {
             displayName.setValue(account.getPerson().getName());
         }
 
-        Button save = new Button("Save profile", LineAwesomeIcon.SAVE_SOLID.create(), e -> {
+        Button save = new Button(getTranslation("dashboardSettings.profile.saveProfile"),
+                LineAwesomeIcon.SAVE_SOLID.create(), e -> {
             userSettingsService.updateProfile(account.getUsername(), displayName.getValue(), null);
-            toast("Profile saved", false);
+            toast(getTranslation("dashboardSettings.profile.profileSaved"), false);
         });
         save.addThemeVariants(ButtonVariant.PRIMARY);
 
         FormLayout form = new FormLayout(username, displayName);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
-        card.add(sectionTitle("Public profile"), form, save);
+        card.add(sectionTitle(getTranslation("dashboardSettings.profile.publicProfile")), form, save);
 
         // --- per-user "allow AI translation" toggle ---
         // Hidden entirely when the admin hasn't enabled the AI feature.
         if (aiPolicy.isGloballyEnabled()) {
             card.add(spacer());
-            card.add(sectionTitle("AI translation"));
-            Checkbox allowAi = new Checkbox("Show \"Translate with AI\" buttons in the editor");
+            card.add(sectionTitle(getTranslation("dashboardSettings.profile.aiSection")));
+            Checkbox allowAi = new Checkbox(getTranslation("dashboardSettings.profile.aiToggle"));
             allowAi.setValue(aiPolicy.isAllowedForUser(account.getUsername()));
             allowAi.addValueChangeListener(e -> {
                 aiPolicy.setAllowedForUser(account.getUsername(),
                         Boolean.TRUE.equals(e.getValue()));
-                toast("AI preference saved", false);
+                toast(getTranslation("dashboardSettings.profile.aiSaved"), false);
             });
-            Paragraph aiHint = new Paragraph(
-                    "Turn off to hide the per-row magic-wand and \"AI translate missing\" "
-                            + "actions when you open a translation editor.");
+            Paragraph aiHint = new Paragraph(getTranslation("dashboardSettings.profile.aiHint"));
             aiHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             aiHint.getStyle().set("font-size", "0.85rem");
             aiHint.getStyle().set("margin", "0.25rem 0 0 0");
@@ -199,17 +202,17 @@ public class DashboardSettingsView extends VerticalLayout {
             return card;
         }
         if (account.getPerson() == null) {
-            card.add(new Paragraph("No person profile attached to this account."));
+            card.add(new Paragraph(getTranslation("dashboardSettings.languages.noPerson")));
             return card;
         }
         List<HLocaleMember> memberships =
                 localeMemberRepository.findByPerson(account.getPerson());
-        card.add(sectionTitle("Your language teams"));
+        card.add(sectionTitle(getTranslation("dashboardSettings.languages.yourTeams")));
         if (memberships.isEmpty()) {
-            Paragraph p = new Paragraph(
-                    "You're not in any language teams yet.");
+            Paragraph p = new Paragraph(getTranslation("dashboardSettings.languages.notInTeams"));
             p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            Anchor browse = new Anchor("/language/list", "Browse languages →");
+            Anchor browse = new Anchor("/language/list",
+                    getTranslation("dashboardSettings.languages.browse"));
             card.add(p, browse);
             return card;
         }
@@ -238,12 +241,19 @@ public class DashboardSettingsView extends VerticalLayout {
         return card;
     }
 
-    private static String roleSummary(HLocaleMember m) {
+    private String roleSummary(HLocaleMember m) {
         StringBuilder sb = new StringBuilder();
-        if (m.isCoordinator()) sb.append("coordinator");
-        if (m.isReviewer()) { if (sb.length() > 0) sb.append(", "); sb.append("reviewer"); }
-        if (m.isTranslator()) { if (sb.length() > 0) sb.append(", "); sb.append("translator"); }
-        return sb.length() == 0 ? "member" : sb.toString();
+        if (m.isCoordinator()) sb.append(getTranslation("dashboardSettings.languages.role.coordinator"));
+        if (m.isReviewer()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(getTranslation("dashboardSettings.languages.role.reviewer"));
+        }
+        if (m.isTranslator()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(getTranslation("dashboardSettings.languages.role.translator"));
+        }
+        return sb.length() == 0
+                ? getTranslation("dashboardSettings.languages.role.member") : sb.toString();
     }
 
     /* ---------------- Client: API key + zanata.ini ---------------- */
@@ -256,26 +266,25 @@ public class DashboardSettingsView extends VerticalLayout {
             return card;
         }
 
-        Paragraph intro = new Paragraph(
-                "An API key and zanata.ini are required to push/pull translations "
-                        + "from the CLI client or the Maven plugin.");
+        Paragraph intro = new Paragraph(getTranslation("dashboardSettings.client.intro"));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
 
         // --- API key row ---
-        TextField apiKey = new TextField("API key");
+        TextField apiKey = new TextField(getTranslation("dashboardSettings.client.apiKey"));
         apiKey.setWidth("420px");
         apiKey.setReadOnly(true);
         String currentKey = account.getApiKey();
         apiKey.setValue(currentKey == null || currentKey.isBlank()
-                ? "(not generated)" : currentKey);
+                ? getTranslation("dashboardSettings.client.notGenerated") : currentKey);
         apiKey.getStyle().set("font-family", "monospace");
 
-        Button copyKey = new Button("Copy", LineAwesomeIcon.COPY_SOLID.create(),
+        Button copyKey = new Button(getTranslation("dashboardSettings.client.copy"),
+                LineAwesomeIcon.COPY_SOLID.create(),
                 e -> copyToClipboard(account.getApiKey() == null ? "" : account.getApiKey()));
         copyKey.addThemeVariants(ButtonVariant.TERTIARY);
 
         // --- zanata.ini area ---
-        TextArea ini = new TextArea("zanata.ini");
+        TextArea ini = new TextArea(getTranslation("dashboardSettings.client.zanataIni"));
         ini.setWidthFull();
         ini.setHeight("180px");
         ini.setReadOnly(true);
@@ -283,14 +292,16 @@ public class DashboardSettingsView extends VerticalLayout {
         ini.setValue(userSettingsService.renderZanataIni(
                 account.getUsername(), currentRequestUrl()));
 
-        Button copyIni = new Button("Copy zanata.ini", LineAwesomeIcon.COPY_SOLID.create(),
+        Button copyIni = new Button(getTranslation("dashboardSettings.client.copyZanataIni"),
+                LineAwesomeIcon.COPY_SOLID.create(),
                 e -> copyToClipboard(ini.getValue()));
         copyIni.addThemeVariants(ButtonVariant.TERTIARY);
 
         // --- generate / regenerate button (confirms before clobbering) ---
         Button generate = new Button(
-                currentKey == null || currentKey.isBlank()
-                        ? "Generate new API key" : "Regenerate API key",
+                getTranslation(currentKey == null || currentKey.isBlank()
+                        ? "dashboardSettings.client.generate"
+                        : "dashboardSettings.client.regenerate"),
                 LineAwesomeIcon.SYNC_ALT_SOLID.create(),
                 e -> {
                     Runnable doIt = () -> {
@@ -302,17 +313,17 @@ public class DashboardSettingsView extends VerticalLayout {
                         ini.setValue(userSettingsService.renderZanataIni(
                 account.getUsername(), currentRequestUrl()));
                         ini.setReadOnly(true);
-                        toast("New API key generated", false);
+                        toast(getTranslation("dashboardSettings.client.generated"), false);
                     };
                     if (currentKey == null || currentKey.isBlank()) {
                         doIt.run();
                     } else {
                         ConfirmDialog dlg = new ConfirmDialog(
-                                "Regenerate API key?",
-                                "The current key will stop working immediately. "
-                                        + "Any CLI / Maven plugin using it will need the new key.",
-                                "Regenerate", ev -> doIt.run(),
-                                "Cancel", ev -> {});
+                                getTranslation("dashboardSettings.client.regenConfirmTitle"),
+                                getTranslation("dashboardSettings.client.regenConfirmBody"),
+                                getTranslation("dashboardSettings.client.regenConfirmBtn"),
+                                ev -> doIt.run(),
+                                getTranslation("common.cancel"), ev -> {});
                         dlg.setConfirmButtonTheme("primary error");
                         dlg.open();
                     }
@@ -320,13 +331,13 @@ public class DashboardSettingsView extends VerticalLayout {
         generate.addThemeVariants(ButtonVariant.PRIMARY);
 
         card.add(intro,
-                sectionTitle("API key"),
+                sectionTitle(getTranslation("dashboardSettings.client.apiKeySection")),
                 new HorizontalLayout(apiKey, copyKey, generate) {{
                     setAlignItems(FlexComponent.Alignment.END);
                     setSpacing(true);
                 }},
                 spacer(),
-                sectionTitle("Configuration (zanata.ini)"),
+                sectionTitle(getTranslation("dashboardSettings.client.zanataIniSection")),
                 ini,
                 copyIni);
         return card;
@@ -359,8 +370,8 @@ public class DashboardSettingsView extends VerticalLayout {
         return d;
     }
 
-    private static Paragraph notSignedIn() {
-        Paragraph p = new Paragraph("Sign in to view this section.");
+    private Paragraph notSignedIn() {
+        Paragraph p = new Paragraph(getTranslation("dashboardSettings.notSignedIn"));
         p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         return p;
     }
@@ -371,14 +382,14 @@ public class DashboardSettingsView extends VerticalLayout {
                 : NotificationVariant.SUCCESS);
     }
 
-    private static void copyToClipboard(String value) {
+    private void copyToClipboard(String value) {
         if (value == null || value.isEmpty()) {
-            toast("Nothing to copy", true);
+            toast(getTranslation("dashboardSettings.nothingToCopy"), true);
             return;
         }
         UI.getCurrent().getPage().executeJs(
                 "navigator.clipboard.writeText($0)", value);
-        toast("Copied to clipboard", false);
+        toast(getTranslation("dashboardSettings.copiedToClipboard"), false);
     }
 
     /** Returns the public scheme + host[:port] of the current Vaadin request,

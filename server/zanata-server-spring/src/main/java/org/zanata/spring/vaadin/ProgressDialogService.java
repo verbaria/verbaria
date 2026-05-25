@@ -71,7 +71,7 @@ public class ProgressDialogService implements DisposableBean {
         bar.setIndeterminate(true);
         bar.setWidthFull();
 
-        Span status = new Span("Starting…");
+        Span status = new Span(ui.getTranslation("progress.starting"));
         status.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         status.getStyle().set("font-size", "0.9rem");
 
@@ -109,9 +109,9 @@ public class ProgressDialogService implements DisposableBean {
                     // Switch dialog into "error" state so the user can dismiss it
                     bar.setIndeterminate(false);
                     bar.setValue(bar.getMin());
-                    status.setText("Failed: " + ex.getMessage());
+                    status.setText(ui.getTranslation("progress.failed", ex.getMessage()));
                     status.getStyle().set("color", "var(--aura-red-text)");
-                    Button close = new Button("Close", e -> dlg.close());
+                    Button close = new Button(ui.getTranslation("progress.close"), e -> dlg.close());
                     close.addThemeVariants(ButtonVariant.TERTIARY);
                     dlg.getFooter().removeAll();
                     dlg.getFooter().add(close);
@@ -141,6 +141,16 @@ public class ProgressDialogService implements DisposableBean {
             this.bar = bar;
             this.status = status;
             this.counter = counter;
+        }
+
+        /**
+         * Translate a key with arguments. Safe to call from the background
+         * worker because we resolve via the captured {@link UI} (which holds
+         * its locale) instead of {@link UI#getCurrent()} (which returns
+         * {@code null} off the UI thread).
+         */
+        public String t(String key, Object... args) {
+            return ui.getTranslation(key, args);
         }
 
         public void update(int done, int total, String message) {

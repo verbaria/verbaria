@@ -25,8 +25,8 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -47,9 +47,11 @@ import org.zanata.spring.service.LanguageTeamService;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "language/:slug", layout = MainLayout.class)
-@PageTitle("Language | Zanata")
 @AnonymousAllowed
-public class LanguageView extends VerticalLayout implements BeforeEnterObserver {
+public class LanguageView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.language"; }
+
 
     private final LocaleRepository localeRepository;
     private final LocaleMemberRepository localeMemberRepository;
@@ -95,8 +97,8 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
     private Breadcrumbs buildBreadcrumb(String slug) {
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Languages", "/languages"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("nav.languages"), "/languages"),
                 new Breadcrumb(slug, "#", true));
         return crumbs;
     }
@@ -127,7 +129,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
 
         Optional<HAccount> currentOpt = currentAccount();
         if (currentOpt.isEmpty()) {
-            Button signIn = new Button("Sign in to join the team",
+            Button signIn = new Button(getTranslation("language.team.signInToJoin"),
                     e -> UI.getCurrent().getPage().setLocation("/login"));
             signIn.addThemeVariants(ButtonVariant.PRIMARY);
             bar.add(signIn);
@@ -136,11 +138,13 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         HAccount current = currentOpt.get();
         Optional<HLocaleMember> existing = languageTeamService.membership(locale, current.getPerson());
         if (existing.isPresent()) {
-            Span badge = new Span("Member: " + describeRoles(existing.get()));
+            Span badge = new Span(getTranslation("language.team.memberPrefix",
+                    describeRoles(existing.get())));
             badge.getElement().getThemeList().add("badge success small");
-            Button leave = new Button("Leave team", e -> {
+            Button leave = new Button(getTranslation("language.team.leave"), e -> {
                 languageTeamService.leave(locale, current.getPerson());
-                Notification.show("Left language team", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("language.team.leftToast"),
+                        2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
             leave.addThemeVariants(ButtonVariant.TERTIARY);
@@ -149,18 +153,21 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         }
         Optional<LanguageRequest> pending = languageTeamService.pendingRequestFor(locale, current);
         if (pending.isPresent()) {
-            Span badge = new Span("Request pending: " + describeRequestedRoles(pending.get()));
+            Span badge = new Span(getTranslation("language.team.requestPending",
+                    describeRequestedRoles(pending.get())));
             badge.getElement().getThemeList().add("badge contrast small");
-            Button cancel = new Button("Cancel request", e -> {
+            Button cancel = new Button(getTranslation("language.team.cancel"), e -> {
                 languageTeamService.cancelOwnRequest(pending.get(), current);
-                Notification.show("Request cancelled", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("language.team.requestCancelledToast"),
+                        2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
             cancel.addThemeVariants(ButtonVariant.TERTIARY);
             bar.add(badge, cancel);
             return bar;
         }
-        Button join = new Button("Request to Join", e -> openJoinDialog(locale, current));
+        Button join = new Button(getTranslation("language.team.join"),
+                e -> openJoinDialog(locale, current));
         join.addThemeVariants(ButtonVariant.PRIMARY);
         bar.add(join);
         return bar;
@@ -168,23 +175,24 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
 
     private void openJoinDialog(HLocale locale, HAccount current) {
         Dialog d = new Dialog();
-        d.setHeaderTitle("Request to join "
-                + (locale.getDisplayName() == null ? locale.getLocaleId().getId() : locale.getDisplayName()));
-        Checkbox translator = new Checkbox("Translator", true);
-        Checkbox reviewer = new Checkbox("Reviewer");
-        Checkbox coordinator = new Checkbox("Coordinator");
-        TextArea note = new TextArea("Note to coordinators (optional)");
+        d.setHeaderTitle(getTranslation("language.team.joinDialogTitle",
+                locale.getDisplayName() == null ? locale.getLocaleId().getId() : locale.getDisplayName()));
+        Checkbox translator = new Checkbox(getTranslation("language.team.role.translator"), true);
+        Checkbox reviewer = new Checkbox(getTranslation("language.team.role.reviewer"));
+        Checkbox coordinator = new Checkbox(getTranslation("language.team.role.coordinator"));
+        TextArea note = new TextArea(getTranslation("language.team.contactCoordinators"));
         note.setWidthFull();
         VerticalLayout body = new VerticalLayout(translator, reviewer, coordinator, note);
         body.setPadding(false);
         d.add(body);
 
-        Button send = new Button("Send request", e -> {
+        Button send = new Button(getTranslation("language.team.send"), e -> {
             try {
                 languageTeamService.requestJoin(current, locale,
                         translator.getValue(), reviewer.getValue(),
                         coordinator.getValue(), note.getValue());
-                Notification.show("Request sent", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("language.team.requestSentToast"),
+                        2000, Notification.Position.BOTTOM_START);
                 d.close();
                 refresh();
             } catch (Exception ex) {
@@ -192,7 +200,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
             }
         });
         send.addThemeVariants(ButtonVariant.PRIMARY);
-        Button cancel = new Button("Cancel", e -> d.close());
+        Button cancel = new Button(getTranslation("common.cancel"), e -> d.close());
         d.getFooter().add(cancel, send);
         d.open();
     }
@@ -202,7 +210,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         panel.setWidthFull();
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        H3 title = new H3("Members");
+        H3 title = new H3(getTranslation("language.team.members"));
         title.addClassNames(LumoUtility.Margin.NONE);
         panel.add(title);
 
@@ -215,12 +223,13 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         grid.addColumn(m -> {
                     var p = m.getPerson();
                     return p == null || p.getName() == null ? "" : p.getName();
-                }).setHeader("Name").setAutoWidth(true);
+                }).setHeader(getTranslation("language.team.col.name")).setAutoWidth(true);
         grid.addColumn(m -> {
                     var p = m.getPerson();
                     return p == null || p.getAccount() == null ? "" : p.getAccount().getUsername();
-                }).setHeader("Username").setAutoWidth(true);
-        grid.addColumn(this::describeRoles).setHeader("Roles").setAutoWidth(true);
+                }).setHeader(getTranslation("language.team.col.username")).setAutoWidth(true);
+        grid.addColumn(this::describeRoles)
+                .setHeader(getTranslation("language.team.col.roles")).setAutoWidth(true);
         grid.setItems(members);
         grid.setAllRowsVisible(true);
         panel.add(grid);
@@ -232,14 +241,14 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         panel.setWidthFull();
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        H3 title = new H3("Pending requests");
+        H3 title = new H3(getTranslation("language.team.pendingTitle"));
         title.addClassNames(LumoUtility.Margin.NONE);
         panel.add(title);
 
         List<LanguageRequest> requests = new ArrayList<>(
                 languageRequestRepository.findByLocaleAndState(locale, RequestState.NEW));
         if (requests.isEmpty()) {
-            Paragraph empty = new Paragraph("No pending requests.");
+            Paragraph empty = new Paragraph(getTranslation("language.team.noPending"));
             empty.addClassNames(LumoUtility.TextColor.SECONDARY);
             panel.add(empty);
             return panel;
@@ -250,21 +259,24 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
                     return p == null || p.getName() == null
                             ? r.getRequest().getRequester().getUsername()
                             : p.getName();
-                }).setHeader("Requester").setAutoWidth(true);
-        grid.addColumn(this::describeRequestedRoles).setHeader("Requested roles").setAutoWidth(true);
+                }).setHeader(getTranslation("language.team.col.requester")).setAutoWidth(true);
+        grid.addColumn(this::describeRequestedRoles)
+                .setHeader(getTranslation("language.team.col.requestedRoles")).setAutoWidth(true);
         grid.addComponentColumn(r -> {
-            Button accept = new Button("Accept", e -> {
+            Button accept = new Button(getTranslation("language.team.accept"), e -> {
                 languageTeamService.approve(r, currentAccount, "");
-                Notification.show("Accepted", 2000, Notification.Position.BOTTOM_START);
+                Notification.show(getTranslation("language.team.acceptedToast"),
+                        2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
             accept.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
-            Button decline = new Button("Decline", e -> openDeclineDialog(r, currentAccount));
+            Button decline = new Button(getTranslation("language.team.decline"),
+                    e -> openDeclineDialog(r, currentAccount));
             decline.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
             HorizontalLayout actions = new HorizontalLayout(accept, decline);
             actions.setSpacing(true);
             return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader(getTranslation("language.team.col.actions")).setAutoWidth(true);
         grid.setItems(requests);
         grid.setAllRowsVisible(true);
         panel.add(grid);

@@ -1,8 +1,15 @@
 package org.zanata.spring.vaadin;
 
+import java.util.List;
+import java.util.Locale;
+
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
@@ -25,6 +32,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
+import org.zanata.spring.i18n.LocaleSelector;
 import org.zanata.spring.service.ContactAdminService;
 import org.zanata.spring.vaadin.admin.AdminHomeView;
 import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
@@ -35,16 +43,46 @@ import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
  * SideNav, and an auth section pinned to the bottom.
  */
 @AnonymousAllowed
-public class MainLayout extends AppLayout {
+public class MainLayout extends AppLayout implements com.vaadin.flow.router.BeforeEnterObserver {
 
     private final ContactAdminService contactAdminService;
+    private final LocaleSelector localeSelector;
 
-    public MainLayout(ContactAdminService contactAdminService) {
+    public MainLayout(ContactAdminService contactAdminService,
+                      LocaleSelector localeSelector) {
         this.contactAdminService = contactAdminService;
+        this.localeSelector = localeSelector;
+        // Apply the persisted-locale cookie BEFORE children render. Reading
+        // the cookie doesn't need the session, only the inbound HttpServletRequest
+        // — which is available here because MainLayout is instantiated during
+        // the Vaadin request that's about to render the route.
+        Locale cookieLocale = localeSelector.current();
+        UI ui = UI.getCurrent();
+        if (cookieLocale != null && ui != null && !cookieLocale.equals(ui.getLocale())) {
+            ui.setLocale(cookieLocale);
+        }
         setPrimarySection(Section.DRAWER);
         addNavbarToggle();
         addDrawerContent();
         installToggleVisibilityCss();
+    }
+
+    /**
+     * Honour {@code ?lang=<tag>} as a deterministic locale switch (QA /
+     * preview / direct-link sharing). The locale itself is restored by
+     * {@link LocaleSelector}'s {@code UIInitListener} before any view
+     * renders, so no setLocale needed here.
+     */
+    @Override
+    public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
+        var qp = event.getLocation().getQueryParameters().getSingleParameter("lang");
+        if (qp.isEmpty()) return;
+        Locale picked = Locale.forLanguageTag(qp.get());
+        if (picked == null || "und".equals(picked.toLanguageTag())) return;
+        UI ui = UI.getCurrent();
+        if (ui != null && picked.equals(ui.getLocale())) return; // already applied
+        localeSelector.select(picked);
+        if (ui != null) ui.getPage().reload(); // ensure children re-render in new locale
     }
 
     /**
@@ -133,17 +171,20 @@ public class MainLayout extends AppLayout {
                     e -> openContactAdminDialog());
             contact.addThemeVariants(ButtonVariant.TERTIARY,
                     ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
-            contact.getElement().setAttribute("title", "Contact admin");
-            contact.getElement().setAttribute("aria-label", "Contact admin");
-            Anchor logout = new Anchor("/logout", "Sign out");
-            footer.add(LineAwesomeIcon.USER_SOLID.create(), user, contact, logout);
+            String contactLabel = getTranslation("auth.contactAdmin");
+            contact.getElement().setAttribute("title", contactLabel);
+            contact.getElement().setAttribute("aria-label", contactLabel);
+            Anchor logout = new Anchor("/logout", getTranslation("auth.signOut"));
+            footer.add(LineAwesomeIcon.USER_SOLID.create(), user,
+                    contact, buildLocalePicker(), logout);
         } else {
-            Anchor login = new Anchor("/login", "Sign in");
+            Anchor login = new Anchor("/login", getTranslation("auth.signIn"));
             Span sep = new Span("·");
             sep.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            Anchor register = new Anchor("/account/register", "Sign up");
+            Anchor register = new Anchor("/account/register", getTranslation("auth.signUp"));
             HorizontalLayout row = new HorizontalLayout(
-                    LineAwesomeIcon.USER_SOLID.create(), login, sep, register);
+                    LineAwesomeIcon.USER_SOLID.create(), login, sep, register,
+                    buildLocalePicker());
             row.setSpacing(true);
             row.setPadding(false);
             row.setAlignItems(HorizontalLayout.Alignment.CENTER);
@@ -153,48 +194,77 @@ public class MainLayout extends AppLayout {
     }
 
     /**
+     * Drawer-footer language picker — lets the user switch UI locale on the
+     * fly. Items come from the {@link I18NProvider}'s discovered list (which
+     * scans the i18n/ classpath at startup), so adding a new translation
+     * file is the only thing needed to grow this menu.
+     */
+    private Component buildLocalePicker() {
+        Select<Locale> picker =
+                new Select<>();
+        List<Locale> locales =
+                VaadinService.getCurrent() != null
+                        && VaadinService.getCurrent().getInstantiator() != null
+                        && VaadinService.getCurrent().getInstantiator().getI18NProvider() != null
+                        ? VaadinService.getCurrent()
+                                .getInstantiator().getI18NProvider().getProvidedLocales()
+                        : List.of(Locale.ENGLISH);
+        picker.setItems(locales);
+        picker.setItemLabelGenerator(l -> l.getDisplayLanguage(l)
+                + (l.getCountry().isEmpty() ? "" : " (" + l.getCountry() + ")"));
+        picker.setValue(UI.getCurrent() == null
+                ? Locale.ENGLISH : UI.getCurrent().getLocale());
+        picker.setWidth("9rem");
+        picker.addValueChangeListener(ev -> {
+            if (ev.getValue() == null) return;
+            localeSelector.select(ev.getValue());
+            var ui = UI.getCurrent();
+            if (ui != null) ui.getPage().reload();
+        });
+        return picker;
+    }
+
+    /**
      * Contact-admin dialog: subject + message form. Persists into
      * {@link ContactAdminService}'s log + in-memory inbox. Until SMTP is
      * wired the admin reads these from the server log.
      */
     private void openContactAdminDialog() {
         Dialog dlg = new Dialog();
-        dlg.setHeaderTitle("Contact admin");
+        dlg.setHeaderTitle(getTranslation("contact.title"));
         dlg.setWidth("520px");
         dlg.setCloseOnEsc(true);
 
         var auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth == null ? "" : auth.getName();
-        Paragraph intro = new Paragraph(
-                "Send a message to the server administrator. They'll reach out "
-                + "via the email on your profile if needed.");
+        Paragraph intro = new Paragraph(getTranslation("contact.intro"));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         intro.getStyle().set("font-size", "0.9rem");
 
-        TextField subject = new TextField("Subject");
+        TextField subject = new TextField(getTranslation("contact.subject"));
         subject.setWidthFull();
-        TextArea body = new TextArea("Message");
+        TextArea body = new TextArea(getTranslation("contact.message"));
         body.setWidthFull();
         body.setMinHeight("6rem");
         body.setRequired(true);
 
-        Button cancel = new Button("Cancel", e -> dlg.close());
+        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
         cancel.addThemeVariants(ButtonVariant.TERTIARY);
-        Button send = new Button("Send", e -> {
+        Button send = new Button(getTranslation("contact.send"), e -> {
             if (body.getValue() == null || body.getValue().trim().isEmpty()) {
                 body.setInvalid(true);
-                body.setErrorMessage("Message can't be empty");
+                body.setErrorMessage(getTranslation("contact.empty"));
                 return;
             }
             try {
                 contactAdminService.send(username, "", subject.getValue(), body.getValue());
                 Notification n = Notification.show(
-                        "Message sent to the admin.",
+                        getTranslation("contact.sent"),
                         2500, Notification.Position.BOTTOM_END);
                 n.addThemeVariants(NotificationVariant.SUCCESS);
                 dlg.close();
             } catch (Exception ex) {
-                Notification.show("Failed: " + ex.getMessage(),
+                Notification.show(getTranslation("common.failed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
             }
         });
@@ -207,17 +277,17 @@ public class MainLayout extends AppLayout {
 
     private SideNav createSideNav() {
         SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem("Home",      org.zanata.spring.vaadin.HomeView.class, LineAwesomeIcon.HOME_SOLID.create()));
-        nav.addItem(new SideNavItem("Explore",   ExploreView.class,       LineAwesomeIcon.SEARCH_SOLID.create()));
-        nav.addItem(new SideNavItem("Groups",    org.zanata.spring.vaadin.group.GroupsView.class, LineAwesomeIcon.LAYER_GROUP_SOLID.create()));
-        nav.addItem(new SideNavItem("Languages", LanguagesView.class,     LineAwesomeIcon.GLOBE_SOLID.create()));
-        nav.addItem(new SideNavItem("Glossary",  GlossaryView.class,      LineAwesomeIcon.BOOK_SOLID.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.home"),      org.zanata.spring.vaadin.HomeView.class, LineAwesomeIcon.HOME_SOLID.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.explore"),   ExploreView.class,       LineAwesomeIcon.SEARCH_SOLID.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.groups"),    org.zanata.spring.vaadin.group.GroupsView.class, LineAwesomeIcon.LAYER_GROUP_SOLID.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.languages"), LanguagesView.class,     LineAwesomeIcon.GLOBE_SOLID.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.glossary"),  GlossaryView.class,      LineAwesomeIcon.BOOK_SOLID.create()));
         if (isAuthenticated()) {
-            nav.addItem(new SideNavItem("Dashboard", DashboardHomeView.class, LineAwesomeIcon.TACHOMETER_ALT_SOLID.create()));
-            nav.addItem(new SideNavItem("Profile",   org.zanata.spring.vaadin.profile.ProfileView.class, LineAwesomeIcon.USER_SOLID.create()));
+            nav.addItem(new SideNavItem(getTranslation("nav.dashboard"), DashboardHomeView.class, LineAwesomeIcon.TACHOMETER_ALT_SOLID.create()));
+            nav.addItem(new SideNavItem(getTranslation("nav.profile"),   org.zanata.spring.vaadin.profile.ProfileView.class, LineAwesomeIcon.USER_SOLID.create()));
         }
         if (isAdmin()) {
-            nav.addItem(new SideNavItem("Admin", AdminHomeView.class, LineAwesomeIcon.COG_SOLID.create()));
+            nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminHomeView.class, LineAwesomeIcon.COG_SOLID.create()));
         }
         return nav;
     }

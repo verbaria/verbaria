@@ -9,8 +9,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -32,8 +32,10 @@ import org.zanata.spring.vaadin.admin.AdminHomeContentView;
  */
 @AnonymousAllowed
 @Route(value = "", layout = MainLayout.class)
-@PageTitle("Zanata")
-public class HomeView extends VerticalLayout implements BeforeEnterObserver {
+public class HomeView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.home"; }
+
 
     private final HomeContentService homeContentService;
     private final MarkdownRenderer markdownRenderer;
@@ -62,8 +64,7 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver {
         container.addClassNames(LumoUtility.Padding.MEDIUM);
 
         if (html.isEmpty()) {
-            Paragraph empty = new Paragraph(
-                    "No home page content has been set yet. An administrator can configure it.");
+            Paragraph empty = new Paragraph(getTranslation("home.empty"));
             container.add(empty);
         } else {
             Div rendered = new Div();
@@ -73,7 +74,7 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver {
         }
 
         if (isAdmin()) {
-            Button edit = new Button("Edit home page",
+            Button edit = new Button(getTranslation("home.editButton"),
                     e -> getUI().ifPresent(ui -> ui.navigate(AdminHomeContentView.class)));
             edit.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
             HorizontalLayout actions = new HorizontalLayout(edit);

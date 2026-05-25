@@ -5,17 +5,19 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
 
 import org.zanata.spring.repository.RoleRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/role/:role", layout = MainLayout.class)
-@PageTitle("Role | Zanata")
 @RolesAllowed("ADMIN")
-public class AdminRoleDetailView extends VerticalLayout implements BeforeEnterObserver {
+public class AdminRoleDetailView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.role"; }
+
 
     private final RoleRepository roleRepository;
 
@@ -29,9 +31,9 @@ public class AdminRoleDetailView extends VerticalLayout implements BeforeEnterOb
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
         String role = event.getRouteParameters().get("role").orElse("");
-        add(new H2("Role: " + role));
+        add(new H2(getTranslation("adminRole.heading", role)));
         roleRepository.findByName(role).ifPresentOrElse(
-                r -> add(new Paragraph("Conditional: " + r.isConditional())),
-                () -> add(new Paragraph("Role not found")));
+                r -> add(new Paragraph(getTranslation("adminRole.conditional", r.isConditional()))),
+                () -> add(new Paragraph(getTranslation("adminRole.notFound"))));
     }
 }

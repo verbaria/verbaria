@@ -1,9 +1,12 @@
 package org.zanata.spring.vaadin.admin;
 
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -13,8 +16,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.util.LinkedHashMap;
@@ -27,9 +30,11 @@ import org.zanata.spring.service.ai.TranslationProviderRegistry;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/ai-settings", layout = MainLayout.class)
-@PageTitle("AI translation | Zanata")
 @RolesAllowed("ADMIN")
-public class AdminAiSettingsView extends VerticalLayout {
+public class AdminAiSettingsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.aiTranslation"; }
+
 
     public AdminAiSettingsView(TranslationProviderRegistry registry,
                                AiSettingsService settings,
@@ -41,10 +46,10 @@ public class AdminAiSettingsView extends VerticalLayout {
         getStyle().set("overflow-y", "auto");
         getStyle().set("box-sizing", "border-box");
 
-        add(new H2("AI translation providers"));
+        add(new H2(getTranslation("adminAi.heading")));
 
         // --- global enable toggle ---
-        com.vaadin.flow.component.html.Div gate = new com.vaadin.flow.component.html.Div();
+        Div gate = new Div();
         gate.setWidthFull();
         gate.getStyle().set("border", "1px solid var(--vaadin-border-color)");
         gate.getStyle().set("border-radius", "8px");
@@ -53,28 +58,22 @@ public class AdminAiSettingsView extends VerticalLayout {
         gate.getStyle().set("margin-bottom", "1rem");
         gate.getStyle().set("box-sizing", "border-box");
         gate.getStyle().set("flex-shrink", "0");
-        Checkbox enable = new Checkbox("Enable AI translation server-wide");
+        Checkbox enable = new Checkbox(getTranslation("adminAi.enableGlobal"));
         enable.setValue(policy.isGloballyEnabled());
         enable.addValueChangeListener(e -> {
             policy.setGloballyEnabled(Boolean.TRUE.equals(e.getValue()));
-            Notification.show("AI translation "
-                            + (Boolean.TRUE.equals(e.getValue()) ? "enabled" : "disabled"),
+            Notification.show(getTranslation(Boolean.TRUE.equals(e.getValue())
+                            ? "adminAi.enabledToast" : "adminAi.disabledToast"),
                     2500, Notification.Position.BOTTOM_END);
         });
-        Paragraph gateHint = new Paragraph(
-                "When off, the \"Translate with AI\" buttons are hidden for everyone, "
-                + "regardless of provider configuration. When on, each user can also "
-                + "opt out from their dashboard Settings → Profile.");
+        Paragraph gateHint = new Paragraph(getTranslation("adminAi.gateHint"));
         gateHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         gateHint.getStyle().set("margin", "0.25rem 0 0 0");
         gateHint.getStyle().set("font-size", "0.85rem");
         gate.add(enable, gateHint);
         add(gate);
 
-        Paragraph intro = new Paragraph(
-                "Each provider is enabled when its API key is set. "
-                + "Empty key = disabled. Settings are stored in the "
-                + "application configuration table.");
+        Paragraph intro = new Paragraph(getTranslation("adminAi.providersIntro"));
         intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         add(intro);
 
@@ -83,9 +82,9 @@ public class AdminAiSettingsView extends VerticalLayout {
         }
     }
 
-    private com.vaadin.flow.component.html.Div buildProviderCard(
+    private Div buildProviderCard(
             TranslationProvider p, AiSettingsService settings) {
-        com.vaadin.flow.component.html.Div card = new com.vaadin.flow.component.html.Div();
+        Div card = new Div();
         card.setWidthFull();
         card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
         card.getStyle().set("border-radius", "8px");
@@ -96,11 +95,12 @@ public class AdminAiSettingsView extends VerticalLayout {
 
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
-        header.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER);
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
         H3 title = new H3(p.displayName());
         title.getStyle().set("margin", "0");
         title.getStyle().set("flex", "1 1 auto");
-        Span status = new Span(p.isAvailable() ? "● configured" : "○ not configured");
+        Span status = new Span(getTranslation(p.isAvailable()
+                ? "adminAi.configured" : "adminAi.notConfigured"));
         status.getStyle().set("color", p.isAvailable()
                 ? "var(--aura-green-text)"
                 : "var(--vaadin-text-color-secondary)");
@@ -111,9 +111,9 @@ public class AdminAiSettingsView extends VerticalLayout {
         FormLayout form = new FormLayout();
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
-        Map<String, com.vaadin.flow.component.HasValue<?, String>> bound = new LinkedHashMap<>();
+        Map<String, HasValue<?, String>> bound = new LinkedHashMap<>();
         for (TranslationProvider.SettingField f : p.settings()) {
-            com.vaadin.flow.component.HasValue<?, String> field;
+            HasValue<?, String> field;
             if (f.secret()) {
                 PasswordField pw = new PasswordField(f.label());
                 pw.setHelperText(f.hint());
@@ -136,9 +136,9 @@ public class AdminAiSettingsView extends VerticalLayout {
         }
         card.add(form);
 
-        Button save = new Button("Save " + p.displayName(), e -> {
+        Button save = new Button(getTranslation("adminAi.saveProvider", p.displayName()), e -> {
             bound.forEach((key, field) -> settings.set(key, field.getValue()));
-            Notification.show(p.displayName() + " saved", 2500,
+            Notification.show(getTranslation("adminAi.providerSaved", p.displayName()), 2500,
                     Notification.Position.BOTTOM_END);
         });
         save.addThemeVariants(ButtonVariant.PRIMARY);

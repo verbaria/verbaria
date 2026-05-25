@@ -13,8 +13,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -25,9 +25,11 @@ import org.zanata.spring.repository.IterationGroupRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "group/view/:slug", layout = MainLayout.class)
-@PageTitle("Group | Zanata")
 @AnonymousAllowed
-public class GroupView extends VerticalLayout implements BeforeEnterObserver {
+public class GroupView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.group"; }
+
 
     private final IterationGroupRepository groupRepository;
 
@@ -47,8 +49,8 @@ public class GroupView extends VerticalLayout implements BeforeEnterObserver {
 
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Groups", "/groups"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("nav.groups"), "/groups"),
                 new Breadcrumb(slug, "#", true));
         add(crumbs);
 
@@ -69,14 +71,14 @@ public class GroupView extends VerticalLayout implements BeforeEnterObserver {
                 String.CASE_INSENSITIVE_ORDER));
         Grid<HProjectIteration> versionGrid = new Grid<>(HProjectIteration.class, false);
         versionGrid.addColumn(i -> i.getProject() == null ? "" : i.getProject().getSlug())
-                .setHeader("Project").setAutoWidth(true);
+                .setHeader(getTranslation("groupView.colProject")).setAutoWidth(true);
         versionGrid.addColumn(HProjectIteration::getSlug)
-                .setHeader("Version").setAutoWidth(true);
+                .setHeader(getTranslation("groupView.colVersion")).setAutoWidth(true);
         versionGrid.addColumn(i -> i.getStatus() == null ? "" : i.getStatus().name())
-                .setHeader("Status").setAutoWidth(true);
+                .setHeader(getTranslation("groupView.colStatus")).setAutoWidth(true);
         versionGrid.setItems(versions);
         versionGrid.setAllRowsVisible(true);
-        add(new Paragraph("Versions (" + versions.size() + ")"));
+        add(new Paragraph(getTranslation("groupView.versionsHeading", versions.size())));
         add(versionGrid);
 
         List<HPerson> maintainers = new ArrayList<>(group.getMaintainers());
@@ -85,12 +87,12 @@ public class GroupView extends VerticalLayout implements BeforeEnterObserver {
                 String.CASE_INSENSITIVE_ORDER));
         Grid<HPerson> peopleGrid = new Grid<>(HPerson.class, false);
         peopleGrid.addColumn(p -> p.getName() == null ? "" : p.getName())
-                .setHeader("Name").setAutoWidth(true);
+                .setHeader(getTranslation("groupView.colName")).setAutoWidth(true);
         peopleGrid.addColumn(p -> p.getEmail() == null ? "" : p.getEmail())
-                .setHeader("Email").setAutoWidth(true);
+                .setHeader(getTranslation("groupView.colEmail")).setAutoWidth(true);
         peopleGrid.setItems(maintainers);
         peopleGrid.setAllRowsVisible(true);
-        add(new Paragraph("Maintainers (" + maintainers.size() + ")"));
+        add(new Paragraph(getTranslation("groupView.maintainersHeading", maintainers.size())));
         add(peopleGrid);
     }
 }

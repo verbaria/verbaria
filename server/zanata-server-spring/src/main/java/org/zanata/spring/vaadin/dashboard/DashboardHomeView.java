@@ -8,8 +8,8 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 import jakarta.annotation.security.PermitAll;
 
@@ -19,9 +19,11 @@ import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "dashboard", layout = MainLayout.class)
-@PageTitle("Dashboard | Zanata")
 @PermitAll
-public class DashboardHomeView extends VerticalLayout {
+public class DashboardHomeView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.dashboard"; }
+
 
     public DashboardHomeView(ProjectRepository projectRepository,
                              IterationGroupRepository groupRepository) {
@@ -29,20 +31,20 @@ public class DashboardHomeView extends VerticalLayout {
         setPadding(true);
         setSpacing(true);
 
-        add(new H2("Dashboard"));
+        add(new H2(getTranslation("dashboard.title")));
 
         HorizontalLayout stats = new HorizontalLayout();
         stats.setSpacing(true);
-        stats.add(statCard("Projects", projectRepository.count()));
-        stats.add(statCard("Groups", groupRepository.count()));
+        stats.add(statCard(getTranslation("dashboard.subnav.projects"), projectRepository.count()));
+        stats.add(statCard(getTranslation("dashboard.subnav.groups"), groupRepository.count()));
         add(stats);
 
-        add(new H3("Quick links"));
+        add(new H3(getTranslation("dashboard.title")));
         Div links = new Div();
-        links.add(linkCard("Projects",  LineAwesomeIcon.FOLDER, DashboardProjectsView.class));
-        links.add(linkCard("Activity",  LineAwesomeIcon.HISTORY_SOLID, DashboardActivityView.class));
-        links.add(linkCard("Groups",    LineAwesomeIcon.USERS_SOLID, DashboardGroupsView.class));
-        links.add(linkCard("Settings",  LineAwesomeIcon.COG_SOLID, DashboardSettingsView.class));
+        links.add(linkCard(getTranslation("dashboard.subnav.projects"),  LineAwesomeIcon.FOLDER, DashboardProjectsView.class));
+        links.add(linkCard(getTranslation("dashboard.subnav.activity"),  LineAwesomeIcon.HISTORY_SOLID, DashboardActivityView.class));
+        links.add(linkCard(getTranslation("dashboard.subnav.groups"),    LineAwesomeIcon.USERS_SOLID, DashboardGroupsView.class));
+        links.add(linkCard(getTranslation("dashboard.subnav.settings"),  LineAwesomeIcon.COG_SOLID, DashboardSettingsView.class));
         links.getStyle().set("display", "flex");
         links.getStyle().set("flex-wrap", "wrap");
         links.getStyle().set("gap", "0.75rem");

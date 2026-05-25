@@ -17,8 +17,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
 
 import java.nio.charset.StandardCharsets;
@@ -49,9 +49,11 @@ import org.zanata.spring.vaadin.MainLayout;
 import org.zanata.spring.vaadin.dashboard.DashboardSettingsView;
 
 @Route(value = "profile", layout = MainLayout.class)
-@PageTitle("Profile | Zanata")
 @PermitAll
-public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
+public class ProfileView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.profile"; }
+
 
     private final AccountRepository accountRepository;
     private final ActivityRepository activityRepository;
@@ -139,7 +141,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         info.setSpacing(false);
         info.getStyle().set("flex", "1 1 auto");
 
-        Button settings = new Button("Settings",
+        Button settings = new Button(getTranslation("profile.settings"),
                 LineAwesomeIcon.COG_SOLID.create(),
                 e -> UI.getCurrent().navigate(DashboardSettingsView.class));
         settings.addThemeVariants(ButtonVariant.TERTIARY);
@@ -205,7 +207,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     private Div buildWeeklyActivity(String username) {
         Div panel = new Div();
         cardStyle(panel);
-        panel.add(new H3("This week's activity"));
+        panel.add(new H3(getTranslation("profile.weekActivity")));
 
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = LocalDate.now(zone);
@@ -251,12 +253,12 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
 
         long totalWords = recent.stream().mapToLong(Activity::getWordCount).sum();
         if (recent.isEmpty()) {
-            Paragraph empty = new Paragraph("No recorded activity yet.");
+            Paragraph empty = new Paragraph(getTranslation("profile.noActivityRecorded"));
             empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             empty.getStyle().set("margin-top", "0.5rem");
             panel.add(empty);
         } else {
-            Paragraph summary = new Paragraph(totalWords + " words translated in last 200 events.");
+            Paragraph summary = new Paragraph(getTranslation("profile.wordsTranslatedSummary", totalWords));
             summary.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             summary.getStyle().set("margin-top", "0.5rem");
             panel.add(summary);
@@ -269,16 +271,16 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     private Div buildLanguagesPanel(HAccount account) {
         Div panel = new Div();
         cardStyle(panel);
-        panel.add(new H3("Languages"));
+        panel.add(new H3(getTranslation("profile.languagesHeading")));
 
         List<HLocaleMember> memberships = account.getPerson() == null
                 ? List.of()
                 : localeMemberRepository.findByPerson(account.getPerson());
         if (memberships.isEmpty()) {
-            Paragraph p = new Paragraph("You're not in any language teams yet.");
+            Paragraph p = new Paragraph(getTranslation("profile.notInTeams"));
             p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             panel.add(p);
-            Anchor join = new Anchor("/language/list", "Browse languages →");
+            Anchor join = new Anchor("/language/list", getTranslation("profile.browseLanguages"));
             panel.add(join);
             return panel;
         }
@@ -305,12 +307,18 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         return panel;
     }
 
-    private static String roleSummary(HLocaleMember m) {
+    private String roleSummary(HLocaleMember m) {
         StringBuilder sb = new StringBuilder();
-        if (m.isCoordinator()) sb.append("coord");
-        if (m.isReviewer()) { if (sb.length() > 0) sb.append(", "); sb.append("review"); }
-        if (m.isTranslator()) { if (sb.length() > 0) sb.append(", "); sb.append("trans"); }
-        return sb.length() == 0 ? "member" : sb.toString();
+        if (m.isCoordinator()) sb.append(getTranslation("profile.role.coord"));
+        if (m.isReviewer()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(getTranslation("profile.role.review"));
+        }
+        if (m.isTranslator()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(getTranslation("profile.role.trans"));
+        }
+        return sb.length() == 0 ? getTranslation("profile.role.member") : sb.toString();
     }
 
     /* ---------------- Quick links ---------------- */
@@ -318,11 +326,11 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     private Div buildQuickLinks() {
         Div panel = new Div();
         cardStyle(panel);
-        panel.add(new H3("Quick links"));
+        panel.add(new H3(getTranslation("profile.quickLinks")));
         VerticalLayout list = new VerticalLayout(
-                link("Dashboard", "/dashboard"),
-                link("Account & API key", "/dashboard/settings"),
-                link("Browse languages", "/language/list"));
+                link(getTranslation("profile.quickLink.dashboard"), "/dashboard"),
+                link(getTranslation("profile.quickLink.accountApi"), "/dashboard/settings"),
+                link(getTranslation("profile.quickLink.browseLanguages"), "/language/list"));
         list.setPadding(false);
         list.setSpacing(false);
         panel.add(list);

@@ -4,14 +4,16 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 @Route("account/single_openid")
-@PageTitle("Sign in | Zanata")
 @AnonymousAllowed
-public class SingleOpenIdView extends VerticalLayout {
+public class SingleOpenIdView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.signIn"; }
+
 
     public SingleOpenIdView() {
         setSizeFull();
@@ -21,10 +23,10 @@ public class SingleOpenIdView extends VerticalLayout {
         VerticalLayout panel = new VerticalLayout();
         panel.setWidth("420px");
         panel.setPadding(true);
-        panel.add(new H2("Sign in"));
-        TextField url = new TextField("OpenID URL");
+        panel.add(new H2(getTranslation("account.singleOpenId.title")));
+        TextField url = new TextField(getTranslation("account.singleOpenId.openIdUrl"));
         url.setValue("https://");
-        Button cont = new Button("Continue");
+        Button cont = new Button(getTranslation("account.singleOpenId.continue"));
         panel.add(url, cont);
         add(panel);
     }

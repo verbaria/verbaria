@@ -24,8 +24,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +45,11 @@ import org.zanata.spring.vaadin.MainLayout;
  * /user-guide/versions/version-settings.
  */
 @Route(value = "project/:projectSlug/version/:versionSlug/settings", layout = MainLayout.class)
-@PageTitle("Version settings | Zanata")
 @PermitAll
-public class VersionSettingsView extends VerticalLayout implements BeforeEnterObserver {
+public class VersionSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+
+    @Override public String pageTitleKey() { return "page.versionSettings"; }
+
 
     private final ProjectIterationRepository iterationRepository;
     private final LocaleRepository localeRepository;
@@ -81,42 +83,42 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
     private Breadcrumbs buildCrumbs(String projectSlug, String versionSlug) {
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
                 new Breadcrumb(projectSlug, "/project/view/" + projectSlug),
                 new Breadcrumb(versionSlug,
                         "/project/" + projectSlug + "/version/" + versionSlug),
-                new Breadcrumb("Settings", "#", true));
+                new Breadcrumb(getTranslation("page.settings"), "#", true));
         return crumbs;
     }
 
     private VerticalLayout buildGeneralCard(HProjectIteration iter,
                                             String projectSlug, String versionSlug) {
         VerticalLayout card = card();
-        card.add(new H3("General"));
+        card.add(new H3(getTranslation("versionSettings.general")));
 
-        ComboBox<ProjectType> typeBox = new ComboBox<>("Project type");
+        ComboBox<ProjectType> typeBox = new ComboBox<>(getTranslation("versionSettings.projectType"));
         typeBox.setItems(ProjectType.values());
         typeBox.setValue(iter.getProjectType());
         typeBox.setClearButtonVisible(true);
-        typeBox.setHelperText("Leave empty to inherit from the project's default type.");
+        typeBox.setHelperText(getTranslation("versionSettings.projectTypeHint"));
 
-        ComboBox<EntityStatus> statusBox = new ComboBox<>("Status");
+        ComboBox<EntityStatus> statusBox = new ComboBox<>(getTranslation("versionSettings.status"));
         statusBox.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY, EntityStatus.OBSOLETE);
         statusBox.setValue(iter.getStatus() == null ? EntityStatus.ACTIVE : iter.getStatus());
-        statusBox.setHelperText("READONLY hides translation buttons in the editor.");
+        statusBox.setHelperText(getTranslation("versionSettings.statusHint"));
 
         FormLayout form = new FormLayout(typeBox, statusBox);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
         card.add(form);
 
-        Button save = new Button("Save general", LineAwesomeIcon.SAVE_SOLID.create(),
+        Button save = new Button(getTranslation("versionSettings.saveGeneral"), LineAwesomeIcon.SAVE_SOLID.create(),
                 e -> saveGeneral(iter.getId(), typeBox.getValue(), statusBox.getValue()));
         save.addThemeVariants(ButtonVariant.PRIMARY);
 
         Button toggleRO = new Button(
-                iter.getStatus() == EntityStatus.READONLY ? "Mark as writable" : "Mark as read-only",
+                iter.getStatus() == EntityStatus.READONLY ? getTranslation("versionSettings.markWritable") : getTranslation("versionSettings.markRO"),
                 LineAwesomeIcon.LOCK_SOLID.create(),
                 e -> {
                     EntityStatus next = iter.getStatus() == EntityStatus.READONLY
@@ -126,7 +128,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
                 });
         toggleRO.addThemeVariants(ButtonVariant.TERTIARY);
 
-        Button delete = new Button("Delete version", LineAwesomeIcon.TRASH_SOLID.create(),
+        Button delete = new Button(getTranslation("versionSettings.delete"), LineAwesomeIcon.TRASH_SOLID.create(),
                 e -> confirmDelete(iter.getId(), projectSlug, versionSlug));
         delete.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.TERTIARY);
 
@@ -139,18 +141,16 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
     private VerticalLayout buildLanguagesCard(HProjectIteration iter,
                                               String projectSlug, String versionSlug) {
         VerticalLayout card = card();
-        card.add(new H3("Languages"));
-        Paragraph hint = new Paragraph(
-                "When OFF, this version inherits the project's locale list. "
-                + "When ON, only the languages picked below are available for translation.");
+        card.add(new H3(getTranslation("versionSettings.languages")));
+        Paragraph hint = new Paragraph(getTranslation("versionSettings.languagesIntro"));
         hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
         hint.getStyle().set("font-size", "0.9rem");
         card.add(hint);
 
-        Checkbox override = new Checkbox("Override the project's locale list");
+        Checkbox override = new Checkbox(getTranslation("versionSettings.overrideLocales"));
         override.setValue(iter.isOverrideLocales());
 
-        MultiSelectComboBox<HLocale> locales = new MultiSelectComboBox<>("Customized locales");
+        MultiSelectComboBox<HLocale> locales = new MultiSelectComboBox<>(getTranslation("versionSettings.customizedLocales"));
         List<HLocale> all = localeRepository.findAll();
         locales.setItems(all);
         locales.setItemLabelGenerator(this::localeLabel);
@@ -159,7 +159,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
         locales.setEnabled(override.getValue());
         override.addValueChangeListener(e -> locales.setEnabled(Boolean.TRUE.equals(e.getValue())));
 
-        Button save = new Button("Save languages", LineAwesomeIcon.SAVE_SOLID.create(), e -> {
+        Button save = new Button(getTranslation("versionSettings.saveLanguages"), LineAwesomeIcon.SAVE_SOLID.create(), e -> {
             saveLanguages(iter.getId(), override.getValue(), locales.getValue());
             UI.getCurrent().getPage().reload();
         });
@@ -171,20 +171,18 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
 
     private void confirmDelete(Long iterId, String projectSlug, String versionSlug) {
         ConfirmDialog dlg = new ConfirmDialog(
-                "Delete version " + projectSlug + "/" + versionSlug + "?",
-                "This will mark the version OBSOLETE — it disappears from project lists "
-                + "and from the API. Data is kept in the database so it can be restored "
-                + "by an admin if needed. Continue?",
-                "Delete",
+                getTranslation("versionSettings.deleteConfirmTitle", projectSlug, versionSlug),
+                getTranslation("versionSettings.deleteConfirmBody"),
+                getTranslation("common.delete"),
                 ev -> {
                     softDelete(iterId);
                     Notification n = Notification.show(
-                            "Version " + versionSlug + " marked OBSOLETE",
+                            getTranslation("versionSettings.deleteResult", versionSlug),
                             3000, Notification.Position.BOTTOM_END);
                     n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
                     UI.getCurrent().navigate("project/view/" + projectSlug);
                 },
-                "Cancel",
+                getTranslation("common.cancel"),
                 ev -> {});
         dlg.setConfirmButtonTheme("primary error");
         dlg.open();
@@ -197,7 +195,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
             it.setStatus(status == null ? EntityStatus.ACTIVE : status);
             iterationRepository.save(it);
         });
-        Notification.show("Saved", 2000, Notification.Position.BOTTOM_END);
+        Notification.show(getTranslation("common.saved"), 2000, Notification.Position.BOTTOM_END);
     }
 
     @Transactional
@@ -210,7 +208,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
             }
             iterationRepository.save(it);
         });
-        Notification.show("Saved", 2000, Notification.Position.BOTTOM_END);
+        Notification.show(getTranslation("common.saved"), 2000, Notification.Position.BOTTOM_END);
     }
 
     @Transactional

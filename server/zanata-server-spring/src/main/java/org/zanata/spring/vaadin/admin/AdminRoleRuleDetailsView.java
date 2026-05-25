@@ -5,29 +5,31 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
 
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/roleruledetails", layout = MainLayout.class)
-@PageTitle("Role Rule Details | Zanata")
 @RolesAllowed("ADMIN")
-public class AdminRoleRuleDetailsView extends VerticalLayout {
+public class AdminRoleRuleDetailsView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.roleRuleDetails"; }
+
 
     public AdminRoleRuleDetailsView() {
         setSizeFull();
         setPadding(true);
-        add(new H2("Role Rule Details"));
+        add(new H2(getTranslation("adminRoleRuleDetails.heading")));
 
         FormLayout form = new FormLayout();
-        TextField policyName = new TextField("Policy name");
-        TextField identityPattern = new TextField("Identity pattern");
-        TextField role = new TextField("Role");
+        TextField policyName = new TextField(getTranslation("adminRoleRuleDetails.policyName"));
+        TextField identityPattern = new TextField(getTranslation("adminRoleRuleDetails.identityPattern"));
+        TextField role = new TextField(getTranslation("adminRoleRuleDetails.role"));
         form.add(policyName, identityPattern, role);
 
-        Button save = new Button("Save");
+        Button save = new Button(getTranslation("adminRoleRuleDetails.save"));
         save.setEnabled(false);
 
         add(form, save);

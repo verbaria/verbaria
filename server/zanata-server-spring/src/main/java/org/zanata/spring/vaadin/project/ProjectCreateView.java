@@ -14,8 +14,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.zanata.spring.i18n.TitleKey;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.common.EntityStatus;
@@ -26,9 +26,11 @@ import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/create", layout = MainLayout.class)
-@PageTitle("New project | Zanata")
 @PermitAll
-public class ProjectCreateView extends VerticalLayout {
+public class ProjectCreateView extends VerticalLayout implements TitleKey {
+
+    @Override public String pageTitleKey() { return "page.newProject"; }
+
 
     public ProjectCreateView(ProjectRepository projectRepository,
                              AccountRepository accountRepository) {
@@ -38,23 +40,23 @@ public class ProjectCreateView extends VerticalLayout {
 
         Breadcrumbs crumbs = new Breadcrumbs();
         crumbs.add(
-                new Breadcrumb("Home", "/"),
-                new Breadcrumb("Projects", "/explore"),
-                new Breadcrumb("New project", "#", true));
+                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
+                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                new Breadcrumb(getTranslation("projectCreate.title"), "#", true));
         add(crumbs);
-        add(new H2("New project"));
+        add(new H2(getTranslation("projectCreate.title")));
 
-        TextField slug = new TextField("Project ID");
+        TextField slug = new TextField(getTranslation("projectCreate.slug"));
         slug.setRequiredIndicatorVisible(true);
-        slug.setHelperText("Lowercase letters, digits, hyphens.");
-        TextField name = new TextField("Name");
+        slug.setHelperText(getTranslation("projectCreate.slugHint"));
+        TextField name = new TextField(getTranslation("projectCreate.name"));
         name.setRequiredIndicatorVisible(true);
-        TextArea description = new TextArea("Description");
+        TextArea description = new TextArea(getTranslation("projectCreate.description"));
         description.setMaxLength(255);
-        ComboBox<ProjectType> defaultType = new ComboBox<>("Default project type");
+        ComboBox<ProjectType> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
         defaultType.setItems(ProjectType.values());
         defaultType.setValue(ProjectType.Gettext);
-        ComboBox<EntityStatus> status = new ComboBox<>("Status");
+        ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("projectCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY);
         status.setValue(EntityStatus.ACTIVE);
 
@@ -63,16 +65,16 @@ public class ProjectCreateView extends VerticalLayout {
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
 
-        Button create = new Button("Create", e -> {
+        Button create = new Button(getTranslation("projectCreate.submit"), e -> {
             if (slug.getValue() == null || slug.getValue().isBlank()
                     || name.getValue() == null || name.getValue().isBlank()) {
-                Notification.show("Project ID and Name are required.", 3000,
-                        Notification.Position.MIDDLE);
+                Notification.show(getTranslation("projectCreate.requiredFields"),
+                        3000, Notification.Position.MIDDLE);
                 return;
             }
             String s = slug.getValue().trim();
             if (projectRepository.findBySlug(s).isPresent()) {
-                Notification.show("A project with id '" + s + "' already exists.",
+                Notification.show(getTranslation("projectCreate.duplicate", s),
                         3000, Notification.Position.MIDDLE);
                 return;
             }
@@ -90,12 +92,12 @@ public class ProjectCreateView extends VerticalLayout {
                         .ifPresent(p::addMaintainer);
             }
             projectRepository.save(p);
-            Notification.show("Created project " + s, 2500,
-                    Notification.Position.BOTTOM_START);
+            Notification.show(getTranslation("projectCreate.success", s),
+                    2500, Notification.Position.BOTTOM_START);
             getUI().ifPresent(ui -> ui.navigate("project/view/" + s));
         });
         create.addThemeVariants(ButtonVariant.PRIMARY);
-        Button cancel = new Button("Cancel",
+        Button cancel = new Button(getTranslation("common.cancel"),
                 e -> getUI().ifPresent(ui -> ui.navigate("explore")));
         add(new HorizontalLayout(create, cancel));
     }
