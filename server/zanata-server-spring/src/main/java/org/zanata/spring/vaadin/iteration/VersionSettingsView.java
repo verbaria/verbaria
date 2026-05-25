@@ -4,8 +4,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -36,6 +34,8 @@ import org.zanata.model.HLocale;
 import org.zanata.model.HProjectIteration;
 import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.ProjectIterationRepository;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 /**
@@ -46,18 +46,21 @@ import org.zanata.spring.vaadin.MainLayout;
  */
 @Route(value = "project/:projectSlug/version/:versionSlug/settings", layout = MainLayout.class)
 @PermitAll
-public class VersionSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class VersionSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.versionSettings"; }
 
 
     private final ProjectIterationRepository iterationRepository;
     private final LocaleRepository localeRepository;
+    private final BreadcrumbsService breadcrumbsService;
 
     public VersionSettingsView(ProjectIterationRepository iterationRepository,
-                               LocaleRepository localeRepository) {
+                               LocaleRepository localeRepository,
+                               BreadcrumbsService breadcrumbsService) {
         this.iterationRepository = iterationRepository;
         this.localeRepository = localeRepository;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -73,23 +76,21 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
                 .orElseThrow(() -> new NotFoundException(
                         "Version not found: " + projectSlug + "/" + versionSlug));
 
-        add(buildCrumbs(projectSlug, versionSlug));
+        publishCrumbs(projectSlug, versionSlug);
         add(new H2(projectSlug + " / " + versionSlug));
 
         add(buildGeneralCard(iter, projectSlug, versionSlug));
         add(buildLanguagesCard(iter, projectSlug, versionSlug));
     }
 
-    private Breadcrumbs buildCrumbs(String projectSlug, String versionSlug) {
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(projectSlug, "/project/view/" + projectSlug),
-                new Breadcrumb(versionSlug,
+    private void publishCrumbs(String projectSlug, String versionSlug) {
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(projectSlug, "/project/view/" + projectSlug),
+                BreadcrumbsService.Crumb.of(versionSlug,
                         "/project/" + projectSlug + "/version/" + versionSlug),
-                new Breadcrumb(getTranslation("page.settings"), "#", true));
-        return crumbs;
+                BreadcrumbsService.Crumb.here(getTranslation("page.settings")));
     }
 
     private VerticalLayout buildGeneralCard(HProjectIteration iter,

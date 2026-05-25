@@ -2,8 +2,6 @@ package org.zanata.spring.vaadin.project;
 
 import jakarta.annotation.security.PermitAll;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -35,22 +33,27 @@ import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.ProjectRepository;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/view/:slug/settings", layout = MainLayout.class)
 @PermitAll
-public class ProjectSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class ProjectSettingsView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.projectSettings"; }
 
 
     private final ProjectRepository projectRepository;
     private final LocaleRepository localeRepository;
+    private final BreadcrumbsService breadcrumbsService;
 
     public ProjectSettingsView(ProjectRepository projectRepository,
-                               LocaleRepository localeRepository) {
+                               LocaleRepository localeRepository,
+                               BreadcrumbsService breadcrumbsService) {
         this.projectRepository = projectRepository;
         this.localeRepository = localeRepository;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -63,13 +66,11 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         HProject project = projectRepository.findBySlugWithLocales(slug)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + slug));
 
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(slug, "/project/view/" + slug),
-                new Breadcrumb(getTranslation("page.settings"), "#", true));
-        add(crumbs);
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(slug, "/project/view/" + slug),
+                BreadcrumbsService.Crumb.here(getTranslation("page.settings")));
         add(new H2(project.getName() == null ? slug : project.getName()));
 
         TextField name = new TextField(getTranslation("projectCreate.name"));

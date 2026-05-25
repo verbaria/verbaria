@@ -6,8 +6,6 @@ import java.util.List;
 
 import jakarta.annotation.security.PermitAll;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -28,22 +26,27 @@ import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
 import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.service.IterationCopyService;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/:slug/add-version", layout = MainLayout.class)
 @PermitAll
-public class VersionCreateView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class VersionCreateView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.newVersion"; }
 
 
     private final ProjectRepository projectRepository;
     private final IterationCopyService iterationCopyService;
+    private final BreadcrumbsService breadcrumbsService;
 
     public VersionCreateView(ProjectRepository projectRepository,
-                             IterationCopyService iterationCopyService) {
+                             IterationCopyService iterationCopyService,
+                             BreadcrumbsService breadcrumbsService) {
         this.projectRepository = projectRepository;
         this.iterationCopyService = iterationCopyService;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -56,13 +59,11 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
         HProject project = projectRepository.findBySlugWithIterations(slug)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + slug));
 
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(slug, "/project/view/" + slug),
-                new Breadcrumb(getTranslation("versionCreate.crumb"), "#", true));
-        add(crumbs);
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(slug, "/project/view/" + slug),
+                BreadcrumbsService.Crumb.here(getTranslation("versionCreate.crumb")));
 
         add(new H2(getTranslation("versionCreate.headingFor", project.getName() == null ? slug : project.getName())));
 

@@ -2,8 +2,6 @@ package org.zanata.spring.vaadin.project;
 
 import jakarta.annotation.security.PermitAll;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -23,27 +21,28 @@ import org.zanata.common.ProjectType;
 import org.zanata.model.HProject;
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.ProjectRepository;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "project/create", layout = MainLayout.class)
 @PermitAll
-public class ProjectCreateView extends VerticalLayout implements TitleKey {
+public class ProjectCreateView extends VerticalLayout implements TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.newProject"; }
 
 
     public ProjectCreateView(ProjectRepository projectRepository,
-                             AccountRepository accountRepository) {
+                             AccountRepository accountRepository,
+                             BreadcrumbsService breadcrumbsService) {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
 
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(getTranslation("projectCreate.title"), "#", true));
-        add(crumbs);
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.here(getTranslation("projectCreate.title")));
         add(new H2(getTranslation("projectCreate.title")));
 
         TextField slug = new TextField(getTranslation("projectCreate.slug"));

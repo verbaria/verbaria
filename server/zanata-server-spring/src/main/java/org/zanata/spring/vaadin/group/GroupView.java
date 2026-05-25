@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -22,19 +20,24 @@ import org.zanata.model.HIterationGroup;
 import org.zanata.model.HPerson;
 import org.zanata.model.HProjectIteration;
 import org.zanata.spring.repository.IterationGroupRepository;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "group/view/:slug", layout = MainLayout.class)
 @AnonymousAllowed
-public class GroupView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class GroupView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.group"; }
 
 
     private final IterationGroupRepository groupRepository;
+    private final BreadcrumbsService breadcrumbsService;
 
-    public GroupView(IterationGroupRepository groupRepository) {
+    public GroupView(IterationGroupRepository groupRepository,
+                     BreadcrumbsService breadcrumbsService) {
         this.groupRepository = groupRepository;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -47,12 +50,10 @@ public class GroupView extends VerticalLayout implements BeforeEnterObserver, Ti
         HIterationGroup group = groupRepository.findBySlugWithFetch(slug)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + slug));
 
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("nav.groups"), "/groups"),
-                new Breadcrumb(slug, "#", true));
-        add(crumbs);
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("nav.groups"), "/groups"),
+                BreadcrumbsService.Crumb.here(slug));
 
         H1 name = new H1(group.getName() == null || group.getName().isBlank()
                 ? slug : group.getName());

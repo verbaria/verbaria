@@ -19,8 +19,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.select.Select;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
@@ -60,14 +58,16 @@ import org.zanata.spring.repository.ProjectIterationRepository;
 import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
 import org.zanata.spring.service.ProjectMembershipService;
+import org.zanata.spring.vaadin.BreadcrumbsService;
 import org.zanata.spring.vaadin.ExploreView;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 import org.zanata.spring.vaadin.iteration.IterationView;
 import org.zanata.spring.vaadin.stats.IterationStats;
 
 @Route(value = "project/view/:slug", layout = MainLayout.class)
 @AnonymousAllowed
-public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.project"; }
 
@@ -79,6 +79,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     private final AccountRepository accountRepository;
     private final PersonRepository personRepository;
     private final ProjectMembershipService membershipService;
+    private final BreadcrumbsService breadcrumbsService;
 
     private String currentSlug;
 
@@ -88,7 +89,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
                        LocaleRepository localeRepository,
                        AccountRepository accountRepository,
                        PersonRepository personRepository,
-                       ProjectMembershipService membershipService) {
+                       ProjectMembershipService membershipService,
+                       BreadcrumbsService breadcrumbsService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.targetRepository = targetRepository;
@@ -96,6 +98,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         this.accountRepository = accountRepository;
         this.personRepository = personRepository;
         this.membershipService = membershipService;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -130,7 +133,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         HProject withMembers = projectRepository.findBySlugWithMembers(slug)
                 .orElse(project);
 
-        add(buildBreadcrumb());
+        publishBreadcrumb();
         add(buildHeading(project, slug));
         if (project.getDescription() != null && !project.getDescription().isBlank()) {
             Paragraph desc = new Paragraph(project.getDescription());
@@ -201,13 +204,11 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return panel;
     }
 
-    private Breadcrumbs buildBreadcrumb() {
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore", true)
+    private void publishBreadcrumb() {
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.here(getTranslation("translate.breadcrumb.projects"))
         );
-        return crumbs;
     }
 
     private HorizontalLayout buildHeading(HProject project, String slug) {

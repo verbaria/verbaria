@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -44,11 +42,13 @@ import org.zanata.spring.repository.LanguageRequestRepository;
 import org.zanata.spring.repository.LocaleMemberRepository;
 import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.service.LanguageTeamService;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "language/:slug", layout = MainLayout.class)
 @AnonymousAllowed
-public class LanguageView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class LanguageView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.language"; }
 
@@ -58,17 +58,20 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
     private final LanguageRequestRepository languageRequestRepository;
     private final AccountRepository accountRepository;
     private final LanguageTeamService languageTeamService;
+    private final BreadcrumbsService breadcrumbsService;
 
     public LanguageView(LocaleRepository localeRepository,
                         LocaleMemberRepository localeMemberRepository,
                         LanguageRequestRepository languageRequestRepository,
                         AccountRepository accountRepository,
-                        LanguageTeamService languageTeamService) {
+                        LanguageTeamService languageTeamService,
+                        BreadcrumbsService breadcrumbsService) {
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
         this.languageRequestRepository = languageRequestRepository;
         this.accountRepository = accountRepository;
         this.languageTeamService = languageTeamService;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -81,7 +84,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
         HLocale locale = localeRepository.findByLocaleId(new LocaleId(slug))
                 .orElseThrow(() -> new NotFoundException("Language not found: " + slug));
 
-        add(buildBreadcrumb(slug));
+        publishBreadcrumb(slug);
         add(buildHeader(locale));
         add(buildActionBar(locale));
         add(buildMembersPanel(locale));
@@ -94,13 +97,11 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
         }
     }
 
-    private Breadcrumbs buildBreadcrumb(String slug) {
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("nav.languages"), "/languages"),
-                new Breadcrumb(slug, "#", true));
-        return crumbs;
+    private void publishBreadcrumb(String slug) {
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("nav.languages"), "/languages"),
+                BreadcrumbsService.Crumb.here(slug));
     }
 
     private Div buildHeader(HLocale locale) {

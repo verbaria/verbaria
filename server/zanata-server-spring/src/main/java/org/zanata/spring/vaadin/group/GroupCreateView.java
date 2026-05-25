@@ -2,8 +2,6 @@ package org.zanata.spring.vaadin.group;
 
 import jakarta.annotation.security.PermitAll;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -20,27 +18,28 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.model.HIterationGroup;
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.IterationGroupRepository;
+import org.zanata.spring.vaadin.BreadcrumbsService;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "group/create", layout = MainLayout.class)
 @PermitAll
-public class GroupCreateView extends VerticalLayout implements TitleKey {
+public class GroupCreateView extends VerticalLayout implements TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.newGroup"; }
 
 
     public GroupCreateView(IterationGroupRepository groupRepository,
-                           AccountRepository accountRepository) {
+                           AccountRepository accountRepository,
+                           BreadcrumbsService breadcrumbsService) {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
 
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("nav.groups"), "/groups"),
-                new Breadcrumb(getTranslation("groupCreate.crumb"), "#", true));
-        add(crumbs);
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("nav.groups"), "/groups"),
+                BreadcrumbsService.Crumb.here(getTranslation("groupCreate.crumb")));
         add(new H2(getTranslation("groupCreate.heading")));
 
         TextField slug = new TextField(getTranslation("groupCreate.groupId"));

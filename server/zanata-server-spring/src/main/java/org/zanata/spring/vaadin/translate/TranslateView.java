@@ -16,8 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.zanata.spring.service.ai.TranslationProvider;
 import org.zanata.spring.service.ai.TranslationProviderRegistry;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -86,7 +84,9 @@ import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
 import org.zanata.spring.service.EditorPreferencesService;
 import org.zanata.spring.service.ai.AiPolicyService;
+import org.zanata.spring.vaadin.BreadcrumbsService;
 import org.zanata.spring.vaadin.ExploreView;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 import org.zanata.spring.vaadin.ProgressDialogService;
 import org.zanata.spring.vaadin.iteration.IterationView;
@@ -94,7 +94,7 @@ import org.zanata.spring.vaadin.project.ProjectView;
 
 @Route(value = "translate/:projectSlug/:versionSlug/:localeId", layout = MainLayout.class)
 @AnonymousAllowed
-public class TranslateView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class TranslateView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.translate"; }
 
@@ -112,6 +112,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final LocaleRepository localeRepository;
     private final LocaleMemberRepository localeMemberRepository;
     private final AccountRepository accountRepository;
+    private final BreadcrumbsService breadcrumbsService;
 
     private LocaleId currentLocale;
     private LocaleId sourceLocale;
@@ -174,7 +175,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          TranslationProviderRegistry aiRegistry,
                          AiPolicyService aiPolicy,
                          ProgressDialogService progressDialogs,
-                         EditorPreferencesService editorPreferences) {
+                         EditorPreferencesService editorPreferences,
+                         BreadcrumbsService breadcrumbsService) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
@@ -188,6 +190,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.aiPolicy = aiPolicy;
         this.progressDialogs = progressDialogs;
         this.editorPreferences = editorPreferences;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -258,7 +261,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 ? doc.getLocale().getLocaleId() : LocaleId.EN_US;
         Long docIdForProvider = doc.getId();
 
-        add(buildBreadcrumb());
+        publishBreadcrumb();
 
         HorizontalLayout headingRow = new HorizontalLayout();
         headingRow.setWidthFull();
@@ -789,17 +792,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return (int) Math.min(Integer.MAX_VALUE, n);
     }
 
-    private Breadcrumbs buildBreadcrumb() {
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(projectSlug, "/project/view/" + projectSlug),
-                new Breadcrumb(versionSlug,
+    private void publishBreadcrumb() {
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(projectSlug, "/project/view/" + projectSlug),
+                BreadcrumbsService.Crumb.of(versionSlug,
                         "/project/" + projectSlug + "/version/" + versionSlug),
-                new Breadcrumb(localeStr, "#", true)
+                BreadcrumbsService.Crumb.here(localeStr)
         );
-        return crumbs;
     }
 
     private Div buildRow(HTextFlow flow, Optional<HTextFlowTarget> existing,

@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -70,7 +68,9 @@ import org.zanata.spring.service.CopyTransService;
 import org.zanata.spring.service.MergeTransService;
 import org.zanata.spring.service.SourceUploadService;
 import org.zanata.spring.service.TranslationUploadService;
+import org.zanata.spring.vaadin.BreadcrumbsService;
 import org.zanata.spring.vaadin.ExploreView;
+import org.zanata.spring.vaadin.HasBreadcrumbs;
 import org.zanata.spring.vaadin.MainLayout;
 import org.zanata.spring.vaadin.ProgressDialogService;
 import org.zanata.spring.vaadin.project.ProjectView;
@@ -79,7 +79,7 @@ import org.zanata.spring.vaadin.stats.IterationStats;
 @Route(value = "project/:projectSlug/version/:versionSlug", layout = MainLayout.class)
 @RouteAlias(value = "iteration/view/:projectSlug/:versionSlug", layout = MainLayout.class)
 @AnonymousAllowed
-public class IterationView extends VerticalLayout implements BeforeEnterObserver, TitleKey{
+public class IterationView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
 
     @Override public String pageTitleKey() { return "page.projectVersion"; }
 
@@ -100,6 +100,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private final ProjectRepository projectRepository;
     private final ProgressDialogService progressDialogs;
     private final AccountRepository accountRepository;
+    private final BreadcrumbsService breadcrumbsService;
 
     /** Enabled locales for the current iteration — populated in beforeEnter for the upload dialog. */
     private List<HLocale> enabledLocales = List.of();
@@ -114,7 +115,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                          MergeTransService mergeTransService,
                          ProjectRepository projectRepository,
                          ProgressDialogService progressDialogs,
-                         AccountRepository accountRepository) {
+                         AccountRepository accountRepository,
+                         BreadcrumbsService breadcrumbsService) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
@@ -126,6 +128,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         this.projectRepository = projectRepository;
         this.progressDialogs = progressDialogs;
         this.accountRepository = accountRepository;
+        this.breadcrumbsService = breadcrumbsService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -161,7 +164,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         // findByVersion + .size(). That blew up on large versions (Consulo).
         long docCount = documentRepository.countByVersion(projectSlug, versionSlug);
 
-        add(buildBreadcrumb(projectSlug));
+        publishBreadcrumb(projectSlug);
         add(buildHeading(iteration));
         add(buildStatsRow(stats));
         ProgressBar bar = new ProgressBar(0.0, 1.0, stats.translatedPct / 100.0);
@@ -182,14 +185,12 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         add(tabs);
     }
 
-    private Breadcrumbs buildBreadcrumb(String projectSlug) {
-        Breadcrumbs crumbs = new Breadcrumbs();
-        crumbs.add(
-                new Breadcrumb(getTranslation("translate.breadcrumb.home"), "/"),
-                new Breadcrumb(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                new Breadcrumb(projectSlug, "/project/view/" + projectSlug, true)
+    private void publishBreadcrumb(String projectSlug) {
+        breadcrumbsService.set(
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.here(projectSlug)
         );
-        return crumbs;
     }
 
     private HorizontalLayout buildHeading(HProjectIteration iteration) {

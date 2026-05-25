@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -60,6 +61,16 @@ public class SecurityConfig {
                     .ignoringRequestMatchers(
                             PathPatternRequestMatcher.withDefaults().matcher("/rest/**"),
                             PathPatternRequestMatcher.withDefaults().matcher("/actuator/**")))
+            // Default Spring Security logout filter only matches POST /logout.
+            // Our user menu navigates to /logout via GET (LoginDialogService
+            // uses Page.setLocation), so we widen the matcher to accept GET
+            // too. CSRF protection is still active on POST forms.
+            .logout(logout -> logout
+                    .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults()
+                            .matcher(HttpMethod.GET, "/logout"))
+                    .logoutSuccessUrl("/")
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID"))
             // CLI auth: X-Auth-User + X-Auth-Token headers populate the
             // SecurityContext before authorization runs, so the CLI bridge's
             // write endpoints can identify the caller.

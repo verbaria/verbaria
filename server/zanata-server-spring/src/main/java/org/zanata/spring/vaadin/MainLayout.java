@@ -3,29 +3,39 @@ package org.zanata.spring.vaadin;
 import java.util.List;
 import java.util.Locale;
 
+import com.vaadin.componentfactory.Breadcrumb;
+import com.vaadin.componentfactory.Breadcrumbs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -33,28 +43,65 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.spring.i18n.LocaleSelector;
+import org.zanata.spring.i18n.ThemeSelector;
 import org.zanata.spring.service.ContactAdminService;
 import org.zanata.spring.vaadin.admin.AdminHomeView;
 import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
 
 /**
- * App shell: a minimal navbar with the drawer toggle (so it stays reachable
- * when the drawer is closed) and a left-rail drawer with logo, scrolling
- * SideNav, and an auth section pinned to the bottom.
+ * App shell. Layout:
+ * <pre>
+ *  ┌─────────────────────────────────────────────────────────────────┐
+ *  │ ☰  &lt;breadcrumbs&gt;                       🌗  🌐 ▾   Sign in / out  │   ← navbar
+ *  ├─────────────────────────────────────────────────────────────────┤
+ *  │ logo                                                             │
+ *  │ ─── Home                                                         │
+ *  │ ─── Explore                                       view content   │   ← body
+ *  │ ─── …                                                            │
+ *  │                                                                  │
+ *  │ ─────────── user · contact ─────────                             │   ← drawer
+ *  └─────────────────────────────────────────────────────────────────┘
+ * </pre>
+ *
+ * <p>The navbar is the global toolbar — it holds the breadcrumbs (left, set
+ * by each view through {@link BreadcrumbsService}) and the global controls
+ * (right): theme toggle, locale picker, sign-in popover or user menu.</p>
  */
 @AnonymousAllowed
-public class MainLayout extends AppLayout implements com.vaadin.flow.router.BeforeEnterObserver {
+public class MainLayout extends AppLayout
+        implements com.vaadin.flow.router.BeforeEnterObserver, AfterNavigationObserver {
 
     private final ContactAdminService contactAdminService;
     private final LocaleSelector localeSelector;
+    private final ThemeSelector themeSelector;
     private final LoginDialogService loginDialogService;
+    private final BreadcrumbsService breadcrumbsService;
+
+    // Live placeholder in the toolbar — re-populated on every navigation by
+    // {@link #afterNavigation}. Owning it as a field avoids querying the
+    // DOM each time.
+    private final Span breadcrumbsSlot = new Span();
+
+    /**
+     * Wrapper for the routed view. AppLayout's {@code content} slot holds
+     * this; it stacks the toolbar (with breadcrumbs + global controls) on
+     * top of the actual routed view. Result: the toolbar sits in the main
+     * content layout area, only spanning the content width — the drawer
+     * extends the full height to its left.
+     */
+    private VerticalLayout contentWrapper;
+    private HasElement currentRoutedContent;
 
     public MainLayout(ContactAdminService contactAdminService,
                       LocaleSelector localeSelector,
-                      LoginDialogService loginDialogService) {
+                      ThemeSelector themeSelector,
+                      LoginDialogService loginDialogService,
+                      BreadcrumbsService breadcrumbsService) {
         this.contactAdminService = contactAdminService;
         this.localeSelector = localeSelector;
+        this.themeSelector = themeSelector;
         this.loginDialogService = loginDialogService;
+        this.breadcrumbsService = breadcrumbsService;
         // Apply the persisted-locale cookie BEFORE children render. Reading
         // the cookie doesn't need the session, only the inbound HttpServletRequest
         // — which is available here because MainLayout is instantiated during
@@ -65,9 +112,50 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
             ui.setLocale(cookieLocale);
         }
         setPrimarySection(Section.DRAWER);
-        addNavbarToggle();
         addDrawerContent();
-        installToggleVisibilityCss();
+        installToolbarCss();
+        // Build the in-content toolbar once. {@link #showRouterLayoutContent}
+        // re-uses it across navigations, swapping the routed view underneath.
+        contentWrapper = new VerticalLayout();
+        contentWrapper.setSizeFull();
+        contentWrapper.setPadding(false);
+        contentWrapper.setSpacing(false);
+        // Clip overflow at the wrapper — the toolbar is fixed-height and the
+        // routed view is flex:1 with min-height:0 (set in showRouterLayoutContent),
+        // so a scrolling view contains its own overflow inside the wrapper.
+        contentWrapper.getStyle().set("overflow", "hidden");
+        contentWrapper.add(buildToolbar());
+        setContent(contentWrapper);
+    }
+
+    /**
+     * Replace the AppLayout default content-swap so the routed view goes
+     * <i>inside</i> our {@link #contentWrapper} — below the toolbar — rather
+     * than directly into the content slot. The toolbar sits in the main
+     * content layout area (above the routed view, right of the drawer); the
+     * drawer extends the full height to its left.
+     *
+     * <p>We hold a reference to the {@link HasElement} so
+     * {@link #afterNavigation} can ask the <i>routed view</i> (not the
+     * wrapper) whether it implements {@link HasBreadcrumbs}.</p>
+     */
+    @Override
+    public void showRouterLayoutContent(HasElement newContent) {
+        if (currentRoutedContent != null) {
+            currentRoutedContent.getElement().removeFromParent();
+        }
+        currentRoutedContent = newContent;
+        if (newContent != null) {
+            Element el = newContent.getElement();
+            // Make the routed view fill the remaining height inside the
+            // flex column (toolbar at top is fixed-height). Without
+            // {@code min-height:0} a scrolling view (e.g. TranslateView)
+            // would push its content past the bottom of the wrapper.
+            el.getStyle().set("flex", "1 1 auto");
+            el.getStyle().set("min-height", "0");
+            el.getStyle().set("min-width", "0");
+            contentWrapper.getElement().appendChild(el);
+        }
     }
 
     /**
@@ -89,41 +177,90 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
     }
 
     /**
-     * The navbar carries a "reopen" toggle so the user can recover an
-     * accidentally-closed drawer. Hide it whenever the drawer is open
-     * (the in-drawer toggle takes over) and shrink the navbar to just
-     * fit the button so there's no empty bar above the content.
+     * Read the view's breadcrumbs (set in its constructor through
+     * {@link BreadcrumbsService}) and render them in the navbar's left slot.
+     *
+     * <p>If the routed view doesn't implement {@link HasBreadcrumbs} we
+     * clear the trail first — that way navigating from a project page back
+     * to the home or explore view doesn't leave stale crumbs behind.</p>
      */
-    private void installToggleVisibilityCss() {
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        // Check the routed view (not our wrapper) — see showRouterLayoutContent.
+        if (!(currentRoutedContent instanceof HasBreadcrumbs)) {
+            breadcrumbsService.clear();
+        }
+        renderBreadcrumbs();
+    }
+
+    private void renderBreadcrumbs() {
+        breadcrumbsSlot.removeAll();
+        List<BreadcrumbsService.Crumb> crumbs = breadcrumbsService.current();
+        if (crumbs.isEmpty()) return;
+        Breadcrumbs widget = new Breadcrumbs();
+        for (BreadcrumbsService.Crumb c : crumbs) {
+            widget.add(new Breadcrumb(c.label(),
+                    c.href() == null ? "#" : c.href(),
+                    c.current()));
+        }
+        breadcrumbsSlot.add(widget);
+    }
+
+    /**
+     * Toolbar styles. The toolbar lives inside the AppLayout content slot
+     * (above the routed view), so it only spans the content area — the
+     * drawer extends the full height to its left.
+     */
+    private void installToolbarCss() {
         String css = ""
-                + "vaadin-app-layout::part(navbar) { min-height: 0; padding: 0.25rem 0.5rem; }"
+                + ".zanata-toolbar {"
+                + "  display: flex; align-items: center; gap: 0.5rem;"
+                + "  padding: 0.4rem 0.75rem; flex: 0 0 auto;"
+                + "  width: 100%; box-sizing: border-box;"
+                + "  border-bottom: 1px solid var(--vaadin-border-color);"
+                + "  background: var(--vaadin-background-color);"
+                + "  z-index: 1;"
+                + "}"
+                + ".zanata-toolbar .crumbs { flex: 1 1 auto; min-width: 0;"
+                + "  overflow: hidden; }"
+                + ".zanata-toolbar .controls { display: flex; align-items: center;"
+                + "  gap: 0.25rem; flex: 0 0 auto; }"
                 + "vaadin-app-layout[primary-section=\"drawer\"][drawer-opened]:not([overlay]) "
-                + "  vaadin-drawer-toggle.nav-reopen-toggle { display: none; }"
-                + "vaadin-app-layout:not([drawer-opened]) ::part(navbar) { box-shadow: none; }";
+                + "  vaadin-drawer-toggle.nav-reopen-toggle { display: none; }";
         getElement().executeJs(
-                "if (!document.getElementById('zanata-nav-toggle-css')) {"
+                "if (!document.getElementById('zanata-toolbar-css')) {"
                 + "  const s = document.createElement('style');"
-                + "  s.id = 'zanata-nav-toggle-css';"
+                + "  s.id = 'zanata-toolbar-css';"
                 + "  s.textContent = $0;"
                 + "  document.head.appendChild(s);"
                 + "}", css);
     }
 
     /**
-     * Tiny navbar toggle — kept available so the drawer is reopenable
-     * once it's been collapsed. Hidden via CSS when the drawer is open
-     * (see styles.css) so it doesn't double-up with the in-drawer toggle.
+     * The in-content toolbar: drawer reopen toggle (auto-hides when drawer
+     * is open), the per-view breadcrumbs (left), and the global controls
+     * cluster on the right (theme toggle, locale picker, sign-in / user
+     * menu).
      */
-    private void addNavbarToggle() {
+    private Component buildToolbar() {
         DrawerToggle navToggle = new DrawerToggle();
-        navToggle.setAriaLabel("Open menu");
+        navToggle.setAriaLabel(getTranslation("nav.openMenu"));
         navToggle.addClassName("nav-reopen-toggle");
-        addToNavbar(navToggle);
+
+        breadcrumbsSlot.addClassName("crumbs");
+
+        Div controls = new Div(buildThemeButton(), buildLocalePicker(),
+                buildAuthControl());
+        controls.addClassName("controls");
+
+        Div row = new Div(navToggle, breadcrumbsSlot, controls);
+        row.addClassName("zanata-toolbar");
+        return row;
     }
 
     private void addDrawerContent() {
         DrawerToggle toggle = new DrawerToggle();
-        toggle.setAriaLabel("Toggle menu");
+        toggle.setAriaLabel(getTranslation("nav.toggleMenu"));
         toggle.getStyle().set("margin", "0");
 
         Image logo = new Image("/resources/assets/img/logo/logo-text.svg", "Zanata");
@@ -148,9 +285,10 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
         Scroller scroller = new Scroller(nav);
         scroller.setSizeFull();
 
-        Div footer = buildAuthFooter();
-
-        FlexLayout drawer = new FlexLayout(header, scroller, footer);
+        // No drawer footer — sign-in / locale / theme / contact / sign-out
+        // all moved into the navbar's user menu. The old border-top divider
+        // (left over from where the sign-in link used to live) is gone too.
+        FlexLayout drawer = new FlexLayout(header, scroller);
         drawer.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         drawer.setSizeFull();
         scroller.getStyle().set("flex", "1 1 auto");
@@ -159,54 +297,51 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
         addToDrawer(drawer);
     }
 
-    private Div buildAuthFooter() {
-        Div footer = new Div();
-        footer.getStyle().set("border-top", "1px solid var(--vaadin-border-color)");
-        footer.getStyle().set("padding", "0.6rem 1rem");
-        footer.getStyle().set("display", "flex");
-        footer.getStyle().set("align-items", "center");
-        footer.getStyle().set("gap", "0.5rem");
-        if (isAuthenticated()) {
-            Span user = new Span(currentUsername());
-            user.getStyle().set("font-weight", "600");
-            user.getStyle().set("flex", "1 1 auto");
-            Button contact = new Button(LineAwesomeIcon.ENVELOPE_SOLID.create(),
-                    e -> openContactAdminDialog());
-            contact.addThemeVariants(ButtonVariant.TERTIARY,
-                    ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
-            String contactLabel = getTranslation("auth.contactAdmin");
-            contact.getElement().setAttribute("title", contactLabel);
-            contact.getElement().setAttribute("aria-label", contactLabel);
-            Anchor logout = new Anchor("/logout", getTranslation("auth.signOut"));
-            footer.add(LineAwesomeIcon.USER_SOLID.create(), user,
-                    contact, buildLocalePicker(), logout);
-        } else {
-            // Single "Sign in / Sign up" entry — opens the popover in place,
-            // which has tabs for both flows. No navigation away from the
-            // current view.
-            Button signInOrUp = new Button(getTranslation("auth.signInOrUp"),
-                    e -> loginDialogService.open());
-            signInOrUp.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-            HorizontalLayout row = new HorizontalLayout(
-                    LineAwesomeIcon.USER_SOLID.create(), signInOrUp,
-                    buildLocalePicker());
-            row.setSpacing(true);
-            row.setPadding(false);
-            row.setAlignItems(HorizontalLayout.Alignment.CENTER);
-            footer.add(row);
+
+    // ------------------------------------------------------------------
+    // Navbar controls (right cluster)
+    // ------------------------------------------------------------------
+
+    /**
+     * Theme toggle. Three modes (light / dark / follow system) shown as a
+     * radio-group in the submenu — picking one unchecks the others, so the
+     * "checked" state always reflects the active mode.
+     */
+    private Component buildThemeButton() {
+        ThemeSelector.Mode mode = themeSelector.current();
+        MenuBar bar = new MenuBar();
+        // Theme-agnostic variants only — Aura is the active theme, no Lumo.
+        bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
+        Component icon = mode == ThemeSelector.Mode.DARK
+                ? LineAwesomeIcon.MOON_SOLID.create()
+                : LineAwesomeIcon.SUN_SOLID.create();
+        MenuItem trigger = bar.addItem(icon);
+        trigger.getElement().setAttribute("aria-label", getTranslation("theme.label"));
+        trigger.getElement().setAttribute("title", getTranslation("theme.label"));
+
+        java.util.List<MenuItem> choices = new java.util.ArrayList<>();
+        for (ThemeSelector.Mode target : ThemeSelector.Mode.values()) {
+            String key = "theme." + target.name().toLowerCase(java.util.Locale.ROOT);
+            MenuItem item = trigger.getSubMenu().addItem(getTranslation(key));
+            item.setCheckable(true);
+            item.setChecked(target == mode);
+            choices.add(item);
+            // Radio-group behavior: picking one item unchecks the others.
+            // Without this MenuItem.setCheckable independently toggles each.
+            item.addClickListener(e -> {
+                themeSelector.select(target);
+                for (MenuItem other : choices) other.setChecked(other == item);
+            });
         }
-        return footer;
+        return bar;
     }
 
     /**
-     * Drawer-footer language picker — lets the user switch UI locale on the
-     * fly. Items come from the {@link I18NProvider}'s discovered list (which
-     * scans the i18n/ classpath at startup), so adding a new translation
-     * file is the only thing needed to grow this menu.
+     * Locale picker — a MenuBar with a globe icon and the current language's
+     * name. Each available locale is a checkable submenu item. Replaces the
+     * old {@code Select} which didn't really suit the navbar visually.
      */
     private Component buildLocalePicker() {
-        Select<Locale> picker =
-                new Select<>();
         List<Locale> locales =
                 VaadinService.getCurrent() != null
                         && VaadinService.getCurrent().getInstantiator() != null
@@ -214,19 +349,68 @@ public class MainLayout extends AppLayout implements com.vaadin.flow.router.Befo
                         ? VaadinService.getCurrent()
                                 .getInstantiator().getI18NProvider().getProvidedLocales()
                         : List.of(Locale.ENGLISH);
-        picker.setItems(locales);
-        picker.setItemLabelGenerator(l -> l.getDisplayLanguage(l)
-                + (l.getCountry().isEmpty() ? "" : " (" + l.getCountry() + ")"));
-        picker.setValue(UI.getCurrent() == null
-                ? Locale.ENGLISH : UI.getCurrent().getLocale());
-        picker.setWidth("9rem");
-        picker.addValueChangeListener(ev -> {
-            if (ev.getValue() == null) return;
-            localeSelector.select(ev.getValue());
-            var ui = UI.getCurrent();
-            if (ui != null) ui.getPage().reload();
-        });
-        return picker;
+        Locale active = UI.getCurrent() == null ? Locale.ENGLISH : UI.getCurrent().getLocale();
+
+        MenuBar bar = new MenuBar();
+        bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
+        HorizontalLayout label = new HorizontalLayout(
+                LineAwesomeIcon.GLOBE_SOLID.create(),
+                new Span(displayName(active)));
+        label.setSpacing(false);
+        label.setAlignItems(FlexComponent.Alignment.CENTER);
+        label.getStyle().set("gap", "0.35rem");
+        MenuItem trigger = bar.addItem(label);
+        trigger.getElement().setAttribute("aria-label", getTranslation("locale.label"));
+        trigger.getElement().setAttribute("title", getTranslation("locale.label"));
+        for (Locale loc : locales) {
+            MenuItem item = trigger.getSubMenu().addItem(displayName(loc),
+                    e -> {
+                        localeSelector.select(loc);
+                        var ui = UI.getCurrent();
+                        if (ui != null) ui.getPage().reload();
+                    });
+            item.setCheckable(true);
+            item.setChecked(loc.equals(active));
+        }
+        return bar;
+    }
+
+    private static String displayName(Locale l) {
+        String lang = l.getDisplayLanguage(l);
+        return lang.isEmpty() ? l.toLanguageTag() :
+                Character.toUpperCase(lang.charAt(0)) + lang.substring(1);
+    }
+
+    /**
+     * Sign-in popover trigger (unauthenticated) or user menu (authenticated).
+     * Both live in the navbar so users can sign in / out without opening
+     * the drawer.
+     */
+    private Component buildAuthControl() {
+        if (!isAuthenticated()) {
+            Button signInOrUp = new Button(getTranslation("auth.signInOrUp"),
+                    LineAwesomeIcon.USER_SOLID.create(),
+                    e -> loginDialogService.open());
+            signInOrUp.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+            return signInOrUp;
+        }
+        MenuBar bar = new MenuBar();
+        bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
+        HorizontalLayout label = new HorizontalLayout(
+                LineAwesomeIcon.USER_SOLID.create(),
+                new Span(currentUsername()));
+        label.setSpacing(false);
+        label.setAlignItems(FlexComponent.Alignment.CENTER);
+        label.getStyle().set("gap", "0.35rem");
+        MenuItem trigger = bar.addItem(label);
+        trigger.getSubMenu().addItem(getTranslation("auth.contactAdmin"),
+                e -> openContactAdminDialog());
+        // Sign-out hits the Spring Security logout endpoint via a full
+        // browser navigation — SubMenu only takes addItem (no separators or
+        // raw anchors), so we navigate from the click listener instead.
+        trigger.getSubMenu().addItem(getTranslation("auth.signOut"),
+                e -> UI.getCurrent().getPage().setLocation("/logout"));
+        return bar;
     }
 
     /**
