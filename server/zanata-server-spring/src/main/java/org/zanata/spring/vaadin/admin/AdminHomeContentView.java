@@ -92,7 +92,7 @@ public class AdminHomeContentView extends VerticalLayout {
             Notification.show("Home page saved", 2500,
                     Notification.Position.BOTTOM_START);
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         Button reset = new Button("Reload from server", e -> {
             String fresh = homeContentService.getMarkdown();
@@ -100,7 +100,7 @@ public class AdminHomeContentView extends VerticalLayout {
             preview.getElement().setProperty("innerHTML",
                     markdownRenderer.render(fresh));
         });
-        reset.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        reset.addThemeVariants(ButtonVariant.TERTIARY);
 
         HorizontalLayout actions = new HorizontalLayout(save, reset);
         actions.setAlignItems(FlexComponent.Alignment.CENTER);

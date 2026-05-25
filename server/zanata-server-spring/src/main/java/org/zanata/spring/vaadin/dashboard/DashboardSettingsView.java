@@ -96,7 +96,7 @@ public class DashboardSettingsView extends VerticalLayout {
                     userSettingsService.updateProfile(account.getUsername(), null, email.getValue());
                     toast("Email saved", false);
                 });
-        updateEmail.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        updateEmail.addThemeVariants(ButtonVariant.PRIMARY);
 
         PasswordField oldPw = new PasswordField("Current password");
         PasswordField newPw = new PasswordField("New password");
@@ -159,7 +159,7 @@ public class DashboardSettingsView extends VerticalLayout {
             userSettingsService.updateProfile(account.getUsername(), displayName.getValue(), null);
             toast("Profile saved", false);
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         FormLayout form = new FormLayout(username, displayName);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
@@ -272,7 +272,7 @@ public class DashboardSettingsView extends VerticalLayout {
 
         Button copyKey = new Button("Copy", LineAwesomeIcon.COPY_SOLID.create(),
                 e -> copyToClipboard(account.getApiKey() == null ? "" : account.getApiKey()));
-        copyKey.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        copyKey.addThemeVariants(ButtonVariant.TERTIARY);
 
         // --- zanata.ini area ---
         TextArea ini = new TextArea("zanata.ini");
@@ -285,7 +285,7 @@ public class DashboardSettingsView extends VerticalLayout {
 
         Button copyIni = new Button("Copy zanata.ini", LineAwesomeIcon.COPY_SOLID.create(),
                 e -> copyToClipboard(ini.getValue()));
-        copyIni.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        copyIni.addThemeVariants(ButtonVariant.TERTIARY);
 
         // --- generate / regenerate button (confirms before clobbering) ---
         Button generate = new Button(
@@ -317,7 +317,7 @@ public class DashboardSettingsView extends VerticalLayout {
                         dlg.open();
                     }
                 });
-        generate.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        generate.addThemeVariants(ButtonVariant.PRIMARY);
 
         card.add(intro,
                 sectionTitle("API key"),
@@ -367,8 +367,8 @@ public class DashboardSettingsView extends VerticalLayout {
 
     private static void toast(String msg, boolean isError) {
         Notification n = Notification.show(msg, 3000, Notification.Position.BOTTOM_END);
-        n.addThemeVariants(isError ? NotificationVariant.LUMO_ERROR
-                : NotificationVariant.LUMO_SUCCESS);
+        n.addThemeVariants(isError ? NotificationVariant.ERROR
+                : NotificationVariant.SUCCESS);
     }
 
     private static void copyToClipboard(String value) {

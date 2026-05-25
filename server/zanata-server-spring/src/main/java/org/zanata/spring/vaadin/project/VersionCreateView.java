@@ -128,7 +128,7 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             }
         });
-        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        create.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button("Cancel",
                 e -> getUI().ifPresent(ui -> ui.navigate("project/view/" + slug)));
         add(new HorizontalLayout(create, cancel));

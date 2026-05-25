@@ -113,7 +113,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
 
         Button save = new Button("Save general", LineAwesomeIcon.SAVE_SOLID.create(),
                 e -> saveGeneral(iter.getId(), typeBox.getValue(), statusBox.getValue()));
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         Button toggleRO = new Button(
                 iter.getStatus() == EntityStatus.READONLY ? "Mark as writable" : "Mark as read-only",
@@ -124,11 +124,11 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
                     saveGeneral(iter.getId(), typeBox.getValue(), next);
                     UI.getCurrent().getPage().reload();
                 });
-        toggleRO.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        toggleRO.addThemeVariants(ButtonVariant.TERTIARY);
 
         Button delete = new Button("Delete version", LineAwesomeIcon.TRASH_SOLID.create(),
                 e -> confirmDelete(iter.getId(), projectSlug, versionSlug));
-        delete.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        delete.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.TERTIARY);
 
         HorizontalLayout actions = new HorizontalLayout(save, toggleRO, delete);
         actions.setSpacing(true);
@@ -163,7 +163,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
             saveLanguages(iter.getId(), override.getValue(), locales.getValue());
             UI.getCurrent().getPage().reload();
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         card.add(override, locales, save);
         return card;

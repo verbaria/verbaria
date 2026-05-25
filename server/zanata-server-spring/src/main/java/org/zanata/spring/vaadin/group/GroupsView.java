@@ -34,7 +34,7 @@ public class GroupsView extends VerticalLayout {
         if (isAuthenticated()) {
             Button create = new Button("New group",
                     e -> getUI().ifPresent(ui -> ui.navigate("group/create")));
-            create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            create.addThemeVariants(ButtonVariant.PRIMARY);
             header.add(create);
         }
         add(header);

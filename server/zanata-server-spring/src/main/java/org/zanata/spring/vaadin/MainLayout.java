@@ -131,8 +131,8 @@ public class MainLayout extends AppLayout {
             user.getStyle().set("flex", "1 1 auto");
             Button contact = new Button(LineAwesomeIcon.ENVELOPE_SOLID.create(),
                     e -> openContactAdminDialog());
-            contact.addThemeVariants(ButtonVariant.LUMO_TERTIARY,
-                    ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
+            contact.addThemeVariants(ButtonVariant.TERTIARY,
+                    ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
             contact.getElement().setAttribute("title", "Contact admin");
             contact.getElement().setAttribute("aria-label", "Contact admin");
             Anchor logout = new Anchor("/logout", "Sign out");
@@ -179,7 +179,7 @@ public class MainLayout extends AppLayout {
         body.setRequired(true);
 
         Button cancel = new Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
         Button send = new Button("Send", e -> {
             if (body.getValue() == null || body.getValue().trim().isEmpty()) {
                 body.setInvalid(true);
@@ -191,14 +191,14 @@ public class MainLayout extends AppLayout {
                 Notification n = Notification.show(
                         "Message sent to the admin.",
                         2500, Notification.Position.BOTTOM_END);
-                n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                n.addThemeVariants(NotificationVariant.SUCCESS);
                 dlg.close();
             } catch (Exception ex) {
                 Notification.show("Failed: " + ex.getMessage(),
                         4000, Notification.Position.MIDDLE);
             }
         });
-        send.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        send.addThemeVariants(ButtonVariant.PRIMARY);
 
         dlg.add(intro, subject, body);
         dlg.getFooter().add(cancel, send);

@@ -70,20 +70,20 @@ public class RegisterView extends VerticalLayout {
                 Notification n = Notification.show(
                         "Account created. You can sign in now.",
                         3500, Notification.Position.BOTTOM_CENTER);
-                n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                n.addThemeVariants(NotificationVariant.SUCCESS);
                 UI.getCurrent().navigate(LoginView.class);
             } catch (AccountRegistrationService.RegistrationException ex) {
                 Notification n = Notification.show(ex.getMessage(), 4500,
                         Notification.Position.MIDDLE);
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                n.addThemeVariants(NotificationVariant.ERROR);
             } catch (RuntimeException ex) {
                 Notification n = Notification.show(
                         "Sign up failed: " + ex.getMessage(),
                         4500, Notification.Position.MIDDLE);
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                n.addThemeVariants(NotificationVariant.ERROR);
             }
         });
-        submit.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        submit.addThemeVariants(ButtonVariant.PRIMARY);
         submit.setWidthFull();
 
         Paragraph signInHint = new Paragraph();

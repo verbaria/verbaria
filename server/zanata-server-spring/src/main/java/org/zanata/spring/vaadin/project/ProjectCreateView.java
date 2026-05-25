@@ -94,7 +94,7 @@ public class ProjectCreateView extends VerticalLayout {
                     Notification.Position.BOTTOM_START);
             getUI().ifPresent(ui -> ui.navigate("project/view/" + s));
         });
-        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        create.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button("Cancel",
                 e -> getUI().ifPresent(ui -> ui.navigate("explore")));
         add(new HorizontalLayout(create, cancel));

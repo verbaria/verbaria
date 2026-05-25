@@ -129,7 +129,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
         if (currentOpt.isEmpty()) {
             Button signIn = new Button("Sign in to join the team",
                     e -> UI.getCurrent().getPage().setLocation("/login"));
-            signIn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            signIn.addThemeVariants(ButtonVariant.PRIMARY);
             bar.add(signIn);
             return bar;
         }
@@ -143,7 +143,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
                 Notification.show("Left language team", 2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
-            leave.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            leave.addThemeVariants(ButtonVariant.TERTIARY);
             bar.add(badge, leave);
             return bar;
         }
@@ -156,12 +156,12 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
                 Notification.show("Request cancelled", 2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
-            cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            cancel.addThemeVariants(ButtonVariant.TERTIARY);
             bar.add(badge, cancel);
             return bar;
         }
         Button join = new Button("Request to Join", e -> openJoinDialog(locale, current));
-        join.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        join.addThemeVariants(ButtonVariant.PRIMARY);
         bar.add(join);
         return bar;
     }
@@ -191,7 +191,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
                 Notification.show(ex.getMessage(), 3000, Notification.Position.MIDDLE);
             }
         });
-        send.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        send.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button("Cancel", e -> d.close());
         d.getFooter().add(cancel, send);
         d.open();
@@ -258,9 +258,9 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
                 Notification.show("Accepted", 2000, Notification.Position.BOTTOM_START);
                 refresh();
             });
-            accept.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            accept.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
             Button decline = new Button("Decline", e -> openDeclineDialog(r, currentAccount));
-            decline.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            decline.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
             HorizontalLayout actions = new HorizontalLayout(accept, decline);
             actions.setSpacing(true);
             return actions;
@@ -283,7 +283,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver 
             d.close();
             refresh();
         });
-        confirm.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        confirm.addThemeVariants(ButtonVariant.ERROR);
         Button cancel = new Button("Cancel", e -> d.close());
         d.getFooter().add(cancel, confirm);
         d.open();

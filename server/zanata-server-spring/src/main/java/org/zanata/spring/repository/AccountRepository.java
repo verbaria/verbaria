@@ -24,4 +24,19 @@ public interface AccountRepository extends JpaRepository<HAccount, Long> {
             where a.username = :username
             """)
     Optional<HAccount> findByUsernameWithRoles(@Param("username") String username);
+
+    /** Case-insensitive substring filter for the admin User Manager grid. */
+    @Query("""
+            select a from HAccount a
+            where lower(a.username) like concat('%', lower(:q), '%')
+            """)
+    org.springframework.data.domain.Page<HAccount> findByUsernameContaining(
+            @Param("q") String q,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+            select count(a) from HAccount a
+            where lower(a.username) like concat('%', lower(:q), '%')
+            """)
+    long countByUsernameContaining(@Param("q") String q);
 }

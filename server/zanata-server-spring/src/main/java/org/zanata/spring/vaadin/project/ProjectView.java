@@ -243,8 +243,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                             e -> getUI().ifPresent(ui -> ui.navigate(
                                     "project/" + projectSlug + "/add-version")));
             addVersion.addThemeVariants(
-                    com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY,
-                    com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+                    com.vaadin.flow.component.button.ButtonVariant.PRIMARY,
+                    com.vaadin.flow.component.button.ButtonVariant.SMALL);
             right.add(addVersion);
         }
         right.add(new Span("Sort"), sort);
@@ -376,7 +376,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                     "Add someone",
                     LineAwesomeIcon.USER_PLUS_SOLID.create(),
                     e -> openAddPersonDialog());
-            add.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+            add.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
             header.add(add);
         }
         panel.add(header);
@@ -402,8 +402,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                                 e -> openManagePermissionsDialog(p, rolesByPerson.getOrDefault(p,
                                         java.util.EnumSet.noneOf(ProjectRole.class))));
                 manage.addThemeVariants(
-                        com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY,
-                        com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+                        com.vaadin.flow.component.button.ButtonVariant.TERTIARY,
+                        com.vaadin.flow.component.button.ButtonVariant.SMALL);
                 return manage;
             }).setHeader("Actions").setAutoWidth(true);
         }
@@ -439,7 +439,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
 
         com.vaadin.flow.component.button.Button cancel = new com.vaadin.flow.component.button.Button(
                 "Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
         com.vaadin.flow.component.button.Button save = new com.vaadin.flow.component.button.Button(
                 "Add person", e -> {
                     if (personPicker.getValue() == null) {
@@ -466,7 +466,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                                 com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
                     }
                 });
-        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
 
         dlg.add(personPicker, roleGroup);
         dlg.getFooter().add(cancel, save);
@@ -491,7 +491,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
 
         com.vaadin.flow.component.button.Button cancel = new com.vaadin.flow.component.button.Button(
                 "Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
         com.vaadin.flow.component.button.Button save = new com.vaadin.flow.component.button.Button(
                 roleGroup.getValue().isEmpty() ? "Remove from team" : "Save permissions",
                 e -> {
@@ -510,7 +510,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                                 com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
                     }
                 });
-        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
         roleGroup.addValueChangeListener(ev -> save.setText(
                 ev.getValue().isEmpty() ? "Remove from team" : "Save permissions"));
 

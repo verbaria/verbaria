@@ -81,7 +81,7 @@ public class GroupCreateView extends VerticalLayout {
                     Notification.Position.BOTTOM_START);
             getUI().ifPresent(ui -> ui.navigate("group/view/" + s));
         });
-        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        create.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button("Cancel",
                 e -> getUI().ifPresent(ui -> ui.navigate("groups")));
         add(new HorizontalLayout(create, cancel));

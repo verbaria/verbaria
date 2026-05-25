@@ -75,7 +75,7 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver {
         if (isAdmin()) {
             Button edit = new Button("Edit home page",
                     e -> getUI().ifPresent(ui -> ui.navigate(AdminHomeContentView.class)));
-            edit.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+            edit.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
             HorizontalLayout actions = new HorizontalLayout(edit);
             actions.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
             actions.setWidthFull();

@@ -25,7 +25,7 @@ public class AdminSearchView extends VerticalLayout {
         add(new Paragraph("Rebuild the Hibernate Search indices."));
 
         Button reindex = new Button("Reindex all");
-        reindex.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        reindex.addThemeVariants(ButtonVariant.PRIMARY);
         reindex.addClickListener(e -> {
             reindex.setEnabled(false);
             try {

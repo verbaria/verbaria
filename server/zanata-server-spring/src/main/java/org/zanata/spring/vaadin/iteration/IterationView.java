@@ -123,7 +123,9 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                 iterationRepository, targetRepository, localeRepository);
         this.enabledLocales = stats.enabledLocales == null
                 ? java.util.List.of() : stats.enabledLocales;
-        List<HDocument> documents = documentRepository.findByVersion(projectSlug, versionSlug);
+        // Cheap COUNT(*) for the Documents tab badge — was previously a full
+        // findByVersion + .size(). That blew up on large versions (Consulo).
+        long docCount = documentRepository.countByVersion(projectSlug, versionSlug);
 
         add(buildBreadcrumb(projectSlug));
         add(buildHeading(iteration));
@@ -141,8 +143,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         tabs.setWidthFull();
         tabs.add(tabWithBadge("Languages", stats.localeCount),
                 buildLanguagesPanel(stats));
-        tabs.add(tabWithBadge("Documents", documents.size()),
-                buildDocumentsPanel(documents));
+        tabs.add(tabWithBadge("Documents", (int) Math.min(Integer.MAX_VALUE, docCount)),
+                buildDocumentsPanel());
         add(tabs);
     }
 
@@ -178,13 +180,13 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                                 "project/" + currentProjectSlug
                                 + "/version/" + currentVersionSlug + "/settings"));
         settingsBtn.addThemeVariants(
-                com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+                com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
 
         // "More actions" menu — host for Copy Trans and (later) Merge Translations.
         com.vaadin.flow.component.menubar.MenuBar more =
                 new com.vaadin.flow.component.menubar.MenuBar();
         more.addThemeVariants(
-                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY);
+                com.vaadin.flow.component.menubar.MenuBarVariant.TERTIARY);
         var moreTrigger = more.addItem("More actions");
         moreTrigger.getElement().setAttribute("title", "Per-version operations");
         if (canUpload()) {
@@ -230,11 +232,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
         com.vaadin.flow.component.button.Button cancel =
                 new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
 
         com.vaadin.flow.component.button.Button start =
                 new com.vaadin.flow.component.button.Button("Copy Translations");
-        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
         start.addClickListener(e -> {
             var opts = new org.zanata.spring.service.CopyTransService.Options(
                     onProj.getValue(), onDoc.getValue(), onCtx.getValue());
@@ -348,11 +350,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
         com.vaadin.flow.component.button.Button cancel =
                 new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
 
         com.vaadin.flow.component.button.Button start =
                 new com.vaadin.flow.component.button.Button("Merge Translations");
-        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
         start.addClickListener(e -> {
             var sourceIter = versionBox.getValue();
             if (sourceIter == null) {
@@ -587,7 +589,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             overflow = new com.vaadin.flow.component.menubar.MenuBar();
             overflow.addThemeVariants(
                     com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
-                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL,
+                    com.vaadin.flow.component.menubar.MenuBarVariant.SMALL,
                     com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_ICON);
             com.vaadin.flow.component.contextmenu.MenuItem trigger =
                     overflow.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
@@ -635,7 +637,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         return card;
     }
 
-    private Div buildDocumentsPanel(List<HDocument> documents) {
+    private Div buildDocumentsPanel() {
         Div panel = new Div();
         panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
@@ -645,6 +647,18 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         if (canUpload()) {
             panel.add(buildUploader());
         }
+
+        // Filter bar on top of the grid — server-side filter passed into the
+        // DataProvider so the entire version's docs don't have to be loaded.
+        com.vaadin.flow.component.textfield.TextField filter =
+                new com.vaadin.flow.component.textfield.TextField();
+        filter.setPlaceholder("Filter by docId or path…");
+        filter.setClearButtonVisible(true);
+        filter.setWidthFull();
+        filter.setValueChangeMode(com.vaadin.flow.data.value.ValueChangeMode.LAZY);
+        filter.setValueChangeTimeout(250);
+        filter.getStyle().set("margin-bottom", "0.5rem");
+        panel.add(filter);
 
         Grid<HDocument> grid = new Grid<>(HDocument.class, false);
         grid.addColumn(HDocument::getDocId).setHeader("Doc Id").setAutoWidth(true);
@@ -669,7 +683,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                         new com.vaadin.flow.component.menubar.MenuBar();
                 mb.addThemeVariants(
                         com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
-                        com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL,
+                        com.vaadin.flow.component.menubar.MenuBarVariant.SMALL,
                         com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_ICON);
                 var trigger = mb.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
                 trigger.getElement().setAttribute("aria-label", "Document actions");
@@ -695,8 +709,33 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                 return mb;
             }).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
         }
-        grid.setItems(documents);
-        grid.setAllRowsVisible(true);
+        // Server-paged DataProvider — Vaadin pulls just the rows currently
+        // in the viewport via the two callbacks below. Search filter is
+        // applied at the SQL level.
+        com.vaadin.flow.data.provider.CallbackDataProvider<HDocument, String> dp =
+                com.vaadin.flow.data.provider.DataProvider.fromFilteringCallbacks(
+                        query -> {
+                            String q = query.getFilter().orElse("").trim().toLowerCase();
+                            int page = query.getOffset() / Math.max(1, query.getLimit());
+                            return documentRepository.pageByVersion(
+                                    currentProjectSlug, currentVersionSlug, q,
+                                    org.springframework.data.domain.PageRequest.of(page, query.getLimit()))
+                                    .stream();
+                        },
+                        query -> {
+                            String q = query.getFilter().orElse("").trim().toLowerCase();
+                            long n = documentRepository.countMatchingByVersion(
+                                    currentProjectSlug, currentVersionSlug, q);
+                            return (int) Math.min(Integer.MAX_VALUE, n);
+                        });
+        com.vaadin.flow.data.provider.ConfigurableFilterDataProvider<HDocument, Void, String> filterable =
+                dp.withConfigurableFilter();
+        filterable.setFilter("");
+        grid.setDataProvider(filterable);
+        filter.addValueChangeListener(e -> filterable.setFilter(
+                e.getValue() == null ? "" : e.getValue()));
+
+        grid.setHeight("70vh");
         panel.add(grid);
         return panel;
     }
@@ -747,11 +786,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
         com.vaadin.flow.component.button.Button cancel =
                 new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.TERTIARY);
 
         com.vaadin.flow.component.button.Button start =
                 new com.vaadin.flow.component.button.Button("Upload");
-        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.PRIMARY);
         start.addClickListener(e -> {
             var locale = localeBox.getValue();
             if (locale == null || locale.getLocaleId() == null) {

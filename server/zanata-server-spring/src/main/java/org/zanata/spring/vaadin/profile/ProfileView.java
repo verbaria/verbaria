@@ -142,7 +142,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         Button settings = new Button("Settings",
                 LineAwesomeIcon.COG_SOLID.create(),
                 e -> UI.getCurrent().navigate(DashboardSettingsView.class));
-        settings.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        settings.addThemeVariants(ButtonVariant.TERTIARY);
         VerticalLayout actions = new VerticalLayout(settings);
         actions.setPadding(false);
         actions.setSpacing(false);

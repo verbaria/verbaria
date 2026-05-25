@@ -182,8 +182,8 @@ public class ExploreView extends VerticalLayout {
 
             countSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
 
-            prev.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-            next.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            prev.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+            next.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
             prev.addClickListener(e -> { if (currentPage > 0) { currentPage--; reloadPage(); } });
             next.addClickListener(e -> { if (currentPage + 1 < totalPages) { currentPage++; reloadPage(); } });
 

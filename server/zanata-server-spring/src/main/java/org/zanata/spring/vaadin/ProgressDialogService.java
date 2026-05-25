@@ -112,7 +112,7 @@ public class ProgressDialogService implements DisposableBean {
                     status.setText("Failed: " + ex.getMessage());
                     status.getStyle().set("color", "var(--aura-red-text)");
                     Button close = new Button("Close", e -> dlg.close());
-                    close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+                    close.addThemeVariants(ButtonVariant.TERTIARY);
                     dlg.getFooter().removeAll();
                     dlg.getFooter().add(close);
                     future.completeExceptionally(ex);

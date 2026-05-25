@@ -15,6 +15,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.zanata.common.EntityStatus;
 import org.zanata.model.HProject;
 import org.zanata.spring.repository.ProjectRepository;
@@ -37,7 +38,7 @@ public class AdminProjectsView extends VerticalLayout {
         header.setWidthFull();
         Button create = new Button("New project",
                 e -> getUI().ifPresent(ui -> ui.navigate(ProjectCreateView.class)));
-        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        create.addThemeVariants(ButtonVariant.PRIMARY);
         header.add(create);
         add(header);
 
@@ -57,7 +58,7 @@ public class AdminProjectsView extends VerticalLayout {
             Button settings = new Button("Settings",
                     e -> getUI().ifPresent(ui ->
                             ui.navigate("project/view/" + p.getSlug() + "/settings")));
-            settings.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            settings.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
             Button obsolete = new Button("Mark obsolete", e -> {
                 p.setStatus(EntityStatus.OBSOLETE);
                 projectRepository.save(p);
@@ -65,13 +66,25 @@ public class AdminProjectsView extends VerticalLayout {
                         2500, Notification.Position.BOTTOM_START);
                 getUI().ifPresent(ui -> ui.getPage().reload());
             });
-            obsolete.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            obsolete.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
             obsolete.setEnabled(p.getStatus() != EntityStatus.OBSOLETE);
             actions.add(settings, obsolete);
             return actions;
         }).setHeader("Actions").setAutoWidth(true);
-        grid.setItems(projectRepository.findAll(PageRequest.of(0, 200)).getContent());
-        grid.setAllRowsVisible(true);
+        // Server-paged DataProvider so admins managing hundreds of projects
+        // don't pay a full-table scan to render this view.
+        com.vaadin.flow.data.provider.CallbackDataProvider<HProject, Void> dp =
+                com.vaadin.flow.data.provider.DataProvider.fromCallbacks(
+                        q -> {
+                            int page = q.getOffset() / Math.max(1, q.getLimit());
+                            return projectRepository.findAll(
+                                            PageRequest.of(page, q.getLimit(),
+                                                    Sort.by("slug")))
+                                    .stream();
+                        },
+                        q -> (int) Math.min(Integer.MAX_VALUE, projectRepository.count()));
+        grid.setDataProvider(dp);
+        grid.setHeight("70vh");
         add(grid);
     }
 

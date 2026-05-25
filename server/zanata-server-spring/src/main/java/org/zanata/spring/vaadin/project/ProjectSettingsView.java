@@ -171,7 +171,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
             projectRepository.save(project);
             Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
         Button back = new Button("Back to project",
                 e -> getUI().ifPresent(ui -> ui.navigate("project/view/" + slug)));
         add(new HorizontalLayout(save, back));

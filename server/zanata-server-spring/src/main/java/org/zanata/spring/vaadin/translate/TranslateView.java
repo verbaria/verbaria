@@ -76,6 +76,7 @@ import org.zanata.spring.vaadin.project.ProjectView;
 @AnonymousAllowed
 public class TranslateView extends VerticalLayout implements BeforeEnterObserver {
 
+
     private static final Set<ContentState> COMPLETE = EnumSet.of(
             ContentState.Translated, ContentState.Approved);
 
@@ -228,49 +229,44 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
         heading.addClassNames(LumoUtility.Margin.NONE);
 
-        // Doc switcher: a button labelled with the current doc that opens
-        // a modal Grid (sortable + filterable) showing every doc with its
-        // colored translation %. Replaces the cramped ComboBox dropdown.
-        List<HDocument> allDocs = documentRepository.findByVersion(projectSlug, versionSlug);
-        Button docSwitcher = null;
-        if (allDocs.size() > 1) {
-            Long iterId = doc.getProjectIteration() == null
-                    ? null : doc.getProjectIteration().getId();
-            java.util.Map<Long, Long> totalByDoc = new HashMap<>();
-            java.util.Map<Long, Long> translatedByDoc = new HashMap<>();
-            if (iterId != null) {
-                for (Object[] row : textFlowRepository.countPerDocForIteration(iterId)) {
-                    totalByDoc.put(((Number) row[0]).longValue(),
-                            ((Number) row[1]).longValue());
-                }
-                for (Object[] row : targetRepository
-                        .translatedCountPerDocForLocale(iterId, currentLocale)) {
-                    translatedByDoc.put(((Number) row[0]).longValue(),
-                            ((Number) row[1]).longValue());
-                }
-            }
-            boolean viewingSource = sourceLocale != null
-                    && sourceLocale.getId().equalsIgnoreCase(localeStr);
-            docSwitcher = new Button(currentDocId + "  \u25BE");
-            docSwitcher.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            docSwitcher.getStyle().set("font-weight", "600");
-            docSwitcher.getStyle().set("max-width", "520px");
-            docSwitcher.getStyle().set("overflow", "hidden");
-            docSwitcher.getStyle().set("text-overflow", "ellipsis");
-            com.vaadin.flow.component.popover.Popover docPopover =
-                    buildDocPickerPopover(allDocs, totalByDoc, translatedByDoc, viewingSource);
-            docPopover.setTarget(docSwitcher);
-            add(docPopover);
-        }
+        // Doc switcher — renders immediately as just a button. The expensive
+        // findByVersion + per-doc count queries are deferred until the user
+        // clicks it, and surfaced via ProgressDialogService so the wait has
+        // visible feedback instead of a silent inline "Loading…".
+        boolean viewingSource = sourceLocale != null
+                && sourceLocale.getId().equalsIgnoreCase(localeStr);
+        Long iterId = doc.getProjectIteration() == null
+                ? null : doc.getProjectIteration().getId();
+        Button docSwitcher = new Button(currentDocId + "  \u25BE");
+        docSwitcher.addThemeVariants(ButtonVariant.TERTIARY);
+        docSwitcher.getStyle().set("font-weight", "600");
+        docSwitcher.getStyle().set("max-width", "520px");
+        docSwitcher.getStyle().set("overflow", "hidden");
+        docSwitcher.getStyle().set("text-overflow", "ellipsis");
+        com.vaadin.flow.component.popover.Popover docPopover =
+                new com.vaadin.flow.component.popover.Popover();
+        docPopover.setPosition(com.vaadin.flow.component.popover.PopoverPosition.BOTTOM);
+        docPopover.setWidth("760px");
+        docPopover.setHeight("70vh");
+        docPopover.setOpenOnClick(false); // we trigger manually after the load
+        docPopover.setModal(false);
+        docPopover.setTarget(docSwitcher);
+        add(docPopover);
+        docSwitcher.addClickListener(e ->
+                openDocPickerVia(docPopover, docSwitcher, iterId, viewingSource));
 
+        // Stats popover — same pattern. buildStatsBadge() runs findByDocument
+        // over the entire version (slow on large versions like Consulo) so
+        // it gets the same visible progress treatment.
         Button statsBtn = new Button("Stats");
-        statsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        statsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         statsBtn.setIcon(LineAwesomeIcon.CHART_BAR_SOLID.create());
         com.vaadin.flow.component.popover.Popover statsPopover =
                 new com.vaadin.flow.component.popover.Popover();
         statsPopover.setTarget(statsBtn);
-        statsPopover.add(buildStatsBadge());
         statsPopover.setWidth("420px");
+        statsPopover.setOpenOnClick(false);
+        statsBtn.addClickListener(e -> openStatsVia(statsPopover, statsBtn));
 
         HorizontalLayout headingRight = new HorizontalLayout();
         headingRight.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -287,7 +283,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         Button prefsBtn = new Button(LineAwesomeIcon.COG_SOLID.create(),
                 e -> openEditorSettings());
-        prefsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL,
+        prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
                 ButtonVariant.LUMO_ICON);
         prefsBtn.getElement().setAttribute("title", "Editor settings");
         prefsBtn.getElement().setAttribute("aria-label", "Editor settings");
@@ -344,7 +340,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         autoHistory.setValue(prefs.autoOpenHistory());
 
         Button cancel = new Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
         Button save = new Button("Save", e -> {
             var next = new EditorPreferencesService.Prefs(
                     Boolean.TRUE.equals(compact.getValue()),
@@ -357,7 +353,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             dlg.close();
             UI.getCurrent().getPage().reload();
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
 
         if (!isAuthenticated()) {
             Paragraph note = new Paragraph(
@@ -395,7 +391,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         dlg.add(content);
 
         Button close = new Button("Close", e -> dlg.close());
-        close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        close.addThemeVariants(ButtonVariant.TERTIARY);
         dlg.getFooter().add(close);
         dlg.open();
     }
@@ -409,8 +405,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private com.vaadin.flow.component.menubar.MenuBar buildBulkAiButton(HDocument doc) {
         com.vaadin.flow.component.menubar.MenuBar mb = new com.vaadin.flow.component.menubar.MenuBar();
         mb.addThemeVariants(
-                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY,
-                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL);
+                com.vaadin.flow.component.menubar.MenuBarVariant.TERTIARY,
+                com.vaadin.flow.component.menubar.MenuBarVariant.SMALL);
         var item = mb.addItem("AI translate missing");
         item.getElement().setAttribute("title", "Use AI to fill in untranslated entries");
         for (var provider : aiRegistry.available()) {
@@ -467,20 +463,87 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         });
     }
 
-    /** Popover anchored to the doc-switcher button: sortable, type-filterable Grid of every doc. */
-    private com.vaadin.flow.component.popover.Popover buildDocPickerPopover(
+    /**
+     * Triggered by clicking the doc-switcher button. Runs the expensive
+     * findByVersion + per-doc count queries inside a ProgressDialogService
+     * modal (visible status + progress bar), then populates the popover
+     * with the rendered grid and opens it.
+     */
+    private void openDocPickerVia(com.vaadin.flow.component.popover.Popover pop,
+                                  Button trigger, Long iterId, boolean viewingSource) {
+        trigger.setEnabled(false);
+        progressDialogs.run("Loading documents…", handle -> {
+            handle.update(0, 3, "Listing documents in " + versionSlug + "…");
+            List<HDocument> allDocs = documentRepository
+                    .findByVersion(projectSlug, versionSlug);
+            handle.update(1, 3, "Counting text-flows per document…");
+            java.util.Map<Long, Long> totalByDoc = new HashMap<>();
+            java.util.Map<Long, Long> translatedByDoc = new HashMap<>();
+            if (iterId != null) {
+                for (Object[] row : textFlowRepository.countPerDocForIteration(iterId)) {
+                    totalByDoc.put(((Number) row[0]).longValue(),
+                            ((Number) row[1]).longValue());
+                }
+                handle.update(2, 3, "Counting translated entries for " + localeStr + "…");
+                for (Object[] row : targetRepository
+                        .translatedCountPerDocForLocale(iterId, currentLocale)) {
+                    translatedByDoc.put(((Number) row[0]).longValue(),
+                            ((Number) row[1]).longValue());
+                }
+            }
+            handle.update(3, 3, "Rendering grid…");
+            return new Object[] { allDocs, totalByDoc, translatedByDoc };
+        }).whenComplete((data, err) -> {
+            trigger.setEnabled(true);
+            if (err != null) {
+                Notification.show("Loading docs failed: " + err.getMessage(),
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+            @SuppressWarnings("unchecked")
+            List<HDocument> allDocs = (List<HDocument>) data[0];
+            @SuppressWarnings("unchecked")
+            java.util.Map<Long, Long> totalByDoc = (java.util.Map<Long, Long>) data[1];
+            @SuppressWarnings("unchecked")
+            java.util.Map<Long, Long> translatedByDoc = (java.util.Map<Long, Long>) data[2];
+            VerticalLayout body = buildDocPickerBody(
+                    allDocs, totalByDoc, translatedByDoc, viewingSource, pop);
+            pop.removeAll();
+            pop.add(body);
+            pop.open();
+        });
+    }
+
+    /**
+     * Triggered by clicking the Stats button. Same pattern as the doc picker:
+     * heavy aggregation runs in the ProgressDialogService modal, then the
+     * built badge is dropped into the popover which then opens.
+     */
+    private void openStatsVia(com.vaadin.flow.component.popover.Popover pop, Button trigger) {
+        trigger.setEnabled(false);
+        progressDialogs.run("Computing stats…", handle -> {
+            handle.status("Aggregating word counts for " + currentDocId + "…");
+            return buildStatsBadge();
+        }).whenComplete((badge, err) -> {
+            trigger.setEnabled(true);
+            if (err != null) {
+                Notification.show("Stats failed: " + err.getMessage(),
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+            pop.removeAll();
+            pop.add(badge);
+            pop.open();
+        });
+    }
+
+    /** Body for the doc picker — formerly the bulk of buildDocPickerPopover. */
+    private VerticalLayout buildDocPickerBody(
             List<HDocument> allDocs,
             java.util.Map<Long, Long> totalByDoc,
             java.util.Map<Long, Long> translatedByDoc,
-            boolean viewingSource) {
-        com.vaadin.flow.component.popover.Popover pop =
-                new com.vaadin.flow.component.popover.Popover();
-        pop.setPosition(com.vaadin.flow.component.popover.PopoverPosition.BOTTOM);
-        pop.setWidth("760px");
-        pop.setHeight("70vh");
-        pop.setOpenOnClick(true);
-        pop.setModal(false);
-
+            boolean viewingSource,
+            com.vaadin.flow.component.popover.Popover pop) {
         TextField search = new TextField();
         search.setPlaceholder("Filter by docId…");
         search.setClearButtonVisible(true);
@@ -564,8 +627,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         body.setFlexGrow(1, grid);
         body.getStyle().set("min-height", "0");
         body.getStyle().set("overflow", "hidden");
-        pop.add(body);
-        return pop;
+        return body;
     }
 
     private Div buildFilterBar() {
@@ -723,12 +785,12 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         srcText.getStyle().set("white-space", "pre-wrap");
 
         Button detailsBtn = new Button("Details", LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
-        detailsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        detailsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         // Bookmark / permalink — copies a deep link to this text flow to the
         // clipboard. Replaces the older "Link" panel which only displayed it.
         Button bookmarkBtn = new Button(LineAwesomeIcon.BOOKMARK_SOLID.create(),
                 e -> copyPermalink(flow.getId()));
-        bookmarkBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL,
+        bookmarkBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
                 ButtonVariant.LUMO_ICON);
         bookmarkBtn.getElement().setAttribute("title", "Copy permalink to this string");
         bookmarkBtn.getElement().setAttribute("aria-label", "Copy permalink");
@@ -776,7 +838,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         applyStateColor(stateSpan, initialState);
 
         Button save = new Button("Save");
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        save.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
         save.setEnabled(canEdit);
         if (!canEdit) {
             save.setTooltipText("Sign in to edit");
@@ -819,7 +881,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
 
         Button historyBtn = new Button("History", LineAwesomeIcon.CLOCK_SOLID.create());
-        historyBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        historyBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         Div historyPanel = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
         historyPanel.setVisible(prefs.autoOpenHistory());
         historyBtn.addClickListener(e -> {
@@ -839,7 +901,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             aiBtn = new com.vaadin.flow.component.menubar.MenuBar();
             aiBtn.addThemeVariants(
                     com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
-                    com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL);
+                    com.vaadin.flow.component.menubar.MenuBarVariant.SMALL);
             var trigger = aiBtn.addItem(LineAwesomeIcon.MAGIC_SOLID.create());
             trigger.getElement().setAttribute("aria-label", "Translate with AI");
             trigger.getElement().setAttribute("title", "Translate with AI");
@@ -872,7 +934,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         boolean hasSavedContent = !initialContent.isBlank();
 
         Button approve = new Button("Approve", LineAwesomeIcon.CHECK_SOLID.create());
-        approve.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+        approve.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
         approve.setEnabled(!isSourceLocale && canReview && hasSavedContent);
         if (isSourceLocale) {
             approve.setVisible(false);
@@ -894,7 +956,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         });
 
         Button reject = new Button("Reject", LineAwesomeIcon.TIMES_SOLID.create());
-        reject.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+        reject.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
         reject.setEnabled(!isSourceLocale && canReview && hasSavedContent);
         if (isSourceLocale) {
             reject.setVisible(false);
@@ -1067,7 +1129,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }).setHeader("Content").setFlexGrow(1);
 
         Button compare = new Button("Compare selected", LineAwesomeIcon.NOT_EQUAL_SOLID.create());
-        compare.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        compare.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         compare.setEnabled(false);
         Span hint = new Span("Select exactly 2 rows to compare");
         hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
@@ -1119,7 +1181,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         dlg.add(body);
         com.vaadin.flow.component.button.Button close =
                 new com.vaadin.flow.component.button.Button("Close", e -> dlg.close());
-        close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        close.addThemeVariants(ButtonVariant.TERTIARY);
         dlg.getFooter().add(close);
         dlg.open();
     }
@@ -1237,10 +1299,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         reason.setValueChangeMode(ValueChangeMode.EAGER);
 
         Button confirm = new Button("Confirm rejection");
-        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        confirm.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.ERROR);
         confirm.setEnabled(false);
         Button cancel = new Button("Cancel", e -> dlg.close());
-        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
 
         // "Confirm rejection" will not work until a reason has been entered.
         reason.addValueChangeListener(e -> confirm.setEnabled(

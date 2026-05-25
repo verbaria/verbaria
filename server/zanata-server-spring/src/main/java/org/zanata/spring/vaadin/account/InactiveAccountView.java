@@ -57,7 +57,7 @@ public class InactiveAccountView extends VerticalLayout {
                     3500, Notification.Position.BOTTOM_CENTER);
             n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
         });
-        resend.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        resend.addThemeVariants(ButtonVariant.TERTIARY);
 
         Button update = new Button("Update email & resend", e -> {
             if (username.getValue() == null || username.getValue().isBlank()) {
@@ -81,7 +81,7 @@ public class InactiveAccountView extends VerticalLayout {
             n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
             if (ok) registrationService.resendActivation(username.getValue().trim());
         });
-        update.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        update.addThemeVariants(ButtonVariant.PRIMARY);
 
         HorizontalLayout actions = new HorizontalLayout(resend, update);
         actions.setSpacing(true);

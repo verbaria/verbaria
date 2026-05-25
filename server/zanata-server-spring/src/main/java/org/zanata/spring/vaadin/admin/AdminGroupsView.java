@@ -34,7 +34,7 @@ public class AdminGroupsView extends VerticalLayout {
         header.setWidthFull();
         Button create = new Button("New group",
                 e -> getUI().ifPresent(ui -> ui.navigate(GroupCreateView.class)));
-        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        create.addThemeVariants(ButtonVariant.PRIMARY);
         header.add(create);
         add(header);
 
@@ -59,11 +59,22 @@ public class AdminGroupsView extends VerticalLayout {
                         Notification.Position.BOTTOM_START);
                 getUI().ifPresent(ui -> ui.getPage().reload());
             });
-            del.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            del.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
             return del;
         }).setHeader("Actions").setAutoWidth(true);
-        grid.setItems(groupRepository.search("", PageRequest.of(0, 200)).getContent());
-        grid.setAllRowsVisible(true);
+        // Server-paged DataProvider so admins with many groups don't pay a
+        // full-table scan to render this view.
+        com.vaadin.flow.data.provider.CallbackDataProvider<HIterationGroup, Void> dp =
+                com.vaadin.flow.data.provider.DataProvider.fromCallbacks(
+                        q -> {
+                            int page = q.getOffset() / Math.max(1, q.getLimit());
+                            return groupRepository.search("",
+                                            PageRequest.of(page, q.getLimit()))
+                                    .stream();
+                        },
+                        q -> (int) Math.min(Integer.MAX_VALUE, groupRepository.count()));
+        grid.setDataProvider(dp);
+        grid.setHeight("70vh");
         add(grid);
     }
 }

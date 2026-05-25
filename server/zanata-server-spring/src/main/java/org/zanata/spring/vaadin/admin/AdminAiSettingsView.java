@@ -141,7 +141,7 @@ public class AdminAiSettingsView extends VerticalLayout {
             Notification.show(p.displayName() + " saved", 2500,
                     Notification.Position.BOTTOM_END);
         });
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
         card.add(save);
         return card;
     }

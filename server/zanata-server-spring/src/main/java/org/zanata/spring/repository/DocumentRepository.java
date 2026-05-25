@@ -41,4 +41,47 @@ public interface DocumentRepository extends JpaRepository<HDocument, Long> {
               and d.obsolete = false
             """)
     List<HDocument> findByDocIdAcrossProjects(@Param("docId") String docId);
+
+    /** Total non-obsolete document count for a project/version — cheap. */
+    @Query("""
+            select count(d) from HDocument d
+            where d.projectIteration.slug = :versionSlug
+              and d.projectIteration.project.slug = :projectSlug
+              and d.obsolete = false
+            """)
+    long countByVersion(@Param("projectSlug") String projectSlug,
+                        @Param("versionSlug") String versionSlug);
+
+    /**
+     * Server-paged + search-filtered docs for the version's Documents grid.
+     * {@code q} is a case-insensitive substring match against docId; pass an
+     * empty string to disable filtering.
+     */
+    @Query("""
+            select d from HDocument d
+            where d.projectIteration.slug = :versionSlug
+              and d.projectIteration.project.slug = :projectSlug
+              and d.obsolete = false
+              and ( :q = ''
+                    or lower(d.docId) like concat('%', :q, '%')
+                    or (d.path is not null and lower(d.path) like concat('%', :q, '%')) )
+            order by d.path, d.name
+            """)
+    List<HDocument> pageByVersion(@Param("projectSlug") String projectSlug,
+                                  @Param("versionSlug") String versionSlug,
+                                  @Param("q") String lowerQ,
+                                  org.springframework.data.domain.Pageable page);
+
+    @Query("""
+            select count(d) from HDocument d
+            where d.projectIteration.slug = :versionSlug
+              and d.projectIteration.project.slug = :projectSlug
+              and d.obsolete = false
+              and ( :q = ''
+                    or lower(d.docId) like concat('%', :q, '%')
+                    or (d.path is not null and lower(d.path) like concat('%', :q, '%')) )
+            """)
+    long countMatchingByVersion(@Param("projectSlug") String projectSlug,
+                                @Param("versionSlug") String versionSlug,
+                                @Param("q") String lowerQ);
 }
