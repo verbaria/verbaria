@@ -46,4 +46,17 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
             where p.slug = :slug
             """)
     Optional<HProject> findBySlugWithLocales(@Param("slug") String slug);
+
+    /**
+     * Eagerly fetch {@code members} + each member's {@code person.account} so
+     * the project People tab can render usernames/emails without lazy hits.
+     */
+    @Query("""
+            select distinct p from HProject p
+            left join fetch p.members m
+            left join fetch m.person per
+            left join fetch per.account
+            where p.slug = :slug
+            """)
+    Optional<HProject> findBySlugWithMembers(@Param("slug") String slug);
 }

@@ -108,4 +108,51 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
                                @Param("locale") org.zanata.common.LocaleId locale,
                                @Param("q") String lowerQuery,
                                @Param("stateMode") int stateMode);
+
+    /**
+     * All text flows in the iteration that don't yet have a Translated or
+     * Approved target in {@code locale}. Used by Copy Trans to know what to
+     * fill in.
+     */
+    @Query("""
+            select tf from HTextFlow tf
+            where tf.document.projectIteration.id = :iterId
+              and tf.obsolete = false
+              and not exists (
+                  select 1 from HTextFlowTarget t
+                  where t.textFlow = tf
+                    and t.locale.localeId = :locale
+                    and (t.state = org.zanata.common.ContentState.Translated
+                         or t.state = org.zanata.common.ContentState.Approved))
+            order by tf.id
+            """)
+    List<HTextFlow> findUntranslatedInIteration(
+            @Param("iterId") Long iterId,
+            @Param("locale") org.zanata.common.LocaleId locale);
+
+    /**
+     * Candidate translation targets for Copy Trans: other text flows whose
+     * source content matches {@code contentHash} and that already have a
+     * Translated or Approved target in {@code locale}. Eagerly fetches the
+     * source-side context the rule engine needs.
+     */
+    @Query("""
+            select t from HTextFlowTarget t
+            join fetch t.textFlow ctf
+            join fetch ctf.document cdoc
+            join fetch cdoc.projectIteration citer
+            join fetch citer.project cproj
+            left join fetch ctf.potEntryData
+            where t.locale.localeId = :locale
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+              and ctf.contentHash = :hash
+              and ctf.id <> :excludeId
+              and ctf.obsolete = false
+            order by t.lastChanged desc
+            """)
+    List<org.zanata.model.HTextFlowTarget> findCopyTransCandidates(
+            @Param("hash") String contentHash,
+            @Param("excludeId") Long excludeTextFlowId,
+            @Param("locale") org.zanata.common.LocaleId locale);
 }

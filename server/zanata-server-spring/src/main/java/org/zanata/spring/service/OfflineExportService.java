@@ -85,6 +85,34 @@ public class OfflineExportService {
     }
 
     /**
+     * Render a single document's translations in the project's configured
+     * file format, ready for direct download. Used by the per-row
+     * "Download translated" action in the version's documents grid.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Bundle> singleTranslatedDoc(String projectSlug, String versionSlug,
+                                                String docId, LocaleId locale) throws IOException {
+        Optional<HDocument> docOpt = documentRepository
+                .findByVersionAndDocId(projectSlug, versionSlug, docId);
+        if (docOpt.isEmpty()) return Optional.empty();
+        ProjectType type = resolveProjectType(projectSlug, versionSlug);
+        String ext = extensionFor(type);
+        HDocument doc = docOpt.get();
+        Resource source = toResource(doc);
+        TranslationsResource trans = toTranslations(doc, locale);
+        byte[] body = writeOne(type, source, trans, locale);
+        String contentType = switch (type) {
+            case Properties, Utf8Properties -> "text/plain;charset=UTF-8";
+            case Xliff -> "application/xliff+xml";
+            case Consulo -> "application/x-yaml";
+            default -> "text/plain;charset=UTF-8";
+        };
+        String name = (doc.getDocId() == null ? "doc" : doc.getDocId())
+                + "-" + locale.getId() + ext;
+        return Optional.of(new Bundle(name, contentType, body));
+    }
+
+    /**
      * ZIP of one file per non-obsolete document for the given locale, in
      * the project's configured format.
      */

@@ -946,6 +946,29 @@ public class ZanataCliBridgeController {
         }
     }
 
+    /**
+     * Per-document translated file download — the "Download translated [format]"
+     * action shown on each row of the version's Documents grid.
+     */
+    @GetMapping("/file/translated-doc/{slug}/{iter}/{locale}")
+    public ResponseEntity<byte[]> downloadTranslatedDoc(
+            @PathVariable("slug") String slug,
+            @PathVariable("iter") String iter,
+            @PathVariable("locale") String locale,
+            @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
+        try {
+            var bundle = offlineExportService.singleTranslatedDoc(
+                    slug, iter, decodeDocId(docId), new LocaleId(locale));
+            if (bundle.isEmpty()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"" + bundle.get().filename() + "\"")
+                    .header("Content-Type", bundle.get().contentType())
+                    .body(bundle.get().bytes());
+        } catch (java.io.IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping(value = "/find-doc",
             produces = {org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
                     org.springframework.http.MediaType.APPLICATION_XML_VALUE})

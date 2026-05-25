@@ -58,6 +58,29 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
             """)
     Optional<org.zanata.model.HLocale> findProjectSourceLocale(@Param("iterId") Long iterId);
 
+    /**
+     * Like {@link #findFullByProjectAndSlug} but also eagerly loads
+     * {@code customizedLocales} so the Version Settings view can render the
+     * locale selector without a {@code LazyInitializationException}.
+     */
+    @Query("""
+            select distinct i from HProjectIteration i
+            left join fetch i.project p
+            left join fetch p.defaultSourceLocale
+            left join fetch i.customizedLocales
+            where i.slug = :versionSlug
+              and i.project.slug = :projectSlug
+            """)
+    Optional<HProjectIteration> findForSettings(@Param("projectSlug") String projectSlug,
+                                                @Param("versionSlug") String versionSlug);
+
+    @Query("""
+            select distinct i from HProjectIteration i
+            left join fetch i.customizedLocales
+            where i.id = :id
+            """)
+    Optional<HProjectIteration> findForSettingsById(@Param("id") Long id);
+
     @Query("""
             select count(tf) from HTextFlow tf
             where tf.document.projectIteration.id = :id

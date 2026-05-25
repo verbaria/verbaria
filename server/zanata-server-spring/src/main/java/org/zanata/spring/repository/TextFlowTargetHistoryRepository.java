@@ -13,8 +13,14 @@ import org.zanata.model.HTextFlowTargetHistory;
 public interface TextFlowTargetHistoryRepository
         extends JpaRepository<HTextFlowTargetHistory, Long> {
 
+    /**
+     * History rows for one text-flow / locale with {@code lastModifiedBy}
+     * eagerly fetched so the History panel can render the modifier's name
+     * outside the original transaction.
+     */
     @Query("""
             select h from HTextFlowTargetHistory h
+            left join fetch h.lastModifiedBy
             where h.textFlowTarget.textFlow.id = :textFlowId
               and h.textFlowTarget.locale.localeId = :locale
             order by h.versionNum desc

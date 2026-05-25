@@ -2,21 +2,30 @@ package org.zanata.spring.vaadin;
 
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
+import org.zanata.spring.service.ContactAdminService;
 import org.zanata.spring.vaadin.admin.AdminHomeView;
 import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
 
@@ -28,7 +37,10 @@ import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
 @AnonymousAllowed
 public class MainLayout extends AppLayout {
 
-    public MainLayout() {
+    private final ContactAdminService contactAdminService;
+
+    public MainLayout(ContactAdminService contactAdminService) {
+        this.contactAdminService = contactAdminService;
         setPrimarySection(Section.DRAWER);
         addNavbarToggle();
         addDrawerContent();
@@ -117,8 +129,14 @@ public class MainLayout extends AppLayout {
             Span user = new Span(currentUsername());
             user.getStyle().set("font-weight", "600");
             user.getStyle().set("flex", "1 1 auto");
+            Button contact = new Button(LineAwesomeIcon.ENVELOPE_SOLID.create(),
+                    e -> openContactAdminDialog());
+            contact.addThemeVariants(ButtonVariant.LUMO_TERTIARY,
+                    ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ICON);
+            contact.getElement().setAttribute("title", "Contact admin");
+            contact.getElement().setAttribute("aria-label", "Contact admin");
             Anchor logout = new Anchor("/logout", "Sign out");
-            footer.add(LineAwesomeIcon.USER_SOLID.create(), user, logout);
+            footer.add(LineAwesomeIcon.USER_SOLID.create(), user, contact, logout);
         } else {
             Anchor login = new Anchor("/login", "Sign in");
             Span sep = new Span("·");
@@ -132,6 +150,59 @@ public class MainLayout extends AppLayout {
             footer.add(row);
         }
         return footer;
+    }
+
+    /**
+     * Contact-admin dialog: subject + message form. Persists into
+     * {@link ContactAdminService}'s log + in-memory inbox. Until SMTP is
+     * wired the admin reads these from the server log.
+     */
+    private void openContactAdminDialog() {
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle("Contact admin");
+        dlg.setWidth("520px");
+        dlg.setCloseOnEsc(true);
+
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth == null ? "" : auth.getName();
+        Paragraph intro = new Paragraph(
+                "Send a message to the server administrator. They'll reach out "
+                + "via the email on your profile if needed.");
+        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.getStyle().set("font-size", "0.9rem");
+
+        TextField subject = new TextField("Subject");
+        subject.setWidthFull();
+        TextArea body = new TextArea("Message");
+        body.setWidthFull();
+        body.setMinHeight("6rem");
+        body.setRequired(true);
+
+        Button cancel = new Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Button send = new Button("Send", e -> {
+            if (body.getValue() == null || body.getValue().trim().isEmpty()) {
+                body.setInvalid(true);
+                body.setErrorMessage("Message can't be empty");
+                return;
+            }
+            try {
+                contactAdminService.send(username, "", subject.getValue(), body.getValue());
+                Notification n = Notification.show(
+                        "Message sent to the admin.",
+                        2500, Notification.Position.BOTTOM_END);
+                n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                dlg.close();
+            } catch (Exception ex) {
+                Notification.show("Failed: " + ex.getMessage(),
+                        4000, Notification.Position.MIDDLE);
+            }
+        });
+        send.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        dlg.add(intro, subject, body);
+        dlg.getFooter().add(cancel, send);
+        dlg.open();
     }
 
     private SideNav createSideNav() {

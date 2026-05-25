@@ -22,6 +22,21 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
     Optional<HTextFlowTarget> findByTextFlowAndLocale(@Param("textFlowId") Long textFlowId,
                                                       @Param("locale") LocaleId locale);
 
+    /**
+     * Same as {@link #findByTextFlowAndLocale} but eagerly fetches
+     * {@code lastModifiedBy} so the History panel can read the modifier's
+     * name outside the original transaction.
+     */
+    @Query("""
+            select t from HTextFlowTarget t
+            left join fetch t.lastModifiedBy
+            where t.textFlow.id = :textFlowId
+              and t.locale.localeId = :locale
+            """)
+    Optional<HTextFlowTarget> findByTextFlowAndLocaleWithModifier(
+            @Param("textFlowId") Long textFlowId,
+            @Param("locale") LocaleId locale);
+
     @Query("""
             select t from HTextFlowTarget t
             where t.textFlow.id in :textFlowIds

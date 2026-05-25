@@ -6,14 +6,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
+import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.zanata.model.HTextFlowTargetReviewComment;
+import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.TextFlowRepository;
 import org.zanata.spring.repository.TextFlowTargetHistoryRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.repository.TextFlowTargetReviewCommentRepository;
 
 @Service
 public class TranslationEditService {
@@ -21,16 +26,22 @@ public class TranslationEditService {
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
     private final TextFlowTargetHistoryRepository historyRepository;
+    private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final LocaleRepository localeRepository;
+    private final AccountRepository accountRepository;
 
     public TranslationEditService(TextFlowRepository textFlowRepository,
                                   TextFlowTargetRepository targetRepository,
                                   TextFlowTargetHistoryRepository historyRepository,
-                                  LocaleRepository localeRepository) {
+                                  TextFlowTargetReviewCommentRepository reviewCommentRepository,
+                                  LocaleRepository localeRepository,
+                                  AccountRepository accountRepository) {
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.historyRepository = historyRepository;
+        this.reviewCommentRepository = reviewCommentRepository;
         this.localeRepository = localeRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Transactional
@@ -49,6 +60,20 @@ public class TranslationEditService {
 
     @Transactional
     public ContentState changeState(Long textFlowId, LocaleId localeId, ContentState newState) {
+        return changeState(textFlowId, localeId, newState, null, null);
+    }
+
+    /**
+     * Change a target's state and (optionally) attach a review comment from
+     * {@code reviewerUsername}. Used by the reject-with-reason dialog: docs
+     * mandate that rejections include a reason so the translator knows what
+     * to fix. {@code comment}/{@code reviewerUsername} may be {@code null}
+     * to skip the comment (e.g. when approving).
+     */
+    @Transactional
+    public ContentState changeState(Long textFlowId, LocaleId localeId,
+                                    ContentState newState, String comment,
+                                    String reviewerUsername) {
         HTextFlow textFlow = textFlowRepository.findById(textFlowId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "TextFlow not found: " + textFlowId));
@@ -69,6 +94,18 @@ public class TranslationEditService {
         }
         if (target.getState() != null && target.getState() != ContentState.New) {
             historyRepository.save(new HTextFlowTargetHistory(target));
+        }
+        // Attach the review comment BEFORE the state change so the comment's
+        // targetVersion matches the version that's being rejected.
+        if (comment != null && !comment.isBlank() && reviewerUsername != null) {
+            HPerson reviewer = accountRepository.findByUsername(reviewerUsername)
+                    .map(HAccount::getPerson)
+                    .orElse(null);
+            if (reviewer != null) {
+                HTextFlowTargetReviewComment rc = new HTextFlowTargetReviewComment(
+                        target, comment.trim(), reviewer, null);
+                reviewCommentRepository.save(rc);
+            }
         }
         target.setState(newState);
         target.setTextFlowRevision(textFlow.getRevision());

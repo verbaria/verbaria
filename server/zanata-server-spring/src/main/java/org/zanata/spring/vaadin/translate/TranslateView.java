@@ -58,6 +58,12 @@ import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.TextFlowRepository;
 import org.zanata.spring.repository.TextFlowTargetHistoryRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.repository.TextFlowTargetReviewCommentRepository;
+import org.zanata.model.HTextFlowTargetReviewComment;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.Shortcuts;
+import org.zanata.spring.service.EditorPreferencesService;
 import org.zanata.spring.service.ai.AiPolicyService;
 import org.zanata.spring.vaadin.ExploreView;
 import org.zanata.spring.vaadin.MainLayout;
@@ -77,6 +83,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
     private final TextFlowTargetHistoryRepository historyRepository;
+    private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final TranslationEditService translationEditService;
     private final LocaleRepository localeRepository;
     private final LocaleMemberRepository localeMemberRepository;
@@ -132,17 +139,20 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          TextFlowRepository textFlowRepository,
                          TextFlowTargetRepository targetRepository,
                          TextFlowTargetHistoryRepository historyRepository,
+                         TextFlowTargetReviewCommentRepository reviewCommentRepository,
                          TranslationEditService translationEditService,
                          LocaleRepository localeRepository,
                          LocaleMemberRepository localeMemberRepository,
                          AccountRepository accountRepository,
                          org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry,
                          AiPolicyService aiPolicy,
-                         ProgressDialogService progressDialogs) {
+                         ProgressDialogService progressDialogs,
+                         EditorPreferencesService editorPreferences) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.historyRepository = historyRepository;
+        this.reviewCommentRepository = reviewCommentRepository;
         this.translationEditService = translationEditService;
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
@@ -150,6 +160,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.aiRegistry = aiRegistry;
         this.aiPolicy = aiPolicy;
         this.progressDialogs = progressDialogs;
+        this.editorPreferences = editorPreferences;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -158,10 +169,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final org.zanata.spring.service.ai.TranslationProviderRegistry aiRegistry;
     private final AiPolicyService aiPolicy;
     private final ProgressDialogService progressDialogs;
+    private final EditorPreferencesService editorPreferences;
+    private EditorPreferencesService.Prefs prefs = EditorPreferencesService.Prefs.DEFAULTS;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
+        prefs = editorPreferences.load();
         projectSlug = event.getRouteParameters().get("projectSlug").orElse("");
         versionSlug = event.getRouteParameters().get("versionSlug").orElse("");
         localeStr   = event.getRouteParameters().get("localeId").orElse("");
@@ -271,6 +285,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         headingRight.add(statsBtn);
 
+        Button prefsBtn = new Button(LineAwesomeIcon.COG_SOLID.create(),
+                e -> openEditorSettings());
+        prefsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL,
+                ButtonVariant.LUMO_ICON);
+        prefsBtn.getElement().setAttribute("title", "Editor settings");
+        prefsBtn.getElement().setAttribute("aria-label", "Editor settings");
+        headingRight.add(prefsBtn);
+
         headingRow.add(heading, headingRight);
         add(headingRow, statsPopover);
 
@@ -288,6 +310,100 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         add(rowsList);
 
         installDataProvider(docIdForProvider);
+
+        // Alt+Y → keyboard-shortcuts help. Bound at the view level so it
+        // works no matter which row (if any) has focus.
+        Shortcuts.addShortcutListener(this, this::openShortcutsHelp,
+                Key.KEY_Y, KeyModifier.ALT);
+    }
+
+    /**
+     * Editor settings popover — per-user preferences stored on the account
+     * via {@link EditorPreferencesService}. Anonymous users see the same UI
+     * but changes don't persist.
+     */
+    private void openEditorSettings() {
+        com.vaadin.flow.component.dialog.Dialog dlg =
+                new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Editor settings");
+        dlg.setWidth("420px");
+        dlg.setCloseOnEsc(true);
+
+        com.vaadin.flow.component.checkbox.Checkbox compact =
+                new com.vaadin.flow.component.checkbox.Checkbox("Compact rows");
+        compact.setValue(prefs.compactRows());
+        compact.setHelperText("Tighter padding so more rows fit in the viewport.");
+
+        com.vaadin.flow.component.checkbox.Checkbox showReview =
+                new com.vaadin.flow.component.checkbox.Checkbox("Show review comments inline");
+        showReview.setValue(prefs.showReviewComments());
+        showReview.setHelperText("Render rejection reasons at the top of the History panel.");
+
+        com.vaadin.flow.component.checkbox.Checkbox autoHistory =
+                new com.vaadin.flow.component.checkbox.Checkbox("Open history panel by default");
+        autoHistory.setValue(prefs.autoOpenHistory());
+
+        Button cancel = new Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Button save = new Button("Save", e -> {
+            var next = new EditorPreferencesService.Prefs(
+                    Boolean.TRUE.equals(compact.getValue()),
+                    Boolean.TRUE.equals(showReview.getValue()),
+                    Boolean.TRUE.equals(autoHistory.getValue()));
+            editorPreferences.save(next);
+            prefs = next;
+            Notification.show("Editor settings saved", 2000,
+                    Notification.Position.BOTTOM_END);
+            dlg.close();
+            UI.getCurrent().getPage().reload();
+        });
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        if (!isAuthenticated()) {
+            Paragraph note = new Paragraph(
+                    "Sign in to save these preferences across sessions.");
+            note.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            note.getStyle().set("font-size", "0.85rem");
+            dlg.add(note);
+            save.setEnabled(false);
+            save.setTooltipText("Sign in to save preferences");
+        }
+
+        dlg.add(compact, showReview, autoHistory);
+        dlg.getFooter().add(cancel, save);
+        dlg.open();
+    }
+
+    /** Modal cheat-sheet of the editor's keyboard shortcuts. */
+    private void openShortcutsHelp() {
+        com.vaadin.flow.component.dialog.Dialog dlg =
+                new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Keyboard shortcuts");
+        dlg.setWidth("520px");
+        dlg.setCloseOnEsc(true);
+
+        String html = "<table style=\"border-collapse:collapse;width:100%;font-size:0.9rem\">"
+                + row("Alt+Y", "Show this help")
+                + row("Esc", "Close any open dialog")
+                + row("Alt+G", "Copy source text into translation")
+                + row("Alt+X", "Clear translation field")
+                + row("Ctrl+Enter", "Save as Translated")
+                + row("Ctrl+S", "Save as fuzzy (Need review)")
+                + "</table>";
+        Div content = new Div();
+        content.getElement().setProperty("innerHTML", html);
+        dlg.add(content);
+
+        Button close = new Button("Close", e -> dlg.close());
+        close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        dlg.getFooter().add(close);
+        dlg.open();
+    }
+
+    private static String row(String key, String desc) {
+        return "<tr><td style=\"padding:0.3rem 0.5rem;font-family:monospace;"
+                + "color:var(--aura-blue-text);white-space:nowrap\">" + key
+                + "</td><td style=\"padding:0.3rem 0.5rem\">" + desc + "</td></tr>";
     }
 
     private com.vaadin.flow.component.menubar.MenuBar buildBulkAiButton(HDocument doc) {
@@ -565,8 +681,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Div card = new Div();
         card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
         card.getStyle().set("border-radius", "8px");
-        card.getStyle().set("padding", "0.75rem");
-        card.getStyle().set("margin-bottom", "0.75rem");
+        // Editor preference: tight padding when "Compact rows" is on.
+        card.getStyle().set("padding", prefs.compactRows() ? "0.4rem 0.6rem" : "0.75rem");
+        card.getStyle().set("margin-bottom", prefs.compactRows() ? "0.4rem" : "0.75rem");
         card.getStyle().set("box-sizing", "border-box");
         card.getStyle().set("overflow", "hidden");
         card.setWidthFull();
@@ -607,21 +724,24 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         Button detailsBtn = new Button("Details", LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
         detailsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        Button linkBtn = new Button("Link", LineAwesomeIcon.STAR.create());
-        linkBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        // Bookmark / permalink — copies a deep link to this text flow to the
+        // clipboard. Replaces the older "Link" panel which only displayed it.
+        Button bookmarkBtn = new Button(LineAwesomeIcon.BOOKMARK_SOLID.create(),
+                e -> copyPermalink(flow.getId()));
+        bookmarkBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL,
+                ButtonVariant.LUMO_ICON);
+        bookmarkBtn.getElement().setAttribute("title", "Copy permalink to this string");
+        bookmarkBtn.getElement().setAttribute("aria-label", "Copy permalink");
 
         Div detailsPanel = buildDetailsPanel(flow);
         detailsPanel.setVisible(false);
-        Div linkPanel = buildLinkPanel(flow);
-        linkPanel.setVisible(false);
 
         detailsBtn.addClickListener(e -> detailsPanel.setVisible(!detailsPanel.isVisible()));
-        linkBtn.addClickListener(e -> linkPanel.setVisible(!linkPanel.isVisible()));
 
-        HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, linkBtn);
+        HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, bookmarkBtn);
         leftBtns.setSpacing(true);
 
-        left.add(resId, srcText, leftBtns, detailsPanel, linkPanel);
+        left.add(resId, srcText, leftBtns, detailsPanel);
 
         VerticalLayout right = new VerticalLayout();
         right.setPadding(false);
@@ -639,6 +759,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         area.setMinHeight("4rem");
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
+
+        // Per-row keyboard shortcuts — fire only when this textarea is focused
+        // so they don't collide between rows. Matches the legacy editor.
+        if (canEdit && !isSourceLocale) {
+            // Alt+G — copy text from source string
+            Shortcuts.addShortcutListener(area, () -> area.setValue(source),
+                    Key.KEY_G, KeyModifier.ALT).listenOn(area);
+            // Alt+X — clear translation (docs call this "attention mode" but
+            // legacy editor also wiped the field on this combo).
+            Shortcuts.addShortcutListener(area, () -> area.setValue(""),
+                    Key.KEY_X, KeyModifier.ALT).listenOn(area);
+        }
 
         Span stateSpan = new Span(initialState.name());
         applyStateColor(stateSpan, initialState);
@@ -661,12 +793,44 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
             }
         });
+        // Ctrl+Enter — save as Translated (matches legacy + Zanata docs).
+        if (canEdit) {
+            Shortcuts.addShortcutListener(area, save::click,
+                    Key.ENTER, KeyModifier.CONTROL).listenOn(area);
+            // Ctrl+S — save as fuzzy (NeedReview). Only valid for target rows.
+            if (!isSourceLocale) {
+                Shortcuts.addShortcutListener(area, () -> {
+                    try {
+                        translationEditService.save(
+                                flow.getId(), currentLocale, area.getValue());
+                        ContentState ns = translationEditService.changeState(
+                                flow.getId(), currentLocale, ContentState.NeedReview);
+                        stateSpan.setText(ns.name());
+                        applyStateColor(stateSpan, ns);
+                        Notification.show("Saved as fuzzy", 2000,
+                                Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Save fuzzy failed: " + ex.getMessage(),
+                                4000, Notification.Position.MIDDLE);
+                    }
+                }, Key.KEY_S, KeyModifier.CONTROL).listenOn(area)
+                        .setBrowserDefaultAllowed(false);
+            }
+        }
 
         Button historyBtn = new Button("History", LineAwesomeIcon.CLOCK_SOLID.create());
         historyBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        Div historyPanel = buildHistoryPanel(flow.getId());
-        historyPanel.setVisible(false);
-        historyBtn.addClickListener(e -> historyPanel.setVisible(!historyPanel.isVisible()));
+        Div historyPanel = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
+        historyPanel.setVisible(prefs.autoOpenHistory());
+        historyBtn.addClickListener(e -> {
+            // Re-render every open so the "Unsaved" row reflects the current
+            // textarea value and review-comments stay fresh.
+            Div fresh = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
+            historyPanel.getElement().removeAllChildren();
+            fresh.getChildren().forEach(child -> historyPanel.getElement()
+                    .appendChild(child.getElement()));
+            historyPanel.setVisible(!historyPanel.isVisible());
+        });
 
         // Per-row "AI translate" — gated by the global flag, provider availability,
         // and the per-user opt-in. Source locale never gets the button.
@@ -739,17 +903,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         } else if (!hasSavedContent) {
             reject.setTooltipText("Save a translation before rejecting");
         }
-        reject.addClickListener(e -> {
-            try {
-                ContentState newState = translationEditService.changeState(
-                        flow.getId(), currentLocale, ContentState.Rejected);
-                stateSpan.setText(newState.name());
-                applyStateColor(stateSpan, newState);
-                Notification.show("Rejected", 2000, Notification.Position.BOTTOM_START);
-            } catch (Exception ex) {
-                Notification.show("Reject failed: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
-            }
-        });
+        reject.addClickListener(e -> openRejectDialog(flow, stateSpan, historyPanel));
 
         HorizontalLayout actionRow = new HorizontalLayout(
                 save, approve, reject, historyBtn, stateSpan);
@@ -795,7 +949,16 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return d;
     }
 
-    private Div buildHistoryPanel(Long textFlowId) {
+    /**
+     * Build the History panel: review comments at the top, then a selectable
+     * Grid of {version, state, modifier, date, content}. Selecting exactly
+     * two rows enables "Compare selected" which opens a side-by-side diff.
+     * If the live textarea value differs from the saved current target, an
+     * "Unsaved" pseudo-row is appended so the user can diff what they're
+     * typing against any saved version.
+     */
+    private Div buildHistoryPanel(Long textFlowId, String savedContent,
+                                  java.util.function.Supplier<String> liveContent) {
         Div d = new Div();
         d.getStyle().set("background", "var(--vaadin-background-color)");
         d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
@@ -804,41 +967,335 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         d.getStyle().set("margin-top", "0.5rem");
         d.getStyle().set("font-size", "0.875rem");
 
+        // Review comments (rejection reasons) come first so the most recent
+        // feedback is immediately visible to the translator. Suppressed when
+        // the user has disabled "Show review comments inline" in editor settings.
+        List<HTextFlowTargetReviewComment> comments = prefs.showReviewComments()
+                ? reviewCommentRepository.findByTextFlowAndLocale(textFlowId, currentLocale)
+                : java.util.List.of();
+        if (!comments.isEmpty()) {
+            Span header = new Span("Review comments");
+            header.getStyle().set("font-weight", "600");
+            header.getStyle().set("display", "block");
+            header.getStyle().set("margin-bottom", "0.3rem");
+            d.add(header);
+            for (HTextFlowTargetReviewComment c : comments) {
+                Div entry = new Div();
+                entry.getStyle().set("padding", "0.3rem 0");
+                entry.getStyle().set("border-left", "3px solid var(--aura-red-text)");
+                entry.getStyle().set("padding-left", "0.5rem");
+                entry.getStyle().set("margin", "0.25rem 0");
+                String who = c.getCommenterName() == null ? "" : c.getCommenterName();
+                String when = c.getCreationDate() == null ? "" : " — " + c.getCreationDate();
+                Span meta = new Span("by " + who
+                        + " (target v" + c.getTargetVersion() + ")" + when);
+                meta.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+                meta.getStyle().set("font-size", "0.8rem");
+                Paragraph p = new Paragraph(c.getCommentText());
+                p.getStyle().set("margin", "0.15rem 0 0 0");
+                p.getStyle().set("white-space", "pre-wrap");
+                entry.add(meta, p);
+                d.add(entry);
+            }
+            Div sep = new Div();
+            sep.getStyle().set("height", "1px");
+            sep.getStyle().set("background", "var(--vaadin-border-color)");
+            sep.getStyle().set("margin", "0.5rem 0");
+            d.add(sep);
+        }
+
+        // Build the version rows: every persisted HTextFlowTargetHistory +
+        // the current saved target (rendered as "current") + the live
+        // unsaved value when it differs from saved.
+        List<HistoryRow> rows = new java.util.ArrayList<>();
         List<HTextFlowTargetHistory> hist =
                 historyRepository.findByTextFlowAndLocale(textFlowId, currentLocale);
-        if (hist.isEmpty()) {
+        for (HTextFlowTargetHistory h : hist) {
+            rows.add(new HistoryRow(
+                    "v" + h.getVersionNum(),
+                    h.getState() == null ? "" : h.getState().name(),
+                    h.getLastModifiedBy() == null ? "" : h.getLastModifiedBy().getName(),
+                    h.getLastChanged() == null ? "" : h.getLastChanged().toString(),
+                    firstContent(h.getContents())));
+        }
+        // Current saved target — show as "current" only when there's something
+        // saved AND it isn't already covered by the latest history row.
+        if (savedContent != null && !savedContent.isBlank()) {
+            HTextFlowTarget cur = targetRepository
+                    .findByTextFlowAndLocaleWithModifier(textFlowId, currentLocale)
+                    .orElse(null);
+            if (cur != null) {
+                rows.add(new HistoryRow(
+                        "current",
+                        cur.getState() == null ? "" : cur.getState().name(),
+                        cur.getLastModifiedBy() == null ? "" : cur.getLastModifiedBy().getName(),
+                        cur.getLastChanged() == null ? "" : cur.getLastChanged().toString(),
+                        firstContent(cur.getContents())));
+            }
+        }
+        // Live (unsaved) typed value, only if it differs from the saved one
+        String live = liveContent == null ? null : liveContent.get();
+        if (live != null && !live.isEmpty()
+                && !java.util.Objects.equals(live, savedContent)) {
+            rows.add(new HistoryRow("Unsaved", "—", "you", "—", live));
+        }
+
+        if (rows.isEmpty() && comments.isEmpty()) {
             Paragraph empty = new Paragraph("No previous versions.");
             empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             empty.getStyle().set("margin", "0");
             d.add(empty);
             return d;
         }
-        for (HTextFlowTargetHistory h : hist) {
-            Div entry = new Div();
-            entry.getStyle().set("padding", "0.3rem 0");
-            entry.getStyle().set("border-bottom", "1px solid var(--vaadin-border-color)");
-            String c = h.getContents() == null || h.getContents().isEmpty()
-                    ? "" : h.getContents().get(0);
-            entry.add(new Span("v" + h.getVersionNum() + " — "
-                    + (h.getState() == null ? "" : h.getState().name())
-                    + (h.getLastChanged() == null ? "" : " — " + h.getLastChanged())));
-            Paragraph p = new Paragraph(c);
-            p.getStyle().set("margin", "0.2rem 0");
-            p.getStyle().set("white-space", "pre-wrap");
-            entry.add(p);
-            d.add(entry);
-        }
+
+        com.vaadin.flow.component.grid.Grid<HistoryRow> grid =
+                new com.vaadin.flow.component.grid.Grid<>();
+        grid.setItems(rows);
+        grid.setAllRowsVisible(true);
+        grid.setSelectionMode(com.vaadin.flow.component.grid.Grid.SelectionMode.MULTI);
+        grid.addColumn(HistoryRow::version).setHeader("Version")
+                .setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(HistoryRow::state).setHeader("State")
+                .setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(HistoryRow::modifier).setHeader("By")
+                .setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(HistoryRow::when).setHeader("When")
+                .setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(r -> {
+            String c = r.content() == null ? "" : r.content();
+            return c.length() > 120 ? c.substring(0, 117) + "…" : c;
+        }).setHeader("Content").setFlexGrow(1);
+
+        Button compare = new Button("Compare selected", LineAwesomeIcon.NOT_EQUAL_SOLID.create());
+        compare.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        compare.setEnabled(false);
+        Span hint = new Span("Select exactly 2 rows to compare");
+        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        hint.getStyle().set("font-size", "0.8rem");
+        hint.getStyle().set("margin-left", "0.5rem");
+        grid.asMultiSelect().addSelectionListener(ev -> {
+            int n = ev.getValue().size();
+            compare.setEnabled(n == 2);
+            hint.setText(n == 2 ? "Click compare to see the diff"
+                    : "Select exactly 2 rows to compare (selected: " + n + ")");
+        });
+        compare.addClickListener(ev -> {
+            var sel = new java.util.ArrayList<>(grid.getSelectedItems());
+            if (sel.size() != 2) return;
+            openDiffDialog(sel.get(0), sel.get(1));
+        });
+
+        HorizontalLayout toolbar = new HorizontalLayout(compare, hint);
+        toolbar.setAlignItems(FlexComponent.Alignment.CENTER);
+        toolbar.getStyle().set("margin", "0.25rem 0");
+        d.add(toolbar, grid);
         return d;
     }
 
-    private Div buildLinkPanel(HTextFlow flow) {
-        Div d = new Div();
-        d.getStyle().set("margin-top", "0.5rem");
+    /** Snapshot row for the history Grid + diff view. */
+    private record HistoryRow(String version, String state, String modifier,
+                              String when, String content) {}
+
+    /** Open a side-by-side diff of two history rows in a modal dialog. */
+    private void openDiffDialog(HistoryRow a, HistoryRow b) {
+        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Compare " + a.version() + " ↔ " + b.version());
+        dlg.setWidth("min(900px, 90vw)");
+        dlg.setHeight("min(600px, 80vh)");
+        dlg.setCloseOnEsc(true);
+
+        HorizontalLayout body = new HorizontalLayout();
+        body.setSizeFull();
+        body.setSpacing(true);
+
+        Div left = diffCell(a.version(), a.state(), a.when(),
+                renderDiffHtml(a.content(), b.content(), true));
+        Div right = diffCell(b.version(), b.state(), b.when(),
+                renderDiffHtml(a.content(), b.content(), false));
+        left.getStyle().set("flex", "1 1 0");
+        right.getStyle().set("flex", "1 1 0");
+        body.add(left, right);
+
+        dlg.add(body);
+        com.vaadin.flow.component.button.Button close =
+                new com.vaadin.flow.component.button.Button("Close", e -> dlg.close());
+        close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        dlg.getFooter().add(close);
+        dlg.open();
+    }
+
+    private static Div diffCell(String version, String state, String when, String html) {
+        Div cell = new Div();
+        cell.getStyle().set("border", "1px solid var(--vaadin-border-color)");
+        cell.getStyle().set("border-radius", "6px");
+        cell.getStyle().set("padding", "0.5rem");
+        cell.getStyle().set("background", "var(--vaadin-background-color)");
+        cell.getStyle().set("overflow", "auto");
+        Span header = new Span(version + " — " + state + (when.isEmpty() ? "" : " — " + when));
+        header.getStyle().set("font-weight", "600");
+        header.getStyle().set("display", "block");
+        header.getStyle().set("margin-bottom", "0.4rem");
+        Div content = new Div();
+        content.getStyle().set("white-space", "pre-wrap");
+        content.getStyle().set("font-family", "var(--lumo-font-family-mono, monospace)");
+        content.getStyle().set("font-size", "0.88rem");
+        content.getElement().setProperty("innerHTML", html);
+        cell.add(header, content);
+        return cell;
+    }
+
+    /**
+     * Word-level LCS diff between {@code a} and {@code b}; if {@code leftSide}
+     * is true, colour removed-from-a words red; otherwise colour added-in-b
+     * words green. Whitespace is preserved by splitting on word boundaries
+     * but rejoining the originals.
+     */
+    private static String renderDiffHtml(String a, String b, boolean leftSide) {
+        if (a == null) a = "";
+        if (b == null) b = "";
+        String[] aw = a.split("(?<=\\s)|(?=\\s)");
+        String[] bw = b.split("(?<=\\s)|(?=\\s)");
+        int n = aw.length, m = bw.length;
+        int[][] lcs = new int[n + 1][m + 1];
+        for (int i = n - 1; i >= 0; i--) {
+            for (int j = m - 1; j >= 0; j--) {
+                lcs[i][j] = aw[i].equals(bw[j])
+                        ? lcs[i + 1][j + 1] + 1
+                        : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+            }
+        }
+        StringBuilder out = new StringBuilder();
+        int i = 0, j = 0;
+        String[] side = leftSide ? aw : bw;
+        String addColor = "var(--aura-green-text)";
+        String delColor = "var(--aura-red-text)";
+        String bg = leftSide ? "rgba(255,0,0,0.12)" : "rgba(0,160,0,0.12)";
+        String color = leftSide ? delColor : addColor;
+        while (i < n && j < m) {
+            if (aw[i].equals(bw[j])) {
+                out.append(escapeHtml(side == aw ? aw[i] : bw[j]));
+                i++; j++;
+            } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+                // a[i] removed
+                if (leftSide) appendMarked(out, aw[i], color, bg);
+                i++;
+            } else {
+                // b[j] added
+                if (!leftSide) appendMarked(out, bw[j], color, bg);
+                j++;
+            }
+        }
+        while (leftSide && i < n) { appendMarked(out, aw[i++], color, bg); }
+        while (!leftSide && j < m) { appendMarked(out, bw[j++], color, bg); }
+        return out.toString();
+    }
+
+    private static void appendMarked(StringBuilder sb, String word,
+                                     String color, String bg) {
+        sb.append("<span style=\"color:").append(color)
+                .append(";background:").append(bg).append("\">")
+                .append(escapeHtml(word))
+                .append("</span>");
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private static String firstContent(java.util.List<String> contents) {
+        if (contents == null || contents.isEmpty()) return "";
+        String c = contents.get(0);
+        return c == null ? "" : c;
+    }
+
+    /**
+     * Open the reject-with-reason modal. A non-empty reason is required —
+     * docs mandate this so the translator knows what to fix. On confirm the
+     * comment is attached to the target version being rejected and the
+     * history panel is re-rendered in place.
+     */
+    private void openRejectDialog(HTextFlow flow, Span stateSpan, Div historyPanel) {
+        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Reject translation");
+        dlg.setWidth("480px");
+        dlg.setCloseOnEsc(true);
+        dlg.setCloseOnOutsideClick(false);
+
+        Paragraph intro = new Paragraph(
+                "Tell the translator why this translation needs to change. "
+                + "The reason is shown in the history panel.");
+        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.getStyle().set("margin", "0 0 0.75rem 0");
+        intro.getStyle().set("font-size", "0.9rem");
+
+        TextArea reason = new TextArea("Reason for rejection");
+        reason.setWidthFull();
+        reason.setMinHeight("6rem");
+        reason.setRequired(true);
+        reason.setValueChangeMode(ValueChangeMode.EAGER);
+
+        Button confirm = new Button("Confirm rejection");
+        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        confirm.setEnabled(false);
+        Button cancel = new Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        // "Confirm rejection" will not work until a reason has been entered.
+        reason.addValueChangeListener(e -> confirm.setEnabled(
+                e.getValue() != null && !e.getValue().trim().isEmpty()));
+
+        confirm.addClickListener(e -> {
+            String text = reason.getValue() == null ? "" : reason.getValue().trim();
+            if (text.isEmpty()) return;
+            String reviewer = currentUsername();
+            try {
+                ContentState newState = translationEditService.changeState(
+                        flow.getId(), currentLocale, ContentState.Rejected,
+                        text, reviewer);
+                stateSpan.setText(newState.name());
+                applyStateColor(stateSpan, newState);
+                // Refresh the history panel in place so the new comment shows up
+                // without losing the user's expand/collapse state on other rows.
+                Div fresh = buildHistoryPanel(flow.getId(), null, () -> null);
+                historyPanel.getElement().removeAllChildren();
+                fresh.getChildren().forEach(child -> historyPanel.getElement()
+                        .appendChild(child.getElement()));
+                Notification.show("Rejected", 2000, Notification.Position.BOTTOM_START);
+                dlg.close();
+            } catch (Exception ex) {
+                Notification.show("Reject failed: " + ex.getMessage(),
+                        4000, Notification.Position.MIDDLE);
+            }
+        });
+
+        dlg.add(intro, reason);
+        dlg.getFooter().add(cancel, confirm);
+        dlg.open();
+        reason.focus();
+    }
+
+    private static String currentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()
+                || auth instanceof AnonymousAuthenticationToken) return null;
+        return auth.getName();
+    }
+
+    /**
+     * Build the deep-link URL for a text flow and copy it to the clipboard
+     * via JavaScript. The format mirrors the existing {@code ?tf=ID} query
+     * param the page already accepts.
+     */
+    private void copyPermalink(Long textFlowId) {
         String href = "/translate/" + projectSlug + "/" + versionSlug + "/"
-                + localeStr + "?tf=" + flow.getId();
-        Anchor a = new Anchor(href, href);
-        d.add(a);
-        return d;
+                + localeStr + "?doc=" + currentDocId + "&tf=" + textFlowId;
+        UI.getCurrent().getPage().executeJs(
+                "const u = new URL($0, location.origin).toString();"
+                + "navigator.clipboard.writeText(u);", href);
+        Notification.show("Link copied to clipboard",
+                1800, Notification.Position.BOTTOM_START);
     }
 
     private String label(String k, String v) {

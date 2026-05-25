@@ -7,9 +7,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
+import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
+import org.zanata.rest.dto.resource.TextFlowTarget;
+import org.zanata.rest.dto.resource.TranslationsResource;
 
 /**
  * Parses Consulo-style localization YAMLs:
@@ -33,6 +36,31 @@ import org.zanata.rest.dto.resource.TextFlow;
  * validates {@code text}).</p>
  */
 public final class YamlReader {
+
+    /**
+     * Reads a translated Consulo localize YAML stream and emits one
+     * {@link TextFlowTarget} per entry, marked as {@link ContentState#Translated}.
+     * Caller is expected to hash the ids the same way as the source upload
+     * path so they line up with the existing TextFlows in the database.
+     */
+    public TranslationsResource extractTarget(InputStream in) {
+        TranslationsResource res = new TranslationsResource();
+        Yaml yaml = new Yaml();
+        Object root = yaml.load(in);
+        if (!(root instanceof Map<?, ?> top)) return res;
+        List<TextFlowTarget> targets = new ArrayList<>(top.size());
+        for (Map.Entry<?, ?> entry : top.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            String text = textOf(entry.getValue());
+            if (text == null) continue;
+            TextFlowTarget t = new TextFlowTarget(key);
+            t.setContents(text);
+            t.setState(ContentState.Translated);
+            targets.add(t);
+        }
+        res.getTextFlowTargets().addAll(targets);
+        return res;
+    }
 
     /** Reads a Consulo localize YAML stream and emits one TextFlow per entry. */
     public Resource extractTemplate(String docId, InputStream in) {

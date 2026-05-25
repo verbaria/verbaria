@@ -23,8 +23,10 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.zanata.common.EntityStatus;
@@ -118,6 +120,34 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         }
         add(targetLocales);
 
+        // --- Validations card ---
+        add(new H3("Validations"));
+        Paragraph valHint = new Paragraph(
+                "Per-validation behavior: OFF skips it, WARN highlights non-conformance "
+                + "without blocking save, ERROR blocks save until fixed. Empty = inherit "
+                + "the server defaults.");
+        valHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        valHint.getStyle().set("margin", "0 0 0.5rem 0");
+        add(valHint);
+        FormLayout valForm = new FormLayout();
+        valForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("600px", 2));
+        Map<String, String> validationDefs = validationCatalog();
+        Map<String, ComboBox<String>> validationPickers = new LinkedHashMap<>();
+        Map<String, String> stored = project.getCustomizedValidations() == null
+                ? Map.of() : project.getCustomizedValidations();
+        for (Map.Entry<String, String> entry : validationDefs.entrySet()) {
+            ComboBox<String> picker = new ComboBox<>(entry.getValue());
+            picker.setItems("OFF", "WARN", "ERROR");
+            picker.setClearButtonVisible(true);
+            picker.setHelperText(entry.getKey());
+            String current = stored.get(entry.getKey());
+            if (current != null && !current.isBlank()) picker.setValue(current);
+            valForm.add(picker);
+            validationPickers.put(entry.getKey(), picker);
+        }
+        add(valForm);
+
         Button save = new Button("Save", e -> {
             project.setName(name.getValue());
             project.setDescription(description.getValue());
@@ -129,6 +159,15 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
             Set<HLocale> picked = new LinkedHashSet<>(targetLocales.getValue());
             project.setCustomizedLocales(picked);
             project.setOverrideLocales(!picked.isEmpty());
+            // Persist per-validation state — strip empties so we inherit defaults.
+            Map<String, String> validations = project.getCustomizedValidations() == null
+                    ? new LinkedHashMap<>() : project.getCustomizedValidations();
+            validations.clear();
+            validationPickers.forEach((key, picker) -> {
+                String v = picker.getValue();
+                if (v != null && !v.isBlank()) validations.put(key, v);
+            });
+            project.setCustomizedValidations(validations);
             projectRepository.save(project);
             Notification.show("Saved", 2000, Notification.Position.BOTTOM_START);
         });
@@ -143,5 +182,22 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         String code = l.getLocaleId() == null ? "?" : l.getLocaleId().getId();
         String display = l.getDisplayName();
         return display == null || display.isBlank() ? code : display + " (" + code + ")";
+    }
+
+    /**
+     * Catalog of validations the UI exposes — keys match the storage keys used
+     * by {@code HProject.customizedValidations}, values are human-readable
+     * labels from the legacy validation framework / docs.
+     */
+    private static Map<String, String> validationCatalog() {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("HTML_XML", "HTML / XML tags");
+        m.put("JAVA_VARIABLES", "Java variables ({0}, {x})");
+        m.put("NEW_LINE", "Leading / trailing newlines");
+        m.put("PRINTF_VARIABLES", "Printf variables (%s, %d)");
+        m.put("PRINTF_XSI_EXTENSION", "Positional printf (%1$s)");
+        m.put("TAB", "Tab characters (\\t)");
+        m.put("XML_ENTITY", "XML entity references");
+        return m;
     }
 }

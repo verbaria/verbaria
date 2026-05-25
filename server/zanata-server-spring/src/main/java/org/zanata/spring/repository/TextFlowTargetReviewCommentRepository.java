@@ -19,4 +19,14 @@ public interface TextFlowTargetReviewCommentRepository
             order by c.creationDate desc
             """)
     List<HTextFlowTargetReviewComment> findByLocale(@Param("locale") LocaleId locale);
+
+    @Query("""
+            select c from HTextFlowTargetReviewComment c
+            where c.textFlowTarget.textFlow.id = :textFlowId
+              and c.textFlowTarget.locale.localeId = :locale
+            order by c.creationDate desc
+            """)
+    List<HTextFlowTargetReviewComment> findByTextFlowAndLocale(
+            @Param("textFlowId") Long textFlowId,
+            @Param("locale") LocaleId locale);
 }

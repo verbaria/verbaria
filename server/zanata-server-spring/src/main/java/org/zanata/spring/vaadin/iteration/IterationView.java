@@ -60,24 +60,44 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private String currentSourceLocaleId = "en-US";
 
     private final org.zanata.spring.service.SourceUploadService sourceUploadService;
+    private final org.zanata.spring.service.TranslationUploadService translationUploadService;
+    private final org.zanata.spring.service.CopyTransService copyTransService;
+    private final org.zanata.spring.service.MergeTransService mergeTransService;
+    private final org.zanata.spring.repository.ProjectRepository projectRepository;
+    private final org.zanata.spring.vaadin.ProgressDialogService progressDialogs;
     private final org.zanata.spring.repository.AccountRepository accountRepository;
+
+    /** Enabled locales for the current iteration — populated in beforeEnter for the upload dialog. */
+    private java.util.List<org.zanata.model.HLocale> enabledLocales = java.util.List.of();
 
     public IterationView(ProjectIterationRepository iterationRepository,
                          DocumentRepository documentRepository,
                          TextFlowTargetRepository targetRepository,
                          LocaleRepository localeRepository,
                          org.zanata.spring.service.SourceUploadService sourceUploadService,
+                         org.zanata.spring.service.TranslationUploadService translationUploadService,
+                         org.zanata.spring.service.CopyTransService copyTransService,
+                         org.zanata.spring.service.MergeTransService mergeTransService,
+                         org.zanata.spring.repository.ProjectRepository projectRepository,
+                         org.zanata.spring.vaadin.ProgressDialogService progressDialogs,
                          org.zanata.spring.repository.AccountRepository accountRepository) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.localeRepository = localeRepository;
         this.sourceUploadService = sourceUploadService;
+        this.translationUploadService = translationUploadService;
+        this.copyTransService = copyTransService;
+        this.mergeTransService = mergeTransService;
+        this.projectRepository = projectRepository;
+        this.progressDialogs = progressDialogs;
         this.accountRepository = accountRepository;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
     }
+
+    private Long currentIterationId;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -98,8 +118,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                     iteration.getProject().getDefaultSourceLocale().getLocaleId().getId();
         }
 
+        this.currentIterationId = iteration.getId();
         IterationStats stats = IterationStats.compute(iteration.getId(),
                 iterationRepository, targetRepository, localeRepository);
+        this.enabledLocales = stats.enabledLocales == null
+                ? java.util.List.of() : stats.enabledLocales;
         List<HDocument> documents = documentRepository.findByVersion(projectSlug, versionSlug);
 
         add(buildBreadcrumb(projectSlug));
@@ -139,13 +162,234 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         HorizontalLayout layout = new HorizontalLayout(slug);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         layout.setSpacing(true);
+        layout.setWidthFull();
+        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         if (iteration.getStatus() == EntityStatus.READONLY) {
             var lock = LineAwesomeIcon.LOCK_SOLID.create();
             lock.setSize("0.9em");
             lock.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            layout.add(lock);
+            layout.addComponentAtIndex(1, lock);
         }
+        // Settings link → /project/:slug/version/:vslug/settings
+        com.vaadin.flow.component.button.Button settingsBtn =
+                new com.vaadin.flow.component.button.Button("Settings",
+                        LineAwesomeIcon.COG_SOLID.create(),
+                        e -> UI.getCurrent().navigate(
+                                "project/" + currentProjectSlug
+                                + "/version/" + currentVersionSlug + "/settings"));
+        settingsBtn.addThemeVariants(
+                com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+
+        // "More actions" menu — host for Copy Trans and (later) Merge Translations.
+        com.vaadin.flow.component.menubar.MenuBar more =
+                new com.vaadin.flow.component.menubar.MenuBar();
+        more.addThemeVariants(
+                com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY);
+        var moreTrigger = more.addItem("More actions");
+        moreTrigger.getElement().setAttribute("title", "Per-version operations");
+        if (canUpload()) {
+            moreTrigger.getSubMenu().addItem("Copy Translations…",
+                    e -> openCopyTransDialog());
+            moreTrigger.getSubMenu().addItem("Merge Translations…",
+                    e -> openMergeTransDialog());
+        }
+
+        HorizontalLayout right = new HorizontalLayout(more, settingsBtn);
+        right.setSpacing(true);
+        layout.add(right);
         return layout;
+    }
+
+    /**
+     * Open the Copy Trans dialog — three rule pickers + a Start button that
+     * runs the operation inside the modal ProgressDialogService.
+     */
+    private void openCopyTransDialog() {
+        com.vaadin.flow.component.dialog.Dialog dlg =
+                new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Copy Translations");
+        dlg.setWidth("min(640px, 92vw)");
+
+        Paragraph intro = new Paragraph(
+                "Find translations of identical source strings in other "
+                + "documents on this server and copy them into this version.");
+        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.getStyle().set("font-size", "0.9rem");
+
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.spring.service.CopyTransService.Action>
+                onProj = actionPicker("On project mismatch");
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.spring.service.CopyTransService.Action>
+                onDoc = actionPicker("On document mismatch");
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.spring.service.CopyTransService.Action>
+                onCtx = actionPicker("On context (resId) mismatch");
+
+        com.vaadin.flow.component.formlayout.FormLayout form =
+                new com.vaadin.flow.component.formlayout.FormLayout(onProj, onDoc, onCtx);
+        form.setResponsiveSteps(
+                new com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep("0", 1));
+
+        com.vaadin.flow.component.button.Button cancel =
+                new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+
+        com.vaadin.flow.component.button.Button start =
+                new com.vaadin.flow.component.button.Button("Copy Translations");
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addClickListener(e -> {
+            var opts = new org.zanata.spring.service.CopyTransService.Options(
+                    onProj.getValue(), onDoc.getValue(), onCtx.getValue());
+            dlg.close();
+            Long iterId = currentIterationId;
+            progressDialogs.run("Copy Trans — " + currentVersionSlug, handle -> {
+                handle.update(0, 1, "Scanning untranslated text flows…");
+                return copyTransService.runForIteration(iterId, opts, p ->
+                        handle.update(p.processedFlows(), Math.max(1, p.totalFlows()),
+                                p.processedFlows() + " / " + p.totalFlows()
+                                + " — " + p.copied() + " copied"
+                                + (p.copiedAsFuzzy() > 0
+                                        ? ", " + p.copiedAsFuzzy() + " fuzzy" : "")));
+            }).whenComplete((res, err) -> {
+                if (err != null) {
+                    com.vaadin.flow.component.notification.Notification.show(
+                            "Copy Trans failed: " + err.getMessage(), 5000,
+                            com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                    return;
+                }
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Copy Trans: " + res.copied() + " copied"
+                        + (res.copiedAsFuzzy() > 0
+                                ? ", " + res.copiedAsFuzzy() + " fuzzy" : "")
+                        + " of " + res.totalFlows() + " untranslated",
+                        4500,
+                        com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
+                UI.getCurrent().getPage().reload();
+            });
+        });
+
+        dlg.add(intro, form);
+        dlg.getFooter().add(cancel, start);
+        dlg.open();
+    }
+
+    private com.vaadin.flow.component.combobox.ComboBox<org.zanata.spring.service.CopyTransService.Action>
+            actionPicker(String label) {
+        var box = new com.vaadin.flow.component.combobox.ComboBox<org.zanata.spring.service.CopyTransService.Action>(label);
+        box.setItems(org.zanata.spring.service.CopyTransService.Action.values());
+        box.setValue(org.zanata.spring.service.CopyTransService.Action.Continue);
+        box.setWidthFull();
+        return box;
+    }
+
+    /**
+     * Merge Translations dialog: pick a source project + source version, decide
+     * whether to keep existing translations, then run the merge inside the
+     * modal progress dialog.
+     */
+    private void openMergeTransDialog() {
+        com.vaadin.flow.component.dialog.Dialog dlg =
+                new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Merge Translations");
+        dlg.setWidth("min(640px, 92vw)");
+
+        Paragraph intro = new Paragraph(
+                "Copy matching Translated / Approved translations from another "
+                + "version into this one.");
+        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.getStyle().set("font-size", "0.9rem");
+
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.model.HProject> projectBox =
+                new com.vaadin.flow.component.combobox.ComboBox<>("Source project");
+        projectBox.setItemLabelGenerator(p -> p.getName() == null ? p.getSlug() : p.getName());
+        projectBox.setWidthFull();
+        projectBox.setItems(query -> projectRepository.search(
+                        query.getFilter().orElse(""),
+                        org.springframework.data.domain.PageRequest.of(
+                                query.getPage(), query.getPageSize()))
+                .stream());
+
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.model.HProjectIteration> versionBox =
+                new com.vaadin.flow.component.combobox.ComboBox<>("Source version");
+        versionBox.setItemLabelGenerator(org.zanata.model.HProjectIteration::getSlug);
+        versionBox.setWidthFull();
+        versionBox.setEnabled(false);
+
+        projectBox.addValueChangeListener(e -> {
+            var proj = e.getValue();
+            if (proj == null) {
+                versionBox.setItems(java.util.List.of());
+                versionBox.setEnabled(false);
+                return;
+            }
+            // Reload with iterations attached so .getProjectIterations() works.
+            var withIter = projectRepository.findBySlugWithIterations(proj.getSlug())
+                    .orElse(proj);
+            java.util.List<org.zanata.model.HProjectIteration> versions = withIter.getProjectIterations().stream()
+                    .filter(i -> !i.getId().equals(currentIterationId))
+                    .sorted(java.util.Comparator.comparing(
+                            org.zanata.model.HProjectIteration::getSlug).reversed())
+                    .toList();
+            versionBox.setItems(versions);
+            versionBox.setEnabled(!versions.isEmpty());
+        });
+
+        com.vaadin.flow.component.checkbox.Checkbox keepExisting =
+                new com.vaadin.flow.component.checkbox.Checkbox(
+                        "Keep existing translated / approved translations");
+        keepExisting.setValue(true);
+        keepExisting.setTooltipText(
+                "When checked, only fills empty entries. When unchecked, "
+                + "overwrites existing translations if the incoming one is newer.");
+
+        com.vaadin.flow.component.formlayout.FormLayout form =
+                new com.vaadin.flow.component.formlayout.FormLayout(projectBox, versionBox);
+        form.setResponsiveSteps(
+                new com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep("0", 1),
+                new com.vaadin.flow.component.formlayout.FormLayout.ResponsiveStep("520px", 2));
+
+        com.vaadin.flow.component.button.Button cancel =
+                new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+
+        com.vaadin.flow.component.button.Button start =
+                new com.vaadin.flow.component.button.Button("Merge Translations");
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addClickListener(e -> {
+            var sourceIter = versionBox.getValue();
+            if (sourceIter == null) {
+                versionBox.setInvalid(true);
+                versionBox.setErrorMessage("Pick a source version");
+                return;
+            }
+            boolean keep = Boolean.TRUE.equals(keepExisting.getValue());
+            Long targetIter = currentIterationId;
+            Long srcId = sourceIter.getId();
+            String srcSlug = sourceIter.getSlug();
+            dlg.close();
+            progressDialogs.run("Merge from " + srcSlug, handle -> {
+                handle.update(0, 1, "Scanning…");
+                return mergeTransService.runMerge(targetIter, srcId, keep, p ->
+                        handle.update(p.processedFlows(), Math.max(1, p.totalFlows()),
+                                p.processedFlows() + " / " + p.totalFlows()
+                                + " — " + p.copied() + " copied"));
+            }).whenComplete((res, err) -> {
+                if (err != null) {
+                    com.vaadin.flow.component.notification.Notification.show(
+                            "Merge failed: " + err.getMessage(), 5000,
+                            com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                    return;
+                }
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Merge: " + res.copied() + " of " + res.totalFlows()
+                        + " entries copied from " + srcSlug,
+                        4500,
+                        com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
+                UI.getCurrent().getPage().reload();
+            });
+        });
+
+        dlg.add(intro, form, keepExisting);
+        dlg.getFooter().add(cancel, start);
+        dlg.open();
     }
 
     private HorizontalLayout buildStatsRow(IterationStats stats) {
@@ -356,7 +600,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             String tmxHref = "/rest/tm/projects/" + currentProjectSlug
                     + "/iterations/" + currentVersionSlug
                     + "?locale=" + localeIdStr;
-            trigger.getSubMenu().addItem("Download for offline translation",
+            trigger.getSubMenu().addItem("Download All (zip)",
                     e -> UI.getCurrent().getPage().open(offlineHref, "_self"));
             trigger.getSubMenu().addItem("Export TMX",
                     e -> UI.getCurrent().getPage().open(tmxHref, "_self"));
@@ -411,10 +655,146 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         grid.addColumn(d -> d.getLocale() == null || d.getLocale().getLocaleId() == null
                 ? "" : d.getLocale().getLocaleId().getId())
                 .setHeader("Lang").setAutoWidth(true);
+        // Per-doc actions: download translated file (any locale, anyone) +
+        // upload translation (signed-in only). Packed into a single menu so
+        // the row's width doesn't grow.
+        if (!enabledLocales.isEmpty()) {
+            java.util.List<org.zanata.model.HLocale> targetLocales = enabledLocales.stream()
+                    .filter(l -> l.getLocaleId() != null
+                            && !l.getLocaleId().getId().equalsIgnoreCase(currentSourceLocaleId))
+                    .toList();
+            boolean canUpload = canUpload();
+            grid.addComponentColumn(doc -> {
+                com.vaadin.flow.component.menubar.MenuBar mb =
+                        new com.vaadin.flow.component.menubar.MenuBar();
+                mb.addThemeVariants(
+                        com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_TERTIARY_INLINE,
+                        com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_SMALL,
+                        com.vaadin.flow.component.menubar.MenuBarVariant.LUMO_ICON);
+                var trigger = mb.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
+                trigger.getElement().setAttribute("aria-label", "Document actions");
+                trigger.getElement().setAttribute("title", "Actions");
+                if (!targetLocales.isEmpty()) {
+                    var downloadItem = trigger.getSubMenu().addItem("Download translated…");
+                    for (var loc : targetLocales) {
+                        String code = loc.getLocaleId().getId();
+                        String name = loc.getDisplayName() + " (" + code + ")";
+                        String href = "/rest/file/translated-doc/"
+                                + currentProjectSlug + "/" + currentVersionSlug
+                                + "/" + code + "?docId="
+                                + java.net.URLEncoder.encode(doc.getDocId(),
+                                        java.nio.charset.StandardCharsets.UTF_8);
+                        downloadItem.getSubMenu().addItem(name,
+                                ev -> UI.getCurrent().getPage().open(href, "_self"));
+                    }
+                }
+                if (canUpload) {
+                    trigger.getSubMenu().addItem("Upload translation…",
+                            e -> openTranslationUploadDialog(doc));
+                }
+                return mb;
+            }).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
+        }
         grid.setItems(documents);
         grid.setAllRowsVisible(true);
         panel.add(grid);
         return panel;
+    }
+
+    /**
+     * Open a small modal that lets the user pick a target locale and upload
+     * a translation file for a single document. Mirrors the legacy "Upload
+     * Translations" flow (Project → Version → Document → ⋮ → Upload).
+     */
+    private void openTranslationUploadDialog(HDocument doc) {
+        var dlg = new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("Upload translation — " + doc.getDocId());
+        dlg.setWidth("520px");
+        dlg.setCloseOnEsc(true);
+        dlg.setCloseOnOutsideClick(false);
+
+        // Filter out the source locale — uploading a translation for the
+        // source language is meaningless.
+        java.util.List<org.zanata.model.HLocale> targets = enabledLocales.stream()
+                .filter(l -> l.getLocaleId() != null
+                        && !l.getLocaleId().getId().equalsIgnoreCase(currentSourceLocaleId))
+                .toList();
+
+        com.vaadin.flow.component.combobox.ComboBox<org.zanata.model.HLocale> localeBox =
+                new com.vaadin.flow.component.combobox.ComboBox<>("Target language");
+        localeBox.setItems(targets);
+        localeBox.setItemLabelGenerator(l -> l.getDisplayName()
+                + " (" + l.getLocaleId().getId() + ")");
+        localeBox.setWidthFull();
+        localeBox.setRequired(true);
+        if (targets.size() == 1) localeBox.setValue(targets.get(0));
+
+        var buffer = new com.vaadin.flow.component.upload.receivers.MultiFileMemoryBuffer();
+        var upload = new com.vaadin.flow.component.upload.Upload(buffer);
+        upload.setAcceptedFileTypes(".properties", ".po", ".pot",
+                ".xlf", ".xliff", ".yaml", ".yml");
+        upload.setDropLabel(new Span("Drop the translation file here, or click to choose"));
+        upload.setAutoUpload(false); // wait for the user to hit Upload below
+        upload.setMaxFiles(1);
+
+        Paragraph intro = new Paragraph(
+                "Translations are matched to text-flows by their resId. "
+                + "Existing translations for matched keys are snapshotted to "
+                + "history before being overwritten.");
+        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.getStyle().set("font-size", "0.9rem");
+        intro.getStyle().set("margin", "0 0 0.5rem 0");
+
+        com.vaadin.flow.component.button.Button cancel =
+                new com.vaadin.flow.component.button.Button("Cancel", e -> dlg.close());
+        cancel.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+
+        com.vaadin.flow.component.button.Button start =
+                new com.vaadin.flow.component.button.Button("Upload");
+        start.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        start.addClickListener(e -> {
+            var locale = localeBox.getValue();
+            if (locale == null || locale.getLocaleId() == null) {
+                localeBox.setInvalid(true);
+                localeBox.setErrorMessage("Pick a target language first");
+                return;
+            }
+            java.util.Set<String> files = buffer.getFiles();
+            if (files.isEmpty()) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Choose a file to upload first", 3000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                return;
+            }
+            String fileName = files.iterator().next();
+            var actor = currentAccount();
+            if (actor == null) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Sign in to upload translations", 3000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                return;
+            }
+            try (java.io.InputStream in = buffer.getInputStream(fileName)) {
+                var result = translationUploadService.upload(
+                        currentProjectSlug, currentVersionSlug, doc.getDocId(),
+                        fileName, locale.getLocaleId().getId(), in, actor);
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Imported " + result.accepted() + " translations"
+                                + (result.skipped() > 0 ? " (skipped " + result.skipped() + ")" : ""),
+                        3500,
+                        com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
+                dlg.close();
+                UI.getCurrent().getPage().reload();
+            } catch (Exception ex) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Upload failed: " + ex.getMessage(), 5000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+            }
+        });
+
+        dlg.add(intro, localeBox, upload);
+        dlg.getFooter().add(cancel, start);
+        dlg.open();
     }
 
     private com.vaadin.flow.component.html.Div buildUploader() {
