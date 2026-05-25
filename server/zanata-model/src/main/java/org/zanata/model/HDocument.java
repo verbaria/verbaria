@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import jakarta.enterprise.util.AnnotationLiteral;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -47,7 +46,6 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.apache.deltaspike.core.api.provider.BeanProvider;
 import org.hibernate.annotations.ListIndexBase;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.Where;
@@ -61,7 +59,6 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TranslationsResource;
 import com.google.common.collect.ImmutableList;
-import org.zanata.security.annotations.Authenticated;
 import io.leangen.graphql.annotations.types.GraphQLType;
 
 /**
@@ -293,28 +290,20 @@ public class HDocument extends ModelEntityBase implements DocumentWithId,
         return EntityType.HDocument;
     }
 
+    /**
+     * Legacy CDI-driven {@code @PreUpdate} listener — used DeltaSpike
+     * {@code BeanProvider} to look up the authenticated principal and stamp
+     * {@code lastModifiedBy}. The Spring port doesn't have a CDI BeanManager,
+     * so the listener was a silent no-op even when wired. Kept the empty
+     * shell because {@link Entity @EntityListeners} on the class references
+     * it; the Spring services that mutate documents stamp the user directly.
+     */
     public static class EntityListener {
 
-        private static final AnnotationLiteral<Authenticated>
-                AUTHENTICATED = new AnnotationLiteral<Authenticated>() {
-            private static final long serialVersionUID = 1L;
-        };
-
         @PreUpdate
-        @SuppressWarnings("deprecation")
         private void onUpdate(HDocument doc) {
-            if (org.zanata.util.Contexts.isSessionContextActive()) {
-                HAccount account;
-                try {
-                    account = BeanProvider.getContextualReference(
-                    HAccount.class, true, AUTHENTICATED);
-                } catch (IllegalStateException e) {
-                    account = null;
-                }
-                if (account != null) {
-                    doc.setLastModifiedBy(account.getPerson());
-                }
-            }
+            // No-op. Replaced by explicit setLastModifiedBy(...) calls in
+            // the Spring service layer.
         }
     }
 

@@ -240,6 +240,7 @@ public class MainLayout extends AppLayout
      */
     private Component buildToolbar() {
         DrawerToggle drawerToggle = new DrawerToggle();
+        drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
         drawerToggle.setAriaLabel(getTranslation("nav.toggleMenu"));
 
         breadcrumbsSlot.addClassName("crumbs");
