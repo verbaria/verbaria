@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.zanata</groupId>
   <artifactId>parent</artifactId>
-  <version>4.7.0-SNAPSHOT</version>
+  <version>5.0-SNAPSHOT</version>
   <name>Zanata Parent POM</name>
   <description>Parent pom for Zanata modules</description>
   <url>http://zanata.org/</url>
@@ -236,6 +236,9 @@
     <reports-plugin.dependencyDetailsEnabled>false</reports-plugin.dependencyDetailsEnabled>
     <reports-plugin.dependencyLocationsEnabled>false</reports-plugin.dependencyLocationsEnabled>
     <slf4j.version>2.0.16</slf4j.version>
+    <!-- Override Mockito 5.14's transitive ByteBuddy 1.15.4, which doesn't
+         understand JDK 25 class files. 1.18.8 adds JDK 25 support. -->
+    <byte-buddy.version>1.18.8</byte-buddy.version>
   </properties>
 
   <build>
@@ -915,17 +918,30 @@
         <scope>test</scope>
       </dependency>
 
+      <!-- Mockito 5.20.0 bundles ByteBuddy 1.17.x by default; we still pin
+           1.18.8 below for JDK 25. The legacy `mockito-inline` artifact is
+           obsolete since Mockito 5.0 — mockito-core ships the inline
+           mock-maker as the default, so static mocking
+           ({@code Mockito.mockStatic}) works without it. -->
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.14.2</version>
+        <version>5.20.0</version>
         <scope>test</scope>
       </dependency>
+
+      <!-- Pin ByteBuddy globally so Mockito 5.14 + JDK 25 doesn't crash on
+           the transitive 1.15.4. Applies to both the runtime jar and the
+           agent that Mockito self-attaches. -->
       <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-inline</artifactId>
-        <version>5.2.0</version>
-        <scope>test</scope>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>${byte-buddy.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-agent</artifactId>
+        <version>${byte-buddy.version}</version>
       </dependency>
 
       <!-- Hamcrest 2.2 unifies hamcrest-core + hamcrest-library into one artifact,

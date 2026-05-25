@@ -1,48 +1,66 @@
 name: Build
 
+# Runs `mvn package` on every push and pull request. Tests run as part of
+# the normal Maven lifecycle — Surefire is configured to fail the build on
+# any test failure, so a green workflow run means the test suite passed.
+
 on:
   push:
-    branches: [master, release]
+    branches: [ "**" ]
   pull_request:
-    branches: [master, release]
+    branches: [ "**" ]
+
+# Cancel in-progress runs for the same ref when a new commit arrives.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  package:
+    name: Package (JDK 25)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: zanata
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: "1234"
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d zanata"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
-      - name: Build reactor (compile + unit tests)
-        run: mvn -B -V -e -ntp install -DskipITs
-      - name: Upload Spring Boot JAR
+
+      # Build the whole reactor, run tests, and produce the CLI distribution
+      # archives. `-B` is non-interactive (no progress bars in CI logs).
+      # Maven Surefire fails the build on any test failure by default — no
+      # extra flag needed for "fail if tests failed".
+      - name: Build + test + package
+        run: ./mvnw -B -ntp package
+
+      # Surface the test reports even when the job fails, so the failure is
+      # diagnosable from the workflow run page.
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Publish the Verbaria CLI distribution archives so PR reviewers and
+      # release managers can grab them from the run summary.
+      - name: Upload CLI distribution
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: zanata-server-spring
-          path: server/zanata-server-spring/target/zanata-server-spring-*.jar
+          name: verbaria-cli-dist
+          path: |
+            client/zanata-cli/target/verbaria-*-dist.zip
+            client/zanata-cli/target/verbaria-*-dist.tar.gz
           if-no-files-found: warn
-      - name: Upload CLI dist
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: zanata-cli
-          path: client/zanata-cli/target/zanata-cli-*-dist.tar.gz
-          if-no-files-found: warn
+          retention-days: 30

@@ -4,10 +4,10 @@
   <parent>
     <groupId>org.zanata</groupId>
     <artifactId>client</artifactId>
-    <version>4.7.0-SNAPSHOT</version>
+    <version>5.0-SNAPSHOT</version>
   </parent>
   <artifactId>zanata-cli</artifactId>
-  <name>Zanata command-line client</name>
+  <name>Verbaria command-line client</name>
   <packaging>jar</packaging>
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
@@ -20,19 +20,21 @@
   <build>
     <plugins>
       <plugin>
-        <!-- See the script etc/zanata-cli -->
+        <!-- Produces the `verbaria` launcher in target/appassembler/bin/ via
+             the appassembler-maven-plugin profile below. The dev-mode helper
+             script in etc/scripts/zanata-cli is unchanged. -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.0</version>
         <executions>
           <execution>
-            <id>zanata-cli</id>
+            <id>verbaria</id>
             <goals>
               <goal>java</goal>
             </goals>
           </execution>
           <execution>
-            <id>generate-zanata-cli-completion</id>
+            <id>generate-verbaria-completion</id>
             <phase>test</phase>
             <goals>
               <goal>java</goal>
@@ -41,7 +43,7 @@
               <skip>${maven.test.skip}</skip>
               <mainClass>org.zanata.client.BashCompletionGenerator</mainClass>
               <arguments>
-                <argument>${project.build.directory}/zanata-cli-completion</argument>
+                <argument>${project.build.directory}/verbaria-completion</argument>
                 <argument>${basedir}/COPYING-header.txt</argument>
               </arguments>
               <classpathScope>test</classpathScope>
@@ -143,19 +145,15 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Static mocking is now done with Mockito 5's MockedStatic; PowerMock
-         is unmaintained and incompatible with JDK 17+. -->
+    <!-- Static mocking via {@link org.mockito.Mockito#mockStatic} ships in
+         mockito-core since 5.0 (inline mock-maker is the default), so we
+         no longer need the legacy mockito-inline artifact. -->
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
+<dependency>
       <groupId>org.simpleframework</groupId>
       <artifactId>simple</artifactId>
     </dependency>
@@ -192,7 +190,7 @@
               <programs>
                 <program>
                   <mainClass>org.zanata.client.ZanataClient</mainClass>
-                  <id>zanata-cli</id>
+                  <id>verbaria</id>
                 </program>
               </programs>
               <repositoryName>lib</repositoryName>
@@ -214,6 +212,10 @@
             </executions>
             <configuration>
               <descriptor>src/main/assembly/bin.xml</descriptor>
+              <!-- Rebrand the archive filename so what users download
+                   matches the binary name (the Maven artifactId stays
+                   `zanata-cli` for source/IDE compatibility). -->
+              <finalName>verbaria-${project.version}</finalName>
             </configuration>
           </plugin>
         </plugins>

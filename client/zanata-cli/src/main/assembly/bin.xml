@@ -9,6 +9,10 @@
     <format>zip</format>
     <format>tar.gz</format>
   </formats>
+  <!-- Override the default root folder ({@code zanata-cli-${version}/}, taken
+       from the artifactId) so the brand name shows up when the archive is
+       extracted. -->
+  <baseDirectory>verbaria-${project.version}</baseDirectory>
   <fileSets>
     <fileSet>
       <directory>..</directory>
@@ -23,7 +27,7 @@
       <directory>target/appassembler/bin</directory>
       <outputDirectory>bin</outputDirectory>
       <includes>
-        <include>zanata-cli*</include>
+        <include>verbaria*</include>
       </includes>
       <fileMode>744</fileMode>
     </fileSet>
@@ -31,7 +35,7 @@
       <directory>target</directory>
       <outputDirectory>bin</outputDirectory>
       <includes>
-        <include>zanata-cli-completion</include>
+        <include>verbaria-completion</include>
       </includes>
       <fileMode>644</fileMode>
     </fileSet>
