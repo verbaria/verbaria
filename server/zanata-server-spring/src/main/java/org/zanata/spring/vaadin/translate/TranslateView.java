@@ -173,6 +173,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final EditorPreferencesService editorPreferences;
     private EditorPreferencesService.Prefs prefs = EditorPreferencesService.Prefs.DEFAULTS;
 
+    /**
+     * Per-row history panel state, keyed by {@code flow.id}. The VirtualList
+     * tears down and rebuilds rows as they scroll out of / into the viewport,
+     * which would otherwise wipe each panel's visibility back to the
+     * {@code prefs.autoOpenHistory()} default. We persist the explicit
+     * open/closed state here so user toggles stick across renders.
+     */
+    private final java.util.Set<Long> historyExpanded =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Set<Long> historyCollapsed =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
@@ -323,7 +335,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 new com.vaadin.flow.component.dialog.Dialog();
         dlg.setHeaderTitle("Editor settings");
         dlg.setWidth("420px");
+        // Multiple ways out so the dialog never traps the user, even when
+        // Save would be a no-op (anonymous = preferences not persisted).
         dlg.setCloseOnEsc(true);
+        dlg.setCloseOnOutsideClick(true);
+
+        // Header close (X) — small but always present, mirrors common UX.
+        Button closeX = new Button(LineAwesomeIcon.TIMES_SOLID.create(), e -> dlg.close());
+        closeX.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
+        closeX.getElement().setAttribute("aria-label", "Close");
+        closeX.getElement().setAttribute("title", "Close");
+        dlg.getHeader().add(closeX);
 
         com.vaadin.flow.component.checkbox.Checkbox compact =
                 new com.vaadin.flow.component.checkbox.Checkbox("Compact rows");
@@ -339,6 +361,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 new com.vaadin.flow.component.checkbox.Checkbox("Open history panel by default");
         autoHistory.setValue(prefs.autoOpenHistory());
 
+        boolean signedIn = isAuthenticated();
+        if (!signedIn) {
+            Paragraph note = new Paragraph(
+                    "Sign in to persist these preferences. Changes will apply to "
+                    + "this browser session only.");
+            note.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            note.getStyle().set("font-size", "0.85rem");
+            note.getStyle().set("margin", "0 0 0.5rem 0");
+            dlg.add(note);
+        }
+
         Button cancel = new Button("Cancel", e -> dlg.close());
         cancel.addThemeVariants(ButtonVariant.TERTIARY);
         Button save = new Button("Save", e -> {
@@ -346,24 +379,24 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                     Boolean.TRUE.equals(compact.getValue()),
                     Boolean.TRUE.equals(showReview.getValue()),
                     Boolean.TRUE.equals(autoHistory.getValue()));
+            // Signed-in: persists to HAccountOption.
+            // Anonymous: stashed on UI via ComponentUtil — survives in-app
+            // navigation but is gone on full browser reload (which is fine
+            // because we never reload the page from here any more).
             editorPreferences.save(next);
             prefs = next;
-            Notification.show("Editor settings saved", 2000,
-                    Notification.Position.BOTTOM_END);
+            // Refresh the data provider so already-rendered rows pick up
+            // the new prefs (compact rows, autoOpenHistory, etc.) without
+            // throwing away the whole UI via page.reload().
+            if (rowsList.getDataProvider() != null) {
+                rowsList.getDataProvider().refreshAll();
+            }
+            Notification.show(signedIn ? "Editor settings saved"
+                            : "Applied for this session",
+                    2000, Notification.Position.BOTTOM_END);
             dlg.close();
-            UI.getCurrent().getPage().reload();
         });
         save.addThemeVariants(ButtonVariant.PRIMARY);
-
-        if (!isAuthenticated()) {
-            Paragraph note = new Paragraph(
-                    "Sign in to save these preferences across sessions.");
-            note.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            note.getStyle().set("font-size", "0.85rem");
-            dlg.add(note);
-            save.setEnabled(false);
-            save.setTooltipText("Sign in to save preferences");
-        }
 
         dlg.add(compact, showReview, autoHistory);
         dlg.getFooter().add(cancel, save);
@@ -883,7 +916,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Button historyBtn = new Button("History", LineAwesomeIcon.CLOCK_SOLID.create());
         historyBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         Div historyPanel = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
-        historyPanel.setVisible(prefs.autoOpenHistory());
+        // Initial visibility: explicit user toggle wins over the global pref.
+        boolean initiallyOpen = historyExpanded.contains(flow.getId())
+                || (prefs.autoOpenHistory() && !historyCollapsed.contains(flow.getId()));
+        historyPanel.setVisible(initiallyOpen);
         historyBtn.addClickListener(e -> {
             // Re-render every open so the "Unsaved" row reflects the current
             // textarea value and review-comments stay fresh.
@@ -891,7 +927,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             historyPanel.getElement().removeAllChildren();
             fresh.getChildren().forEach(child -> historyPanel.getElement()
                     .appendChild(child.getElement()));
-            historyPanel.setVisible(!historyPanel.isVisible());
+            boolean nowOpen = !historyPanel.isVisible();
+            historyPanel.setVisible(nowOpen);
+            // Record the explicit state so VirtualList row recycling doesn't
+            // snap us back to the default.
+            if (nowOpen) {
+                historyExpanded.add(flow.getId());
+                historyCollapsed.remove(flow.getId());
+            } else {
+                historyCollapsed.add(flow.getId());
+                historyExpanded.remove(flow.getId());
+            }
         });
 
         // Per-row "AI translate" — gated by the global flag, provider availability,

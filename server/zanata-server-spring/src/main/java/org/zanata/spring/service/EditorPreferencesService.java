@@ -3,6 +3,8 @@ package org.zanata.spring.service;
 import java.util.Locale;
 import java.util.Map;
 
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.UI;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,12 +15,19 @@ import org.zanata.model.HAccountOption;
 import org.zanata.spring.repository.AccountRepository;
 
 /**
- * Read/write per-user editor preferences. Persisted as {@link HAccountOption}
- * entries on the user's account so they survive across sessions. Anonymous
- * users get the in-class defaults — no persistence.
+ * Read/write per-user editor preferences.
  *
- * <p>Keys are namespaced under {@code editor.*} to keep them clearly
- * separate from the AI options under {@code ai.*}.</p>
+ * <ul>
+ *   <li><b>Signed-in users</b> → persisted as {@link HAccountOption} entries
+ *       on the account, so they survive across sessions and devices.</li>
+ *   <li><b>Anonymous users</b> → stashed on the current {@code UI} instance
+ *       via {@link ComponentUtil#setData}. Survives in-app navigation within
+ *       a tab; lost on full browser reload (so we stopped calling
+ *       {@code page.reload()} after Save).</li>
+ * </ul>
+ *
+ * Keys are namespaced under {@code editor.*} to keep them clearly separate
+ * from the AI options under {@code ai.*}.
  */
 @Service
 public class EditorPreferencesService {
@@ -26,6 +35,7 @@ public class EditorPreferencesService {
     public static final String KEY_COMPACT_ROWS    = "editor.compactRows";
     public static final String KEY_SHOW_REVIEW     = "editor.showReviewComments";
     public static final String KEY_AUTO_OPEN_HISTORY = "editor.autoOpenHistory";
+
 
     public record Prefs(boolean compactRows, boolean showReviewComments,
                         boolean autoOpenHistory) {
@@ -42,17 +52,37 @@ public class EditorPreferencesService {
     @Transactional(readOnly = true)
     public Prefs load() {
         String user = currentUsername();
-        if (user == null) return Prefs.DEFAULTS;
+        if (user == null) return loadFromUi();
         return accountRepository.findByUsername(user)
-                .map(a -> readPrefs(a)).orElse(Prefs.DEFAULTS);
+                .map(this::readPrefs).orElse(Prefs.DEFAULTS);
     }
 
     @Transactional
     public void save(Prefs prefs) {
         String user = currentUsername();
-        if (user == null) return; // anonymous — silently ignore
+        if (user == null) {
+            saveToUi(prefs);
+            return;
+        }
         accountRepository.findByUsername(user).ifPresent(a -> writePrefs(a, prefs));
     }
+
+    // ---- anonymous (UI-scoped via ComponentUtil) ----
+
+    private Prefs loadFromUi() {
+        UI ui = UI.getCurrent();
+        if (ui == null) return Prefs.DEFAULTS;
+        Prefs p = ComponentUtil.getData(ui, Prefs.class);
+        return p == null ? Prefs.DEFAULTS : p;
+    }
+
+    private void saveToUi(Prefs prefs) {
+        UI ui = UI.getCurrent();
+        if (ui == null) return;
+        ComponentUtil.setData(ui, Prefs.class, prefs);
+    }
+
+    // ---- authenticated (HAccountOption) ----
 
     private Prefs readPrefs(HAccount account) {
         Map<String, HAccountOption> opts = account.getEditorOptions();
