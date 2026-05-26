@@ -113,7 +113,6 @@ public class MainLayout extends AppLayout
         }
         setPrimarySection(Section.DRAWER);
         addDrawerContent();
-        installToolbarCss();
         // Build the in-content toolbar once. {@link #showRouterLayoutContent}
         // re-uses it across navigations, swapping the routed view underneath.
         contentWrapper = new VerticalLayout();
@@ -207,34 +206,6 @@ public class MainLayout extends AppLayout
     }
 
     /**
-     * Toolbar styles. The toolbar lives inside the AppLayout content slot
-     * (above the routed view), so it only spans the content area — the
-     * drawer extends the full height to its left.
-     */
-    private void installToolbarCss() {
-        String css = ""
-                + ".zanata-toolbar {"
-                + "  display: flex; align-items: center; gap: 0.5rem;"
-                + "  padding: 0.4rem 0.75rem; flex: 0 0 auto;"
-                + "  width: 100%; box-sizing: border-box;"
-                + "  border-bottom: 1px solid var(--vaadin-border-color);"
-                + "  background: var(--vaadin-background-color);"
-                + "  z-index: 1;"
-                + "}"
-                + ".zanata-toolbar .crumbs { flex: 1 1 auto; min-width: 0;"
-                + "  overflow: hidden; }"
-                + ".zanata-toolbar .controls { display: flex; align-items: center;"
-                + "  gap: 0.25rem; flex: 0 0 auto; }";
-        getElement().executeJs(
-                "if (!document.getElementById('zanata-toolbar-css')) {"
-                + "  const s = document.createElement('style');"
-                + "  s.id = 'zanata-toolbar-css';"
-                + "  s.textContent = $0;"
-                + "  document.head.appendChild(s);"
-                + "}", css);
-    }
-
-    /**
      * The in-content toolbar: drawer toggle (single, always-visible), the
      * per-view breadcrumbs (left), and the global controls cluster on the
      * right (theme toggle, locale picker, sign-in / user menu).
@@ -282,7 +253,7 @@ public class MainLayout extends AppLayout
         header.getStyle().set("display", "flex");
         header.getStyle().set("align-items", "center");
         header.getStyle().set("justify-content", "center");
-        header.getStyle().set("padding", "0.75rem 1rem");
+        header.getStyle().set("padding", "0.35rem 0.5rem");
         header.getStyle().set("box-sizing", "border-box");
         header.setWidthFull();
 

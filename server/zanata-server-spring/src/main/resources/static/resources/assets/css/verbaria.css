@@ -1,7 +1,4 @@
-/* ----- 1. Tokens ----------------------------------------------------- */
-
 :root {
-    /* Green wash — StarPass uses blue (220); we use green (140). */
     --base-h: 140;
     --base-s: 35%;
     --base-l: 92%;
@@ -221,19 +218,33 @@ vaadin-side-nav-item::part(content) {
     margin: 1px 4px !important;
 }
 
-/* ----- 4b. In-content toolbar blends into the glass card ----------- *
+/* ----- 4b. In-content toolbar -------------------------------------- *
  *
- * `.zanata-toolbar` is built in MainLayout.java with an opaque white
- * background and a bottom border — it reads as a separate strip pasted
- * on top of the frosted card. Drop both so the toolbar inherits the
- * card's glass surface and the content below reads as one continuous
- * panel.
- */
+ * `.zanata-toolbar` is the row built by `MainLayout.buildToolbar`
+ * (DrawerToggle + breadcrumbs slot + controls cluster). Styles live in
+ * CSS rather than injected at runtime by Java so the appearance stays
+ * iterable without a recompile, and so it inherits the glass card behind
+ * it (no separate background or bottom divider). */
 .zanata-toolbar {
-    background: transparent !important;
-    border-bottom-color: var(--view-border-color) !important;
-    border-bottom-style: solid !important;
-    border-bottom-width: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 1;
+}
+.zanata-toolbar .crumbs {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+.zanata-toolbar .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 0 0 auto;
 }
 
 /* Opt-in helper for any panel that wants the same glass treatment. */
