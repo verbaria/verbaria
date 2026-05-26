@@ -23,8 +23,6 @@ package org.zanata.rest.dto;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -33,9 +31,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@Label("Process Status")
 public class ProcessStatus {
-    @Label("Process Status Code")
     public enum ProcessStatusCode {
         /** The process has not been accepted by the server */
         NotAccepted,
@@ -64,7 +60,6 @@ public class ProcessStatus {
 
     private ProcessStatusCode statusCode;
 
-    @DocumentationExample("http://zanata.example.com")
     public String getUrl() {
         return url;
     }
@@ -73,7 +68,6 @@ public class ProcessStatus {
         this.url = url;
     }
 
-    @DocumentationExample("55")
     public int getPercentageComplete() {
         return percentageComplete;
     }
@@ -83,8 +77,6 @@ public class ProcessStatus {
     }
 
     @JsonProperty("message")
-    @DocumentationExample(value = "A warning message",
-            value2 = "A second warning message")
     public List<String> getMessages() {
         if (messages == null) {
             messages = new ArrayList<String>();

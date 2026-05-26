@@ -28,7 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.dto.QualifiedName;
-import org.zanata.rest.service.GlossaryResource;
+import org.zanata.rest.service.ApiPaths;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -48,7 +48,7 @@ public class GlossaryClient {
             String qualifiedName) {
         factory.getSpringRestClient().post()
                 .uri(uriBuilder -> uriBuilder
-                        .path(GlossaryResource.SERVICE_PATH)
+                        .path(ApiPaths.GLOSSARY_SERVICE_PATH)
                         .path("/entries")
                         .queryParam("locale", localeId.getId())
                         .queryParam("qualifiedName", qualifiedName)
@@ -65,7 +65,7 @@ public class GlossaryClient {
         return factory.getSpringRestClient().get()
                 .uri(uriBuilder -> {
                     var b = uriBuilder
-                            .path(GlossaryResource.SERVICE_PATH)
+                            .path(ApiPaths.GLOSSARY_SERVICE_PATH)
                             .path("/file")
                             .queryParam("fileType", fileType)
                             .queryParam("qualifiedName", qualifiedName);
@@ -82,7 +82,7 @@ public class GlossaryClient {
     public void delete(String id, String qualifiedName) {
         factory.getSpringRestClient().delete()
                 .uri(uriBuilder -> uriBuilder
-                        .path(GlossaryResource.SERVICE_PATH)
+                        .path(ApiPaths.GLOSSARY_SERVICE_PATH)
                         .path("/entries/" + id)
                         .queryParam("qualifiedName", qualifiedName)
                         .build())
@@ -93,7 +93,7 @@ public class GlossaryClient {
     public int deleteAll(String qualifiedName) {
         Integer result = factory.getSpringRestClient().delete()
                 .uri(uriBuilder -> uriBuilder
-                        .path(GlossaryResource.SERVICE_PATH)
+                        .path(ApiPaths.GLOSSARY_SERVICE_PATH)
                         .queryParam("qualifiedName", qualifiedName)
                         .build())
                 .retrieve()
@@ -112,7 +112,7 @@ public class GlossaryClient {
 
     public String getGlobalQualifiedName() {
         QualifiedName qn = factory.getSpringRestClient().get()
-                .uri(GlossaryResource.SERVICE_PATH + "/qualifiedName")
+                .uri(ApiPaths.GLOSSARY_SERVICE_PATH + "/qualifiedName")
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .body(QualifiedName.class);

@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -20,7 +19,6 @@ import org.zanata.common.Namespaces;
 @JsonPropertyOrder({ "glossaryEntries", "warnings" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Glossary Results")
 public class GlossaryResults implements Serializable {
     private static final long serialVersionUID = 7100495681284134288L;
     private List<GlossaryEntry> glossaryEntries;

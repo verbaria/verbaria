@@ -8,13 +8,11 @@ import java.util.List;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import org.zanata.common.LocaleId;
 import org.zanata.common.Namespaces;
 import org.zanata.rest.dto.DTOUtil;
@@ -28,7 +26,6 @@ import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
         "extensions" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Text Flow")
 public class TextFlow extends TextContainer implements
         Extensible<TextFlowExtension>, Serializable {
     private static final long serialVersionUID = 1L;
@@ -88,7 +85,6 @@ public class TextFlow extends TextContainer implements
     }
 
     @JsonProperty("id")
-    @DocumentationExample("abc123")
     public String getId() {
         return id;
     }
@@ -116,7 +112,6 @@ public class TextFlow extends TextContainer implements
      * Locale code for this text flow.
      */
     @JsonProperty("lang")
-    @DocumentationExample("es-ES")
     public LocaleId getLang() {
         return lang;
     }

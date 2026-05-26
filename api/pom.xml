@@ -14,8 +14,8 @@
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 

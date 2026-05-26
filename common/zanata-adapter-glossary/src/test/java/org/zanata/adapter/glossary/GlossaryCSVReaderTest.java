@@ -32,7 +32,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
-import org.zanata.rest.service.GlossaryResource;
+import org.zanata.rest.service.ApiPaths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,7 +53,7 @@ public class GlossaryCSVReaderTest {
             new InputStreamReader(new FileInputStream(sourceFile), "UTF-8");
         BufferedReader br = new BufferedReader(inputStreamReader);
 
-        reader.extractGlossary(br, GlossaryResource.GLOBAL_QUALIFIED_NAME);
+        reader.extractGlossary(br, ApiPaths.GLOBAL_QUALIFIED_NAME);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class GlossaryCSVReaderTest {
 
         Map<LocaleId, List<GlossaryEntry>> glossaries =
                 reader.extractGlossary(bufferedReader,
-                        GlossaryResource.GLOBAL_QUALIFIED_NAME);
+                        ApiPaths.GLOBAL_QUALIFIED_NAME);
 
         assertThat(glossaries.keySet()).hasSize(2);
         assertThat(glossaries.keySet()).contains(LocaleId.ES, new LocaleId("zh"));
@@ -93,7 +93,7 @@ public class GlossaryCSVReaderTest {
                 new InputStreamReader(new FileInputStream(sourceFile), "UTF-8"));
 
         Map<LocaleId, List<GlossaryEntry>> glossaries = reader.extractGlossary(
-                bufferedReader, GlossaryResource.GLOBAL_QUALIFIED_NAME);
+                bufferedReader, ApiPaths.GLOBAL_QUALIFIED_NAME);
 
         assertThat(glossaries.keySet()).hasSize(2);
         assertThat(glossaries.keySet()).contains(LocaleId.ES, new LocaleId("zh"));

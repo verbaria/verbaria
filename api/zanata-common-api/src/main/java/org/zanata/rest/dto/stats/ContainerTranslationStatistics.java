@@ -26,8 +26,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.zanata.rest.dto.Link;
@@ -41,7 +39,6 @@ import org.zanata.rest.dto.Links;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "id", "refs", "stats", "detailedStats" })
-@Label("Container Translation Statistics")
 public class ContainerTranslationStatistics implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
@@ -56,7 +53,6 @@ public class ContainerTranslationStatistics implements Serializable {
      * Identifier for the container (i.e. Project, Project Iteration, Document,
      * etc).
      */
-    @DocumentationExample("my-project")
     public String getId() {
         return id;
     }

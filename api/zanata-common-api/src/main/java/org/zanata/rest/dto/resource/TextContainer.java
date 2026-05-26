@@ -28,8 +28,6 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.zanata.common.HasContents;
@@ -46,7 +44,6 @@ import org.zanata.common.Namespaces;
  * @author Sean Flanigan <a
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  */
-@Label("Text Container")
 class TextContainer implements Serializable, HasContents {
     private static final long serialVersionUID = 1L;
 
@@ -58,7 +55,6 @@ class TextContainer implements Serializable, HasContents {
      * @see #contents
      */
     @JsonProperty("content")
-    @DocumentationExample(exclude = true)
     private String content;
 
     /**
@@ -68,8 +64,6 @@ class TextContainer implements Serializable, HasContents {
      * @see #content
      */
     @JsonProperty("contents")
-    @DocumentationExample(value = "An english string to translate",
-        value2 = "A plural english string to translate")
     private List<String> contents;
 
     /**

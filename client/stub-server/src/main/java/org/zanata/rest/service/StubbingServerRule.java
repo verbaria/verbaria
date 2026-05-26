@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -23,49 +23,64 @@ package org.zanata.rest.service;
 
 import java.net.URI;
 
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.jboss.resteasy.plugins.server.servlet.HttpServlet30Dispatcher;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
- * This will start up a jetty server and host stubbed Zanata rest resources. All
- * the resource implementation will either return fixed response or, if not used
- * by client right now, throw exception.
+ * Starts an embedded Spring Boot server hosting the stubbed Zanata REST
+ * resources. All resource implementations either return a fixed response or,
+ * if not used by the client at the moment, throw an exception.
+ *
+ * The server binds to a random port on first use; the actual base URI is
+ * available via {@link #getServerBaseUri()}.
  *
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
 public class StubbingServerRule implements TestRule {
-    private static Server server;
+    private static ConfigurableApplicationContext context;
+    private static URI baseUri;
 
     public StubbingServerRule() {
         startServerIfRequired();
     }
 
-    private static void startServerIfRequired() {
-        if (server != null && server.isStarted()) {
+    private static synchronized void startServerIfRequired() {
+        if (context != null && context.isActive()) {
             return;
         }
-        server = new Server(0);
-        ServletContextHandler context =
-                new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-        context.setContextPath("/");
-        ServletHolder holder =
-                new ServletHolder(new HttpServlet30Dispatcher());
-        holder.setInitParameter("jakarta.ws.rs.Application",
-                MockResourcesApplication.class.getCanonicalName());
-        context.addServlet(holder, "/*");
-        server.setHandler(context);
-        server.setStopAtShutdown(true);
-        try {
-            server.start();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        // Bind to a random port; disable banner / startup logging noise so
+        // tests stay quiet. Using SERVLET so we get the embedded Tomcat.
+        context = new SpringApplicationBuilder(StubbingServer.class)
+                .web(WebApplicationType.SERVLET)
+                .properties(
+                        "server.port=0",
+                        "spring.main.banner-mode=off",
+                        "spring.main.log-startup-info=false")
+                .run();
+        Integer port = context.getEnvironment()
+                .getProperty("local.server.port", Integer.class);
+        if (port == null) {
+            throw new IllegalStateException(
+                    "Spring Boot did not expose local.server.port");
         }
+        baseUri = URI.create("http://localhost:" + port + "/");
+
+        // The Spring context is a JVM-wide singleton for the test run;
+        // make sure it's torn down cleanly when the JVM exits.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (context != null && context.isActive()) {
+                    context.close();
+                }
+            } catch (Exception ignored) {
+                // best-effort
+            }
+        }));
     }
 
     @Override
@@ -74,7 +89,6 @@ public class StubbingServerRule implements TestRule {
     }
 
     public URI getServerBaseUri() {
-        return server.getURI();
+        return baseUri;
     }
 }
-

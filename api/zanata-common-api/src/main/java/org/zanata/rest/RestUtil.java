@@ -1,7 +1,5 @@
 package org.zanata.rest;
 
-import jakarta.ws.rs.core.Response;
-
 public class RestUtil {
 
     public static String convertToDocumentURIId(String docId) {
@@ -14,11 +12,6 @@ public class RestUtil {
 
     public static String convertFromDocumentURIId(String docIdWithNoSlash) {
         return docIdWithNoSlash.replace(',', '/');
-    }
-
-    public static boolean isNotFound(Response response) {
-        return response.getStatus() ==
-                Response.Status.NOT_FOUND.getStatusCode();
     }
 
 }

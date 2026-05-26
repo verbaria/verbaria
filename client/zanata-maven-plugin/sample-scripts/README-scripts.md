@@ -1,61 +1,60 @@
-Guide to Translation Build Scripts
+Guide to translation build scripts
 ==================================
 
+These wrapper scripts in `etc/scripts/` show one CI workflow for shipping
+documentation translations through a Verbaria server. They drive the
+`org.zanata:zanata-maven-plugin` goals (`push`, `pull`, etc.) alongside
+whatever tool produces your source POT files.
 
-Translation Workflow
+
+Translation workflow
 --------------------
 
-1. Author modifies documentation, checks in DocBook XML source.
-2. At some point in the lifecycle, a documentation freeze is announced.
-3. Import job is run (eg from Hudson/Jenkins).  (See script 2 below: `zanata_import_source`.)
-4. Translators can begin translating at <https://translate.jboss.org/>.
-5. Draft builds are run nightly or more often (Jenkins?).  (See script 3 below: `zanata_draft_build`)
-6. If author changes any XML, go back to step 3.
-7. Translations declared "final"
-8. Documentation release build is run.  (See script 4 below: `zanata_export_translations`)
+1. Author edits the source documentation; the build produces fresh POT
+   files.
+2. At a content freeze, the **import** script pushes the new POT files
+   to the Verbaria server (`zanata_import_source`).
+3. Translators work in the Verbaria web UI.
+4. **Draft builds** pull in-progress translations into `target/draft/`
+   so reviewers can see how docs render (`zanata_draft_build`). Re-run
+   after every author change.
+5. Once translations are declared final, the **release build** pulls
+   them into the source tree so the normal release pipeline picks them
+   up (`zanata_export_translations`).
 
 
+Build-machine configuration
+---------------------------
 
-Configuration for build machine
--------------------------------
-Create the file `~/.config/zanata.ini` like this:
+Create `~/.config/verbaria.ini`:
 
-<pre>
+```ini
 [servers]
-jboss.url = https://translate.jboss.org/
-jboss.username = your_jboss_username
-jboss.key = your_API_key_from_Zanata_Profile_page
-</pre>
+local.url      = http://localhost:8080/
+local.username = your-username
+local.key      = your-api-key
+```
 
-NB: Your key can be obtained by logging in to [Zanata](https://translate.jboss.org/), 
-visiting the [Profile page](https://translate.jboss.org/profile/view) and 
-clicking "generate API key" at the bottom.
+Generate the API key from the user profile page on the server.
 
-The Scripts
+
+The scripts
 -----------
 
-1. Initial Import (run once only, when first integrating with Zanata):  
- This script will update the POT (source) and PO (translation) files 
- under `.` from the DocBook XML, and push the content 
- to Zanata for translation.  
- `etc/scripts/zanata_import_all`  
- `svn add .; svn ci`  
+| Script                          | When                                    |
+| ------------------------------- | --------------------------------------- |
+| `zanata_import_all`             | Once, when first wiring up the project  |
+| `zanata_import_source`          | After a content freeze                  |
+| `zanata_draft_build`            | Nightly / on-demand reviewer previews   |
+| `zanata_export_translations`    | Final release build                     |
 
-2. Import job (run after documentation freeze):  
- This script will update the POT files in `pot` and
- push them to Zanata for translation.  
- `etc/scripts/zanata_import_source`
-
-3. Build docs with latest translations (probably run nightly):  
- This script will fetch the latest translations to temporary files 
- in `target/draft` and build the documentation for review purposes.  
- `etc/scripts/zanata_draft_build`
-
-4. Documentation release build:  
- This script will fetch the latest translations so that the release 
- build can be run.  
- `etc/scripts/zanata_export_translations`  
- `svn add .; svn ci`  
- _run existing ant build_
+All four live under `etc/scripts/`.
 
 
+Project-level config
+--------------------
+
+The project's `verbaria.json` (beside `pom.xml`) tells the plugin which
+server, project id, version, project-type and locale map to use. See the
+`demo-*` directories in the maven-plugin module for working examples per
+project-type.

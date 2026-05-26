@@ -2,8 +2,6 @@ package org.zanata.rest.dto;
 
 import java.io.Serializable;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -19,7 +17,6 @@ import org.zanata.rest.MediaTypes;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Qualified Name")
 public class QualifiedName implements Serializable, HasMediaType {
     private static final long serialVersionUID = 934216980812012602L;
     private String name;
@@ -32,7 +29,6 @@ public class QualifiedName implements Serializable, HasMediaType {
     }
 
     @JsonProperty("name")
-    @DocumentationExample("global/default")
     public String getName() {
         return name;
     }

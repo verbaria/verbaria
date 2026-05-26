@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -21,54 +21,65 @@
 
 package org.zanata.rest.service;
 
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.zanata.rest.dto.ProjectIteration;
 
 /**
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(ProjectIterationResource.SERVICE_PATH)
-@Deprecated
-public class MockProjectIterationResource implements ProjectIterationResource {
-    @SuppressFBWarnings("SE_BAD_FIELD")
-    @Context
-    UriInfo uriInfo;
+@RestController
+@RequestMapping("/projects/p/{projectSlug}/iterations/i/{iterationSlug}")
+public class MockProjectIterationResource {
 
-    @Override
-    public Response head() {
+    @RequestMapping(method = RequestMethod.HEAD)
+    public ResponseEntity<Void> head(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug) {
         return MockResourceUtil.notUsedByClient();
     }
 
-    @Override
-    public Response get() {
-        return Response.ok(new ProjectIteration("master")).build();
+    @GetMapping
+    public ResponseEntity<ProjectIteration> get(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug) {
+        return ResponseEntity.ok(new ProjectIteration("master"));
     }
 
-    @Override
-    public Response put(ProjectIteration project) {
-        return Response.created(uriInfo.getRequestUri()).build();
+    @PutMapping
+    public ResponseEntity<Void> put(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestBody ProjectIteration project) {
+        return ResponseEntity
+                .created(ServletUriComponentsBuilder.fromCurrentRequest().build()
+                        .toUri())
+                .build();
     }
 
-    @Override
-    public Response sampleConfiguration() {
+    @GetMapping(value = "/config", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<String> sampleConfiguration(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug) {
+        String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .build().toUriString() + "/";
         String config =
-                new StringBuilder()
-                        .append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n")
-                        .append("<config xmlns=\"http://zanata.org/namespace/config/\">\n")
-                        .append("  <url>")
-                        .append(uriInfo.getBaseUri())
-                        .append("</url>\n")
-                        .append("  <project>about-fedora</project>\n")
-                        .append("  <project-version>master</project-version>\n")
-                        .append("</config>").toString();
-        return Response.ok(config, MediaType.TEXT_PLAIN_TYPE).build();
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+                        + "<config xmlns=\"http://zanata.org/namespace/config/\">\n"
+                        + "  <url>" + baseUri + "</url>\n"
+                        + "  <project>about-fedora</project>\n"
+                        + "  <project-version>master</project-version>\n"
+                        + "</config>";
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML)
+                .body(config);
     }
 }
-

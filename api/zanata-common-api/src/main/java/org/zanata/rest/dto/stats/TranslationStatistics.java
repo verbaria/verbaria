@@ -25,8 +25,6 @@ import java.util.Date;
 
 import javax.annotation.Nullable;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -47,7 +45,6 @@ import org.zanata.common.TransUnitWords;
 @JsonPropertyOrder({ "total", "untranslated", "needReview", "translated",
         "approved", "rejected", "readyForReview", "fuzzy", "unit", "locale",
         "lastTranslated" })
-@Label("Translation Statistics")
 public class TranslationStatistics implements Serializable {
     private static final long serialVersionUID = 1L;
     private StatUnit unit;
@@ -104,7 +101,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Number of untranslated elements.
      */
-    @DocumentationExample("25")
     public long getUntranslated() {
         return translationCount.getUntranslated();
     }
@@ -138,7 +134,6 @@ public class TranslationStatistics implements Serializable {
      *
      * @return
      */
-    @DocumentationExample("50")
     public long getFuzzy() {
         return translationCount.getNeedReview();
     }
@@ -168,7 +163,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * @return number of translated but not yet approved elements.
      */
-    @DocumentationExample("30")
     public long getTranslatedOnly() {
         return translationCount.getTranslated();
     }
@@ -180,7 +174,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * @return Number of approved elements.
      */
-    @DocumentationExample("80")
     public long getApproved() {
         return translationCount.getApproved();
     }
@@ -189,7 +182,6 @@ public class TranslationStatistics implements Serializable {
         translationCount.set(ContentState.Approved, (int) approved);
     }
 
-    @DocumentationExample("10")
     public long getRejected() {
         return translationCount.getRejected();
     }
@@ -228,7 +220,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Locale for the translation statistics.
      */
-    @DocumentationExample("es-ES")
     public String getLocale() {
         return locale;
     }
@@ -240,7 +231,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Last translation information. Includes date and user.
      */
-    @DocumentationExample("31/12/15 23:59 by homer")
     public String getLastTranslated() {
         return lastTranslated;
     }
@@ -326,7 +316,6 @@ public class TranslationStatistics implements Serializable {
         return sb.toString();
     }
 
-    @Label("Stats Unit")
     public enum StatUnit {
         /** Statistics are measured in words. */
         WORD,

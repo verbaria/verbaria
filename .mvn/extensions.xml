@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<extensions>
-  <!-- Takari extensions were removed during JDK 21 migration. They were last
-       updated for Maven 3.5.x and are incompatible with Maven 3.9.x / 4.x. -->
-</extensions>

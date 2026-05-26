@@ -26,8 +26,6 @@ import java.util.List;
 
 import jakarta.validation.constraints.Size;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -43,7 +41,6 @@ import org.zanata.rest.MediaTypes;
  **/
 @JsonPropertyOrder({ "id", "pos", "description", "srcLang", "sourceReference", "glossaryTerms", "termsCount", "qualifiedName" })
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Glossary Entry")
 public class GlossaryEntry implements Serializable, HasMediaType {
     /**
     *
@@ -81,7 +78,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
      * Unique identifier
      */
     @JsonProperty("id")
-    @DocumentationExample(value = "444555", value2 = "444556")
     public Long getId() {
         return id;
     }
@@ -94,7 +90,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
      * Glossary entry's part of speech
      */
     @JsonProperty("pos")
-    @DocumentationExample(value = "verb", value2 = "noun")
     public String getPos() {
         return pos;
     }
@@ -117,7 +112,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
      * for a specific locale
      */
     @JsonProperty("termsCount")
-    @DocumentationExample("2")
     public int getTermsCount() {
         return termsCount;
     }
@@ -145,7 +139,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
      * The source locale for this specific entry
      */
     @JsonProperty("src-lang")
-    @DocumentationExample("en-US")
     public LocaleId getSrcLang() {
         return srcLang;
     }

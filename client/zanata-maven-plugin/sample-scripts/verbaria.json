@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:8080/zanata/",
+  "project": "example-project",
+  "projectVersion": "1.0",
+  "projectType": "podir",
+  "locales": [
+    { "locale": "de",      "mapFrom": "de-DE" },
+    { "locale": "es",      "mapFrom": "es-ES" },
+    { "locale": "fr",      "mapFrom": "fr-FR" },
+    { "locale": "it",      "mapFrom": "it-IT" },
+    { "locale": "ja",      "mapFrom": "ja-JP" },
+    { "locale": "ko",      "mapFrom": "ko-KR" },
+    { "locale": "pt-BR" },
+    { "locale": "zh-Hans", "mapFrom": "zh-CN" },
+    { "locale": "zh-Hant", "mapFrom": "zh-TW" }
+  ]
+}

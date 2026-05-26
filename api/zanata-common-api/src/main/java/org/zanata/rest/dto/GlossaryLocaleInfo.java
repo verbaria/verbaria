@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,7 +15,6 @@ import org.zanata.common.Namespaces;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "locale", "numberOfTerms"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Glossary Locale Info")
 public class GlossaryLocaleInfo implements Serializable {
     private static final long serialVersionUID = 7486128063191358182L;
     private LocaleDetails locale;
@@ -45,7 +42,6 @@ public class GlossaryLocaleInfo implements Serializable {
      * Number of terms available for the glossary in this locale
      */
     @JsonProperty("numberOfTerms")
-    @DocumentationExample("2")
     public int getNumberOfTerms() {
         return numberOfTerms;
     }

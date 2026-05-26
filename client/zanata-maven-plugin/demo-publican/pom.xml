@@ -1,8 +1,16 @@
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>null</groupId>
-  <artifactId>null</artifactId>
-  <version>0</version>
+  <groupId>org.zanata.demos</groupId>
+  <artifactId>demo-publican</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <!--
+    Sample maven project: pushes a publican-style gettext directory
+    (project-type "podir"). See verbaria.json for the server URL and
+    locale map.
+
+    Run:    mvn verbaria:push
+  -->
 
   <properties>
     <zanata.srcDir>pot</zanata.srcDir>
@@ -14,61 +22,12 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>5.0-SNAPSHOT</version>
         <configuration>
           <srcDir>${zanata.srcDir}</srcDir>
           <transDir>${zanata.transDir}</transDir>
-          <!-- for instance
-                    <importPo>false</importPo>
-          -->
         </configuration>
       </plugin>
     </plugins>
   </build>
-  <pluginRepositories>
-    <pluginRepository>
-      <id>zanata-cloudbees-release</id>
-      <name>zanata-cloudbees-release</name>
-      <url>http://repository-zanata.forge.cloudbees.com/release/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-    <pluginRepository>
-      <id>zanata-cloudbees-snapshot</id>
-      <name>zanata-cloudbees-snapshot</name>
-      <url>http://repository-zanata.forge.cloudbees.com/snapshot/</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </pluginRepository>
-    <pluginRepository>
-      <id>jboss-releases</id>
-      <name>jboss-releases</name>
-      <url>http://repository.jboss.org/nexus/content/repositories/releases/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-    <pluginRepository>
-      <id>jboss-thirdparty-releases</id>
-      <name>jboss-thirdparty-releases</name>
-      <url>http://repository.jboss.org/nexus/content/repositories/thirdparty-releases/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </pluginRepository>
-  </pluginRepositories>
 </project>

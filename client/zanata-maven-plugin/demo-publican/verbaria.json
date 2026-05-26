@@ -1,0 +1,9 @@
+{
+  "url": "http://localhost:8080/zanata/",
+  "project": "sample-project",
+  "projectVersion": "1.1",
+  "projectType": "podir",
+  "locales": [
+    { "locale": "zh-Hant", "mapFrom": "zh-TW" }
+  ]
+}

@@ -32,7 +32,7 @@ import org.zanata.common.DocumentType;
 import org.zanata.common.FileTypeInfo;
 import org.zanata.rest.DocumentFileUploadForm;
 import org.zanata.rest.dto.ChunkUploadResponse;
-import org.zanata.rest.service.FileResource;
+import org.zanata.rest.service.ApiPaths;
 
 public class FileResourceClient {
     private final RestClientFactory factory;
@@ -44,8 +44,8 @@ public class FileResourceClient {
     @Deprecated
     public List<DocumentType> acceptedFileTypes() {
         List<DocumentType> types = rest().get()
-                .uri(FileResource.SERVICE_PATH
-                        + FileResource.ACCEPTED_TYPE_LIST_RESOURCE)
+                .uri(ApiPaths.FILE_SERVICE_PATH
+                        + ApiPaths.ACCEPTED_TYPE_LIST_RESOURCE)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<DocumentType>>() {});
@@ -54,8 +54,8 @@ public class FileResourceClient {
 
     public List<FileTypeInfo> fileTypeInfoList() {
         List<FileTypeInfo> types = rest().get()
-                .uri(FileResource.SERVICE_PATH
-                        + FileResource.FILE_TYPE_INFO_RESOURCE)
+                .uri(ApiPaths.FILE_SERVICE_PATH
+                        + ApiPaths.FILE_TYPE_INFO_RESOURCE)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<FileTypeInfo>>() {});
@@ -80,7 +80,7 @@ public class FileResourceClient {
             String iterationSlug, String locale, String docId,
             String mergeType, DocumentFileUploadForm form) {
         return rest().post()
-                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                .uri(uri -> uri.path(ApiPaths.FILE_SERVICE_PATH
                                 + "/translation/{proj}/{iter}/{loc}")
                         .queryParam("docId", docId)
                         .queryParam("merge", mergeType)
@@ -95,7 +95,7 @@ public class FileResourceClient {
     public ResponseEntity<byte[]> downloadSourceFile(String projectSlug,
             String iterationSlug, String fileType, String docId) {
         return rest().get()
-                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                .uri(uri -> uri.path(ApiPaths.FILE_SERVICE_PATH
                                 + "/source/{proj}/{iter}/{ft}")
                         .queryParam("docId", docId)
                         .build(projectSlug, iterationSlug, fileType))
@@ -115,7 +115,7 @@ public class FileResourceClient {
             String iterationSlug, String locale, String fileExtension,
             String docId, boolean approvedOnly) {
         return rest().get()
-                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                .uri(uri -> uri.path(ApiPaths.FILE_SERVICE_PATH
                                 + "/translation/{proj}/{iter}/{loc}/{ext}")
                         .queryParam("docId", docId)
                         .queryParam("approvedOnly", approvedOnly)

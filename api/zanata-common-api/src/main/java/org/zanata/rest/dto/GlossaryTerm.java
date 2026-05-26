@@ -26,8 +26,6 @@ import java.util.Date;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -43,7 +41,6 @@ import org.zanata.common.Namespaces;
 @JsonPropertyOrder({ "content", "comment", "locale", "lastModifiedDate", "lastModifiedBy" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Glossary Term")
 public class GlossaryTerm implements Serializable {
     /**
     *
@@ -70,7 +67,6 @@ public class GlossaryTerm implements Serializable {
      * Term's locale
      */
     @JsonProperty("lang")
-    @DocumentationExample(value = "es-ES", value2 = "ja")
     public LocaleId getLocale() {
         return locale;
     }
@@ -83,7 +79,6 @@ public class GlossaryTerm implements Serializable {
      * The term's translation in the given locale
      */
     @JsonProperty("content")
-    @DocumentationExample(value = "Una casa", value2 = "家")
     public String getContent() {
         return content;
     }
@@ -105,7 +100,6 @@ public class GlossaryTerm implements Serializable {
      * A string which identifies the user who last modififed this entry
      */
     @JsonProperty("lastModifiedBy")
-    @DocumentationExample("homer")
     public String getLastModifiedBy() {
         return lastModifiedBy;
     }

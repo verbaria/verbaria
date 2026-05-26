@@ -6,7 +6,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -19,7 +18,6 @@ import org.zanata.common.Namespaces;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "srcLocale", "transLocale"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Glossary Info")
 public class GlossaryInfo implements Serializable {
     private static final long serialVersionUID = -5688873815049369490L;
     private GlossaryLocaleInfo srcLocale;

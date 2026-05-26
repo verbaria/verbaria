@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -16,7 +15,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonPropertyOrder({ "results", "totalCount" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Result List")
 public class ResultList<T extends Serializable> implements Serializable {
 
     private static final long serialVersionUID = -2149554068631922866L;

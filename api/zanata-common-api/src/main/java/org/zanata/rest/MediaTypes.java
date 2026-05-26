@@ -1,7 +1,5 @@
 package org.zanata.rest;
 
-import jakarta.ws.rs.core.MediaType;
-
 public class MediaTypes {
 
     public static enum Format {
@@ -91,32 +89,5 @@ public class MediaTypes {
 
     public static final String APPLICATION_ZANATA_TRANS_UNIT_RESOURCE_JSON =
         APPLICATION_ZANATA_TRANS_UNIT + ".resource" + JSON;
-
-    /**
-     * Creates a format specific MediaType string given an existing media type
-     *
-     * @param type
-     *            the new type
-     * @param from
-     *            an existing media type with a format modifier such as xml or
-     *            json
-     * @return type with the format modifier from from
-     */
-    public static String createFormatSpecificType(String type, MediaType from) {
-        StringBuilder str = new StringBuilder(type);
-        String subtype = from.getSubtype();
-        int plusIndex = subtype.indexOf('+');
-
-        if (!(type.charAt(type.length() - 1) == '/')) {
-            str.append('+');
-        }
-
-        if (plusIndex != -1)
-            str.append(subtype.substring(plusIndex + 1));
-        else
-            str.append(subtype);
-
-        return str.toString();
-    }
 
 }

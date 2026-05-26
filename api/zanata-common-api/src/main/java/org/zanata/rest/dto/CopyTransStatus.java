@@ -20,8 +20,6 @@
  */
 package org.zanata.rest.dto;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 
 /**
  * Copy Trans process status.
@@ -29,7 +27,6 @@ import com.webcohesion.enunciate.metadata.Label;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@Label("Copy Trans Status")
 public class CopyTransStatus {
     private int percentageComplete;
 
@@ -38,7 +35,6 @@ public class CopyTransStatus {
     /**
      * An estimated percentage of completion for the copy trans run.
      */
-    @DocumentationExample("80")
     public int getPercentageComplete() {
         return percentageComplete;
     }

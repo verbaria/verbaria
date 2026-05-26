@@ -2,15 +2,12 @@ package org.zanata.rest.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 
 import java.net.URI;
 
 /**
  * A single link to reference a URI
  */
-@Label("Link")
 public class Link {
 
     private URI href;
@@ -39,7 +36,6 @@ public class Link {
      * The URI reference by this link
      */
     @JsonProperty("href")
-    @DocumentationExample(value = "http://alink.com")
     public URI getHref() {
         return href;
     }

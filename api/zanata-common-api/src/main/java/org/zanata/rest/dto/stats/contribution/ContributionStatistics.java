@@ -4,8 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,7 +15,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonPropertyOrder({ "username", "contributions" })
-@Label("Contribution Statistics")
 public class ContributionStatistics implements Serializable {
 
     private static final long serialVersionUID = -6328249224235406066L;
@@ -38,7 +35,6 @@ public class ContributionStatistics implements Serializable {
      * User name responsible for the contributions.
      */
     @JsonProperty("username")
-    @DocumentationExample("bart")
     public String getUsername() {
         return username;
     }

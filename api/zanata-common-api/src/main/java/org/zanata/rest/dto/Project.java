@@ -7,15 +7,13 @@ import java.util.List;
 
 import jakarta.validation.constraints.Size;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.Namespaces;
 import org.zanata.common.ProjectType;
@@ -32,7 +30,6 @@ import org.zanata.rest.MediaTypes.Format;
         "sourceViewURL", "sourceCheckoutURL", "links", "iterations", "status" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
-@Label("Project")
 public class Project implements Serializable, HasCollectionSample<Project>,
         HasMediaType {
 
@@ -67,7 +64,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
      * The project identifier (slug)
      */
     @JsonProperty("id")
-    @DocumentationExample("my-project")
     public String getId() {
         return id;
     }
@@ -80,7 +76,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
      * The project type.
      */
     @JsonProperty("defaultType")
-    @DocumentationExample("Gettext")
     public String getDefaultType() {
         return defaultType;
     }
@@ -92,7 +87,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     @NotEmpty
     @Size(max = 80)
     @JsonProperty("name")
-    @DocumentationExample("My Project")
     public String getName() {
         return name;
     }
@@ -103,7 +97,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
 
     @Size(max = 100)
     @JsonProperty("description")
-    @DocumentationExample("This is a sample project.")
     public String getDescription() {
         return description;
     }
@@ -116,7 +109,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
      * The url to view the project's sources.
      */
     @JsonProperty("sourceViewURL")
-    @DocumentationExample("http://source.view.com")
     public String getSourceViewURL() {
         return sourceViewURL;
     }
@@ -129,7 +121,6 @@ public class Project implements Serializable, HasCollectionSample<Project>,
      * The url where to checkout the project's sources.
      */
     @JsonProperty("sourceCheckoutURL")
-    @DocumentationExample("http://source.checkout.com")
     public String getSourceCheckoutURL() {
         return sourceCheckoutURL;
     }

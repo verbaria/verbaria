@@ -24,8 +24,8 @@
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -82,38 +82,7 @@
       <artifactId>maven-project</artifactId>
       <version>2.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-utils</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven.plugin-testing</groupId>
-      <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>3.3.0</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- maven-plugin-testing-harness 3.3.0 still expects to look up Maven
-         core / compat classes; supply them explicitly. -->
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-compat</artifactId>
-      <version>${maven.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
-      <version>${maven.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
+<dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
@@ -155,17 +124,7 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <configuration>
-          <usedDependencies>
-            <usedDependency>org.codehaus.plexus:plexus-utils</usedDependency>
-          </usedDependencies>
-        </configuration>
-      </plugin>
-
-    </plugins>
+</plugins>
   </build>
 
   <!-- tell maven to generate plugin documentation: -->

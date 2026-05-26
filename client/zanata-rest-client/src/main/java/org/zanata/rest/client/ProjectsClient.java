@@ -24,7 +24,7 @@ package org.zanata.rest.client;
 import org.springframework.http.MediaType;
 import org.zanata.rest.MediaTypes;
 import org.zanata.rest.dto.Project;
-import org.zanata.rest.service.ProjectsResource;
+import org.zanata.rest.service.ApiPaths;
 
 public class ProjectsClient {
     private static final MediaType PROJECTS_JSON =
@@ -38,7 +38,7 @@ public class ProjectsClient {
 
     public Project[] getProjects() {
         return factory.getSpringRestClient().get()
-                .uri(ProjectsResource.SERVICE_PATH)
+                .uri(ApiPaths.PROJECTS_SERVICE_PATH)
                 .accept(PROJECTS_JSON)
                 .retrieve()
                 .body(Project[].class);

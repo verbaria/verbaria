@@ -27,8 +27,6 @@ import java.io.Serializable;
 
 import jakarta.validation.constraints.NotNull;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -37,7 +35,6 @@ import org.zanata.common.LocaleId;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"localeId", "displayName", "alias", "nativeName", "enabled", "enabledByDefault", "pluralForms"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Locale Details")
 public class LocaleDetails implements Serializable {
 
     private static final long serialVersionUID = -8133147543880728788L;
@@ -73,7 +70,6 @@ public class LocaleDetails implements Serializable {
      */
     @JsonProperty("localeId")
     @NotNull
-    @DocumentationExample(value = "es-ES", value2 = "ja")
     public LocaleId getLocaleId() {
       return localeId;
     }
@@ -86,7 +82,6 @@ public class LocaleDetails implements Serializable {
      * Locale's display name (in English)
      */
     @JsonProperty("displayName")
-    @DocumentationExample(value = "Spanish (Spain)", value2 = "Japanese")
     public String getDisplayName() {
       return displayName;
     }
@@ -99,7 +94,6 @@ public class LocaleDetails implements Serializable {
      * An alternative name (if present) for this locale
      */
     @JsonProperty("alias")
-    @DocumentationExample(value = "es", value2 = "ja-JP")
     public String getAlias() {
       return alias;
     }
@@ -109,7 +103,6 @@ public class LocaleDetails implements Serializable {
     }
 
     @JsonProperty("nativeName")
-    @DocumentationExample(value = "Español", value2 = "日本語")
     public String getNativeName() {
         return nativeName;
     }
@@ -150,8 +143,6 @@ public class LocaleDetails implements Serializable {
      * A string describing the formula for the locale's plural forms
      */
     @JsonProperty("pluralForms")
-    @DocumentationExample(value = "nplurals=2; plural=(n != 1)",
-            value2 = "nplurals=1; plural=0")
     public String getPluralForms() {
         return pluralForms;
     }

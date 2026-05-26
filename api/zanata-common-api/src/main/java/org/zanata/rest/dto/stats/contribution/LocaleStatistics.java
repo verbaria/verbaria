@@ -2,8 +2,6 @@ package org.zanata.rest.dto.stats.contribution;
 
 import java.io.Serializable;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -16,7 +14,6 @@ import org.zanata.common.LocaleId;
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonPropertyOrder({ "locale", "translation-stats", "review-stats" })
-@Label("Locale Statistics")
 public class LocaleStatistics implements Serializable {
     private static final long serialVersionUID = 711345550950903773L;
 
@@ -45,7 +42,6 @@ public class LocaleStatistics implements Serializable {
      * Locale code for for the stats
      */
     @JsonProperty("locale")
-    @DocumentationExample(value = "es-ES", value2 = "ja")
     public LocaleId getLocale() {
         return locale;
     }

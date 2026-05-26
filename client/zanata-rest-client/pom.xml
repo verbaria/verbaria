@@ -12,8 +12,8 @@
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -21,12 +21,6 @@
     <dependency>
       <groupId>org.zanata</groupId>
       <artifactId>zanata-common-api</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>jakarta.ws.rs</groupId>
-          <artifactId>jakarta.ws.rs-api</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.zanata</groupId>
@@ -49,6 +43,14 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <!-- spring-web's MultipartBodyBuilder (used by FileResourceClient to
+         construct multipart uploads) requires reactive-streams at runtime,
+         but spring-web declares it as optional. Pin it explicitly so the
+         client works without pulling in a full reactive stack. -->
+    <dependency>
+      <groupId>org.reactivestreams</groupId>
+      <artifactId>reactive-streams</artifactId>
     </dependency>
 
     <dependency>

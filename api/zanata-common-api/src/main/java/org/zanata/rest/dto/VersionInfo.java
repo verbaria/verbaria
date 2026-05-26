@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,7 +15,6 @@ import org.zanata.common.Namespaces;
 @JsonTypeName(value = "versionType")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Version Info")
 public final class VersionInfo implements Serializable {
     private static final long serialVersionUID = 1L;
     private String versionNo;
@@ -46,7 +43,6 @@ public final class VersionInfo implements Serializable {
      * Version number
      */
     @JsonProperty("versionNo")
-    @DocumentationExample("4.0.0")
     public String getVersionNo() {
         return versionNo;
     }
@@ -55,7 +51,6 @@ public final class VersionInfo implements Serializable {
      * ISO8601 timestamp for when the current system version was built
      */
     @JsonProperty("buildTimeStamp")
-    @DocumentationExample("20170225-1448")
     public String getBuildTimeStamp() {
         return buildTimeStamp;
     }

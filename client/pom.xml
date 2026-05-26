@@ -13,8 +13,8 @@
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -33,9 +33,6 @@
     </repository>
   </repositories>
 
-  <properties>
-    <powermock.version>1.6.2</powermock.version>
-  </properties>
 
   <build>
     <plugins>
@@ -62,36 +59,6 @@
         <groupId>org.zanata</groupId>
         <artifactId>zanata-common-api</artifactId>
         <version>${project.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>commons-logging</artifactId>
-            <groupId>commons-logging</groupId>
-          </exclusion>
-          <exclusion>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-multipart-provider</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.hibernate.validator</groupId>
-            <artifactId>hibernate-validator</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.webcohesion.enunciate</groupId>
-            <artifactId>enunciate-core-annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.zanata</groupId>
@@ -167,30 +134,6 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>3.8.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-api-mockito</artifactId>
-        <version>${powermock.version}</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-core</artifactId>
-        <version>${powermock.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-module-junit4</artifactId>
-        <version>${powermock.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>

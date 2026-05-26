@@ -1,39 +1,23 @@
-# Zanata
+# Verbaria
 
-Zanata is a web-based system for translators to translate documentation and
-software online using a web browser. It supports gettext PO, XLIFF, Java
-properties, glossary CSV/XLSX and several other formats, and provides a Maven
-plugin and a command-line client for uploading source and downloading
+(Formerly Zanata) — a web-based system for translators to translate
+documentation and software online using a web browser. Supports gettext PO,
+XLIFF, Java properties, glossary CSV/XLSX and several other formats, and
+ships a Maven plugin plus a standalone CLI for pushing source and pulling
 translations.
 
-This branch runs on a modernised stack:
-
-| Layer          | Tech                                                |
-| -------------- | --------------------------------------------------- |
-| Runtime        | Java 21, Spring Boot 4.0.x                          |
-| Persistence    | Hibernate ORM 7.2, Hibernate Search 8.x, PostgreSQL |
-| UI             | Vaadin 25 (Aura theme), Line Awesome icons          |
-| Build          | Maven 3.9+ (multi-module reactor)                   |
-| Client         | Standalone CLI + Maven plugin (`zanata-cli`)        |
-
-The legacy WildFly / JSF / CDI / GWT / React stack has been retired during
-the migration; see `docs/migration-status.md` for what was dropped and what
-remains.
-
-Zanata is Free software, licensed under the [LGPL][].
+Licensed under the [LGPL][].
 
 [LGPL]: http://www.gnu.org/licenses/lgpl-2.1.html
 
 
-## Developers: building from source
+## Developers — build from source
 
 ### Prerequisites
 
-- JDK 21 (Eclipse Temurin or any other modern build)
+- JDK 21 (Eclipse Temurin or equivalent)
 - Maven 3.9+
-- PostgreSQL 14+ (16 used in the docker-compose dev environment)
-- A POSIX shell (bash or zsh) — only required if you use the
-  optional `./build` helper
+- PostgreSQL 14+ (only when running the server)
 
 ### Build everything
 
@@ -41,66 +25,77 @@ Zanata is Free software, licensed under the [LGPL][].
 mvn -DskipTests install
 ```
 
-This walks the root reactor: `build-tools`, `parent`, `api`, `common`,
-`client`, `server/zanata-server-spring`.
+Walks the root reactor: `build-tools`, `parent`, `api`, `common`, `client`,
+`server/zanata-server-spring`.
+
+There is also a thin shell wrapper `./build` with common shortcuts
+(`./build --quick`, `./build --client`, `./build --server --run`). It just
+calls `mvn` under the hood.
 
 ### Run the server locally
 
-#### Option A — Docker Compose (recommended)
+The server is a Spring Boot app and needs a running PostgreSQL.
 
-Brings up Postgres + the Spring Boot server in one shot:
+Suggestions (pick whichever fits your setup):
+
+- **Maven** — `mvn -pl server/zanata-server-spring spring-boot:run`
+  against an existing Postgres. DB env vars (defaults shown):
+
+  | env var              | default                                                                 |
+  | -------------------- | ----------------------------------------------------------------------- |
+  | `ZANATA_DB_URL`      | `jdbc:postgresql://localhost:5432/zanata?options=-c%20TimeZone%3DUTC`   |
+  | `ZANATA_DB_USER`     | `postgres`                                                              |
+  | `ZANATA_DB_PASSWORD` | `1234`                                                                  |
+
+- **Executable jar** — `mvn -pl server/zanata-server-spring package` then
+  `java -jar server/zanata-server-spring/target/*.jar`, with the same env
+  vars.
+
+- **Docker Compose** — `docker compose -f server/docker/docker-compose.yml
+  up --build` bundles Postgres + the server in one shot.
+
+UI: <http://localhost:8080/>. On first boot the server seeds three accounts
+(`admin/admin`, `dev/dev`, `vistall/1234`) each with a deterministic API
+key the CLI smoke test uses.
+
+### Run the CLI against the server
 
 ```bash
-docker compose -f server/docker/docker-compose.yml up --build
-```
-
-UI: <http://localhost:8080/>. Admin login is seeded as `admin` / `admin`.
-
-#### Option B — Maven on the host
-
-Start a Postgres reachable at `localhost:5432` with database `zanata` and
-user `postgres` / password `1234` (override via `ZANATA_DB_URL`,
-`ZANATA_DB_USER`, `ZANATA_DB_PASSWORD`), then:
-
-```bash
-mvn -pl server/zanata-server-spring spring-boot:run
-```
-
-The server seeds three accounts on first boot — `admin/admin`, `dev/dev`,
-`vistall/1234` — each with a deterministic API key the CLI smoke test uses.
-
-### Run the CLI against the new server
-
-```bash
-# build the CLI uber-assembly
 mvn -pl client/zanata-cli -DskipTests package
 
-# point it at the running server
-CLI=client/zanata-cli/target/appassembler/bin/zanata-cli
-$CLI version --url http://localhost:8080/ --user-config /dev/null \
-  --username admin --key b6d7044e9ee3b720c81dba7e3ea53d56
+CLI=client/zanata-cli/target/appassembler/bin/verbaria
+$CLI --version
+$CLI list-remote --url http://localhost:8080/ \
+                 --username admin --key b6d7044e9ee3b720c81dba7e3ea53d56
 ```
 
-`list-remote`, `stats`, `push`, `pull`, `put-project`, `put-version`,
-`glossary-push`, `glossary-pull` all hit the bridge controller defined in
+Goals: `version`, `list-remote`, `stats`, `init`, `push`, `pull`,
+`put-project`, `put-version`, `put-user`, `glossary-push`, `glossary-pull`,
+`glossary-delete`.
+
+All of them hit the bridge controller at
 `server/zanata-server-spring/src/main/java/org/zanata/spring/web/rest/ZanataCliBridgeController.java`.
 
 
 ## Module layout
 
 ```
-api/zanata-common-api         — JAX-RS interfaces + DTOs (shared)
+api/zanata-common-api         — Shared DTOs + JSON API path constants
 common/zanata-adapter-{po,xliff,properties,glossary}
 common/zanata-common-util
-client/{stub-server,zanata-rest-client,zanata-client-commands,
-        zanata-cli,zanata-maven-plugin}
+client/stub-server            — Spring Boot test stub of the server
+client/zanata-rest-client     — Spring RestClient wrappers
+client/zanata-client-commands — push/pull/glossary/etc. command logic
+client/zanata-cli             — Spring Boot CLI (binary: `verbaria`)
+client/zanata-maven-plugin    — Maven plugin wrapping the same commands
 server/zanata-liquibase       — Liquibase migrations
 server/zanata-model           — JPA entities (Hibernate 7)
 server/zanata-model-test      — entity test fixtures
 server/security-common        — auth / role primitives
 server/zanata-server-spring   — Spring Boot app (REST + Vaadin UI)
-server/docker                 — Dockerfile + docker-compose
+server/docker                 — Dockerfile + docker-compose (optional)
 ```
+
 
 ## Contributing
 

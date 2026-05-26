@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,16 +22,15 @@
 package org.zanata.rest.service;
 
 import java.util.List;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.GenericEntity;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.zanata.common.LocaleId;
-import org.zanata.rest.GlossaryFileUploadForm;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.dto.GlossaryResults;
 
@@ -39,70 +38,51 @@ import org.zanata.rest.dto.GlossaryResults;
  * @author Patrick Huang
  *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(GlossaryResource.SERVICE_PATH)
-public class MockGlossaryResource implements GlossaryResource {
-    @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    @Context
-    UriInfo uriInfo;
+@RestController
+@RequestMapping("/glossary")
+public class MockGlossaryResource {
 
-    @Override
-    public Response getInfo(String qualifiedName) {
-        return Response.ok(GlossaryResource.GLOBAL_QUALIFIED_NAME).build();
+    /** Maximum result for per page. */
+    public static final int MAX_PAGE_SIZE = 1000;
+
+    /** Qualified name for Global/default glossary */
+    public static final String GLOBAL_QUALIFIED_NAME = "global/default";
+
+    @GetMapping("/info")
+    public ResponseEntity<String> getInfo(
+            @RequestParam(value = "qualifiedName",
+                    defaultValue = GLOBAL_QUALIFIED_NAME) String qualifiedName) {
+        return ResponseEntity.ok(GLOBAL_QUALIFIED_NAME);
     }
 
-    @Override
-    public Response getEntries(LocaleId srcLocale,
-        LocaleId transLocale, int page, int sizePerPage, String filter,
-        String sort, String qualifiedName) {
-        return MockResourceUtil.notUsedByClient();
-    }
-
-    @Override
-    public Response search(LocaleId srcLocale, LocaleId transLocale,
-        int maxResults, String searchText, String projectSlug) {
-        return MockResourceUtil.notUsedByClient();
-    }
-
-    @Override
-    public Response getDetails(LocaleId locale, List<Long> termIds) {
-        return MockResourceUtil.notUsedByClient();
-    }
-
-    @Override
-    public Response downloadFile(@DefaultValue("csv") String fileType,
-            String locales, String qualifiedName) {
-        return MockResourceUtil.notUsedByClient();
-    }
-
-    @Override
-    public Response post(List<GlossaryEntry> glossaryEntries, String locale,
-            String qualifiedName) {
+    @PostMapping("/entries")
+    public ResponseEntity<GlossaryResults> post(
+            @RequestBody List<GlossaryEntry> glossaryEntries,
+            @RequestParam(value = "locale", required = false) String locale,
+            @RequestParam(value = "qualifiedName",
+                    defaultValue = GLOBAL_QUALIFIED_NAME) String qualifiedName) {
         GlossaryResults results = new GlossaryResults();
         results.setGlossaryEntries(glossaryEntries);
-        GenericEntity<GlossaryResults> genericEntity =
-                new GenericEntity<GlossaryResults>(results) {
-                };
-        return Response.ok(genericEntity).build();
+        return ResponseEntity.ok(results);
     }
 
-    @Override
-    public Response getQualifiedName() {
-        return null;
+    @GetMapping("/qualifiedName")
+    public ResponseEntity<Void> getQualifiedName() {
+        return ResponseEntity.ok().build();
     }
 
-    @Override
-    public Response upload(GlossaryFileUploadForm glossaryFileUploadForm) {
+    @DeleteMapping("/entries/{id}")
+    public ResponseEntity<Void> deleteEntry(
+            @org.springframework.web.bind.annotation.PathVariable("id") Long id,
+            @RequestParam(value = "qualifiedName",
+                    defaultValue = GLOBAL_QUALIFIED_NAME) String qualifiedName) {
         return MockResourceUtil.notUsedByClient();
     }
 
-    @Override
-    public Response deleteEntry(Long id, String qualifiedName) {
-        return MockResourceUtil.notUsedByClient();
-    }
-
-    @Override
-    public Response deleteAllEntries(String qualifiedName) {
-        return null;
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAllEntries(
+            @RequestParam(value = "qualifiedName",
+                    defaultValue = GLOBAL_QUALIFIED_NAME) String qualifiedName) {
+        return ResponseEntity.ok().build();
     }
 }
-

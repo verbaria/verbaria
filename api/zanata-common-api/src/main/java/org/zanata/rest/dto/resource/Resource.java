@@ -1,6 +1,5 @@
 package org.zanata.rest.dto.resource;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -16,7 +15,6 @@ import java.util.List;
 @JsonPropertyOrder({ "name", "contentType", "lang", "extensions", "textFlows" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Resource")
 public class Resource extends AbstractResourceMeta {
 
     private static final long serialVersionUID = 1L;

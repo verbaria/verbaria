@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -21,13 +21,15 @@
 
 package org.zanata.rest.service;
 
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.Project;
 
@@ -35,35 +37,34 @@ import org.zanata.rest.dto.Project;
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(ProjectResource.SERVICE_PATH)
-public class MockProjectResource implements ProjectResource {
-    @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    @Context
-    UriInfo uriInfo;
+@RestController
+@RequestMapping("/projects/p/{projectSlug}")
+public class MockProjectResource {
 
-    @PathParam("projectSlug")
-    String projectSlug;
-
-    @Override
-    public Response head() {
+    @RequestMapping(method = RequestMethod.HEAD)
+    public ResponseEntity<Void> head(@PathVariable("projectSlug") String projectSlug) {
         return MockResourceUtil.notUsedByClient();
     }
 
-    @Override
-    public Response get() {
-        return Response.ok(new Project("about-fedora", "About Fedora",
-                ProjectType.Podir.name().toLowerCase())).build();
+    @GetMapping
+    public ResponseEntity<Project> get(@PathVariable("projectSlug") String projectSlug) {
+        return ResponseEntity.ok(new Project("about-fedora", "About Fedora",
+                ProjectType.Podir.name().toLowerCase()));
     }
 
-    @Override
-    public Response put(Project project) {
-        return Response.created(uriInfo.getRequestUri()).build();
+    @PutMapping
+    public ResponseEntity<Void> put(@PathVariable("projectSlug") String projectSlug,
+            @RequestBody Project project) {
+        return ResponseEntity
+                .created(ServletUriComponentsBuilder.fromCurrentRequest().build()
+                        .toUri())
+                .build();
     }
 
-    @Override
-    public Response getGlossaryQualifiedName() {
+    @GetMapping("/glossary/qualifiedName")
+    public ResponseEntity<String> getGlossaryQualifiedName(
+            @PathVariable("projectSlug") String projectSlug) {
         String qualifiedName = "project/" + projectSlug;
-        return Response.ok(qualifiedName).build();
+        return ResponseEntity.ok(qualifiedName);
     }
 }
-

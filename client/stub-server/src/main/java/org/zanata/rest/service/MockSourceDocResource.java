@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,14 +22,19 @@
 package org.zanata.rest.service;
 
 import java.util.Collection;
-import java.util.Date;
 import java.util.Set;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.EntityTag;
-import jakarta.ws.rs.core.GenericEntity;
-import jakarta.ws.rs.core.Response;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 
@@ -37,91 +42,143 @@ import org.zanata.rest.dto.resource.ResourceMeta;
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(SourceDocResource.SERVICE_PATH)
-public class MockSourceDocResource implements SourceDocResource {
+@RestController
+@RequestMapping("/projects/p/{projectSlug}/iterations/i/{iterationSlug}")
+public class MockSourceDocResource {
 
-    @Override
-    public Response head() {
-        return Response.ok(new EntityTag(new Date().toString())).build();
+    @RequestMapping(value = "/r", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> head(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug) {
+        return ResponseEntity.ok().build();
     }
 
-    @Override
-    public Response get(Set<String> extensions) {
+    @GetMapping("/r")
+    public ResponseEntity<Collection<ResourceMeta>> get(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
         MockResourceUtil.validateExtensions(extensions);
         Collection<ResourceMeta> samples =
                 new ResourceMeta("about-fedora").createSamples();
-        GenericEntity<Collection<ResourceMeta>> entity =
-                new GenericEntity<Collection<ResourceMeta>>(samples) {
-                };
-        return Response.ok(entity).build();
+        return ResponseEntity.ok(samples);
     }
 
-    @Override
-    public Response post(Resource resource, Set<String> extensions,
-            @DefaultValue("true") boolean copyTrans) {
+    @PostMapping("/r")
+    public ResponseEntity<Void> post(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestBody Resource resource,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "copyTrans",
+                    defaultValue = "true") boolean copyTrans) {
         return MockResourceUtil.notUsedByClient();
     }
 
     @Deprecated
-    @Override
-    public Response getResource(String idNoSlash, Set<String> extensions) {
-       return getResourceWithDocId(idNoSlash, extensions);
+    @GetMapping("/r/{id}")
+    public ResponseEntity<Resource> getResource(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
+        return getResourceWithDocId(projectSlug, iterationSlug, idNoSlash,
+                extensions);
     }
 
-    @Override
-    public Response getResourceWithDocId(String docId, Set<String> extensions) {
+    @GetMapping("/resource")
+    public ResponseEntity<Resource> getResourceWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
         MockResourceUtil.validateExtensions(extensions);
-        return Response.ok(new Resource(docId)).build();
+        return ResponseEntity.ok(new Resource(docId));
     }
 
     @Deprecated
-    @Override
-    public Response putResource(String idNoSlash, Resource resource,
-            Set<String> extensions, @DefaultValue("true") boolean copyTrans) {
-        return putResourceWithDocId(resource, idNoSlash, extensions, copyTrans);
+    @PutMapping("/r/{id}")
+    public ResponseEntity<String> putResource(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @RequestBody Resource resource,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "copyTrans",
+                    defaultValue = "true") boolean copyTrans) {
+        return putResourceWithDocId(projectSlug, iterationSlug, resource,
+                idNoSlash, extensions, copyTrans);
     }
 
-    @Override
-    public Response putResourceWithDocId(Resource resource, String docId,
-            Set<String> extensions, boolean copytrans) {
+    @PutMapping("/resource")
+    public ResponseEntity<String> putResourceWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestBody Resource resource,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "copyTrans",
+                    defaultValue = "true") boolean copytrans) {
         MockResourceUtil.validateExtensions(extensions);
-        return Response.ok(resource.getName()).build();
+        return ResponseEntity.ok(resource.getName());
     }
 
     @Deprecated
-    @Override
-    public Response deleteResource(String idNoSlash) {
-        return deleteResourceWithDocId(idNoSlash);
+    @DeleteMapping("/r/{id}")
+    public ResponseEntity<Void> deleteResource(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash) {
+        return deleteResourceWithDocId(projectSlug, iterationSlug, idNoSlash);
     }
 
-    @Override
-    public Response deleteResourceWithDocId(String docId) {
-        return Response.ok().build();
+    @DeleteMapping("/resource")
+    public ResponseEntity<Void> deleteResourceWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestParam(value = "docId", defaultValue = "") String docId) {
+        return ResponseEntity.ok().build();
     }
 
     @Deprecated
-    @Override
-    public Response getResourceMeta(String idNoSlash, Set<String> extensions) {
-        return getResourceMetaWithDocId(idNoSlash, extensions);
+    @GetMapping("/r/{id}/meta")
+    public ResponseEntity<ResourceMeta> getResourceMeta(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
+        return getResourceMetaWithDocId(projectSlug, iterationSlug, idNoSlash,
+                extensions);
     }
 
-    @Override
-    public Response getResourceMetaWithDocId(String docId,
-            Set<String> extensions) {
+    @GetMapping("/resource/meta")
+    public ResponseEntity<ResourceMeta> getResourceMetaWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
         return MockResourceUtil.notUsedByClient();
     }
 
     @Deprecated
-    @Override
-    public Response putResourceMeta(String idNoSlash, ResourceMeta resourceMeta,
-            Set<String> extensions) {
-        return putResourceMetaWithDocId(resourceMeta, idNoSlash, extensions);
+    @PutMapping("/r/{id}/meta")
+    public ResponseEntity<Void> putResourceMeta(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @RequestBody ResourceMeta resourceMeta,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
+        return putResourceMetaWithDocId(projectSlug, iterationSlug,
+                resourceMeta, idNoSlash, extensions);
     }
 
-    @Override
-    public Response putResourceMetaWithDocId(ResourceMeta messageBody,
-            String docId, Set<String> extensions) {
+    @PutMapping("/resource/meta")
+    public ResponseEntity<Void> putResourceMetaWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @RequestBody ResourceMeta messageBody,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions) {
         return MockResourceUtil.notUsedByClient();
     }
 }
-

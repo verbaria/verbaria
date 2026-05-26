@@ -1,8 +1,29 @@
-package org.zanata.rest.dto.v1
+/*
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors as indicated by the
+ * @author tags. See the copyright.txt file in the distribution for a full
+ * listing of individual contributors.
+ *
+ * This is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This software is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this software; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA, or see the FSF
+ * site: http://www.fsf.org.
+ */
+package org.zanata.rest.dto.v1;
 
-import spock.lang.Specification;
+import java.net.URI;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 import org.zanata.common.ContentState;
 import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;
@@ -25,83 +46,66 @@ import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
-import static org.zanata.rest.dto.v1.JaxbTestUtil.roundTripXml
+import static org.junit.Assert.assertEquals;
 
-public class SerializationTest extends Specification {
+/**
+ * Round-trip JSON serialization tests for the public REST DTOs.
+ * Replaces the legacy Spock test (which also covered XML via the now-removed
+ * JaxbTestUtil) — the API is JSON-only now.
+ */
+public class SerializationTest {
 
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    def setup() {
-        mapper = new ObjectMapper();
-    }
-
-    private def roundTripJson(def obj) {
+    private <T> T roundTripJson(T obj) throws Exception {
         String json = mapper.writeValueAsString(obj);
-        return mapper.readValue(json, obj.class);
+        @SuppressWarnings("unchecked")
+        T result = (T) mapper.readValue(json, obj.getClass());
+        return result;
     }
 
-    private Person createPerson() {
+    private static Person createPerson() {
         return new Person("user@localhost", "User");
     }
 
-    private Project createProject() {
+    private static Project createProject() throws Exception {
         Project p = new Project().createSample();
-
         Links links = new Links();
         links.add(new Link(new URI("http://www.zanata.org"), "", "linkType"));
         links.add(new Link(new URI("http://www2.zanata.org"), "", "linkType"));
         p.setLinks(links);
-        return p
+        return p;
     }
 
-    def "round trip for Project"() {
-        given:
-        def p = createProject()
-
-        when:
-        Project p2 = roundTripJson(p)
-        Project p3 = roundTripXml(p);
-
-        then:
-        p2 == p
-        p3 == p
+    @Test
+    public void roundTripProject() throws Exception {
+        Project p = createProject();
+        assertEquals(p, roundTripJson(p));
     }
 
-    def "round trip for Person"() {
-        given:
+    @Test
+    public void roundTripPerson() throws Exception {
         Person p = createPerson();
-
-        when:
-        Person p2 = roundTripJson(p)
-        Person p3 = roundTripXml(p);
-
-        then:
-        p2 == p
-        p3 == p
+        assertEquals(p, roundTripJson(p));
     }
 
-    def "round trip for ResourceMeta"() {
-        given:
+    @Test
+    public void roundTripResourceMeta() throws Exception {
         ResourceMeta res = new ResourceMeta("id");
-        PoHeader poHeader = new PoHeader("comment", new HeaderEntry("h1", "v1"),
-            new HeaderEntry("h2", "v2"));
+        PoHeader poHeader = new PoHeader("comment",
+                new HeaderEntry("h1", "v1"),
+                new HeaderEntry("h2", "v2"));
         res.getExtensions(true).add(poHeader);
-
-        when:
-        ResourceMeta res2 = roundTripJson(res)
-        ResourceMeta res3 = roundTripXml(res, PoHeader.class);
-
-        then:
-        res2 == res
-        res3 == res
+        assertEquals(res, roundTripJson(res));
     }
 
-    def "round trip for SourceResource"() {
-        given:
+    @Test
+    public void roundTripSourceResource() throws Exception {
         Resource sourceResource = new Resource("Acls.pot");
         sourceResource.setType(ResourceType.FILE);
         sourceResource.setContentType(ContentType.PO);
         sourceResource.setLang(LocaleId.EN);
+
         TextFlow tf = new TextFlow();
         tf.setContents("ttff");
         SimpleComment comment = new SimpleComment("test");
@@ -115,51 +119,36 @@ public class SerializationTest extends Specification {
         tf2.setContents("ttff2");
         sourceResource.getTextFlows().add(tf);
         sourceResource.getTextFlows().add(tf2);
-        PoHeader poHeader = new PoHeader("comment", new HeaderEntry("h1", "v1"),
-            new HeaderEntry("h2", "v2"));
-        sourceResource.getExtensions(true).add(
-            poHeader);
 
-        when:
-        Resource res2 = roundTripJson(sourceResource)
-        Resource res3 = roundTripXml(sourceResource, PoHeader.class);
+        PoHeader poHeader = new PoHeader("comment",
+                new HeaderEntry("h1", "v1"),
+                new HeaderEntry("h2", "v2"));
+        sourceResource.getExtensions(true).add(poHeader);
 
-        then:
-        res2 == sourceResource
-        res3 == sourceResource
+        assertEquals(sourceResource, roundTripJson(sourceResource));
     }
 
-    def "round trip for TranslationsResource"() {
-        given:
+    @Test
+    public void roundTripTranslationsResource() throws Exception {
         TranslationsResource entity = new TranslationsResource();
         TextFlowTarget target = new TextFlowTarget("rest1");
         target.setContents("hello world");
         target.setState(ContentState.Translated);
         target.setTranslator(createPerson());
-        SimpleComment comment = new SimpleComment("testcomment");
-        target.getExtensions(true).add(comment);
-        // for the convenience of test
+        target.getExtensions(true).add(new SimpleComment("testcomment"));
         entity.getTextFlowTargets().add(target);
         entity.getExtensions(true);
-        PoTargetHeader poTargetHeader =
-                new PoTargetHeader("target header comment", new HeaderEntry(
-                        "ht", "vt1"), new HeaderEntry("th2", "tv2"));
-
+        PoTargetHeader poTargetHeader = new PoTargetHeader(
+                "target header comment",
+                new HeaderEntry("ht", "vt1"),
+                new HeaderEntry("th2", "tv2"));
         entity.getExtensions(true).add(poTargetHeader);
-
-        when:
-        TranslationsResource res2 = roundTripJson(entity)
-        TranslationsResource res3 = roundTripXml(entity);
-
-        then:
-        res2 == entity
-        res3 == entity
+        assertEquals(entity, roundTripJson(entity));
     }
 
-    def "round trip for Glossary"() {
-        given:
+    @Test
+    public void roundTripGlossary() throws Exception {
         Glossary glossary = new Glossary();
-
         GlossaryEntry entry = new GlossaryEntry();
         entry.setSrcLang(LocaleId.EN_US);
         entry.setSourceReference("source ref");
@@ -182,12 +171,6 @@ public class SerializationTest extends Specification {
         entry.getGlossaryTerms().add(term2);
         glossary.getGlossaryEntries().add(entry);
 
-        when:
-        Glossary glossary2 = roundTripJson(glossary)
-        Glossary glossary3 = roundTripXml(glossary);
-
-        then:
-        glossary2 == glossary
-        glossary3 == glossary
+        assertEquals(glossary, roundTripJson(glossary));
     }
 }

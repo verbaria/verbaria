@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,11 +22,18 @@
 package org.zanata.rest.service;
 
 import java.util.Set;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Response;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
@@ -35,55 +42,94 @@ import org.zanata.rest.dto.resource.TranslationsResource;
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(TranslatedDocResource.SERVICE_PATH)
-public class MockTranslatedDocResource implements TranslatedDocResource {
+@RestController
+@RequestMapping("/projects/p/{projectSlug}/iterations/i/{iterationSlug}")
+public class MockTranslatedDocResource {
 
     @Deprecated
-    @Override
-    public Response getTranslations(String idNoSlash, LocaleId locale,
-            Set<String> extensions, boolean createSkeletons, boolean markTranslatedAsApproved,
-            @HeaderParam("If-None-Match") String eTag) {
-        return getTranslationsWithDocId(locale, idNoSlash, extensions,
-                createSkeletons, markTranslatedAsApproved, eTag);
+    @GetMapping("/r/{id}/translations/{locale}")
+    public ResponseEntity<TranslationsResource> getTranslations(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @PathVariable("locale") LocaleId locale,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "skeletons",
+                    defaultValue = "false") boolean createSkeletons,
+            @RequestParam(value = "markTranslatedAsApproved",
+                    defaultValue = "true") boolean markTranslatedAsApproved,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH,
+                    required = false) String eTag) {
+        return getTranslationsWithDocId(projectSlug, iterationSlug, locale,
+                idNoSlash, extensions, createSkeletons,
+                markTranslatedAsApproved, eTag);
     }
 
-    @Override
-    public Response getTranslationsWithDocId(LocaleId locale, String docId,
-            Set<String> extensions, boolean createSkeletons,
-            boolean markTranslatedAsApproved, String eTag) {
+    @GetMapping("/resource/translations/{locale}")
+    public ResponseEntity<TranslationsResource> getTranslationsWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("locale") LocaleId locale,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "skeletons",
+                    defaultValue = "false") boolean createSkeletons,
+            @RequestParam(value = "markTranslatedAsApproved",
+                    defaultValue = "true") boolean markTranslatedAsApproved,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH,
+                    required = false) String eTag) {
         MockResourceUtil.validateExtensions(extensions);
         TranslationsResource transResource = new TranslationsResource();
         transResource.getTextFlowTargets().add(new TextFlowTarget(docId));
-        return Response.ok(transResource).build();
+        return ResponseEntity.ok(transResource);
     }
 
     @Deprecated
-    @Override
-    public Response deleteTranslations(String idNoSlash, LocaleId locale) {
-        return deleteTranslationsWithDocId(locale, idNoSlash);
+    @DeleteMapping("/r/{id}/translations/{locale}")
+    public ResponseEntity<Void> deleteTranslations(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @PathVariable("locale") LocaleId locale) {
+        return deleteTranslationsWithDocId(projectSlug, iterationSlug, locale,
+                idNoSlash);
     }
 
-    @Override
-    public Response deleteTranslationsWithDocId(LocaleId locale, String docId) {
+    @DeleteMapping("/resource/translations/{locale}")
+    public ResponseEntity<Void> deleteTranslationsWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("locale") LocaleId locale,
+            @RequestParam(value = "docId", defaultValue = "") String docId) {
         return MockResourceUtil.notUsedByClient();
     }
 
     @Deprecated
-    @Override
-    public Response putTranslations(String idNoSlash, LocaleId locale,
-            TranslationsResource messageBody, Set<String> extensions,
-            @DefaultValue("auto") String merge) {
-        return putTranslationsWithDocId(locale, messageBody, idNoSlash,
-                extensions, merge);
+    @PutMapping("/r/{id}/translations/{locale}")
+    public ResponseEntity<Void> putTranslations(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("id") String idNoSlash,
+            @PathVariable("locale") LocaleId locale,
+            @RequestBody TranslationsResource messageBody,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "merge",
+                    defaultValue = "auto") String merge) {
+        return putTranslationsWithDocId(projectSlug, iterationSlug, locale,
+                messageBody, idNoSlash, extensions, merge);
     }
 
-    @Override
-    public Response putTranslationsWithDocId(LocaleId locale,
-            TranslationsResource messageBody, String docId, Set<String> extensions,
-            String merge) {
-        // used by PublicanPush only
+    @PutMapping("/resource/translations/{locale}")
+    public ResponseEntity<Void> putTranslationsWithDocId(
+            @PathVariable("projectSlug") String projectSlug,
+            @PathVariable("iterationSlug") String iterationSlug,
+            @PathVariable("locale") LocaleId locale,
+            @RequestBody TranslationsResource messageBody,
+            @RequestParam(value = "docId", defaultValue = "") String docId,
+            @RequestParam(value = "ext", required = false) Set<String> extensions,
+            @RequestParam(value = "merge",
+                    defaultValue = "auto") String merge) {
         MockResourceUtil.validateExtensions(extensions);
-        return Response.ok().build();
+        return ResponseEntity.ok().build();
     }
 }
-

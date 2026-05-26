@@ -20,12 +20,10 @@
  */
 package org.zanata.common;
 
-import com.webcohesion.enunciate.metadata.Label;
 
 /**
  * The possible state of various entities in the system.
  */
-@Label("Status")
 public enum EntityStatus {
     /** Regular state for most entities. Means it is readable and writeable */
     ACTIVE("jsf.Active"),

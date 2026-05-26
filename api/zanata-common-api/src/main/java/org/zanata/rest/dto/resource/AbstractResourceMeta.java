@@ -2,7 +2,6 @@ package org.zanata.rest.dto.resource;
 
 import java.io.Serializable;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.zanata.common.ContentType;
@@ -12,7 +11,6 @@ import org.zanata.common.ResourceType;
 import org.zanata.rest.dto.Extensible;
 import org.zanata.rest.dto.extensions.gettext.AbstractResourceMetaExtension;
 
-@Label("Abstract Resource")
 public abstract class AbstractResourceMeta implements Serializable,
         Extensible<AbstractResourceMetaExtension> {
     private static final long serialVersionUID = 1L;

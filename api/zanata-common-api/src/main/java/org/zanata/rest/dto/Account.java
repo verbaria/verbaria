@@ -7,14 +7,12 @@ import java.util.Set;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.hibernate.validator.constraints.Email;
-import org.hibernate.validator.constraints.NotEmpty;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
 import org.zanata.common.Namespaces;
 import org.zanata.rest.MediaTypes;
 import org.zanata.rest.MediaTypes.Format;
@@ -25,7 +23,6 @@ import org.zanata.rest.MediaTypes.Format;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "email", "name", "username", "password" })
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Account")
 public class Account implements Serializable, HasMediaType {
 
     private static final long serialVersionUID = 3271307247663618597L;
@@ -59,7 +56,6 @@ public class Account implements Serializable, HasMediaType {
     @JsonProperty("email")
     @Email
     @NotNull
-    @DocumentationExample("email@example.com")
     public String getEmail() {
         return email;
     }
@@ -70,7 +66,6 @@ public class Account implements Serializable, HasMediaType {
 
     @JsonProperty("name")
     @NotEmpty
-    @DocumentationExample("Homer Simpson")
     public String getName() {
         return name;
     }
@@ -81,7 +76,6 @@ public class Account implements Serializable, HasMediaType {
 
     @JsonProperty("username")
     @NotEmpty
-    @DocumentationExample("homer")
     public String getUsername() {
         return username;
     }
@@ -91,7 +85,6 @@ public class Account implements Serializable, HasMediaType {
     }
 
     @JsonProperty("passwordHash")
-    @DocumentationExample("cf23df2207d99a74fbe169e3eba035e633b65d94")
     public String getPasswordHash() {
         return passwordHash;
     }
@@ -102,7 +95,6 @@ public class Account implements Serializable, HasMediaType {
 
     @JsonProperty("apiKey")
     @Size(min = 32, max = 32)
-    @DocumentationExample("qiyh4XPJGsOZ2MEAyLkfWqeQ")
     public String getApiKey() {
         return apiKey;
     }
@@ -122,7 +114,6 @@ public class Account implements Serializable, HasMediaType {
     }
 
     @JsonProperty("role")
-    @DocumentationExample(value = "admin", value2 = "project-creator")
     public Set<String> getRoles() {
         return roles;
     }
@@ -135,7 +126,6 @@ public class Account implements Serializable, HasMediaType {
      * Global language teams the account belongs to
      */
     @JsonProperty("languages")
-    @DocumentationExample(value = "es", value2 = "ja")
     public Set<String> getLanguages() {
         return languages;
     }
@@ -149,7 +139,6 @@ public class Account implements Serializable, HasMediaType {
      */
     @Deprecated
     @JsonProperty("tribe")
-    @DocumentationExample(value = "es", value2 = "ja")
     public Set<String> getTribes() {
         return getLanguages();
     }

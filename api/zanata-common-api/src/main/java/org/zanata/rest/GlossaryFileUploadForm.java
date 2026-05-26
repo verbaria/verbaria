@@ -23,9 +23,7 @@ package org.zanata.rest;
 import java.io.InputStream;
 import java.io.Serializable;
 
-import jakarta.ws.rs.FormParam;
 
-import org.jboss.resteasy.annotations.providers.multipart.PartType;
 
 /**
  *
@@ -35,24 +33,14 @@ import org.jboss.resteasy.annotations.providers.multipart.PartType;
 public class GlossaryFileUploadForm implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @FormParam("file")
-    @PartType("application/octet-stream")
     private transient InputStream fileStream;
 
-    @FormParam("srcLocale")
-    @PartType("text/plain")
     private String srcLocale;
 
-    @FormParam("transLocale")
-    @PartType("text/plain")
     private String transLocale;
 
-    @FormParam("fileName")
-    @PartType("text/plain")
     private String fileName;
 
-    @FormParam("qualifiedName")
-    @PartType("text/plain")
     private String qualifiedName;
 
     public InputStream getFileStream() {

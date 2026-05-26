@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,24 +22,25 @@
 package org.zanata.rest.service;
 
 import java.util.Date;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Response;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.zanata.rest.dto.VersionInfo;
 
 /**
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(VersionResource.SERVICE_PATH)
-public class MockVersionResource implements VersionResource {
+@RestController
+@RequestMapping("/version")
+public class MockVersionResource {
 
-    @Override
-    public Response get() {
-        return Response.ok(
+    @GetMapping
+    public ResponseEntity<VersionInfo> get() {
+        return ResponseEntity.ok(
                 new VersionInfo("3.6.0-SNAPSHOT", new Date().toString(),
-                        "unknown"))
-                .build();
+                        "unknown"));
     }
 }
-

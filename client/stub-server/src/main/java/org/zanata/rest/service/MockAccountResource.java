@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -21,35 +21,38 @@
 
 package org.zanata.rest.service;
 
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.zanata.rest.dto.Account;
 
 /**
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@Path(AccountResource.SERVICE_PATH)
-public class MockAccountResource implements AccountResource {
-    @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    @Context
-    UriInfo uriInfo;
-    private Account account =
+@RestController
+@RequestMapping("/accounts/u/{username}")
+public class MockAccountResource {
+    private final Account account =
             new Account("admin@zanata.org", "Administrator", "admin",
                     "guesswhat");
 
-    @Override
-    public Response get() {
-        return Response.ok(account).build();
+    @GetMapping
+    public ResponseEntity<Account> get(@PathVariable("username") String username) {
+        return ResponseEntity.ok(account);
     }
 
-    @Override
-    public Response put(Account account) {
-        return Response.created(uriInfo.getRequestUri()).build();
+    @PutMapping
+    public ResponseEntity<Void> put(@PathVariable("username") String username,
+            @RequestBody Account account) {
+        return ResponseEntity
+                .created(ServletUriComponentsBuilder.fromCurrentRequest().build()
+                        .toUri())
+                .build();
     }
 }
-

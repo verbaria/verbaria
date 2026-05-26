@@ -22,10 +22,7 @@ package org.zanata.rest;
 
 import java.io.InputStream;
 import java.io.Serializable;
-import jakarta.ws.rs.FormParam;
 
-import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
-import org.jboss.resteasy.annotations.providers.multipart.PartType;
 
 /**
  * Form for use in file uploads.
@@ -47,36 +44,20 @@ import org.jboss.resteasy.annotations.providers.multipart.PartType;
 public class DocumentFileUploadForm implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @FormParam("file")
-    @PartType("application/octet-stream")
     private transient InputStream fileStream;
 
-    @FormParam("type")
-    @PartType("text/plain")
     private String fileType;
 
-    @FormParam("uploadId")
-    @PartType("text/plain")
     private Long uploadId;
 
-    @FormParam("first")
-    @PartType("text/plain")
     private Boolean first;
 
-    @FormParam("last")
-    @PartType("text/plain")
     private Boolean last;
 
-    @FormParam("hash")
-    @PartType("text/plain")
     private String hash;
 
-    @FormParam("size")
-    @PartType("text/plain")
     private Long size;
 
-    @FormParam("adapterParams")
-    @PartType("text/plain")
     private String adapterParams;
 
     public InputStream getFileStream() {

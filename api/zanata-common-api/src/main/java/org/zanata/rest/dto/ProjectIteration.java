@@ -24,8 +24,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.webcohesion.enunciate.metadata.DocumentationExample;
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -42,7 +40,6 @@ import org.zanata.rest.MediaTypes.Format;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
 @JsonPropertyOrder({ "id", "links", "status", "projectType" })
-@Label("Project Version")
 public class ProjectIteration implements Serializable,
         HasCollectionSample<ProjectIteration>, HasMediaType {
 
@@ -66,7 +63,6 @@ public class ProjectIteration implements Serializable,
      * Version identifier (slug)
      */
     @JsonProperty("id")
-    @DocumentationExample("my-iteration")
     public String getId() {
         return id;
     }
@@ -111,7 +107,6 @@ public class ProjectIteration implements Serializable,
      * original type.
      */
     @JsonProperty("projectType")
-    @DocumentationExample("Podir")
     public String getProjectType() {
         return projectType;
     }

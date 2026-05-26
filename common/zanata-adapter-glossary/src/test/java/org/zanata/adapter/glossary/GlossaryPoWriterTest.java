@@ -3,7 +3,7 @@ package org.zanata.adapter.glossary;
 import org.junit.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
-import org.zanata.rest.service.GlossaryResource;
+import org.zanata.rest.service.ApiPaths;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -62,7 +62,7 @@ public class GlossaryPoWriterTest extends AbstractGlossaryWriterTest {
         BufferedReader br = new BufferedReader(inputStreamReader);
 
         Map<LocaleId, List<GlossaryEntry>> glossaries =
-                reader.extractGlossary(br, GlossaryResource.GLOBAL_QUALIFIED_NAME);
+                reader.extractGlossary(br, ApiPaths.GLOBAL_QUALIFIED_NAME);
         br.close();
         assertThat(glossaries).hasSize(1);
         assertThat(glossaries.get(LocaleId.DE)).hasSize(3);

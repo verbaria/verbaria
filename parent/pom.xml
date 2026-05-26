@@ -6,7 +6,7 @@
   <version>5.0-SNAPSHOT</version>
   <name>Zanata Parent POM</name>
   <description>Parent pom for Zanata modules</description>
-  <url>http://zanata.org/</url>
+  <url>https://github.com/verbaria/verbaria</url>
   <packaging>pom</packaging>
 
   <!--
@@ -15,13 +15,13 @@
     See https://issues.apache.org/jira/browse/MPIR-234
    -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <!-- This url needs to work when Maven adds the artifactId in child modules.
          (Use mvn help:effective-pom to check the result.)
          See https://issues.apache.org/jira/browse/MPIR-234?focusedCommentId=14663321&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14663321
     -->
-    <url>https://github.com/zanata/zanata-platform/tree/master/</url>
+    <url>https://github.com/verbaria/verbaria/tree/master/</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -34,49 +34,13 @@
   </licenses>
 
   <issueManagement>
-    <system>Jira</system>
-    <url>https://zanata.atlassian.net/</url>
+    <system>GitHub Issues</system>
+    <url>https://github.com/verbaria/verbaria/issues</url>
   </issueManagement>
 
-  <ciManagement>
-    <system>jenkins</system>
-    <notifiers>
-      <notifier>
-        <type>mail</type>
-      </notifier>
-    </notifiers>
-  </ciManagement>
-
-  <mailingLists>
-    <mailingList>
-      <name>zanata-users</name>
-      <post>zanata-users@redhat.com</post>
-      <subscribe>https://www.redhat.com/mailman/listinfo/zanata-users/</subscribe>
-      <unsubscribe>zanata-users-request@redhat.com?subject=unsubscribe</unsubscribe>
-      <archive>https://www.redhat.com/archives/zanata-users/</archive>
-    </mailingList>
-
-    <mailingList>
-      <name>zanata-devel</name>
-      <post>zanata-devel@redhat.com</post>
-      <subscribe>https://www.redhat.com/mailman/listinfo/zanata-devel/</subscribe>
-      <unsubscribe>zanata-devel-request@redhat.com?subject=unsubscribe</unsubscribe>
-      <archive>https://www.redhat.com/archives/zanata-devel/</archive>
-    </mailingList>
-
-    <mailingList>
-      <name>zanata-commits</name>
-      <!-- users can't post messages: <post>zanata-commits@redhat.com</post> -->
-      <subscribe>https://www.redhat.com/mailman/listinfo/zanata-commits/</subscribe>
-      <unsubscribe>zanata-commits-request@redhat.com?subject=unsubscribe</unsubscribe>
-      <archive>https://www.redhat.com/archives/zanata-commits/</archive>
-    </mailingList>
-
-  </mailingLists>
-
   <organization>
-    <name>Zanata Project</name>
-    <url>http://zanata.org/</url>
+    <name>Verbaria Project</name>
+    <url>https://github.com/verbaria/verbaria</url>
   </organization>
 
   <developers>
@@ -205,17 +169,10 @@
     <restrict.skip>true</restrict.skip>
 
     <hamcrest.version>2.2</hamcrest.version>
-    <findbugs.maven.version>3.0.1</findbugs.maven.version>
-    <groovy.version>4.0.24</groovy.version>
     <guava.version>33.4.0-jre</guava.version>
-    <!-- Migrated from codehaus jackson 1.x to FasterXML jackson 2.x -->
     <jackson.version>2.18.2</jackson.version>
-    <!-- Jakarta XML Bind 4.x (jakarta.xml.bind namespace) -->
-    <jaxb.api.version>4.0.2</jaxb.api.version>
     <maven.javadoc.version>3.11.2</maven.javadoc.version>
     <maven.jxr.version>3.6.0</maven.jxr.version>
-    <!-- RESTEasy 6.x is Jakarta EE 9+ compatible -->
-    <resteasy.version>6.2.11.Final</resteasy.version>
     <surefire.version>3.5.2</surefire.version>
     <maven.source.version>3.3.1</maven.source.version>
     <site-maven-plugin.version>0.12</site-maven-plugin.version>
@@ -236,8 +193,6 @@
     <reports-plugin.dependencyDetailsEnabled>false</reports-plugin.dependencyDetailsEnabled>
     <reports-plugin.dependencyLocationsEnabled>false</reports-plugin.dependencyLocationsEnabled>
     <slf4j.version>2.0.16</slf4j.version>
-    <!-- Override Mockito 5.14's transitive ByteBuddy 1.15.4, which doesn't
-         understand JDK 25 class files. 1.18.8 adds JDK 25 support. -->
     <byte-buddy.version>1.18.8</byte-buddy.version>
     <spring-boot.version>4.0.6</spring-boot.version>
     <jetty.version>11.0.24</jetty.version>
@@ -585,14 +540,8 @@
         <audit.quiet>true</audit.quiet>
 
         <!-- TODO ignore by ID, not GAV (need https://github.com/OSSIndex/ossindex-maven-plugin/pull/20) -->
-        <!-- wildfly: due to https://github.com/OSSIndex/ossindex-maven-plugin/issues/19 -->
-        <!-- picketlink*, jgroups: because we use the app server's version (scope=provided)-->
         <!-- ognl is test only (via concordion) -->
         <audit.ignore>
-          org.wildfly.core:wildfly-server:2.0.10.Final,
-          org.jgroups:jgroups,
-          org.picketlink:picketlink-common,
-          org.picketlink:picketlink-federation,
           ognl:ognl:2.6.9,
         </audit.ignore>
 
@@ -718,19 +667,6 @@
                         <versionRange>[2.8,)</versionRange>
                         <goals>
                           <goal>analyze-only</goal>
-                        </goals>
-                      </pluginExecutionFilter>
-                      <action>
-                        <ignore />
-                      </action>
-                    </pluginExecution>
-                    <pluginExecution>
-                      <pluginExecutionFilter>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <versionRange>[2.5.2,)</versionRange>
-                        <goals>
-                          <goal>check</goal>
                         </goals>
                       </pluginExecutionFilter>
                       <action>
@@ -866,13 +802,6 @@
         <artifactId>FastInfoset</artifactId>
         <version>2.1.1</version>
       </dependency>
-      <!-- Groovy 4 changed groupId to org.apache.groovy -->
-      <dependency>
-        <groupId>org.apache.groovy</groupId>
-        <artifactId>groovy-all</artifactId>
-        <version>${groovy.version}</version>
-        <type>pom</type>
-      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -882,18 +811,6 @@
         <groupId>org.slf4j</groupId>
         <artifactId>jcl-over-slf4j</artifactId>
         <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.spockframework</groupId>
-        <artifactId>spock-core</artifactId>
-        <version>2.4-M4-groovy-4.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.testng</groupId>
-        <artifactId>testng</artifactId>
-        <version>7.10.2</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -953,13 +870,6 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava-gwt</artifactId>
-        <version>${guava.version}</version>
-        <scope>provided</scope>
       </dependency>
 
       <!-- SpotBugs replaces FindBugs annotations -->
@@ -1038,29 +948,6 @@
         <version>2.0.1</version>
         <scope>provided</scope>
       </dependency>
-      <!-- jakarta.xml.bind-api (was javax.xml.bind:jaxb-api 2.2.12) -->
-      <dependency>
-        <groupId>jakarta.xml.bind</groupId>
-        <artifactId>jakarta.xml.bind-api</artifactId>
-        <version>${jaxb.api.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.glassfish.jaxb</groupId>
-        <artifactId>jaxb-runtime</artifactId>
-        <version>4.0.5</version>
-      </dependency>
-      <!-- jakarta.activation-api (was javax.activation) -->
-      <dependency>
-        <groupId>jakarta.activation</groupId>
-        <artifactId>jakarta.activation-api</artifactId>
-        <version>2.1.3</version>
-      </dependency>
-      <!-- jakarta.ws.rs-api (was org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.0_spec) -->
-      <dependency>
-        <groupId>jakarta.ws.rs</groupId>
-        <artifactId>jakarta.ws.rs-api</artifactId>
-        <version>3.1.0</version>
-      </dependency>
       <!-- jakarta annotations (was javax.annotation:jsr250-api) -->
       <dependency>
         <groupId>jakarta.annotation</groupId>
@@ -1122,41 +1009,6 @@
         <version>2.1.0</version>
       </dependency>
 
-      <dependency>
-        <groupId>org.jboss.logging</groupId>
-        <artifactId>jboss-logging</artifactId>
-        <version>3.6.1.Final</version>
-      </dependency>
-
-      <!-- RESTEasy 6 (Jakarta EE 9+ namespace) -->
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-bom</artifactId>
-        <version>${resteasy.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jackson2-provider</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jaxb-provider</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <!-- resteasy-jaxrs was renamed to resteasy-core in 4.x+ -->
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-core</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-multipart-provider</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-plugin-api</artifactId>
@@ -1314,17 +1166,6 @@
           <!-- these can be incredibly slow -->
           <dependencyDetailsEnabled>${reports-plugin.dependencyDetailsEnabled}</dependencyDetailsEnabled>
           <dependencyLocationsEnabled>${reports-plugin.dependencyLocationsEnabled}</dependencyLocationsEnabled>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${findbugs.maven.version}</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <!-- Optional directory to put findbugs xdoc xml report -->
-          <xmlOutputDirectory>target/site</xmlOutputDirectory>
         </configuration>
       </plugin>
 

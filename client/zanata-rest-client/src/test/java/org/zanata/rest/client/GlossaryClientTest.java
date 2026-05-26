@@ -29,7 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
-import org.zanata.rest.service.GlossaryResource;
+import org.zanata.rest.service.MockGlossaryResource;
 import org.zanata.rest.service.StubbingServerRule;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -50,7 +50,7 @@ public class GlossaryClientTest {
     public void testPut() {
         List<GlossaryEntry> glossaryEntries = new ArrayList<>();
         assertThatCode(() -> client.post(glossaryEntries, LocaleId.DE,
-                GlossaryResource.GLOBAL_QUALIFIED_NAME))
+                MockGlossaryResource.GLOBAL_QUALIFIED_NAME))
                 .as("server returns successful status code")
                 .doesNotThrowAnyException();
     }

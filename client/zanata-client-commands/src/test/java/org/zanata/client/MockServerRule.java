@@ -68,7 +68,7 @@ import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.rest.service.FileResource;
+import org.zanata.rest.service.ApiPaths;
 
 /**
  * Test rule to set up push and/or pull commands which will interact with
@@ -356,7 +356,7 @@ public class MockServerRule extends ExternalResource {
                 ResponseEntity.ok(readAll(transFileStream));
         when(fileResourceClient.downloadSourceFile(
                 eq(pullOpts.getProj()), eq(pullOpts.getProjectVersion()),
-                eq(FileResource.FILETYPE_RAW_SOURCE_DOCUMENT),
+                eq(ApiPaths.FILETYPE_RAW_SOURCE_DOCUMENT),
                 anyString())).thenReturn(srcEntity);
         when(fileResourceClient.downloadTranslationFile(eq(pullOpts.getProj()),
                 eq(pullOpts.getProjectVersion()), anyString(), anyString(),

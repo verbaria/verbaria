@@ -5,7 +5,7 @@
   <version>5.0-SNAPSHOT</version>
   <name>Build Tools</name>
   <description>Build tools for Zanata modules</description>
-  <url>http://zanata.org/</url>
+  <url>https://github.com/verbaria/verbaria</url>
   <packaging>jar</packaging>
 
   <distributionManagement>
@@ -20,9 +20,9 @@
   </distributionManagement>
 
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
-    <url>https://github.com/zanata/zanata-platform/tree/master/build-tools</url>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
+    <url>https://github.com/verbaria/verbaria/tree/master/build-tools</url>
     <tag>HEAD</tag>
   </scm>
 

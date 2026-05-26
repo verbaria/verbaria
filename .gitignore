@@ -4,6 +4,9 @@
 # Include patches used for the publick package
 !/zanata-war/etc/public-package/patches/**/*.patch
 
+# Runtime cache produced by the zanata-cli client; not for VCS.
+**/.zanata-cache/
+
 *.sedbak
 zanatasearchindex/
 test-output/

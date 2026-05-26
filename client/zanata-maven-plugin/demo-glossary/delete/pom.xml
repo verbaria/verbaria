@@ -1,15 +1,22 @@
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>null</groupId>
-  <artifactId>null</artifactId>
-  <version>0</version>
+  <groupId>org.zanata.demos</groupId>
+  <artifactId>demo-glossary-delete</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <!--
+    Sample maven project: deletes all glossary entries for a given locale.
+    See verbaria.json for the server URL.
+
+    Run:    mvn verbaria:glossary-delete
+  -->
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>4.4.5</version>
+        <version>5.0-SNAPSHOT</version>
         <configuration>
           <lang>zh</lang>
           <allGlossary>true</allGlossary>

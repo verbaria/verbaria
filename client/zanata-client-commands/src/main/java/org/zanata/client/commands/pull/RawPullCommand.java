@@ -42,7 +42,7 @@ import org.zanata.client.exceptions.ConfigException;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.client.FileResourceClient;
 import org.zanata.rest.client.RestClientFactory;
-import org.zanata.rest.service.FileResource;
+import org.zanata.rest.service.ApiPaths;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -165,7 +165,7 @@ public class RawPullCommand extends PushPullCommand<PullOptions> {
                         ResponseEntity<byte[]> response = fileResourceClient
                                 .downloadSourceFile(getOpts().getProj(),
                                         getOpts().getProjectVersion(),
-                                        FileResource.FILETYPE_RAW_SOURCE_DOCUMENT,
+                                        ApiPaths.FILETYPE_RAW_SOURCE_DOCUMENT,
                                         qualifiedDocName);
                         byte[] bytes = response.getBody();
                         if (bytes != null) {
@@ -185,10 +185,10 @@ public class RawPullCommand extends PushPullCommand<PullOptions> {
                     String fileExtension;
                     if (getOpts().getIncludeFuzzy()) {
                         fileExtension =
-                                FileResource.FILETYPE_TRANSLATED_APPROVED_AND_FUZZY;
+                                ApiPaths.FILETYPE_TRANSLATED_APPROVED_AND_FUZZY;
                     } else {
                         fileExtension =
-                                FileResource.FILETYPE_TRANSLATED_APPROVED;
+                                ApiPaths.FILETYPE_TRANSLATED_APPROVED;
                     }
 
                     List<LocaleId> skippedLocales = Lists.newArrayList();

@@ -12,29 +12,16 @@
 
   <!-- Connection URLs repeated as workaround for https://issues.apache.org/jira/browse/MPIR-234 -->
   <scm>
-    <connection>scm:git:https://github.com/zanata/zanata-platform.git</connection>
-    <developerConnection>scm:git:git@github.com:zanata/zanata-platform.git</developerConnection>
+    <connection>scm:git:https://github.com/verbaria/verbaria.git</connection>
+    <developerConnection>scm:git:git@github.com:verbaria/verbaria.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- Jetty 11 is Jakarta EE 9 compatible (jakarta.servlet namespace) -->
-    <jetty.version>11.0.24</jetty.version>
   </properties>
+
   <dependencies>
-    <dependency>
-      <groupId>jakarta.ws.rs</groupId>
-      <artifactId>jakarta.ws.rs-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.servlet</groupId>
-      <artifactId>jakarta.servlet-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.annotation</groupId>
-      <artifactId>jakarta.annotation-api</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.zanata</groupId>
       <artifactId>zanata-common-api</artifactId>
@@ -49,73 +36,38 @@
       <groupId>org.zanata</groupId>
       <artifactId>zanata-adapter-po</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlets</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
 
+    <!-- Spring Boot web (Tomcat). Replaces the Jetty + RESTEasy + JAX-RS
+         stack the stub server originally used. spring-boot-starter-web
+         transitively pulls in Jackson + Tomcat. -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jaxb-provider</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-multipart-provider</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scannotation</groupId>
-      <artifactId>scannotation</artifactId>
-      <version>1.0.3</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
       <exclusions>
         <exclusion>
-          <groupId>javassist</groupId>
-          <artifactId>javassist</artifactId>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-to-slf4j</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
-
+    <!-- Spring Boot 4 starter-logging no longer bundles logback-classic
+         by default, so add it explicitly to keep the same logging backend. -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
     </dependency>
 
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
     </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.jaxrs</groupId>
-      <artifactId>jackson-jaxrs-json-provider</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-jaxb-annotations</artifactId>
     </dependency>
 
     <dependency>
@@ -152,22 +104,6 @@
         <configuration>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.basepom.maven</groupId>
-        <artifactId>duplicate-finder-maven-plugin</artifactId>
-        <configuration>
-          <ignoredResourcePatterns>
-            <!-- from jetty dependencies we have a couple about.html -->
-            <ignoredResourcePattern>about.html</ignoredResourcePattern>
-          </ignoredResourcePatterns>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 </project>
-
-
-
-
-
-

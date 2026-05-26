@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,7 +21,6 @@ import org.zanata.rest.dto.extensions.gettext.TranslationsResourceExtension;
 @JsonPropertyOrder({ "links", "extensions", "textFlowTargets" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Label("Translations")
 public class TranslationsResource implements Serializable,
         HasSample<TranslationsResource>,
         Extensible<TranslationsResourceExtension> {
