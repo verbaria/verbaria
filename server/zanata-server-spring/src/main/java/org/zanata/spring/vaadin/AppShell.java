@@ -19,5 +19,6 @@ import com.vaadin.flow.theme.lumo.Lumo;
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
 @StyleSheet("/resources/fontello/css/fontello.css")
 @StyleSheet("/resources/assets/css/style.css")
+@StyleSheet("/resources/assets/css/verbaria.css")
 public class AppShell implements AppShellConfigurator {
 }

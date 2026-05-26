@@ -16,6 +16,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -267,11 +268,12 @@ public class MainLayout extends AppLayout
         logo.getStyle().set("font-weight", "700");
         logo.getStyle().set("letter-spacing", "-0.02em");
         logo.getStyle().set("color",
-                "var(--aura-blue-text, var(--vaadin-input-field-label-color))");
+                "var(--aura-green-text, var(--vaadin-input-field-label-color))");
         logo.getStyle().set("line-height", "1");
         Anchor home = new Anchor("/", logo);
         home.getStyle().set("display", "flex");
         home.getStyle().set("align-items", "center");
+        home.getStyle().set("justify-content", "center");
         home.getStyle().set("text-decoration", "none");
         home.getStyle().set("flex", "1 1 auto");
         home.getStyle().set("min-width", "0");
@@ -279,9 +281,22 @@ public class MainLayout extends AppLayout
         Div header = new Div(home);
         header.getStyle().set("display", "flex");
         header.getStyle().set("align-items", "center");
+        header.getStyle().set("justify-content", "center");
         header.getStyle().set("padding", "0.75rem 1rem");
         header.getStyle().set("box-sizing", "border-box");
         header.setWidthFull();
+
+        // Hairline divider between brand and nav. `--view-divider-color` is
+        // a single-value token defined in verbaria.css (the card border
+        // token is a 3-value shorthand and can't be used in `border-top`).
+        Hr divider = new Hr();
+        // Vertical margin lifts the line clear of the logo above and the
+        // first nav item below; horizontal margin keeps it from running
+        // flush against the drawer card border.
+        divider.getStyle().set("margin", "0.5rem 0.5rem 0.75rem");
+        divider.getStyle().set("border", "none");
+        divider.getStyle().set("border-top",
+                "1px solid var(--view-divider-color, var(--vaadin-border-color))");
 
         SideNav nav = createSideNav();
         nav.getStyle().set("padding", "0 0.5rem");
@@ -291,7 +306,7 @@ public class MainLayout extends AppLayout
         // No drawer footer — sign-in / locale / theme / contact / sign-out
         // all moved into the navbar's user menu. The old border-top divider
         // (left over from where the sign-in link used to live) is gone too.
-        FlexLayout drawer = new FlexLayout(header, scroller);
+        FlexLayout drawer = new FlexLayout(header, divider, scroller);
         drawer.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         drawer.setSizeFull();
         scroller.getStyle().set("flex", "1 1 auto");

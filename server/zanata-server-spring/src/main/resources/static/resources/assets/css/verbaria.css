@@ -1,0 +1,276 @@
+/* ----- 1. Tokens ----------------------------------------------------- */
+
+:root {
+    /* Green wash — StarPass uses blue (220); we use green (140). */
+    --base-h: 140;
+    --base-s: 35%;
+    --base-l: 92%;
+
+    --accent-h: 142;
+    --accent-s: 70%;
+    --accent-l: 36%;
+
+    /* Three composited layers — softer at the edges, brighter at the top-
+     * left and bottom-right corners. */
+    --grad1: linear-gradient(135deg,
+        hsl(var(--base-h) var(--base-s) 96%) 0%,
+        hsl(var(--base-h) calc(var(--base-s) - 5%) 88%) 100%);
+    --grad2: radial-gradient(circle at 25% 0%,
+        hsl(var(--accent-h) var(--accent-s) 70% / .35) 0%,
+        transparent 55%);
+    --grad3: radial-gradient(circle at 80% 95%,
+        hsl(calc(var(--accent-h) + 8) var(--accent-s) 45% / .30) 0%,
+        transparent 55%);
+    --bg: var(--grad3), var(--grad2), var(--grad1),
+          hsl(var(--base-h) var(--base-s) var(--base-l));
+
+    /* Card surface */
+    --view-glow: radial-gradient(circle at 25% 0%,
+        hsl(0 0% 100% / .35), transparent 55%);
+    --view-background: var(--view-glow),
+        hsl(var(--base-h) var(--base-s) max(calc(var(--base-l) + 6%), 95%) / .80);
+
+    --view-border-width: 1px;
+    --view-border-color:
+        hsl(var(--base-h) 30% 35% / .28)
+        hsl(var(--base-h) 30% 35% / .28)
+        hsl(var(--base-h) 30% 25% / .38);
+    /* Single-value variant for use in shorthands that need one colour
+     * (e.g. `border-top: 1px solid ...` on the drawer's brand divider). */
+    --view-divider-color: hsl(var(--base-h) 30% 35% / .28);
+    --view-box-shadow: 0 1px 1px 0 hsl(var(--base-h) 30% 20% / .08),
+                       0 8px 24px -12px hsl(var(--base-h) 40% 20% / .18);
+    --view-radius: 16px;
+    --view-inset: 0.75vmax;
+
+    --blur-radius: 20px;
+}
+
+html[theme~="dark"],
+html[data-color-scheme="dark"] {
+    --base-h: 145;
+    --base-s: 25%;
+    --base-l: 10%;
+
+    --grad1: linear-gradient(135deg,
+        hsl(var(--base-h) var(--base-s) 8%) 0%,
+        hsl(var(--base-h) var(--base-s) 14%) 100%);
+    --grad2: radial-gradient(circle at 25% 0%,
+        hsl(var(--accent-h) 60% 30% / .40) 0%,
+        transparent 55%);
+    --grad3: radial-gradient(circle at 80% 95%,
+        hsl(calc(var(--accent-h) + 8) 70% 18% / .50) 0%,
+        transparent 55%);
+
+    --view-glow: radial-gradient(circle at 25% 0%,
+        hsl(0 0% 100% / .06), transparent 55%);
+    --view-background: var(--view-glow),
+        hsl(var(--base-h) 25% 14% / .80);
+
+    --view-border-color:
+        hsl(0 0% 100% / .08)
+        hsl(0 0% 100% / .08)
+        hsl(0 0% 0% / .25);
+    --view-divider-color: hsl(0 0% 100% / .10);
+    --view-box-shadow: 0 1px 1px 0 hsl(0 0% 0% / .25),
+                       0 12px 32px -16px hsl(0 0% 0% / .55);
+}
+
+/* ----- 2. Page-wide gradient ---------------------------------------- */
+
+html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-attachment: fixed;
+}
+
+/* ----- 3. AppLayout shell is transparent + padded ------------------- *
+ *
+ * Only the shell host and the navbar wrapper paint nothing — the gradient
+ * shows through behind both cards. We intentionally do NOT blanket-strip
+ * `vaadin-app-layout > *`: that would wipe the slotted content's
+ * background and border, leaving the routed view naked on the gradient.
+ *
+ * The inset lives as PADDING on the host (not margin on the cards). That
+ * way both the drawer (positioned in the shadow DOM via flex) and the
+ * slotted content (which uses `setSizeFull` = 100% × 100%) share the
+ * same shrunk region uniformly — no overflow, no horizontal scrollbar,
+ * no height mismatch between the two cards.
+ */
+
+vaadin-app-layout,
+vaadin-app-layout::part(navbar) {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+}
+
+/* Host gets padding on three sides only — the content slot is in the
+ * normal flex flow so host padding insets it, but the drawer is absolute-
+ * positioned in shadow DOM and ignores host padding. Drawer inset is
+ * applied as `margin` on `::part(drawer)` below; that also pushes the
+ * content's left edge inward naturally, so we skip `padding-left` here
+ * to avoid double-inset on the gap between the two cards. */
+vaadin-app-layout {
+    padding: var(--view-inset) var(--view-inset) var(--view-inset) 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* ----- 4. Drawer + content slot are frosted-glass cards ------------- *
+ *
+ * Both surfaces share the same `--view-*` recipe so the side nav and the
+ * main content read as a matched pair floating on the gradient.
+ *
+ * Vaadin AppLayout exposes `drawer` and `navbar` as parts but the content
+ * area is just a default-slot region with no `::part(content)`. We style
+ * the slotted child directly (`vaadin-app-layout > :not([slot])` — drawer
+ * children carry slot="drawer", navbar children slot="navbar", so the
+ * unslotted one is the content).
+ *
+ * Border is split into width/style/color so the asymmetric 3-value
+ * `border-color` survives without the `border:` shorthand wiping it.
+ * `box-sizing: border-box` ensures the 1px border doesn't overflow the
+ * sized region.
+ */
+
+vaadin-app-layout::part(drawer),
+vaadin-app-layout > :not([slot]) {
+    background: var(--view-background) !important;
+    backdrop-filter: blur(var(--blur-radius)) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(var(--blur-radius)) saturate(140%) !important;
+    border-width: var(--view-border-width) !important;
+    border-style: solid !important;
+    border-color: var(--view-border-color) !important;
+    border-radius: var(--view-radius) !important;
+    box-shadow: var(--view-box-shadow) !important;
+    box-sizing: border-box !important;
+}
+
+/* ----- 5. Dialog / overlay glass ------------------------------------ */
+
+vaadin-dialog-overlay::part(overlay) {
+    background: var(--view-background) !important;
+    backdrop-filter: blur(var(--blur-radius)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--blur-radius)) saturate(140%);
+    border: var(--view-border-width) solid;
+    border-color: var(--view-border-color) !important;
+    border-radius: var(--view-radius);
+    box-shadow: var(--view-box-shadow);
+}
+
+/* ----- 4a. Drawer card inset + pill selection ---------------------- *
+ *
+ * `::part(drawer)` is the right surface to inset — `margin` on it shifts
+ * the whole drawer card and Vaadin recalculates the content offset off
+ * the drawer's measured box, so the content card slides with it.
+ * (Padding on the part is defeated by Aura's own internal layout; the
+ * slotted child is also the wrong target — it just pads inside the
+ * existing card without moving the card itself.)
+ *
+ * Active-item highlight is rounded via `::part(content)` (the real
+ * part on vaadin-side-nav-item; `::part(item)` doesn't exist) and
+ * given a small horizontal margin so the pill clearly sits inside the
+ * drawer border — that pill background paints the full width of the
+ * part, so the inset has to live on the part itself.
+ */
+vaadin-app-layout::part(drawer) {
+    margin: var(--view-inset) !important;
+    /* Drawer sizes to its own contents (logo header + menu items) rather
+     * than stretching to fill the viewport. `max-height` caps it at the
+     * viewport so a very long menu still scrolls instead of running off
+     * the bottom. `align-self: flex-start` defangs the flex stretch that
+     * would otherwise pull the drawer back to full height. */
+    height: fit-content !important;
+    max-height: calc(100vh - var(--view-inset) * 2) !important;
+    align-self: flex-start !important;
+}
+
+/* The slotted drawer wrapper carries inline `height: 100%` from
+ * `setSizeFull()` — that would forces the drawer back to full height
+ * regardless of the part's `fit-content`. Reset to `auto` so the wrapper
+ * collapses to its real content height. Same for the scroller inside,
+ * which has `flex: 1 1 auto` and would stretch when its parent has any
+ * leftover space. */
+vaadin-app-layout > [slot="drawer"] {
+    height: auto !important;
+}
+vaadin-app-layout > [slot="drawer"] vaadin-scroller {
+    flex: 0 0 auto !important;
+    height: auto !important;
+}
+
+/* Content's left offset is computed by Vaadin from the drawer's measured
+ * width (--_vaadin-app-layout-drawer-offset-size, set inline on the
+ * host). It doesn't include the margin we added on ::part(drawer), so
+ * content slides leftward and overlaps the now-shifted drawer.
+ *
+ * Math: drawer ends at `view-inset + drawer_width`; content starts at
+ * `drawer_width + margin-left`. To leave a one-inset visible GAP between
+ * the cards we need margin-left = view-inset (to cancel the drawer's
+ * shift) + view-inset (the gap) = view-inset * 2. Width is trimmed by
+ * the same amount so the inline `width: 100%` (from setSizeFull on the
+ * contentWrapper) doesn't push the right edge past the host padding. */
+vaadin-app-layout > :not([slot]) {
+    margin-left: calc(var(--view-inset) * 2) !important;
+    width: calc(100% - var(--view-inset) * 2) !important;
+}
+
+vaadin-side-nav-item::part(content) {
+    border-radius: 10px !important;
+    margin: 1px 4px !important;
+}
+
+/* ----- 4b. In-content toolbar blends into the glass card ----------- *
+ *
+ * `.zanata-toolbar` is built in MainLayout.java with an opaque white
+ * background and a bottom border — it reads as a separate strip pasted
+ * on top of the frosted card. Drop both so the toolbar inherits the
+ * card's glass surface and the content below reads as one continuous
+ * panel.
+ */
+.zanata-toolbar {
+    background: transparent !important;
+    border-bottom-color: var(--view-border-color) !important;
+    border-bottom-style: solid !important;
+    border-bottom-width: 0 !important;
+}
+
+/* Opt-in helper for any panel that wants the same glass treatment. */
+.glass-surface {
+    background: var(--view-background);
+    backdrop-filter: blur(var(--blur-radius)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--blur-radius)) saturate(140%);
+    border: var(--view-border-width) solid;
+    border-color: var(--view-border-color);
+    border-radius: var(--view-radius);
+    box-shadow: var(--view-box-shadow);
+}
+
+/* ----- 6. Accessibility fallback ------------------------------------ *
+ *
+ * Users who prefer reduced transparency get solid surfaces — keeps the
+ * green wash on the body but drops the blur + translucency on the cards
+ * so legibility doesn't depend on backdrop-filter support.
+ */
+
+@media (prefers-reduced-transparency: reduce) {
+    vaadin-app-layout::part(drawer),
+    vaadin-app-layout > :not([slot]),
+    vaadin-dialog-overlay::part(overlay),
+    .glass-surface {
+        background: hsl(var(--base-h) var(--base-s) 98%) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    html[theme~="dark"] vaadin-app-layout::part(drawer),
+    html[theme~="dark"] vaadin-app-layout > :not([slot]),
+    html[theme~="dark"] vaadin-dialog-overlay::part(overlay),
+    html[theme~="dark"] .glass-surface,
+    html[data-color-scheme="dark"] vaadin-app-layout::part(drawer),
+    html[data-color-scheme="dark"] vaadin-app-layout > :not([slot]),
+    html[data-color-scheme="dark"] vaadin-dialog-overlay::part(overlay),
+    html[data-color-scheme="dark"] .glass-surface {
+        background: hsl(var(--base-h) 25% 14%) !important;
+    }
+}
