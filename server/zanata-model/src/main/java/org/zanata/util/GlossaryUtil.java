@@ -23,7 +23,6 @@ package org.zanata.util;
 
 import org.apache.commons.lang3.StringUtils;
 import org.zanata.common.LocaleId;
-import org.zanata.rest.service.GlossaryResource;
 
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
@@ -33,9 +32,6 @@ public class GlossaryUtil {
     private final static String SEPARATOR = "\u0000";
 
     private final static String QUALIFIED_NAME_SEPARATOR = "/";
-
-    public static String GLOBAL_QUALIFIED_NAME =
-            GlossaryResource.GLOBAL_QUALIFIED_NAME;
 
     /**
      * Generate contentHash for HGlossaryEntry from
@@ -55,8 +51,6 @@ public class GlossaryUtil {
     /**
      * Generate qualifiedName from namespace and name.
      * e.g project/zanata, global/default
-     *
-     * {@link QUALIFIED_NAME_SEPARATOR} at the end of namespace will be removed.
      */
     public static String generateQualifiedName(String namespace, String name) {
         String processedNamespace =
