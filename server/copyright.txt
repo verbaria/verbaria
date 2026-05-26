@@ -19,9 +19,3 @@ Carlos Munoz <camunoz@redhat.com>              Project Contributor
 Patrick Huang <pahuang@redhat.com>             Project Contributor
 Joyce Chang                                    Project Contributor
 Damian Jansen <djansen@redhat.com>             Project Contributor
-
-
-Libraries
----------
-* Crystal Project Icons http://www.everaldo.com/crystal/ (Copyright (c)  2006-2007  Everaldo Coelho, LGPL)
-* TODO

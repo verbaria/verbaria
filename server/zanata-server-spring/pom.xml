@@ -155,9 +155,9 @@
         </dependency>
 
         <dependency>
-            <groupId>de.f0rce</groupId>
+            <groupId>org.verbaria</groupId>
             <artifactId>ace</artifactId>
-            <version>5.0.1</version>
+            <version>25.0.0</version>
         </dependency>
 
         <dependency>
@@ -308,6 +308,10 @@
             <url>https://repo.spring.io/milestone</url>
             <releases><enabled>true</enabled></releases>
             <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
