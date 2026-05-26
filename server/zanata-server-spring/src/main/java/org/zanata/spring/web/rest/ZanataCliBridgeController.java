@@ -143,7 +143,7 @@ public class ZanataCliBridgeController {
     private final org.zanata.spring.service.OfflineExportService offlineExportService;
     private final org.zanata.spring.service.SourceUploadService sourceUploadService;
 
-    @Value("${spring.application.version:4.7.0-SNAPSHOT}")
+    @Value("${spring.application.version:unknown}")
     private String applicationVersion;
 
     public ZanataCliBridgeController(ProjectRepository projectRepository,

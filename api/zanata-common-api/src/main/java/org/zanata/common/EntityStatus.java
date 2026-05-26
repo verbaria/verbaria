@@ -22,14 +22,9 @@ package org.zanata.common;
 
 import com.webcohesion.enunciate.metadata.Label;
 
-import jakarta.xml.bind.annotation.XmlEnum;
-import jakarta.xml.bind.annotation.XmlType;
-
 /**
  * The possible state of various entities in the system.
  */
-@XmlType(name = "entityStatusType")
-@XmlEnum(String.class)
 @Label("Status")
 public enum EntityStatus {
     /** Regular state for most entities. Means it is readable and writeable */

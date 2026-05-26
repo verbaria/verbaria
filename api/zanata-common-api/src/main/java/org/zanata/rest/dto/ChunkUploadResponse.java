@@ -1,11 +1,5 @@
 package org.zanata.rest.dto;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
-@XmlRootElement(name = "chunkUploadResponse")
-@XmlType(name = "chunkUploadResponseType")
 public class ChunkUploadResponse {
     private Long uploadId;
     private int acceptedChunks;
@@ -37,7 +31,6 @@ public class ChunkUploadResponse {
         this.successMessage = successMessage;
     }
 
-    @XmlElement(required = false)
     public Long getUploadId() {
         return uploadId;
     }
@@ -46,7 +39,6 @@ public class ChunkUploadResponse {
         this.uploadId = uploadId;
     }
 
-    @XmlElement(required = true)
     public int getAcceptedChunks() {
         return acceptedChunks;
     }
@@ -55,7 +47,6 @@ public class ChunkUploadResponse {
         this.acceptedChunks = acceptedChunks;
     }
 
-    @XmlElement(required = true)
     public boolean isExpectingMore() {
         return expectingMore;
     }
@@ -64,7 +55,6 @@ public class ChunkUploadResponse {
         this.expectingMore = expectingMore;
     }
 
-    @XmlElement(required = false)
     public String getSuccessMessage() {
         return successMessage;
     }
@@ -73,7 +63,6 @@ public class ChunkUploadResponse {
         successMessage = message;
     }
 
-    @XmlElement(required = false)
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }

@@ -21,55 +21,42 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
-
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.core.Response;
-
-import org.zanata.rest.MediaTypes;
-import org.zanata.rest.dto.Account;
 import javax.annotation.Nullable;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.zanata.rest.MediaTypes;
+import org.zanata.rest.dto.Account;
+
 public class AccountClient {
+    private static final MediaType ACCOUNT_JSON =
+            MediaType.parseMediaType(MediaTypes.APPLICATION_ZANATA_ACCOUNT_JSON);
+
     private final RestClientFactory factory;
-    private final URI baseUri;
 
     AccountClient(RestClientFactory factory) {
         this.factory = factory;
-        this.baseUri = factory.getBaseUri();
     }
 
     public @Nullable Account get(String username) {
         try {
-            return webResource(username)
-                    .get(Account.class);
-        } catch (ResponseProcessingException e) {
-            if (e.getResponse().getStatusInfo().equals(Response.Status.NOT_FOUND)) {
-                return null;
-            } else {
-                throw e;
-            }
+            return factory.getSpringRestClient().get()
+                    .uri("accounts/u/{u}", username)
+                    .accept(ACCOUNT_JSON)
+                    .retrieve()
+                    .body(Account.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return null;
         }
     }
 
-    public Response put(String username, Account account) {
-        Response response = webResource(username)
-                .put(Entity.entity(account,
-                        MediaTypes.APPLICATION_ZANATA_ACCOUNT_XML));
-        response.close();
-        return response;
-    }
-
-    private Invocation.Builder webResource(String username) {
-        return factory.getClient().target(baseUri)
-                .path("accounts").path("u")
-                .path(username)
-                .request(MediaTypes.APPLICATION_ZANATA_ACCOUNT_XML);
+    public ResponseEntity<Void> put(String username, Account account) {
+        return factory.getSpringRestClient().put()
+                .uri("accounts/u/{u}", username)
+                .contentType(ACCOUNT_JSON)
+                .body(account)
+                .retrieve()
+                .toBodilessEntity();
     }
 }

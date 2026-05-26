@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -15,8 +12,6 @@ import org.zanata.common.LocaleId;
 import org.zanata.common.ResourceType;
 import org.zanata.rest.dto.HasCollectionSample;
 
-@XmlType(name = "resourceMetaType")
-@XmlRootElement(name = "resource-meta")
 @JsonPropertyOrder({ "name", "contentType", "lang", "extensions" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -55,7 +50,7 @@ public class ResourceMeta extends AbstractResourceMeta implements
     // @Override
     // public String toString()
     // {
-    // return DTOUtil.toXML(this);
+    // return DTOUtil.toJSON(this);
     // }
 
     @Override

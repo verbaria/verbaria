@@ -26,10 +26,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
-
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FilenameUtils;
@@ -47,25 +44,23 @@ import org.zanata.rest.dto.resource.TranslationsResource;
  *
  */
 public class XmlStrategy extends AbstractPushStrategy {
-    private JAXBContext jaxbContext;
-    private Unmarshaller unmarshaller;
+    private XmlMapper xmlMapper;
 
     public XmlStrategy() {
         super(new StringSet("comment;gettext"), ".xml");
-        try {
-            jaxbContext =
-                    JAXBContext.newInstance(Resource.class,
-                            TranslationsResource.class);
-            unmarshaller = jaxbContext.createUnmarshaller();
-        } catch (JAXBException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @VisibleForTesting
-    protected XmlStrategy(Unmarshaller unmarshaller) {
+    protected XmlStrategy(XmlMapper xmlMapper) {
         super(new StringSet("comment;gettext"), ".xml");
-        this.unmarshaller = unmarshaller;
+        this.xmlMapper = xmlMapper;
+    }
+
+    private synchronized XmlMapper xmlMapper() {
+        if (xmlMapper == null) {
+            xmlMapper = new XmlMapper();
+        }
+        return xmlMapper;
     }
 
     @Override
@@ -89,35 +84,25 @@ public class XmlStrategy extends AbstractPushStrategy {
     @Override
     public Resource loadSrcDoc(File sourceDir, String docName)
             throws IOException {
-        try {
-            String filename = docNameToFilename(docName);
-            File srcFile = new File(sourceDir, filename);
-            Resource resource = (Resource) unmarshaller.unmarshal(srcFile);
-            return resource;
-        } catch (JAXBException e) {
-            throw new IOException(e);
-        }
+        String filename = docNameToFilename(docName);
+        File srcFile = new File(sourceDir, filename);
+        return xmlMapper().readValue(srcFile, Resource.class);
     }
 
     @Override
     public void visitTranslationResources(String docName, Resource srcDoc,
             TranslationResourcesVisitor visitor) throws IOException {
-        try {
-            for (LocaleMapping locale : getOpts().getLocaleMapList()) {
-                File transFile = new TransFileResolver(getOpts()).getTransFile(
-                        DocNameWithoutExt.from(docName),
-                        locale);
-                if (transFile.exists()) {
-                    TranslationsResource targetDoc =
-                            (TranslationsResource) unmarshaller
-                                    .unmarshal(transFile);
-                    visitor.visit(locale, targetDoc);
-                } else {
-                    // no translation found in 'locale' for current doc
-                }
+        for (LocaleMapping locale : getOpts().getLocaleMapList()) {
+            File transFile = new TransFileResolver(getOpts()).getTransFile(
+                    DocNameWithoutExt.from(docName),
+                    locale);
+            if (transFile.exists()) {
+                TranslationsResource targetDoc = xmlMapper()
+                        .readValue(transFile, TranslationsResource.class);
+                visitor.visit(locale, targetDoc);
+            } else {
+                // no translation found in 'locale' for current doc
             }
-        } catch (JAXBException e) {
-            throw new IOException(e);
         }
     }
 }

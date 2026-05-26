@@ -21,78 +21,73 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
 import java.util.Set;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.RestUtil;
+import org.zanata.rest.dto.resource.TranslationsResource;
 
-/**
- * This "implements" caller methods to endpoints in TranslatedDocResource.
- *
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class TransDocResourceClient {
+    private static final String BASE =
+            "projects/p/{proj}/iterations/i/{iter}";
+
     private final RestClientFactory factory;
     private final String project;
     private final String projectVersion;
-    private final URI baseUri;
 
     TransDocResourceClient(RestClientFactory factory, String project,
             String projectVersion) {
         this.factory = factory;
         this.project = project;
         this.projectVersion = projectVersion;
-        baseUri = factory.getBaseUri();
     }
 
-    public Response getTranslations(String docId, LocaleId locale,
-                                    Set<String> extensions, boolean createSkeletons,
-                                    String eTag) {
-        Client client = factory.getClient();
+    public ResponseEntity<TranslationsResource> getTranslations(String docId,
+            LocaleId locale, Set<String> extensions, boolean createSkeletons,
+            String eTag) {
+        Object[] extArr = extensions == null ? new Object[0]
+                : extensions.toArray();
         try {
-            return getBaseServiceResource(client)
-                    .path("resource")
-                    .path("translations")
-                    .path(locale.getId())
-                    .queryParam("docId", docId)
-                    .queryParam("ext", extensions.toArray())
-                    .queryParam("skeletons", String.valueOf(createSkeletons))
-                    .queryParam("markTranslatedAsApproved", false)
-                    .request(MediaType.APPLICATION_XML_TYPE)
-                    .header(HttpHeaders.IF_NONE_MATCH, eTag)
-                    .get();
-        } catch (ResponseProcessingException e) {
-            if (RestUtil.isNotFound(e.getResponse())) {
-                // fallback to old endpoint
-                String idNoSlash = RestUtil.convertToDocumentURIId(docId);
-                return getBaseServiceResource(client)
-                        .path("r")
-                        .path(idNoSlash)
-                        .path("translations").path(locale.getId())
-                        .queryParam("ext", extensions.toArray())
-                        .queryParam("skeletons", String.valueOf(createSkeletons))
-                        .request(MediaType.APPLICATION_XML_TYPE)
-                        .header(HttpHeaders.IF_NONE_MATCH, eTag)
-                        .get();
-            }
-            throw e;
+            return rest().get()
+                    .uri(uri -> uri.path(BASE + "/resource/translations/{loc}")
+                            .queryParam("docId", docId)
+                            .queryParam("ext", extArr)
+                            .queryParam("skeletons", createSkeletons)
+                            .queryParam("markTranslatedAsApproved", false)
+                            .build(project, projectVersion, locale.getId()))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .headers(h -> {
+                        if (eTag != null) {
+                            h.set(HttpHeaders.IF_NONE_MATCH, eTag);
+                        }
+                    })
+                    .retrieve()
+                    .toEntity(TranslationsResource.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            String idNoSlash = RestUtil.convertToDocumentURIId(docId);
+            return rest().get()
+                    .uri(uri -> uri.path(BASE + "/r/{docId}/translations/{loc}")
+                            .queryParam("ext", extArr)
+                            .queryParam("skeletons", createSkeletons)
+                            .build(project, projectVersion, idNoSlash,
+                                    locale.getId()))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .headers(h -> {
+                        if (eTag != null) {
+                            h.set(HttpHeaders.IF_NONE_MATCH, eTag);
+                        }
+                    })
+                    .retrieve()
+                    .toEntity(TranslationsResource.class);
         }
     }
 
-    private WebTarget getBaseServiceResource(Client client) {
-        return client.target(baseUri)
-                .path("projects").path("p")
-                .path(project)
-                .path("iterations").path("i")
-                .path(projectVersion);
+    private RestClient rest() {
+        return factory.getSpringRestClient();
     }
-
 }

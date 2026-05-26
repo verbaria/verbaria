@@ -1,17 +1,15 @@
 package org.zanata.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
 
 import java.net.URI;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlType;
-
 /**
  * A single link to reference a URI
  */
-@XmlType(name = "linkType")
 @Label("Link")
 public class Link {
 
@@ -40,7 +38,7 @@ public class Link {
     /**
      * The URI reference by this link
      */
-    @XmlAttribute(name = "href", required = true)
+    @JsonProperty("href")
     @DocumentationExample(value = "http://alink.com")
     public URI getHref() {
         return href;
@@ -53,7 +51,7 @@ public class Link {
     /**
      * The relationship this link holds to its parent object
      */
-    @XmlAttribute(name = "rel", required = false)
+    @JsonProperty("rel")
     public String getRel() {
         return rel;
     }
@@ -65,7 +63,7 @@ public class Link {
     /**
      * The type of link
      */
-    @XmlAttribute(name = "type", required = true)
+    @JsonProperty("type")
     public String getType() {
         return type;
     }

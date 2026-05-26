@@ -45,7 +45,7 @@ import org.zanata.rest.dto.GlossaryEntry;
 
 import com.google.common.collect.Lists;
 
-import jakarta.ws.rs.client.ResponseProcessingException;
+import org.springframework.web.client.HttpClientErrorException;
 
 import static org.zanata.client.commands.glossary.push.GlossaryPushOptions.DEFAULT_SOURCE_LANG;
 
@@ -137,13 +137,9 @@ public class GlossaryPushCommand extends
             qualifiedName = StringUtils.isBlank(project)
                     ? client.getGlobalQualifiedName()
                     : client.getProjectQualifiedName(project);
-        } catch (ResponseProcessingException rpe) {
-            if (rpe.getResponse().getStatus() == 404) {
-                log.error("Project {} not found", project);
-                return;
-            } else {
-                throw rpe;
-            }
+        } catch (HttpClientErrorException.NotFound nf) {
+            log.error("Project {} not found", project);
+            return;
         }
         AbstractGlossaryPushReader reader = getReader(fileExtension);
 

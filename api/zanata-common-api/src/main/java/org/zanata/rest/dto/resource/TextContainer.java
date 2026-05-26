@@ -27,9 +27,6 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlTransient;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -40,7 +37,7 @@ import org.zanata.common.Namespaces;
 
 /**
  * This class contains string contents for a single translatable message. It
- * maps between the JAXB/JSON representation of <code>content</code>/
+ * maps between the JSON representation of <code>content</code>/
  * <code>contents</code> (in separate elements, for backwards-compatibility) and
  * the server model (which represents <code>contents</code> as an
  * <code>ArrayList</code> to support plural forms). This class is the superclass
@@ -49,7 +46,6 @@ import org.zanata.common.Namespaces;
  * @author Sean Flanigan <a
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  */
-@XmlTransient
 @Label("Text Container")
 class TextContainer implements Serializable, HasContents {
     private static final long serialVersionUID = 1L;
@@ -61,8 +57,6 @@ class TextContainer implements Serializable, HasContents {
      *
      * @see #contents
      */
-    @XmlElement(name = "content", required = false,
-            namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("content")
     @DocumentationExample(exclude = true)
     private String content;
@@ -73,8 +67,6 @@ class TextContainer implements Serializable, HasContents {
      *
      * @see #content
      */
-    @XmlElementWrapper(name = "contents", namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "content", namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("contents")
     @DocumentationExample(value = "An english string to translate",
         value2 = "A plural english string to translate")
@@ -85,7 +77,7 @@ class TextContainer implements Serializable, HasContents {
      * @return
      */
     @Deprecated
-    @XmlTransient
+    @JsonIgnore
     public String getContent() {
         if (content == null)
             return "";
@@ -111,7 +103,6 @@ class TextContainer implements Serializable, HasContents {
      * @return
      */
     @JsonIgnore
-    @XmlTransient
     public @Nonnull List<String> getContents() {
         if (content != null) {
             return Arrays.asList(content);

@@ -26,13 +26,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementRef;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
-import jakarta.xml.bind.annotation.XmlType;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 
@@ -42,9 +37,7 @@ import com.google.common.collect.ImmutableList;
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
  */
-@XmlType(name = "configType", propOrder = { "url", "project", "projectVersion",
-        "projectType", "srcDir", "transDir", "includes", "excludes", "hooks", "locales", "rules" })
-@XmlRootElement(name = "config")
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ZanataConfig implements Serializable {
     private static final long serialVersionUID = 1L;
     private LocaleList locales = new LocaleList();
@@ -65,8 +58,6 @@ public class ZanataConfig implements Serializable {
     public ZanataConfig() {
     }
 
-    @XmlElementWrapper(name = "locales", required = false)
-    @XmlElementRef(type = LocaleMapping.class, name = "locale")
     public LocaleList getLocales() {
         return locales;
     }
@@ -75,8 +66,6 @@ public class ZanataConfig implements Serializable {
         this.locales = locales;
     }
 
-    @XmlElementWrapper(name = "hooks", required = false)
-    @XmlElement(name = "hook")
     public List<CommandHook> getHooks() {
         return hooks;
     }
@@ -85,7 +74,6 @@ public class ZanataConfig implements Serializable {
         this.hooks = commandHooks;
     }
 
-    @XmlElement(name = "project")
     public String getProject() {
         return project;
     }
@@ -94,7 +82,6 @@ public class ZanataConfig implements Serializable {
         this.project = project;
     }
 
-    @XmlElement(name = "url")
     public URL getUrl() {
         return url;
     }
@@ -103,7 +90,6 @@ public class ZanataConfig implements Serializable {
         this.url = url;
     }
 
-    @XmlElement(name = "project-type")
     public String getProjectType() {
         return projectType;
     }
@@ -112,7 +98,6 @@ public class ZanataConfig implements Serializable {
         this.projectType = type;
     }
 
-    @XmlElement(name = "project-version")
     public String getProjectVersion() {
         return projectVersion;
     }
@@ -121,7 +106,6 @@ public class ZanataConfig implements Serializable {
         this.projectVersion = version;
     }
 
-    @XmlElement(name = "src-dir")
     public String getSrcDir() {
         return srcDir;
     }
@@ -130,7 +114,6 @@ public class ZanataConfig implements Serializable {
         this.srcDir = srcDir;
     }
 
-    @XmlElement(name = "trans-dir")
     public String getTransDir() {
         return transDir;
     }
@@ -139,7 +122,6 @@ public class ZanataConfig implements Serializable {
         this.transDir = transDir;
     }
 
-    @XmlElement
     public String getIncludes() {
         return includes;
     }
@@ -148,7 +130,6 @@ public class ZanataConfig implements Serializable {
         this.includes = includes;
     }
 
-    @XmlElement
     public String getExcludes() {
         return excludes;
     }
@@ -157,17 +138,17 @@ public class ZanataConfig implements Serializable {
         this.excludes = excludes;
     }
 
-    @XmlTransient
+    @JsonIgnore
     public File getSrcDirAsFile() {
         return new File(srcDir);
     }
 
-    @XmlTransient
+    @JsonIgnore
     public File getTransDirAsFile() {
         return new File(transDir);
     }
 
-    @XmlTransient
+    @JsonIgnore
     public ImmutableList<String> getIncludesAsList() {
         if (includes != null) {
             return ImmutableList.copyOf(splitter.split(includes));
@@ -175,7 +156,7 @@ public class ZanataConfig implements Serializable {
         return ImmutableList.of();
     }
 
-    @XmlTransient
+    @JsonIgnore
     public ImmutableList<String> getExcludesAsList() {
         if (excludes != null) {
             return ImmutableList.copyOf(splitter.split(excludes));
@@ -183,8 +164,6 @@ public class ZanataConfig implements Serializable {
         return ImmutableList.of();
     }
 
-    @XmlElementWrapper(name = "rules", required = false)
-    @XmlElement(name = "rule")
     public List<FileMappingRule> getRules() {
         return rules;
     }

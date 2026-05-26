@@ -25,10 +25,6 @@ import java.util.Date;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -44,7 +40,6 @@ import org.zanata.common.Namespaces;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  *
  */
-@XmlType(name = "glossaryTermType", propOrder = {"comment", "content", "locale", "lastModifiedDate", "lastModifiedBy"})
 @JsonPropertyOrder({ "content", "comment", "locale", "lastModifiedDate", "lastModifiedBy" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -74,9 +69,7 @@ public class GlossaryTerm implements Serializable {
     /**
      * Term's locale
      */
-    @XmlAttribute(name = "lang", namespace = Namespaces.XML)
-    @XmlJavaTypeAdapter(type = LocaleId.class, value = LocaleIdAdapter.class)
-    @JsonProperty("locale")
+    @JsonProperty("lang")
     @DocumentationExample(value = "es-ES", value2 = "ja")
     public LocaleId getLocale() {
         return locale;
@@ -89,8 +82,6 @@ public class GlossaryTerm implements Serializable {
     /**
      * The term's translation in the given locale
      */
-    @XmlElement(name = "content", required = false,
-            namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("content")
     @DocumentationExample(value = "Una casa", value2 = "家")
     public String getContent() {
@@ -101,7 +92,6 @@ public class GlossaryTerm implements Serializable {
         this.content = content;
     }
 
-    @XmlElement(name = "comment", namespace = Namespaces.ZANATA_API)
     @JsonProperty("comment")
     public String getComment() {
         return comment;
@@ -114,8 +104,6 @@ public class GlossaryTerm implements Serializable {
     /**
      * A string which identifies the user who last modififed this entry
      */
-    @XmlElement(name = "lastModifiedBy", required = false,
-        namespace = Namespaces.ZANATA_API)
     @JsonProperty("lastModifiedBy")
     @DocumentationExample("homer")
     public String getLastModifiedBy() {
@@ -129,8 +117,6 @@ public class GlossaryTerm implements Serializable {
     /**
      * A timestamp indicating the last modification date for this entry
      */
-    @XmlElement(name = "lastModifiedDate", required = false,
-        namespace = Namespaces.ZANATA_API)
     @JsonProperty("lastModifiedDate")
     public Date getLastModifiedDate() {
         return lastModifiedDate != null ? new Date(
@@ -145,7 +131,7 @@ public class GlossaryTerm implements Serializable {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

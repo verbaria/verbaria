@@ -5,11 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.List;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.Marshaller;
 
 import org.fedorahosted.tennera.jgettext.Message;
 import org.junit.Rule;
@@ -58,26 +55,6 @@ public class PoReader2Test {
         assertThat(textFlowTargets).hasSize(137);
         TextFlowTarget target = textFlowTargets.iterator().next();
         assertThat(target).isNotNull();
-
-        JAXBContext jaxbContext =
-                JAXBContext.newInstance(Resource.class,
-                        TranslationsResource.class);
-        Marshaller m = jaxbContext.createMarshaller();
-        m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-
-        log.debug("marshalling source doc");
-        {
-            StringWriter writer = new StringWriter();
-            m.marshal(doc, writer);
-            log.debug("{}", writer);
-        }
-
-        log.debug("marshalling target doc");
-        {
-            StringWriter writer = new StringWriter();
-            m.marshal(targetDoc, writer);
-            log.debug("{}", writer);
-        }
 
         List<TextFlow> resources = doc.getTextFlows();
 

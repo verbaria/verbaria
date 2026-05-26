@@ -22,18 +22,17 @@ package org.zanata.client.etag;
 
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@XmlRootElement(name = "etag-cache")
 public class ETagCacheCollection {
     private List<ETagCacheEntry> cacheEntries = new ArrayList<ETagCacheEntry>();
 
-    @XmlElement(name = "entry")
+    @JsonProperty("entries")
     public List<ETagCacheEntry> getCacheEntries() {
         return cacheEntries;
     }

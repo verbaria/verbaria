@@ -13,7 +13,7 @@ public abstract class ConfigurableGlossaryOptionsImpl extends ConfigurableOption
     /**
      * Configuration file for Zanata client.
      */
-    private File config = new File("zanata.xml");
+    private File config = new File("verbaria.json");
 
     private String project;
 
@@ -28,7 +28,7 @@ public abstract class ConfigurableGlossaryOptionsImpl extends ConfigurableOption
     }
 
     @Option(name = "--config", metaVar = "FILENAME",
-        usage = "Configuration file, eg zanata.xml",
+        usage = "Configuration file, eg verbaria.json",
         required = false)
     public void setConfig(File config) {
         this.config = config;

@@ -38,9 +38,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import jakarta.ws.rs.core.Response;
-
-import org.jboss.resteasy.specimpl.MultivaluedMapImpl;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.junit.rules.ExternalResource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -97,13 +96,14 @@ public class MockServerRule extends ExternalResource {
     @Captor
     private ArgumentCaptor<TranslationsResource> transResourceCaptor;
     @Mock
-    private Response transResourceResponse;
+    private ResponseEntity<org.zanata.rest.dto.resource.TranslationsResource>
+            transResourceResponse;
     @Captor
     private ArgumentCaptor<DocumentFileUploadForm> uploadFormCaptor;
     @Mock
-    private Response downloadSourceResponse;
+    private ResponseEntity<byte[]> downloadSourceResponse;
     @Mock
-    private Response downloadTransResponse;
+    private ResponseEntity<byte[]> downloadTransResponse;
     @Mock
     private RestClientFactory clientFactory;
     @Mock
@@ -266,17 +266,15 @@ public class MockServerRule extends ExternalResource {
                         pullOpts.getProjectVersion())).thenReturn(
                 transDocClient);
         // return provided server translation
+        ResponseEntity<TranslationsResource> transEntity = ResponseEntity.ok()
+                .headers(new HttpHeaders())
+                .body(transResourceOnServer);
         when(
                 transDocClient.getTranslations(anyString(),
                         any(LocaleId.class), anySet(),
-                        eq(getPullOpts().getCreateSkeletons()), any(String.class)))
-                .thenReturn(transResourceResponse);
-        when(transResourceResponse.getStatus()).thenReturn(200);
-
-        when(transResourceResponse.getStringHeaders()).thenReturn(
-                new MultivaluedMapImpl<>());
-        when(transResourceResponse.readEntity(TranslationsResource.class))
-                .thenReturn(transResourceOnServer);
+                        eq(getPullOpts().getCreateSkeletons()),
+                        any(String.class)))
+                .thenReturn(transEntity);
         return new PullCommand(pullOpts, clientFactory);
     }
 
@@ -351,27 +349,27 @@ public class MockServerRule extends ExternalResource {
         when(clientFactory.getFileResourceClient()).thenReturn(fileResourceClient);
         // return provided remote doc meta list
         when(sourceDocClient.getResourceMeta(null)).thenReturn(remoteDocList);
-        // return provided source stream
+        // return provided source / translation streams as byte[] entities
+        ResponseEntity<byte[]> srcEntity =
+                ResponseEntity.ok(readAll(sourceFileStream));
+        ResponseEntity<byte[]> transEntity =
+                ResponseEntity.ok(readAll(transFileStream));
         when(fileResourceClient.downloadSourceFile(
                 eq(pullOpts.getProj()), eq(pullOpts.getProjectVersion()),
                 eq(FileResource.FILETYPE_RAW_SOURCE_DOCUMENT),
-                anyString())).thenReturn(downloadSourceResponse);
-        when(downloadSourceResponse.getStatusInfo()).thenReturn(
-                Response.Status.OK);
-        when(downloadSourceResponse.getStatus()).thenReturn(200);
-        when(downloadSourceResponse.readEntity(InputStream.class))
-                .thenReturn(sourceFileStream);
-        // return provide translation stream
+                anyString())).thenReturn(srcEntity);
         when(fileResourceClient.downloadTranslationFile(eq(pullOpts.getProj()),
                 eq(pullOpts.getProjectVersion()), anyString(), anyString(),
-                anyString(), anyBoolean())).thenReturn(downloadTransResponse);
-        when(downloadTransResponse.getStatus()).thenReturn(200);
-        when(downloadTransResponse.getHeaders()).thenReturn(new MultivaluedMapImpl<>());
-        when(downloadTransResponse.getStatusInfo()).thenReturn(
-                Response.Status.OK);
-        when(downloadTransResponse.readEntity(InputStream.class))
-                .thenReturn(transFileStream);
+                anyString(), anyBoolean())).thenReturn(transEntity);
         return new RawPullCommand(pullOpts, fileResourceClient, clientFactory);
+    }
+
+    private static byte[] readAll(InputStream in) {
+        try {
+            return in.readAllBytes();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

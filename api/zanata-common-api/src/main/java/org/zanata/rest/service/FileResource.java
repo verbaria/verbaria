@@ -149,7 +149,7 @@ public interface FileResource {
     @POST
     @Path(SOURCE_UPLOAD_TEMPLATE)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_JSON)
     // /file/source/{projectSlug}/{iterationSlug}?docId={docId}
     @TypeHint(ChunkUploadResponse.class)
     public
@@ -180,7 +180,7 @@ public interface FileResource {
     @POST
     @Path(TRANSLATION_UPLOAD_TEMPLATE)
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_XML)
+    @Produces(MediaType.APPLICATION_JSON)
     // /file/translation/{projectSlug}/{iterationSlug}/{locale}?docId={docId}&merge={merge}
     @TypeHint(ChunkUploadResponse.class)
     public

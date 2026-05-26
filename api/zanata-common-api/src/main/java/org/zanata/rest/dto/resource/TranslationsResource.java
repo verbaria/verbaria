@@ -4,12 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -25,9 +19,6 @@ import org.zanata.rest.dto.extensions.gettext.TranslationsResourceExtension;
 /**
  * Represents the translation of a document into a single locale.
  */
-@XmlType(name = "translationsResourceType", propOrder = { "links",
-        "extensions", "textFlowTargets" })
-@XmlRootElement(name = "translations")
 @JsonPropertyOrder({ "links", "extensions", "textFlowTargets" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -44,9 +35,7 @@ public class TranslationsResource implements Serializable,
     /**
      * Any provided extensions
      */
-    @XmlElementWrapper(name = "extensions", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "extension", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("extensions")
     public ExtensionSet<TranslationsResourceExtension> getExtensions() {
         return extensions;
     }
@@ -67,10 +56,7 @@ public class TranslationsResource implements Serializable,
     /**
      * The text flow targets (i.e. translated text)
      */
-    @XmlElementWrapper(name = "targets", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "text-flow-target", namespace = Namespaces.ZANATA_API)
-    @JsonProperty("textFlowTargets")
+    @JsonProperty("targets")
     public List<TextFlowTarget> getTextFlowTargets() {
         if (textFlowTargets == null) {
             textFlowTargets = new ArrayList<TextFlowTarget>();
@@ -81,7 +67,7 @@ public class TranslationsResource implements Serializable,
     /**
      * A collection of links provided with the translations.
      */
-    @XmlElement(name = "links", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("links")
     public Links getLinks() {
         return links;
     }
@@ -100,7 +86,6 @@ public class TranslationsResource implements Serializable,
     /**
      * Revision number for the translations
      */
-    @XmlAttribute()
     public Integer getRevision() {
         return revision;
     }
@@ -117,7 +102,7 @@ public class TranslationsResource implements Serializable,
     // @Override
     // public String toString()
     // {
-    // return DTOUtil.toXML(this);
+    // return DTOUtil.toJSON(this);
     // }
 
     @Override

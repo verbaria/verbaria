@@ -1,9 +1,8 @@
 package org.zanata.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -15,8 +14,6 @@ import org.zanata.common.Namespaces;
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
-@XmlRootElement(name = "glossaryLocaleInfo")
-@XmlType(name = "glossaryLocaleInfoType", propOrder = { "locale", "numberOfTerms" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "locale", "numberOfTerms"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -35,8 +32,7 @@ public class GlossaryLocaleInfo implements Serializable {
         this.numberOfTerms = numberOfTerms;
     }
 
-    @XmlElement(name = "locale", required = false,
-        namespace = Namespaces.ZANATA_API)
+    @JsonProperty("locale")
     public LocaleDetails getLocale() {
         return locale;
     }
@@ -48,8 +44,7 @@ public class GlossaryLocaleInfo implements Serializable {
     /**
      * Number of terms available for the glossary in this locale
      */
-    @XmlElement(name = "numberOfTerms", required = false,
-        namespace = Namespaces.ZANATA_API)
+    @JsonProperty("numberOfTerms")
     @DocumentationExample("2")
     public int getNumberOfTerms() {
         return numberOfTerms;

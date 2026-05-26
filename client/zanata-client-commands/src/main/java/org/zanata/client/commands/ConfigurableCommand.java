@@ -33,7 +33,7 @@ import org.zanata.client.config.CommandHook;
 import org.zanata.rest.client.RestClientFactory;
 
 /**
- * Base class for commands which supports configuration by the user's zanata.ini
+ * Base class for commands which supports configuration by the user's verbaria.ini
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *

@@ -12,6 +12,10 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.SubCommand;
 import org.kohsuke.args4j.spi.SubCommands;
+import org.springframework.boot.Banner;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.zanata.client.commands.AppAbortException;
 import org.zanata.client.commands.AppAbortStrategy;
 import org.zanata.client.commands.ArgsUtil;
@@ -41,6 +45,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  *
  */
+@SpringBootApplication
 public class ZanataClient extends BasicOptionsImpl {
     public static final String COMMAND_NAME = System.getProperty("app.name",
             "zanata-cli");
@@ -99,8 +104,14 @@ public class ZanataClient extends BasicOptionsImpl {
     }
 
     public static void main(String[] args) {
-        ZanataClient tool = new ZanataClient();
-        tool.processArgs(args);
+        new SpringApplicationBuilder(ZanataClient.class)
+                .web(WebApplicationType.NONE)
+                .bannerMode(Banner.Mode.OFF)
+                .logStartupInfo(false)
+                .registerShutdownHook(false)
+                .run(args)
+                .getBean(ZanataClient.class)
+                .processArgs(args);
     }
 
     @Override

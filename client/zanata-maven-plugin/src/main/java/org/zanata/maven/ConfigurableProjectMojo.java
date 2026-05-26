@@ -13,8 +13,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Base class for mojos which support configuration by the user's zanata.ini and
- * by a project's zanata.xml
+ * Base class for mojos which support configuration by the user's verbaria.ini and
+ * by a project's verbaria.json
  * @author Sean Flanigan <sflaniga@redhat.com>
  */
 public abstract class ConfigurableProjectMojo<O extends ConfigurableOptions>
@@ -31,7 +31,7 @@ public abstract class ConfigurableProjectMojo<O extends ConfigurableOptions>
     /**
      * Zanata project configuration file.
      */
-    @Parameter(property = "zanata.projectConfig", defaultValue = "${basedir}/zanata.xml")
+    @Parameter(property = "zanata.projectConfig", defaultValue = "${basedir}/verbaria.json")
     private File projectConfig;
 
     /**

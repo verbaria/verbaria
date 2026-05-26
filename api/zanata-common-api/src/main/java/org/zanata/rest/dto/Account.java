@@ -6,10 +6,6 @@ import java.util.Set;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -26,8 +22,6 @@ import org.zanata.rest.MediaTypes.Format;
 /**
  * System user account.
  */
-@XmlType(name = "accountType")
-@XmlRootElement(name = "account")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "email", "name", "username", "password" })
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -62,7 +56,7 @@ public class Account implements Serializable, HasMediaType {
         this.passwordHash = passwordHash;
     }
 
-    @XmlAttribute(name = "email", required = true)
+    @JsonProperty("email")
     @Email
     @NotNull
     @DocumentationExample("email@example.com")
@@ -74,7 +68,7 @@ public class Account implements Serializable, HasMediaType {
         this.email = email;
     }
 
-    @XmlAttribute(name = "name", required = true)
+    @JsonProperty("name")
     @NotEmpty
     @DocumentationExample("Homer Simpson")
     public String getName() {
@@ -85,7 +79,7 @@ public class Account implements Serializable, HasMediaType {
         this.name = name;
     }
 
-    @XmlAttribute(name = "username", required = true)
+    @JsonProperty("username")
     @NotEmpty
     @DocumentationExample("homer")
     public String getUsername() {
@@ -96,7 +90,7 @@ public class Account implements Serializable, HasMediaType {
         this.username = username;
     }
 
-    @XmlAttribute(name = "passwordHash")
+    @JsonProperty("passwordHash")
     @DocumentationExample("cf23df2207d99a74fbe169e3eba035e633b65d94")
     public String getPasswordHash() {
         return passwordHash;
@@ -106,7 +100,7 @@ public class Account implements Serializable, HasMediaType {
         this.passwordHash = password;
     }
 
-    @XmlAttribute(name = "apiKey")
+    @JsonProperty("apiKey")
     @Size(min = 32, max = 32)
     @DocumentationExample("qiyh4XPJGsOZ2MEAyLkfWqeQ")
     public String getApiKey() {
@@ -117,7 +111,7 @@ public class Account implements Serializable, HasMediaType {
         this.apiKey = apiKey;
     }
 
-    @XmlAttribute(name = "enabled", required = true)
+    @JsonProperty("enabled")
     @NotNull
     public boolean isEnabled() {
         return enabled;
@@ -127,8 +121,7 @@ public class Account implements Serializable, HasMediaType {
         this.enabled = enabled;
     }
 
-    @XmlElement(name = "role", namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("roles")
+    @JsonProperty("role")
     @DocumentationExample(value = "admin", value2 = "project-creator")
     public Set<String> getRoles() {
         return roles;
@@ -141,7 +134,6 @@ public class Account implements Serializable, HasMediaType {
     /**
      * Global language teams the account belongs to
      */
-    @XmlElement(name = "languages", namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("languages")
     @DocumentationExample(value = "es", value2 = "ja")
     public Set<String> getLanguages() {
@@ -156,8 +148,7 @@ public class Account implements Serializable, HasMediaType {
      * Deprecated. Use {@link #getLanguages()}}
      */
     @Deprecated
-    @XmlElement(name = "tribe", namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("tribes")
+    @JsonProperty("tribe")
     @DocumentationExample(value = "es", value2 = "ja")
     public Set<String> getTribes() {
         return getLanguages();
@@ -178,7 +169,7 @@ public class Account implements Serializable, HasMediaType {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

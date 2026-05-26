@@ -44,7 +44,7 @@ public class ETagCacheTest {
     public void readCache() {
         InputStream is =
                 this.getClass()
-                        .getResourceAsStream("/etagcache/etag-cache.xml");
+                        .getResourceAsStream("/etagcache/etag-cache.json");
         ETagCache cache = ETagCacheReaderWriter.readCache(is);
 
         assertThat(cache.getCacheEntries().size(), is(3));
@@ -96,7 +96,7 @@ public class ETagCacheTest {
     public void findEntry() throws Exception {
         InputStream is =
                 this.getClass()
-                        .getResourceAsStream("/etagcache/etag-cache.xml");
+                        .getResourceAsStream("/etagcache/etag-cache.json");
         ETagCache cache = ETagCacheReaderWriter.readCache(is);
 
         assertThat(cache.getCacheEntries().size(), is(3));

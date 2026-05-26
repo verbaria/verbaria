@@ -1,11 +1,9 @@
 package org.zanata.rest.dto.extensions.gettext;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.zanata.rest.dto.DTOUtil;
@@ -17,7 +15,6 @@ import org.zanata.rest.dto.DTOUtil;
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  *
  */
-@XmlType(name = "poHeaderExtension", propOrder = { "comment", "entries" })
 @JsonTypeName(value = "po-header")
 public class PoHeader implements AbstractResourceMetaExtension {
 
@@ -39,7 +36,7 @@ public class PoHeader implements AbstractResourceMetaExtension {
         }
     }
 
-    @XmlElement(name = "comment", required = true)
+    @JsonProperty("comment")
     public String getComment() {
         return comment;
     }
@@ -48,8 +45,7 @@ public class PoHeader implements AbstractResourceMetaExtension {
         this.comment = comment;
     }
 
-    @XmlElementWrapper(name = "entries", required = true)
-    @XmlElement(name = "entry")
+    @JsonProperty("entries")
     public List<HeaderEntry> getEntries() {
         if (entries == null)
             entries = new ArrayList<HeaderEntry>();
@@ -58,7 +54,7 @@ public class PoHeader implements AbstractResourceMetaExtension {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

@@ -4,15 +4,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.InvalidPropertiesFormatException;
 import java.util.List;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -53,48 +48,26 @@ public class PropReaderWriterTest {
     }
 
     @Test
-    public void roundtripSrcPropsToDocXmlToProps() throws Exception {
+    public void roundtripSrcPropsToDocToProps() throws Exception {
         String docName = "test.properties";
         Resource srcDoc = new Resource("test");
         InputStream testStream = getResourceAsStream(docName);
 
         propReader.extractTemplate(srcDoc, testStream);
-        JAXBContext jc = JAXBContext.newInstance(Resource.class);
-        Marshaller marshal = jc.createMarshaller();
-        StringWriter sw = new StringWriter();
-        marshal.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshal.marshal(srcDoc, sw);
-        log.debug("{}", sw);
 
-        Unmarshaller unmarshal = jc.createUnmarshaller();
-        Resource docIn =
-                (Resource) unmarshal.unmarshal(new StringReader(sw.toString()));
-
-        PropWriter.writeSource(docIn, TEST_OUTPUT_DIR, PropWriter.CHARSET.Latin1);
+        PropWriter.writeSource(srcDoc, TEST_OUTPUT_DIR, PropWriter.CHARSET.Latin1);
 
         assertInputAndOutputDocContentSame(docName);
     }
 
     @Test
-    public void roundtripTransPropsToDocXmlToProps() throws Exception {
+    public void roundtripTransPropsToDocToProps() throws Exception {
         String docName = "test_fr.properties";
         InputStream targetStream = getResourceAsStream(docName);
         TranslationsResource transDoc = new TranslationsResource();
         propReader.extractTarget(transDoc, targetStream, new Resource());
 
-        JAXBContext jc = JAXBContext.newInstance(TranslationsResource.class);
-        Marshaller marshal = jc.createMarshaller();
-        StringWriter sw = new StringWriter();
-        marshal.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshal.marshal(transDoc, sw);
-        log.debug("{}", sw);
-
-        Unmarshaller unmarshal = jc.createUnmarshaller();
-        TranslationsResource docIn =
-                (TranslationsResource) unmarshal.unmarshal(new StringReader(sw
-                        .toString()));
-
-        PropWriter.writeTranslations(new TranslatedDoc(null, docIn, localeId), TEST_OUTPUT_DIR,
+        PropWriter.writeTranslations(new TranslatedDoc(null, transDoc, localeId), TEST_OUTPUT_DIR,
             "test", locale, PropWriter.CHARSET.Latin1, false, false);
 
         assertInputAndOutputDocContentSame(docName);

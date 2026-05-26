@@ -201,9 +201,9 @@ public class FileResourceClientTest {
 
     @Test
     public void testDownloadSourceFile() throws IOException {
-        InputStream inputStream =
-                client.downloadSourceFile("about-fedora", "master", "pot",
-                        "About-Fedora").readEntity(InputStream.class);
+        byte[] bytes = client.downloadSourceFile("about-fedora", "master",
+                "pot", "About-Fedora").getBody();
+        InputStream inputStream = new java.io.ByteArrayInputStream(bytes);
         PoReader2 reader = new PoReader2();
         Resource resource = executeWithIODebug(inputStream, in ->
                 reader.extractTemplate(
@@ -215,9 +215,9 @@ public class FileResourceClientTest {
 
     @Test
     public void testDownloadTranslationFile() throws Exception {
-        InputStream inputStream =
-                client.downloadTranslationFile("about-fedora", "master", "es",
-                        "po", "About-Fedora", false).readEntity(InputStream.class);
+        byte[] bytes = client.downloadTranslationFile("about-fedora", "master",
+                "es", "po", "About-Fedora", false).getBody();
+        InputStream inputStream = new java.io.ByteArrayInputStream(bytes);
         PoReader2 reader = new PoReader2();
         TranslationsResource translationsResource = executeWithIODebug(
                 inputStream, in ->

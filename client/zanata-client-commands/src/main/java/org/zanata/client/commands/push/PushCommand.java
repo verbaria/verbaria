@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import jakarta.ws.rs.client.ResponseProcessingException;
+import org.springframework.web.client.HttpClientErrorException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -878,17 +878,21 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             copyTransStatus =
                     this.copyTransClient.getCopyTransStatus(getOpts()
                             .getProj(), getOpts().getProjectVersion(), docName);
-        } catch (ResponseProcessingException e) {
+        } catch (HttpClientErrorException.NotFound e) {
             // 404 - Probably because of an old server
-            if (e.getResponse().getStatus() == 404 && getClientFactory()
+            if (getClientFactory()
                     .compareToServerVersion("1.8.0-SNAPSHOT") < 0) {
                 log.warn("Copy Trans not started (Incompatible server version.)");
                 return;
-            } else {
-                throw new RuntimeException(
-                        "Could not invoke copy trans. The service returned (" + e.getResponse().getStatus() + ")",
-                        Throwables.getRootCause(e));
             }
+            throw new RuntimeException(
+                    "Could not invoke copy trans. The service returned (404)",
+                    Throwables.getRootCause(e));
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException(
+                    "Could not invoke copy trans. The service returned ("
+                            + e.getStatusCode().value() + ")",
+                    Throwables.getRootCause(e));
         } catch (Exception failure) {
             if (failure.getCause() != null) {
                 throw new RuntimeException("Problem invoking copy trans.",

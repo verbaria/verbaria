@@ -21,7 +21,7 @@ public class ProjectConfigHandlerTest {
                 MockConsoleInteractor.predefineAnswers("y");
         InitOptions opts = new InitOptionsImpl();
         ProjectConfigHandler handler = new ProjectConfigHandler(console, opts);
-        File projectConfig = tempFolder.newFile("zanata.xml");
+        File projectConfig = tempFolder.newFile("verbaria.json");
         opts.setProjectConfig(projectConfig);
 
         handler.handleExistingProjectConfig();

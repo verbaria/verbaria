@@ -1,11 +1,10 @@
 package org.zanata.rest.dto.resource;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.zanata.common.Namespaces;
@@ -20,15 +19,13 @@ import org.zanata.rest.dto.HasSample;
  * @author asgeirf
  *
  */
-@XmlType(name = "resourcesListType", propOrder = { "resources" })
 public class ResourceMetaList implements Serializable,
         HasSample<ResourceMetaList> {
 
     private static final long serialVersionUID = -3469563349425397350L;
     private List<ResourceMeta> resources;
 
-    @XmlElement(name = "resource", required = true,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("resource")
     @JsonValue
     public List<ResourceMeta> getResources() {
         if (resources == null) {
@@ -46,7 +43,7 @@ public class ResourceMetaList implements Serializable,
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

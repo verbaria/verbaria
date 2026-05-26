@@ -21,162 +21,139 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
 import java.util.Set;
 
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
+import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.RestUtil;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.rest.service.AsynchronousProcessResource;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
-public class AsyncProcessClient implements AsynchronousProcessResource {
+public class AsyncProcessClient {
+    private static final String BASE = "/async/projects/p/{proj}/iterations/i/{iter}";
 
     private final RestClientFactory factory;
-    private final URI baseUri;
 
     AsyncProcessClient(RestClientFactory factory) {
         this.factory = factory;
-        baseUri = factory.getBaseUri();
     }
 
     @Deprecated
-    @Override
+
     public ProcessStatus startSourceDocCreation(String idNoSlash,
             String projectSlug, String iterationSlug, Resource resource,
-            Set<String> extensions, @DefaultValue("true") boolean copytrans) {
+            Set<String> extensions, boolean copytrans) {
         throw new UnsupportedOperationException(
                 "Not supported. Use startSourceDocCreationOrUpdate instead.");
     }
 
-    @Override
+
     @Deprecated
     public ProcessStatus startSourceDocCreationOrUpdate(String idNoSlash,
             String projectSlug, String iterationSlug, Resource resource,
-            Set<String> extensions, @DefaultValue("true") boolean copytrans) {
-        Client client = factory.getClient();
-        WebTarget webResource = client.target(baseUri)
-                .path(AsynchronousProcessResource.SERVICE_PATH)
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(iterationSlug)
-                .path("r").path(idNoSlash);
-        Response response = webResource
-                .queryParam("ext", extensions.toArray())
-                .queryParam("copyTrans", String.valueOf(copytrans))
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .put(Entity.xml(resource));
-        response.bufferEntity();
-        return response.readEntity(ProcessStatus.class);
+            Set<String> extensions, boolean copytrans) {
+        Object[] extArr = extensions.toArray();
+        return rest().put()
+                .uri(uri -> uri.path(BASE + "/r/{docId}")
+                        .queryParam("ext", extArr)
+                        .queryParam("copyTrans", copytrans)
+                        .build(projectSlug, iterationSlug, idNoSlash))
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(resource)
+                .retrieve()
+                .body(ProcessStatus.class);
     }
 
-    @Override
+
     public ProcessStatus startSourceDocCreationOrUpdateWithDocId(
             String projectSlug, String iterationSlug, Resource resource,
             Set<String> extensions, String docId) {
-        Client client = factory.getClient();
-        WebTarget webResource = client.target(baseUri)
-                .path(AsynchronousProcessResource.SERVICE_PATH)
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(iterationSlug)
-                .path("resource");
+        Object[] extArr = extensions.toArray();
         try {
-            Response response = webResource
-                    .queryParam("docId", docId)
-                    .queryParam("ext", extensions.toArray())
-                    .request(MediaType.APPLICATION_XML_TYPE)
-                    .put(Entity.xml(resource));
-            response.bufferEntity();
-            return response.readEntity(ProcessStatus.class);
-        } catch (ResponseProcessingException e) {
-            if (RestUtil.isNotFound(e.getResponse())) {
-                // fallback to old endpoint
-                String idNoSlash = RestUtil.convertToDocumentURIId(docId);
-                return startSourceDocCreationOrUpdate(idNoSlash, projectSlug,
-                        iterationSlug, resource, extensions, false);
-            }
-            throw e;
+            return rest().put()
+                    .uri(uri -> uri.path(BASE + "/resource")
+                            .queryParam("docId", docId)
+                            .queryParam("ext", extArr)
+                            .build(projectSlug, iterationSlug))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(resource)
+                    .retrieve()
+                    .body(ProcessStatus.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            String idNoSlash = RestUtil.convertToDocumentURIId(docId);
+            return startSourceDocCreationOrUpdate(idNoSlash, projectSlug,
+                    iterationSlug, resource, extensions, false);
         }
     }
 
-    @Override
+
     @Deprecated
     public ProcessStatus startTranslatedDocCreationOrUpdate(String idNoSlash,
             String projectSlug, String iterationSlug, LocaleId locale,
             TranslationsResource translatedDoc, Set<String> extensions,
-            String merge, @DefaultValue("false") boolean myTrans) {
-        Client client = factory.getClient();
-        WebTarget webResource = client.target(baseUri)
-                .path(AsynchronousProcessResource.SERVICE_PATH)
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(iterationSlug)
-                .path("r").path(idNoSlash)
-                .path("translations").path(locale.toString());
-        Response response = webResource
-                .queryParam("ext", extensions.toArray())
-                .queryParam("merge", merge)
-                .queryParam("assignCreditToUploader", String.valueOf(myTrans))
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .put(Entity
-                        .xml(translatedDoc));
-        response.bufferEntity();
-        return response.readEntity(ProcessStatus.class);
+            String merge, boolean myTrans) {
+        Object[] extArr = extensions.toArray();
+        return rest().put()
+                .uri(uri -> uri.path(
+                                BASE + "/r/{docId}/translations/{locale}")
+                        .queryParam("ext", extArr)
+                        .queryParam("merge", merge)
+                        .queryParam("assignCreditToUploader", myTrans)
+                        .build(projectSlug, iterationSlug, idNoSlash,
+                                locale.toString()))
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(translatedDoc)
+                .retrieve()
+                .body(ProcessStatus.class);
     }
 
-    @Override
+
     public ProcessStatus startTranslatedDocCreationOrUpdateWithDocId(
             String projectSlug, String iterationSlug, LocaleId locale,
             TranslationsResource translatedDoc, String docId,
-            Set<String> extensions,
-            String merge, boolean assignCreditToUploader) {
-        Client client = factory.getClient();
-        WebTarget webResource = client.target(baseUri)
-                .path(AsynchronousProcessResource.SERVICE_PATH)
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(iterationSlug)
-                .path("resource")
-                .path("translations").path(locale.toString());
+            Set<String> extensions, String merge,
+            boolean assignCreditToUploader) {
+        Object[] extArr = extensions.toArray();
         try {
-            Response response = webResource
-                    .queryParam("docId", docId)
-                    .queryParam("ext", extensions.toArray())
-                    .queryParam("merge", merge)
-                    .queryParam("assignCreditToUploader", String.valueOf(assignCreditToUploader))
-                    .request(MediaType.APPLICATION_XML_TYPE)
-                    .put(Entity.xml(translatedDoc));
-            response.bufferEntity();
-            return response.readEntity(ProcessStatus.class);
-        } catch (ResponseProcessingException e) {
-            if (RestUtil.isNotFound(e.getResponse())) {
-                // fallback to old endpoint
-                String idNoSlash = RestUtil.convertToDocumentURIId(docId);
-                return startTranslatedDocCreationOrUpdate(idNoSlash,
-                        projectSlug,
-                        iterationSlug, locale, translatedDoc, extensions, merge,
-                        assignCreditToUploader);
-            }
-            throw e;
+            return rest().put()
+                    .uri(uri -> uri.path(
+                                    BASE + "/resource/translations/{locale}")
+                            .queryParam("docId", docId)
+                            .queryParam("ext", extArr)
+                            .queryParam("merge", merge)
+                            .queryParam("assignCreditToUploader",
+                                    assignCreditToUploader)
+                            .build(projectSlug, iterationSlug,
+                                    locale.toString()))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(translatedDoc)
+                    .retrieve()
+                    .body(ProcessStatus.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            String idNoSlash = RestUtil.convertToDocumentURIId(docId);
+            return startTranslatedDocCreationOrUpdate(idNoSlash, projectSlug,
+                    iterationSlug, locale, translatedDoc, extensions, merge,
+                    assignCreditToUploader);
         }
     }
 
-    @Override
+
     public ProcessStatus getProcessStatus(String processId) {
-        return factory.getClient().target(baseUri)
-                .path(AsynchronousProcessResource.SERVICE_PATH)
-                .path(processId)
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .get(ProcessStatus.class);
+        return rest().get()
+                .uri("/async/{id}", processId)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(ProcessStatus.class);
+    }
+
+    private RestClient rest() {
+        return factory.getSpringRestClient();
     }
 }

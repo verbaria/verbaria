@@ -24,11 +24,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -43,8 +38,6 @@ import org.zanata.rest.MediaTypes.Format;
  *
  **/
 
-@XmlRootElement(name = "glossary")
-@XmlType(name = "glossaryType", propOrder = { "glossaryEntries", "totalCount" })
 @JsonPropertyOrder({ "glossaryEntries", "totalCount" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -58,10 +51,7 @@ public class Glossary implements Serializable, HasMediaType {
 
     private int totalCount;
 
-    @XmlElementWrapper(name = "glossary-entries",
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "glossary-entry", namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("glossaryEntries")
+    @JsonProperty("glossary-entries")
     public List<GlossaryEntry> getGlossaryEntries() {
         if (glossaryEntries == null) {
             glossaryEntries = new ArrayList<GlossaryEntry>();
@@ -73,7 +63,7 @@ public class Glossary implements Serializable, HasMediaType {
         this.glossaryEntries = glossaryEntries;
     }
 
-    @XmlElement(name = "totalCount", namespace = Namespaces.ZANATA_API)
+    @JsonProperty("totalCount")
     public int getTotalCount() {
         return totalCount;
     }
@@ -89,7 +79,7 @@ public class Glossary implements Serializable, HasMediaType {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

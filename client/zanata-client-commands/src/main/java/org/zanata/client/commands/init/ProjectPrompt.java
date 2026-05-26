@@ -29,8 +29,8 @@ import static org.zanata.client.commands.Messages.get;
 import java.util.Collections;
 import java.util.List;
 
-import jakarta.ws.rs.ClientErrorException;
-import jakarta.ws.rs.ServerErrorException;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.zanata.client.commands.ConsoleInteractor;
@@ -209,7 +209,7 @@ class ProjectPrompt {
         Project project = new Project(projectId, projectName, projectType);
         try {
             projectClient.put(project);
-        } catch (ClientErrorException | ServerErrorException e) {
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
             InitCommand.offerRetryOnServerError(e, consoleInteractor);
             createNewProject();
         }

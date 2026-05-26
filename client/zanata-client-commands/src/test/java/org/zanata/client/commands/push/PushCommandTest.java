@@ -42,8 +42,6 @@ import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
-import jakarta.ws.rs.core.GenericType;
-
 public class PushCommandTest {
     @Mock
     private RestClientFactory clientFactory;
@@ -173,15 +171,12 @@ public class PushCommandTest {
         }
         opts.setLocaleMapList(locales);
 
-        GenericType<List<LocaleDetails>> list =
-                new GenericType<>(Collections.emptyList().getClass());
-
         HTTPMockContainer mockContainer =
                 HTTPMockContainer.Builder
                         .builder()
                         .onPathReturnStatus(
                                 "/rest/projects/p/project/iterations/i/1.0/locales", Status.OK.code,
-                                DTOUtil.toXML(list))
+                                DTOUtil.toJSON(Collections.<LocaleDetails>emptyList()))
                         .build();
         ContainerServer server = new ContainerServer(mockContainer);
         connection = new SocketConnection(server);

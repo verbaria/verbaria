@@ -20,6 +20,7 @@
  */
 package org.zanata.client.commands.pull;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -27,20 +28,18 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.core.Response;
-
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.exceptions.ConfigException;
 import org.zanata.common.LocaleId;
-import org.zanata.rest.client.ClientUtil;
 import org.zanata.rest.client.FileResourceClient;
 import org.zanata.rest.client.RestClientFactory;
 import org.zanata.rest.service.FileResource;
@@ -162,30 +161,23 @@ public class RawPullCommand extends PushPullCommand<PullOptions> {
                 String localDocName = unqualifiedDocName(qualifiedDocName);
 
                 if (pullSrc) {
-                    Response response;
                     try {
-                        response = fileResourceClient.downloadSourceFile(
-                                getOpts().getProj(), getOpts()
-                                        .getProjectVersion(),
-                                FileResource.FILETYPE_RAW_SOURCE_DOCUMENT,
-                                qualifiedDocName);
-                        InputStream srcDoc = response
-                                .readEntity(InputStream.class);
-                        if (srcDoc != null) {
-                            try {
+                        ResponseEntity<byte[]> response = fileResourceClient
+                                .downloadSourceFile(getOpts().getProj(),
+                                        getOpts().getProjectVersion(),
+                                        FileResource.FILETYPE_RAW_SOURCE_DOCUMENT,
+                                        qualifiedDocName);
+                        byte[] bytes = response.getBody();
+                        if (bytes != null) {
+                            try (InputStream srcDoc =
+                                    new ByteArrayInputStream(bytes)) {
                                 strat.writeSrcFile(localDocName, srcDoc);
-                            } finally {
-                                srcDoc.close();
                             }
                         }
-                    } catch (ResponseProcessingException e) {
-                        if (e.getResponse().getStatus() == 404) {
-                            log.warn(
-                                    "No source document file is available for [{}]. Skipping.",
-                                    qualifiedDocName);
-                        } else {
-                            throw e;
-                        }
+                    } catch (HttpClientErrorException.NotFound e) {
+                        log.warn(
+                                "No source document file is available for [{}]. Skipping.",
+                                qualifiedDocName);
                     }
                 }
 
@@ -232,42 +224,38 @@ public class RawPullCommand extends PushPullCommand<PullOptions> {
     private void pullDocForLocale(RawPullStrategy strat,
             String qualifiedDocName, String localDocName, String fileExtension,
             LocaleMapping locMapping, LocaleId locale) throws IOException {
-        Response response = null;
         try {
-            response = fileResourceClient.downloadTranslationFile(getOpts()
-                                    .getProj(), getOpts()
-                                    .getProjectVersion(), locale.getId(),
-                            fileExtension, qualifiedDocName, getOpts().getApprovedOnly());
-            InputStream transDoc = response.readEntity(InputStream.class);
-            if (transDoc != null) {
-                try {
-                    String fileName =
-                            ClientUtil.getFileNameFromHeader(
-                                    response.getStringHeaders());
-                    String targetFileExt = FilenameUtils
-                            .getExtension(fileName);
+            ResponseEntity<byte[]> response = fileResourceClient
+                    .downloadTranslationFile(getOpts().getProj(),
+                            getOpts().getProjectVersion(), locale.getId(),
+                            fileExtension, qualifiedDocName,
+                            getOpts().getApprovedOnly());
+            byte[] bytes = response.getBody();
+            if (bytes != null) {
+                String fileName = filenameFromHeader(
+                        response.getHeaders().getFirst("Content-Disposition"));
+                String targetFileExt = FilenameUtils.getExtension(fileName);
 
-                    Optional<String> translationFileExtension =
-                            Optional.fromNullable(targetFileExt);
+                Optional<String> translationFileExtension =
+                        Optional.fromNullable(targetFileExt);
 
+                try (InputStream transDoc = new ByteArrayInputStream(bytes)) {
                     strat.writeTransFile(localDocName,
                             locMapping, transDoc, translationFileExtension);
-                } finally {
-                    transDoc.close();
                 }
             }
-        } catch (ResponseProcessingException e) {
-            if (e.getResponse().getStatus() == 404) {
-                log.info(
-                        "No translation document file found in locale {} for document [{}]",
-                        locale, qualifiedDocName);
-            } else {
-                throw e;
-            }
-        } finally {
-            if (response != null) {
-                response.close();
-            }
+        } catch (HttpClientErrorException.NotFound e) {
+            log.info(
+                    "No translation document file found in locale {} for document [{}]",
+                    locale, qualifiedDocName);
         }
+    }
+
+    private static String filenameFromHeader(String contentDisposition) {
+        if (contentDisposition == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("filename=\"(.*?)\"")
+                .matcher(contentDisposition);
+        return m.find() ? m.group(1) : null;
     }
 }

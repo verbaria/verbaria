@@ -2,12 +2,6 @@ package org.zanata.rest.dto.resource;
 
 import java.io.Serializable;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,13 +9,9 @@ import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;
 import org.zanata.common.Namespaces;
 import org.zanata.common.ResourceType;
-import org.zanata.rest.dto.ContentTypeAdapter;
 import org.zanata.rest.dto.Extensible;
-import org.zanata.rest.dto.LocaleIdAdapter;
 import org.zanata.rest.dto.extensions.gettext.AbstractResourceMetaExtension;
 
-@XmlType(name = "abstractResourceMetaType",
-        propOrder = { "name", "extensions" })
 @Label("Abstract Resource")
 public abstract class AbstractResourceMeta implements Serializable,
         Extensible<AbstractResourceMetaExtension> {
@@ -48,9 +38,7 @@ public abstract class AbstractResourceMeta implements Serializable,
         this.name = name;
     }
 
-    @XmlElementWrapper(name = "extensions", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "extension", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("extensions")
     public ExtensionSet<AbstractResourceMetaExtension> getExtensions() {
         return extensions;
     }
@@ -68,7 +56,7 @@ public abstract class AbstractResourceMeta implements Serializable,
         return extensions;
     }
 
-    @XmlAttribute(name = "type", required = true)
+    @JsonProperty("type")
     public ResourceType getType() {
         return type;
     }
@@ -77,8 +65,7 @@ public abstract class AbstractResourceMeta implements Serializable,
         this.type = type;
     }
 
-    @XmlJavaTypeAdapter(type = LocaleId.class, value = LocaleIdAdapter.class)
-    @XmlAttribute(name = "lang", namespace = Namespaces.XML, required = true)
+    @JsonProperty("lang")
     public LocaleId getLang() {
         return lang;
     }
@@ -87,10 +74,7 @@ public abstract class AbstractResourceMeta implements Serializable,
         this.lang = lang;
     }
 
-    @XmlJavaTypeAdapter(type = ContentType.class,
-            value = ContentTypeAdapter.class)
-    @XmlAttribute(name = "content-type", required = true)
-    @JsonProperty("contentType")
+    @JsonProperty("content-type")
     public ContentType getContentType() {
         return contentType;
     }
@@ -99,8 +83,7 @@ public abstract class AbstractResourceMeta implements Serializable,
         this.contentType = contentType;
     }
 
-    @XmlElement(name = "name", required = true,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
@@ -109,7 +92,6 @@ public abstract class AbstractResourceMeta implements Serializable,
         this.name = name;
     }
 
-    @XmlAttribute()
     public Integer getRevision() {
         return revision;
     }
@@ -121,7 +103,7 @@ public abstract class AbstractResourceMeta implements Serializable,
     // @Override
     // public String toString()
     // {
-    // return DTOUtil.toXML(this);
+    // return DTOUtil.toJSON(this);
     // }
 
     /**

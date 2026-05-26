@@ -1,8 +1,6 @@
 package org.zanata.rest.dto;
 
 import java.io.Serializable;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -19,7 +17,6 @@ import org.zanata.rest.MediaTypes;
  *
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
-@XmlRootElement(name = "qualifiedName")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @Label("Qualified Name")
@@ -34,8 +31,6 @@ public class QualifiedName implements Serializable, HasMediaType {
         this.name = name;
     }
 
-    @XmlElement(name = "name", required = false,
-        namespace = Namespaces.ZANATA_API)
     @JsonProperty("name")
     @DocumentationExample("global/default")
     public String getName() {

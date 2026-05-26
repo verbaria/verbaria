@@ -21,115 +21,81 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
-import org.zanata.rest.RestUtil;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
 import org.zanata.rest.dto.stats.contribution.ContributionStatistics;
-import org.zanata.rest.service.StatisticsResource;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
-public class StatisticsResourceClient implements StatisticsResource {
+public class StatisticsResourceClient {
     private final RestClientFactory factory;
-    private final URI baseUri;
 
     StatisticsResourceClient(RestClientFactory factory) {
         this.factory = factory;
-        baseUri = factory.getBaseUri();
     }
 
-    @Override
     public ContainerTranslationStatistics getStatistics(String projectSlug,
-            String iterationSlug,
-            @DefaultValue("false") boolean includeDetails,
-            @DefaultValue("false") boolean includeWordStats, String[] locales) {
-        WebTarget webResource =
-                factory.getClient().target(baseUri).path("stats")
-                        .path("proj")
-                        .path(projectSlug)
-                        .path("iter")
-                        .path(iterationSlug)
+            String iterationSlug, boolean includeDetails,
+            boolean includeWordStats, String[] locales) {
+        return rest().get()
+                .uri(uri -> uri.path("stats/proj/{proj}/iter/{iter}")
                         .queryParam("detail", includeDetails)
                         .queryParam("word", includeWordStats)
-                        .queryParam("locale", (Object[]) locales);
-        return webResource.request(MediaType.APPLICATION_XML_TYPE)
-                .get(ContainerTranslationStatistics.class);
+                        .queryParam("locale", (Object[]) locales)
+                        .build(projectSlug, iterationSlug))
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(ContainerTranslationStatistics.class);
     }
 
     @Deprecated
-    @Override
     public ContainerTranslationStatistics getStatistics(String projectSlug,
-            String iterationSlug, String docId,
-            @DefaultValue("false") boolean includeWordStats, String[] locales) {
+            String iterationSlug, String docId, boolean includeWordStats,
+            String[] locales) {
         return getStatisticsWithDocId(projectSlug, iterationSlug, docId,
                 includeWordStats, locales);
     }
 
-    @Override
     public ContainerTranslationStatistics getStatisticsWithDocId(
             String projectSlug, String iterationSlug, String docId,
             boolean includeWordStats, String[] locales) {
-        WebTarget webResource =
-                factory.getClient().target(baseUri).path("stats")
-                        .path("proj")
-                        .path(projectSlug)
-                        .path("iter")
-                        .path(iterationSlug)
-                        .path("doc")
-                        .queryParam("docId", docId)
-                        .queryParam("word", String.valueOf(includeWordStats))
-                        .queryParam("locale", (Object[]) locales);
         try {
-            return webResource.request(MediaType.APPLICATION_XML_TYPE)
-                    .get(ContainerTranslationStatistics.class);
-        } catch (ResponseProcessingException e) {
-            if (RestUtil.isNotFound(e.getResponse())) {
-                // fallback to old endpoint
-                webResource =
-                        factory.getClient().target(baseUri).path("stats")
-                                .path("proj")
-                                .path(projectSlug)
-                                .path("iter")
-                                .path(iterationSlug)
-                                .path("doc")
-                                .path(docId)
-                                .queryParam("word", String.valueOf(includeWordStats))
-                                .queryParam("locale", (Object[]) locales);
-                return webResource.request(MediaType.APPLICATION_XML_TYPE)
-                        .get(ContainerTranslationStatistics.class);
-            }
-            throw e;
+            return rest().get()
+                    .uri(uri -> uri.path("stats/proj/{proj}/iter/{iter}/doc")
+                            .queryParam("docId", docId)
+                            .queryParam("word", includeWordStats)
+                            .queryParam("locale", (Object[]) locales)
+                            .build(projectSlug, iterationSlug))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(ContainerTranslationStatistics.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return rest().get()
+                    .uri(uri -> uri.path(
+                                    "stats/proj/{proj}/iter/{iter}/doc/{docId}")
+                            .queryParam("word", includeWordStats)
+                            .queryParam("locale", (Object[]) locales)
+                            .build(projectSlug, iterationSlug, docId))
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(ContainerTranslationStatistics.class);
         }
     }
 
-    @Override
     public ContributionStatistics getContributionStatistics(String projectSlug,
-            String versionSlug, String username, String dateRange, boolean includeAutomatedEntry) {
-        WebTarget webResource =
-                factory.getClient().target(baseUri).path("stats")
-                        .path("project")
-                        .path(projectSlug)
-                        .path("version")
-                        .path(versionSlug)
-                        .path("contributor")
-                        .path(username)
-                        .path(dateRange)
-                        .queryParam("includeAutomatedEntry", includeAutomatedEntry);
-        return webResource.request(MediaType.APPLICATION_JSON_TYPE)
-                .get(ContributionStatistics.class);
+            String versionSlug, String username, String dateRange,
+            boolean includeAutomatedEntry) {
+        return rest().get()
+                .uri(uri -> uri.path("stats/project/{proj}/version/{ver}/"
+                                + "contributor/{user}/{range}")
+                        .queryParam("includeAutomatedEntry", includeAutomatedEntry)
+                        .build(projectSlug, versionSlug, username, dateRange))
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(ContributionStatistics.class);
     }
 
-    @Override
-    public Response getProjectStatisticsMatrix(String projectSlug,
-            String versionSlug, String dateRangeParam, String timeZoneID) {
-        throw new UnsupportedOperationException("This method is not supported in client");
+    private RestClient rest() {
+        return factory.getSpringRestClient();
     }
 }

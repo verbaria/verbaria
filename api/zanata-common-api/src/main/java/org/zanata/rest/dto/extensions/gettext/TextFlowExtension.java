@@ -1,7 +1,6 @@
 package org.zanata.rest.dto.extensions.gettext;
 
-import jakarta.xml.bind.annotation.XmlSeeAlso;
-import jakarta.xml.bind.annotation.XmlTransient;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -15,8 +14,6 @@ import org.zanata.rest.dto.extensions.comment.SimpleComment;
 @JsonSubTypes({ @Type(value = PotEntryHeader.class, name = "pot-entry-header"),
         @Type(value = SimpleComment.class, name = "comment") })
 @JsonTypeName("TextFlowExtension")
-@XmlSeeAlso({ PotEntryHeader.class, SimpleComment.class })
-@XmlTransient
 public interface TextFlowExtension extends ExtensionValue {
 
 }

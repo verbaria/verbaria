@@ -24,11 +24,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -44,9 +39,6 @@ import org.zanata.rest.MediaTypes.Format;
 /**
  * Represents a Project version (or iteration).
  */
-@XmlType(name = "projectIterationType", propOrder = { "links", "status",
-        "projectType" })
-@XmlRootElement(name = "project-iteration")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
 @JsonPropertyOrder({ "id", "links", "status", "projectType" })
@@ -73,7 +65,7 @@ public class ProjectIteration implements Serializable,
     /**
      * Version identifier (slug)
      */
-    @XmlAttribute(name = "id", required = true)
+    @JsonProperty("id")
     @DocumentationExample("my-iteration")
     public String getId() {
         return id;
@@ -90,9 +82,7 @@ public class ProjectIteration implements Serializable,
      *
      * @return set of Links managed by this resource
      */
-    @XmlElement(name = "link", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("links")
+    @JsonProperty("link")
     public Links getLinks() {
         return links;
     }
@@ -107,8 +97,7 @@ public class ProjectIteration implements Serializable,
         return links;
     }
 
-    @XmlElement(name = "status", required = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("status")
     public EntityStatus getStatus() {
         return status;
     }
@@ -121,8 +110,7 @@ public class ProjectIteration implements Serializable,
      * The type of project version. This type could be overriding the project's
      * original type.
      */
-    @XmlElement(name = "projectType", required = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("projectType")
     @DocumentationExample("Podir")
     public String getProjectType() {
         return projectType;
@@ -155,7 +143,7 @@ public class ProjectIteration implements Serializable,
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

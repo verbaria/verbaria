@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import jakarta.xml.bind.annotation.XmlType;
-
 import org.zanata.rest.dto.DTOUtil;
 
 /**
@@ -35,14 +33,13 @@ import org.zanata.rest.dto.DTOUtil;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  *
  **/
-@XmlType(name = "localesType")
 public class LocaleList implements List<String>, Serializable {
     private static final long serialVersionUID = 1L;
     private final List<String> locales = new ArrayList<String>();
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

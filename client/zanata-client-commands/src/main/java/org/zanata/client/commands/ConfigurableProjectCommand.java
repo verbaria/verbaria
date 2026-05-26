@@ -24,8 +24,8 @@ import org.zanata.client.exceptions.ConfigException;
 import org.zanata.rest.client.RestClientFactory;
 
 /**
- * Base class for commands which supports configuration by the user's zanata.ini
- * and by a project's zanata.xml
+ * Base class for commands which supports configuration by the user's verbaria.ini
+ * and by a project's verbaria.json
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *

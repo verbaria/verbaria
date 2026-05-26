@@ -136,7 +136,6 @@ public enum DocumentType {
         return documentTypes;
     }
 
-
     private final Map<String, String> extensions;
 
     /**

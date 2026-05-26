@@ -5,8 +5,9 @@ package org.zanata.client.commands;
 
 import java.io.PrintWriter;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import org.slf4j.LoggerFactory;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,25 +63,28 @@ public class ArgsUtil {
 
     /**
      * Maven's --debug/-X flag sets the Maven LoggerManager to LEVEL_DEBUG. The
-     * slf4j framework doesn't provide any way of doing this, so we have to go
-     * to the underlying framework (assumed to be log4j).
+     * slf4j framework doesn't provide a portable way to do this, so we go to
+     * the underlying framework (logback).
      */
     private static void enableDebugLogging(BasicOptions opts) {
-        setRootLoggerLevel("DEBUG", opts);
+        setRootLoggerLevel(Level.DEBUG, opts);
     }
 
     /**
      * Maven's --quiet/-q flag sets the Maven LoggerManager to LEVEL_ERROR. The
-     * slf4j framework doesn't provide any way of doing this, so we have to go
-     * to the underlying framework (assumed to be log4j).
+     * slf4j framework doesn't provide a portable way to do this, so we go to
+     * the underlying framework (logback).
      */
     private static void enableQuietLogging(BasicOptions opts) {
-        setRootLoggerLevel("ERROR", opts);
+        setRootLoggerLevel(Level.ERROR, opts);
     }
 
-    private static void setRootLoggerLevel(String level, BasicOptions opts) {
+    private static void setRootLoggerLevel(Level level, BasicOptions opts) {
         try {
-            LogManager.getRootLogger().setLevel(Level.toLevel(level));
+            LoggerContext ctx =
+                    (LoggerContext) LoggerFactory.getILoggerFactory();
+            ctx.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME)
+                    .setLevel(level);
         } catch (Exception e) {
             System.err.println("Unable to change logging level: "
                     + e.toString());

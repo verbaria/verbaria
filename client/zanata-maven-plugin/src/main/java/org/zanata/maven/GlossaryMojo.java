@@ -16,7 +16,7 @@ public abstract class GlossaryMojo<O extends ConfigurableOptions>
     /**
      * Zanata configuration file.
      */
-    @Parameter(property = "zanata.config", defaultValue = "${basedir}/zanata.xml")
+    @Parameter(property = "zanata.config", defaultValue = "${basedir}/verbaria.json")
     private File config;
 
     /**

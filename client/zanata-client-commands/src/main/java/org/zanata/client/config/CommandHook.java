@@ -24,45 +24,21 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElements;
-import jakarta.xml.bind.annotation.XmlType;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * <p>Optional element used to attach system commands to run before or after a
+ * Optional element used to attach system commands to run before or after a
  * Zanata command (the "hooked command"). The hooked command is specified in the
- * "command" attribute.</p>
+ * "command" property.
  *
- * <p>Include {@code <hook>} elements within a {@code <hooks>} element in the
- * {@code <config>} element of zanata.xml. Each command should have zero or one
- * hooks. Each hook can have any number of {@code <before>} and {@code <after>}
- * elements.</p>
+ * Each command can have any number of "before" and "after" entries.
  *
- * <p>Commands specified in {@code <before>} elements will be run before the hooked
- * command, in the order that they are specified. Commands specified in
- * {@code <after>} elements are similarly run in order after the hooked command
- * successfully completes. If any command fails, including the hooked command,
- * no further commands will be run.</p>
- *
- * e.g.
- *
- * <pre>
- * {@code
- * <hooks>
- *   <hook command="push">
- *     <before>po4a-gettextize -f man -m manpage.1 -p manpage.pot</before>
- *     <after>rm -f manpage.pot</after>
- *   </hook>
- *   <hook command="pull">
- *     <after>po4a-translate -f man -m manpage.1 -p trans/de/manpage.po -l manpage.de.1 --keep 1</after>
- *     <after>rm -rf trans</after>
- *   </hook>
- * </hooks>
- * }
- * </pre>
+ * Commands specified in "before" will be run before the hooked command, in the
+ * order that they are specified. Commands specified in "after" are similarly
+ * run in order after the hooked command successfully completes. If any command
+ * fails, including the hooked command, no further commands will be run.
  */
-@XmlType(name = "hookType", propOrder = { "befores", "afters" })
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class CommandHook implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -71,7 +47,6 @@ public class CommandHook implements Serializable {
     private List<String> before = new ArrayList<String>();
     private List<String> after = new ArrayList<String>();
 
-    @XmlAttribute(name = "command", required = true)
     public String getCommand() {
         return command;
     }
@@ -80,14 +55,20 @@ public class CommandHook implements Serializable {
         this.command = command;
     }
 
-    @XmlElements({ @XmlElement(name = "before", type = String.class) })
     public List<String> getBefores() {
         return before;
     }
 
-    @XmlElements({ @XmlElement(name = "after", type = String.class) })
+    public void setBefores(List<String> before) {
+        this.before = before;
+    }
+
     public List<String> getAfters() {
         return after;
+    }
+
+    public void setAfters(List<String> after) {
+        this.after = after;
     }
 
     @Override

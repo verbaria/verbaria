@@ -239,6 +239,8 @@
     <!-- Override Mockito 5.14's transitive ByteBuddy 1.15.4, which doesn't
          understand JDK 25 class files. 1.18.8 adds JDK 25 support. -->
     <byte-buddy.version>1.18.8</byte-buddy.version>
+    <spring-boot.version>4.0.6</spring-boot.version>
+    <jetty.version>11.0.24</jetty.version>
   </properties>
 
   <build>
@@ -820,6 +822,22 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-bom</artifactId>
+        <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Jakarta EE 10 platform BOM (jakarta.* namespace) -->
       <dependency>
         <groupId>jakarta.platform</groupId>
@@ -836,36 +854,17 @@
         <scope>test</scope>
       </dependency>
 
-      <!-- JUnit Vintage engine — required for JUnit 4 tests to run under
-           the junit-platform Surefire provider that Spock/Groovy drag in. -->
       <dependency>
         <groupId>org.junit.vintage</groupId>
         <artifactId>junit-vintage-engine</artifactId>
-        <version>5.11.3</version>
+        <version>6.0.3</version>
         <scope>test</scope>
-      </dependency>
-
-      <!-- JUnit 5 BOM — align junit-platform / jupiter versions across modules.
-           Without this, Spock 2.4-M4 drags in junit-platform 1.10.2 while
-           Groovy's junit5 module pulls junit-jupiter 5.11.3 (which expects
-           junit-platform 1.11.3), causing NoSuchMethodError in test discovery. -->
-      <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>5.11.3</version>
-        <type>pom</type>
-        <scope>import</scope>
       </dependency>
 
       <dependency>
         <groupId>com.sun.xml.fastinfoset</groupId>
         <artifactId>FastInfoset</artifactId>
         <version>2.1.1</version>
-      </dependency>
-      <dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        <version>1.2.17</version>
       </dependency>
       <!-- Groovy 4 changed groupId to org.apache.groovy -->
       <dependency>
@@ -881,22 +880,7 @@
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
         <artifactId>jcl-over-slf4j</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>log4j-over-slf4j</artifactId>
         <version>${slf4j.version}</version>
       </dependency>
       <dependency>
@@ -1184,14 +1168,9 @@
         <version>${required.maven}</version>
       </dependency>
       <dependency>
-        <groupId>com.pyx4j</groupId>
-        <artifactId>maven-plugin-log4j</artifactId>
-        <version>1.0.1</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-configuration</groupId>
-        <artifactId>commons-configuration</artifactId>
-        <version>1.10</version>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-configuration2</artifactId>
+        <version>2.11.0</version>
         <exclusions>
           <exclusion>
             <groupId>commons-logging</groupId>

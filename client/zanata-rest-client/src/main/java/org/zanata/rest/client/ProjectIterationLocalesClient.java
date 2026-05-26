@@ -21,19 +21,12 @@
 
 package org.zanata.rest.client;
 
+import java.util.Arrays;
 import java.util.List;
 
-import jakarta.ws.rs.core.GenericType;
-import jakarta.ws.rs.core.MediaType;
-
+import org.springframework.http.MediaType;
 import org.zanata.rest.dto.LocaleDetails;
 
-/**
- * REST client for project iteration locales.
- *
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class ProjectIterationLocalesClient {
     private final RestClientFactory restClientFactory;
     private final String projectSlug;
@@ -47,13 +40,12 @@ public class ProjectIterationLocalesClient {
     }
 
     public List<LocaleDetails> getLocales() {
-        return restClientFactory.getClient()
-                .target(restClientFactory.getBaseUri())
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(versionSlug)
-                .path("locales")
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .get(new GenericType<List<LocaleDetails>>() {
-                });
+        LocaleDetails[] result = restClientFactory.getSpringRestClient().get()
+                .uri("projects/p/{slug}/iterations/i/{iter}/locales",
+                        projectSlug, versionSlug)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(LocaleDetails[].class);
+        return result == null ? List.of() : Arrays.asList(result);
     }
 }

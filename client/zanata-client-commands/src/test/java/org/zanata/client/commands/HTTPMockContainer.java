@@ -34,8 +34,7 @@ public class HTTPMockContainer implements Container {
             PrintStream body = response.getPrintStream();
             long time = System.currentTimeMillis();
 
-            response.setValue("Content-Type", "text/plain");
-            response.setContentType("application/xml;charset=utf-8");
+            response.setContentType("application/json;charset=utf-8");
             response.setDate("Date", time);
             response.setDate("Last-Modified", time);
             String path = request.getAddress().getPath().getPath();

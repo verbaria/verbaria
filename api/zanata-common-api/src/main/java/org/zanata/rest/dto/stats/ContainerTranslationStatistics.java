@@ -20,14 +20,11 @@
  */
 package org.zanata.rest.dto.stats;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -42,9 +39,6 @@ import org.zanata.rest.dto.Links;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@XmlType(name = "containerTranslationStatisticsType", propOrder = { "refs",
-        "stats", "detailedStats" })
-@XmlRootElement(name = "containerStats")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "id", "refs", "stats", "detailedStats" })
 @Label("Container Translation Statistics")
@@ -62,7 +56,6 @@ public class ContainerTranslationStatistics implements Serializable {
      * Identifier for the container (i.e. Project, Project Iteration, Document,
      * etc).
      */
-    @XmlAttribute
     @DocumentationExample("my-project")
     public String getId() {
         return id;
@@ -75,8 +68,7 @@ public class ContainerTranslationStatistics implements Serializable {
     /**
      * References to related elements (i.e. Reference to the container).
      */
-    @XmlElementWrapper(name = "refs")
-    @XmlElement(name = "containerRef")
+    @JsonProperty("refs")
     public Links getRefs() {
         return refs;
     }
@@ -88,8 +80,7 @@ public class ContainerTranslationStatistics implements Serializable {
     /**
      * Actual translation statistics.
      */
-    @XmlElementWrapper(name = "stats")
-    @XmlElement(name = "stat")
+    @JsonProperty("stats")
     public List<TranslationStatistics> getStats() {
         return stats;
     }
@@ -97,8 +88,7 @@ public class ContainerTranslationStatistics implements Serializable {
     /**
      * Detailed Statistics if so requested.
      */
-    @XmlElementWrapper(name = "detailedStats")
-    @XmlElement(name = "containerStats")
+    @JsonProperty("detailedStats")
     public List<ContainerTranslationStatistics> getDetailedStats() {
         return detailedStats;
     }

@@ -27,7 +27,7 @@ import org.kohsuke.args4j.Option;
 
 /**
  * Base options for commands which support configuration by the user's
- * zanata.ini
+ * verbaria.ini
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
@@ -38,20 +38,20 @@ public abstract class ConfigurableOptionsImpl extends BasicOptionsImpl
      * Client configuration file.
      */
     private File userConfig = new File(System.getProperty("user.home"),
-            ".config/zanata.ini");
+            ".config/verbaria.ini");
 
     /**
-     * Base URL for the server. Defaults to the value in zanata.xml.
+     * Base URL for the server. Defaults to the value in verbaria.json.
      */
     private URL url;
 
     /**
-     * Username for accessing the REST API. Defaults to the value in zanata.ini.
+     * Username for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     private String username;
 
     /**
-     * API key for accessing the REST API. Defaults to the value in zanata.ini.
+     * API key for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     private String key;
 
@@ -90,7 +90,7 @@ public abstract class ConfigurableOptionsImpl extends BasicOptionsImpl
 
     @Override
     @Option(name = "--user-config", metaVar = "FILE",
-            usage = "User configuration, eg /home/user/.config/zanata.ini")
+            usage = "User configuration, eg /home/user/.config/verbaria.ini")
     public void setUserConfig(File userConfig) {
         this.userConfig = userConfig;
     }

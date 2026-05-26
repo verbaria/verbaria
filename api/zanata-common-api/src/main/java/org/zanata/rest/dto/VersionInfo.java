@@ -1,10 +1,8 @@
 package org.zanata.rest.dto;
 
-import java.io.Serializable;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
+import java.io.Serializable;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -16,8 +14,6 @@ import org.zanata.common.Namespaces;
 /**
  * Holds system version information
  */
-@XmlRootElement(name = "versionInfo")
-@XmlType(name = "versionType", propOrder = { "versionNo", "buildTimeStamp", "scmDescribe" })
 @JsonTypeName(value = "versionType")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -49,7 +45,7 @@ public final class VersionInfo implements Serializable {
     /**
      * Version number
      */
-    @XmlElement(name = "versionNo", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("versionNo")
     @DocumentationExample("4.0.0")
     public String getVersionNo() {
         return versionNo;
@@ -58,7 +54,7 @@ public final class VersionInfo implements Serializable {
     /**
      * ISO8601 timestamp for when the current system version was built
      */
-    @XmlElement(name = "buildTimeStamp", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("buildTimeStamp")
     @DocumentationExample("20170225-1448")
     public String getBuildTimeStamp() {
         return buildTimeStamp;
@@ -67,7 +63,7 @@ public final class VersionInfo implements Serializable {
     /**
      * Identifier for the current version in source control
      */
-    @XmlElement(name = "scmDescribe", namespace = Namespaces.ZANATA_API)
+    @JsonProperty("scmDescribe")
     public String getScmDescribe() {
         return scmDescribe;
     }
@@ -86,7 +82,7 @@ public final class VersionInfo implements Serializable {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

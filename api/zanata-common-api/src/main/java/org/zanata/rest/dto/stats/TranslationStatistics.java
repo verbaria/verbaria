@@ -24,10 +24,6 @@ import java.io.Serializable;
 import java.util.Date;
 
 import javax.annotation.Nullable;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -46,10 +42,6 @@ import org.zanata.common.TransUnitWords;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@XmlType(name = "translationStatistics", propOrder = { "total", "untranslated",
-        "needReview", "translated", "approved", "rejected", "translatedOnly",
-        "fuzzy", "unit", "locale", "lastTranslated" })
-@XmlRootElement(name = "translationStats")
 @JsonIgnoreProperties(value = { "percentTranslated", "percentNeedReview",
         "percentUntranslated", "incomplete", "draft" }, ignoreUnknown = true)
 @JsonPropertyOrder({ "total", "untranslated", "needReview", "translated",
@@ -98,7 +90,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Calculate remaining hours if StatUnit equals to 'WORD'.
      */
-    @XmlTransient
     @JsonIgnore
     public @Nullable Double getRemainingHours() {
         if (unit.equals(StatUnit.WORD)) {
@@ -113,7 +104,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Number of untranslated elements.
      */
-    @XmlAttribute
     @DocumentationExample("25")
     public long getUntranslated() {
         return translationCount.getUntranslated();
@@ -126,7 +116,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Number of elements that need review (i.e. Fuzzy or Rejected).
      */
-    @XmlTransient
     @JsonIgnore
     public long getDraft() {
         return translationCount.getNeedReview()
@@ -139,7 +128,6 @@ public class TranslationStatistics implements Serializable {
      * @return Number of elements that need review (i.e. Fuzzy or Rejected)
      * @deprecated See {@link #getDraft()}
      */
-    @XmlAttribute
     @Deprecated
     public long getNeedReview() {
         return getDraft();
@@ -150,7 +138,6 @@ public class TranslationStatistics implements Serializable {
      *
      * @return
      */
-    @XmlAttribute
     @DocumentationExample("50")
     public long getFuzzy() {
         return translationCount.getNeedReview();
@@ -167,13 +154,11 @@ public class TranslationStatistics implements Serializable {
      * @deprecated See {@link #getTranslatedOnly()} and
      *             {@link #getTranslatedAndApproved()}
      */
-    @XmlAttribute
     @Deprecated
     public long getTranslated() {
         return getTranslatedAndApproved();
     }
 
-    @XmlTransient
     @JsonIgnore
     public long getTranslatedAndApproved() {
         return translationCount.getTranslated()
@@ -183,7 +168,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * @return number of translated but not yet approved elements.
      */
-    @XmlAttribute
     @DocumentationExample("30")
     public long getTranslatedOnly() {
         return translationCount.getTranslated();
@@ -196,7 +180,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * @return Number of approved elements.
      */
-    @XmlAttribute
     @DocumentationExample("80")
     public long getApproved() {
         return translationCount.getApproved();
@@ -206,7 +189,6 @@ public class TranslationStatistics implements Serializable {
         translationCount.set(ContentState.Approved, (int) approved);
     }
 
-    @XmlAttribute
     @DocumentationExample("10")
     public long getRejected() {
         return translationCount.getRejected();
@@ -220,7 +202,6 @@ public class TranslationStatistics implements Serializable {
      *
      * @return untranslated, fuzzy and rejected count.
      */
-    @XmlTransient
     @JsonIgnore
     public long getIncomplete() {
         return translationCount.getUntranslated() + getDraft();
@@ -229,7 +210,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Total number of elements.
      */
-    @XmlAttribute
     public long getTotal() {
         return translationCount.getTotal();
     }
@@ -237,7 +217,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Element unit being used to measure the translation counts.
      */
-    @XmlAttribute
     public StatUnit getUnit() {
         return unit;
     }
@@ -249,7 +228,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Locale for the translation statistics.
      */
-    @XmlAttribute
     @DocumentationExample("es-ES")
     public String getLocale() {
         return locale;
@@ -262,7 +240,6 @@ public class TranslationStatistics implements Serializable {
     /**
      * Last translation information. Includes date and user.
      */
-    @XmlAttribute
     @DocumentationExample("31/12/15 23:59 by homer")
     public String getLastTranslated() {
         return lastTranslated;
@@ -272,7 +249,6 @@ public class TranslationStatistics implements Serializable {
         this.lastTranslated = lastTranslated;
     }
 
-    @XmlTransient
     @JsonIgnore
     public @Nullable
     Date getLastTranslatedDate() {
@@ -286,7 +262,6 @@ public class TranslationStatistics implements Serializable {
                         lastTranslatedDate.getTime()) : null;
     }
 
-    @XmlTransient
     @JsonIgnore
     public String getLastTranslatedBy() {
         return lastTranslatedBy;
@@ -296,7 +271,6 @@ public class TranslationStatistics implements Serializable {
         this.lastTranslatedBy = lastTranslatedBy;
     }
 
-    @XmlTransient
     @JsonIgnore
     public double getPercentTranslated() {
         long total = getTotal();
@@ -307,7 +281,6 @@ public class TranslationStatistics implements Serializable {
         }
     }
 
-    @XmlTransient
     @JsonIgnore
     public double getPercentDraft() {
         long total = getTotal();
@@ -318,7 +291,6 @@ public class TranslationStatistics implements Serializable {
         }
     }
 
-    @XmlTransient
     @JsonIgnore
     public double getPercentUntranslated() {
         long total = getTotal();

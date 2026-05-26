@@ -1,15 +1,12 @@
 package org.zanata.rest.dto.resource;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -22,14 +19,11 @@ import org.zanata.common.LocaleId;
 import org.zanata.common.Namespaces;
 import org.zanata.rest.dto.DTOUtil;
 import org.zanata.rest.dto.Extensible;
-import org.zanata.rest.dto.LocaleIdAdapter;
 import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
 
 /**
  * A translatable string
  */
-@XmlType(name = "textFlowType", propOrder = { "content", "contents", "plural",
-        "extensions" })
 @JsonPropertyOrder({ "id", "lang", "content", "contents", "plural",
         "extensions" })
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -93,7 +87,7 @@ public class TextFlow extends TextContainer implements
         setContents(contentList);
     }
 
-    @XmlAttribute(name = "id", required = true)
+    @JsonProperty("id")
     @DocumentationExample("abc123")
     public String getId() {
         return id;
@@ -106,7 +100,6 @@ public class TextFlow extends TextContainer implements
     /**
      * Whether this message supports plurals
      */
-    @XmlElement(namespace = Namespaces.ZANATA_OLD)
     public boolean isPlural() {
         return plural;
     }
@@ -122,8 +115,7 @@ public class TextFlow extends TextContainer implements
     /**
      * Locale code for this text flow.
      */
-    @XmlJavaTypeAdapter(type = LocaleId.class, value = LocaleIdAdapter.class)
-    @XmlAttribute(name = "lang", namespace = Namespaces.XML, required = false)
+    @JsonProperty("lang")
     @DocumentationExample("es-ES")
     public LocaleId getLang() {
         return lang;
@@ -133,9 +125,7 @@ public class TextFlow extends TextContainer implements
         this.lang = lang;
     }
 
-    @XmlElementWrapper(name = "extensions", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "extension", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("extensions")
     public ExtensionSet<TextFlowExtension> getExtensions() {
         return extensions;
     }
@@ -153,7 +143,7 @@ public class TextFlow extends TextContainer implements
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override
@@ -213,7 +203,6 @@ public class TextFlow extends TextContainer implements
         return true;
     }
 
-    @XmlAttribute()
     public Integer getRevision() {
         return revision;
     }

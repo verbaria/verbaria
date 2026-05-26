@@ -34,7 +34,6 @@ public class LocaleMember implements Serializable {
     private final Boolean isReviewer;
     private final Boolean isTranslator;
 
-
     public LocaleMember(String username, Boolean isCoordinator,
             Boolean isReviewer, Boolean isTranslator) {
         this.username = username;

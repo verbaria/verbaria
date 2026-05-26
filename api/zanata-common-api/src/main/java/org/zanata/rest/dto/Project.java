@@ -6,12 +6,6 @@ import java.util.Collection;
 import java.util.List;
 
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementRef;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -34,10 +28,6 @@ import org.zanata.rest.MediaTypes.Format;
  * @author asgeirf
  *
  */
-@XmlType(name = "projectType", propOrder = { "name", "defaultType",
-        "description", "sourceViewURL", "sourceCheckoutURL", "links",
-        "iterations", "status" })
-@XmlRootElement(name = "project")
 @JsonPropertyOrder({ "id", "defaultType", "name", "description",
         "sourceViewURL", "sourceCheckoutURL", "links", "iterations", "status" })
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -76,7 +66,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * The project identifier (slug)
      */
-    @XmlAttribute(name = "id", required = true)
+    @JsonProperty("id")
     @DocumentationExample("my-project")
     public String getId() {
         return id;
@@ -89,8 +79,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * The project type.
      */
-    @XmlElement(name = "defaultType", required = true, nillable = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("defaultType")
     @DocumentationExample("Gettext")
     public String getDefaultType() {
         return defaultType;
@@ -102,8 +91,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
 
     @NotEmpty
     @Size(max = 80)
-    @XmlElement(name = "name", required = true,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("name")
     @DocumentationExample("My Project")
     public String getName() {
         return name;
@@ -114,8 +102,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     }
 
     @Size(max = 100)
-    @XmlElement(name = "description", required = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("description")
     @DocumentationExample("This is a sample project.")
     public String getDescription() {
         return description;
@@ -128,8 +115,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * The url to view the project's sources.
      */
-    @XmlElement(name = "sourceViewURL", required = false, nillable = true,
-            namespace = Namespaces.ZANATA_API)
+    @JsonProperty("sourceViewURL")
     @DocumentationExample("http://source.view.com")
     public String getSourceViewURL() {
         return sourceViewURL;
@@ -142,8 +128,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * The url where to checkout the project's sources.
      */
-    @XmlElement(name = "sourceCheckoutURL", required = false, nillable = true,
-            namespace = Namespaces.ZANATA_API)
+    @JsonProperty("sourceCheckoutURL")
     @DocumentationExample("http://source.checkout.com")
     public String getSourceCheckoutURL() {
         return sourceCheckoutURL;
@@ -160,8 +145,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
      *
      * @return set of Links managed by this resource
      */
-    @XmlElement(name = "link", namespace = Namespaces.ZANATA_API)
-    @JsonProperty("links")
+    @JsonProperty("link")
     public Links getLinks() {
         return links;
     }
@@ -180,10 +164,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * A list of versions (iterations) in the project
      */
-    @XmlElementWrapper(name = "project-iterations",
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElementRef(namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("iterations")
+    @JsonProperty("project-iterations")
     public List<ProjectIteration> getIterations() {
         return iterations;
     }
@@ -201,8 +182,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
     /**
      * System state of the project
      */
-    @XmlElement(name = "status", required = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("status")
     public EntityStatus getStatus() {
         return status;
     }
@@ -248,7 +228,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

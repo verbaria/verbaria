@@ -24,15 +24,13 @@ package org.zanata.client.commands.pull;
 import java.io.File;
 import java.io.IOException;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
 import org.zanata.common.io.FileDetails;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
-import org.zanata.rest.dto.resource.TranslationsResource;
 import org.zanata.util.PathUtil;
 
 /**
@@ -41,21 +39,19 @@ import org.zanata.util.PathUtil;
  *
  */
 public class XmlStrategy extends AbstractPullStrategy {
-    private JAXBContext jaxbContext;
-    private Marshaller marshaller;
+    private XmlMapper xmlMapper;
     StringSet extensions = new StringSet("comment;gettext");
 
     protected XmlStrategy(PullOptions opts) {
         super(opts);
-        try {
-            jaxbContext =
-                    JAXBContext.newInstance(Resource.class,
-                            TranslationsResource.class);
-            marshaller = jaxbContext.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        } catch (JAXBException e) {
-            throw new RuntimeException(e);
+    }
+
+    private synchronized XmlMapper xmlMapper() {
+        if (xmlMapper == null) {
+            xmlMapper = (XmlMapper) new XmlMapper()
+                    .enable(SerializationFeature.INDENT_OUTPUT);
         }
+        return xmlMapper;
     }
 
     @Override
@@ -69,28 +65,20 @@ public class XmlStrategy extends AbstractPullStrategy {
 
     @Override
     public void writeSrcFile(Resource doc) throws IOException {
-        try {
-            String filename = docNameToFilename(doc.getName());
-            File srcFile = new File(getOpts().getSrcDir(), filename);
-            PathUtil.makeParents(srcFile);
-            marshaller.marshal(doc, srcFile);
-        } catch (JAXBException e) {
-            throw new IOException(e);
-        }
+        String filename = docNameToFilename(doc.getName());
+        File srcFile = new File(getOpts().getSrcDir(), filename);
+        PathUtil.makeParents(srcFile);
+        xmlMapper().writeValue(srcFile, doc);
     }
 
     @Override
     public FileDetails writeTransFile(String docName,
             LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {
-        try {
-            File transFile = getTransFileToWrite(docName, translatedDoc.getLocale());
-            PathUtil.makeParents(transFile);
-            marshaller.marshal(translatedDoc.getTranslation(), transFile);
-            return null;
-        } catch (JAXBException e) {
-            throw new IOException(e);
-        }
+        File transFile = getTransFileToWrite(docName, translatedDoc.getLocale());
+        PathUtil.makeParents(transFile);
+        xmlMapper().writeValue(transFile, translatedDoc.getTranslation());
+        return null;
     }
 
     @Override

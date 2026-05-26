@@ -20,7 +20,8 @@
  */
 package org.zanata.client.etag;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Contains information about a particular entry in the ETag cache.
@@ -28,6 +29,7 @@ import jakarta.xml.bind.annotation.XmlAttribute;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ETagCacheEntry {
     private String localFileName;
 
@@ -51,7 +53,6 @@ public class ETagCacheEntry {
         this.serverETag = serverETag;
     }
 
-    @XmlAttribute
     public String getLocalFileName() {
         return localFileName;
     }
@@ -60,7 +61,7 @@ public class ETagCacheEntry {
         this.localFileName = localFileName;
     }
 
-    @XmlAttribute(name = "lang")
+    @JsonProperty("lang")
     public String getLanguage() {
         return language;
     }
@@ -69,7 +70,6 @@ public class ETagCacheEntry {
         this.language = language;
     }
 
-    @XmlAttribute
     public String getLocalFileTime() {
         return localFileTime;
     }
@@ -78,7 +78,6 @@ public class ETagCacheEntry {
         this.localFileTime = localFileTime;
     }
 
-    @XmlAttribute
     public String getLocalFileMD5() {
         return localFileMD5;
     }
@@ -87,7 +86,6 @@ public class ETagCacheEntry {
         this.localFileMD5 = localFileMD5;
     }
 
-    @XmlAttribute
     public String getServerETag() {
         return serverETag;
     }

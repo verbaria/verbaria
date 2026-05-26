@@ -25,15 +25,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -74,7 +72,8 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
     protected static final String PROJECT_TYPE_OFFLINE_PO = "offlinepo";
 
     protected ETagCache eTagCache;
-    private Marshaller marshaller;
+    private static final ObjectMapper DEBUG_MAPPER = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
     private String modulePrefix;
     protected SourceDocResourceClient sourceDocResourceClient;
     protected TransDocResourceClient transDocResourceClient;
@@ -116,31 +115,15 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
     }
 
     @SuppressFBWarnings("SLF4J_SIGN_ONLY_FORMAT")
-    protected void debug(Object jaxbElement) {
+    protected void debug(Object jsonElement) {
         try {
             if (getOpts().isDebugSet() && getOpts().getLogHttp()) {
-                StringWriter writer = new StringWriter();
-                getMarshaller().marshal(jaxbElement, writer);
-                log.debug("{}", writer);
+                log.debug("{}",
+                        DEBUG_MAPPER.writeValueAsString(jsonElement));
             }
-        } catch (JAXBException e) {
+        } catch (JsonProcessingException e) {
             log.debug("{}", e.toString(), e);
         }
-    }
-
-    /**
-     * @return
-     * @throws JAXBException
-     */
-    private Marshaller getMarshaller() throws JAXBException {
-        if (marshaller == null) {
-            JAXBContext jc =
-                    JAXBContext.newInstance(Resource.class,
-                            TranslationsResource.class);
-            marshaller = jc.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        }
-        return marshaller;
     }
 
     protected String qualifiedDocName(String localDocName) {
@@ -187,7 +170,7 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
      * Filters the project's list of locales
      *
      * @param projectLocales
-     *            locales defined by the project on the server or in zanata.xml
+     *            locales defined by the project on the server or in verbaria.json
      *            (only for backward compatibility)
      * @param locales
      *            locales requested by the user (eg Maven param, command line
@@ -195,7 +178,7 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
      * @return the filtered list of locales
      * @throws ConfigException
      *             if one of the requested locales was not found on the server
-     *             or in zanata.xml (only for backward compatibility)
+     *             or in verbaria.json (only for backward compatibility)
      */
     public static LocaleList getLocaleMapList(LocaleList projectLocales,
             String[] locales) {
@@ -230,7 +213,7 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
     protected void loadETagCache(File cacheDir) {
         try {
             String location =
-                    ".zanata-cache" + File.separator + "etag-cache.xml";
+                    ".zanata-cache" + File.separator + "etag-cache.json";
             if (modulePrefix != null && !modulePrefix.trim().isEmpty()) {
                 location = modulePrefix + File.separator + location;
             }
@@ -246,7 +229,7 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
     protected void storeETagCache(File cacheDir) {
         try {
             String location =
-                    ".zanata-cache" + File.separator + "etag-cache.xml";
+                    ".zanata-cache" + File.separator + "etag-cache.json";
             if (modulePrefix != null && !modulePrefix.trim().isEmpty()) {
                 location = modulePrefix + File.separator + location;
             }

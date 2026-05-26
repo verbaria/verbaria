@@ -1,8 +1,6 @@
 package org.zanata.rest.dto.extensions.comment;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.zanata.common.Namespaces;
@@ -19,7 +17,6 @@ import org.zanata.rest.dto.extensions.gettext.TextFlowTargetExtension;
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  *
  */
-@XmlType(name = "simpleCommentExtension", propOrder = {})
 @JsonTypeName(value = "comment")
 public class SimpleComment implements TextFlowExtension,
         TextFlowTargetExtension {
@@ -36,7 +33,7 @@ public class SimpleComment implements TextFlowExtension,
         this.value = value;
     }
 
-    @XmlElement(name = "value", required = true)
+    @JsonProperty("value")
     public String getValue() {
         return value;
     }
@@ -45,7 +42,7 @@ public class SimpleComment implements TextFlowExtension,
         this.value = value;
     }
 
-    @XmlAttribute(name = "space", namespace = Namespaces.XML)
+    @JsonProperty("space")
     public String getSpace() {
         return "preserve";
     }
@@ -55,7 +52,7 @@ public class SimpleComment implements TextFlowExtension,
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

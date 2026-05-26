@@ -2,11 +2,6 @@ package org.zanata.rest.dto.resource;
 
 import java.io.Serializable;
 
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,8 +15,6 @@ import org.zanata.rest.dto.Extensible;
 import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.extensions.gettext.TextFlowTargetExtension;
 
-@XmlType(name = "textFlowTargetType", propOrder = { "description",
-        "translator", "content", "contents", "sourceHash", "extensions" })
 @JsonPropertyOrder({ "resId", "state", "translator", "content", "contents",
         "sourceHash", "extensions" })
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -46,8 +39,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         this.resId = resId;
     }
 
-    @XmlElement(name = "person", namespace = Namespaces.ZANATA_API)
-    @JsonProperty("translator")
+    @JsonProperty("person")
     public Person getTranslator() {
         return translator;
     }
@@ -64,7 +56,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         this.translator = translator;
     }
 
-    @XmlAttribute(name = "state", required = true)
+    @JsonProperty("state")
     public ContentState getState() {
         return state;
     }
@@ -80,8 +72,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
      *
      * @return
      */
-    @XmlElement(name = "description", required = false,
-            namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("description")
     public String getDescription() {
         return description;
     }
@@ -90,9 +81,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         this.description = description;
     }
 
-    @XmlElementWrapper(name = "extensions", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "extension", namespace = Namespaces.ZANATA_OLD)
+    @JsonProperty("extensions")
     public ExtensionSet<TextFlowTargetExtension> getExtensions() {
         return extensions;
     }
@@ -109,9 +98,8 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         this.extensions = extensions;
     }
 
-    @XmlAttribute(name = "res-id", required = true)
-    @NotEmpty
     @JsonProperty("resId")
+    @NotEmpty
     public String getResId() {
         return resId;
     }
@@ -141,7 +129,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override
@@ -229,7 +217,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         return true;
     }
 
-    @XmlAttribute(name = "revision", required = false)
+    @JsonProperty("revision")
     public Integer getRevision() {
         return revision;
     }
@@ -238,8 +226,7 @@ public class TextFlowTarget extends TextContainer implements Serializable,
         revision = i;
     }
 
-    @XmlAttribute(name = "resourceRevision", required = false)
-    @JsonProperty("textFlowRevision")
+    @JsonProperty("resourceRevision")
     public Integer getTextFlowRevision() {
         return textFlowRevision;
     }

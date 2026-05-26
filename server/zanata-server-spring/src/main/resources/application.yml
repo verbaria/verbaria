@@ -4,6 +4,7 @@ server:
 spring:
   application:
     name: zanata-server-spring
+    version: @project.version@
 
   autoconfigure:
     exclude:

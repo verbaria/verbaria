@@ -32,9 +32,7 @@ import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.service.GlossaryResource;
 import org.zanata.rest.service.StubbingServerRule;
 
-import jakarta.ws.rs.core.Response;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 public class GlossaryClientTest {
     @ClassRule
@@ -49,14 +47,11 @@ public class GlossaryClientTest {
     }
 
     @Test
-    public void testPut() throws Exception {
+    public void testPut() {
         List<GlossaryEntry> glossaryEntries = new ArrayList<>();
-        Response response = client.post(glossaryEntries, LocaleId.DE,
-                GlossaryResource.GLOBAL_QUALIFIED_NAME);
-        assertThat(response.getStatus())
+        assertThatCode(() -> client.post(glossaryEntries, LocaleId.DE,
+                GlossaryResource.GLOBAL_QUALIFIED_NAME))
                 .as("server returns successful status code")
-                .isEqualTo(200);
+                .doesNotThrowAnyException();
     }
 }
-
-

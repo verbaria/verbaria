@@ -161,7 +161,7 @@ abstract class AbstractPushPullMojo<O extends PushPullOptions> extends
      * method as the push command can have locales specified via command line.
      *
      * @return The locale map list taking into account the global locales in
-     *         zanata.xml as well as the command line argument ones.
+     *         verbaria.json as well as the command line argument ones.
      */
     @Override
     public LocaleList getLocaleMapList() {

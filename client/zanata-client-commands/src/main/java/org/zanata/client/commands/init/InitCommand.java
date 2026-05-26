@@ -31,15 +31,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import org.apache.commons.configuration.ConfigurationException;
+import ch.qos.logback.classic.Level;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.ConfigurableCommand;
@@ -65,6 +62,8 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
     private static final Logger log = LoggerFactory
             .getLogger(InitCommand.class);
     private static final String ITERATION_URL = "%siteration/view/%s/%s";
+    private static final ObjectMapper CONFIG_MAPPER = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
     private ConsoleInteractor console;
     private ProjectConfigHandler projectConfigHandler;
     private UserConfigHandler userConfigHandler;
@@ -102,7 +101,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
     protected void run() throws Exception {
 
         if (getOpts().getUsername() == null) {
-            // Search for zanata.ini
+            // Search for verbaria.ini
             log.info("Username not specified, trying config file");
             userConfigHandler.verifyUserConfig();
         }
@@ -111,7 +110,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
 
         ensureServerVersion();
 
-        // If there's a zanata.xml, ask the user
+        // If there's a verbaria.json, ask the user
         projectConfigHandler.handleExistingProjectConfig();
 
         // Select or create a project and version
@@ -122,8 +121,9 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
 
         advancedSettingsReminder();
 
-        downloadZanataXml(getOpts().getProj(), getOpts().getProjectVersion(),
-                new File("zanata.xml"));
+        downloadProjectConfig(getOpts().getProj(),
+                getOpts().getProjectVersion(),
+                new File("verbaria.json"));
 
         applyConfigFileSilently();
 
@@ -190,14 +190,18 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
     }
 
     private void applyConfigFileSilently()
-            throws ConfigurationException, JAXBException {
+            throws ConfigurationException, IOException {
         ConfigurableProjectOptions opts = getOpts();
-        org.apache.log4j.Logger logger =
-                LogManager.getLogger(OptionsUtil.class);
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+                        OptionsUtil.class);
         Level preLevel = logger.getLevel();
         logger.setLevel(Level.OFF);
-        OptionsUtil.applyConfigFiles(opts);
-        logger.setLevel(preLevel);
+        try {
+            OptionsUtil.applyConfigFiles(opts);
+        } finally {
+            logger.setLevel(preLevel);
+        }
         console.printfln(
                 Confirmation, get("project.version.type.confirmation"),
                 opts.getProjectType(), opts.getProj(), opts
@@ -224,7 +228,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
     }
 
     /**
-     * Downloads the zanata.xml config file using REST api.
+     * Downloads the verbaria.json config file using REST api.
      *
      * @param projectId
      *            project slug
@@ -234,7 +238,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
      *            project config destination
      */
     @VisibleForTesting
-    protected void downloadZanataXml(String projectId, String iterationId,
+    protected void downloadProjectConfig(String projectId, String iterationId,
             File configFileDest) throws IOException {
         ProjectIterationClient projectIterationClient = getClientFactory()
                 .getProjectIterationClient(projectId, iterationId);
@@ -244,7 +248,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
             content = projectIterationClient.sampleConfiguration();
         } catch (Exception e) {
             offerRetryOnServerError(e, console);
-            downloadZanataXml(projectId, iterationId, configFileDest);
+            downloadProjectConfig(projectId, iterationId, configFileDest);
             return;
         }
 
@@ -263,22 +267,18 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
     protected void writeToConfig(File srcDir, String includes, String excludes,
             File transDir, File configFile)
             throws Exception {
-        JAXBContext jc = JAXBContext.newInstance(ZanataConfig.class);
-        Unmarshaller unmarshaller = jc.createUnmarshaller();
         ZanataConfig currentConfig =
-                (ZanataConfig) unmarshaller.unmarshal(configFile);
+                CONFIG_MAPPER.readValue(configFile, ZanataConfig.class);
         currentConfig.setSrcDir(srcDir.getPath());
-        // try to avoid empty tags
         currentConfig.setIncludes(Strings.emptyToNull(includes));
         currentConfig.setExcludes(Strings.emptyToNull(excludes));
         currentConfig.setHooks(null);
-        if (currentConfig.getLocales().isEmpty()) {
+        if (currentConfig.getLocales() != null
+                && currentConfig.getLocales().isEmpty()) {
             currentConfig.setLocales(null);
         }
         currentConfig.setTransDir(transDir.getPath());
-        Marshaller marshaller = jc.createMarshaller();
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        marshaller.marshal(currentConfig, configFile);
+        CONFIG_MAPPER.writeValue(configFile, currentConfig);
 
         console.printfln(Confirmation, "Project config created at:%s",
                 getOpts().getProjectConfig());

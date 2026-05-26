@@ -31,7 +31,7 @@ import org.zanata.client.commands.OptionsUtil;
 import org.zanata.rest.client.GlossaryClient;
 import org.zanata.rest.client.RestClientFactory;
 
-import jakarta.ws.rs.client.ResponseProcessingException;
+import org.springframework.web.client.HttpClientErrorException;
 
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 
@@ -78,13 +78,9 @@ public class GlossaryDeleteCommand extends
             qualifiedName = StringUtils.isBlank(project)
                     ? client.getGlobalQualifiedName()
                     : client.getProjectQualifiedName(project);
-        } catch (ResponseProcessingException rpe) {
-            if (rpe.getResponse().getStatus() == 404) {
-                log.error("Project {} not found", project);
-                return;
-            } else {
-                throw rpe;
-            }
+        } catch (HttpClientErrorException.NotFound nf) {
+            log.error("Project {} not found", project);
+            return;
         }
         if (getOpts().getAllGlossary()) {
             if (getOpts().isInteractiveMode()) {
@@ -97,12 +93,8 @@ public class GlossaryDeleteCommand extends
         } else  {
             try {
                 client.delete(getOpts().getId(), qualifiedName);
-            } catch (ResponseProcessingException rpe) {
-                if (rpe.getResponse().getStatus() == 404) {
-                    log.error("Glossary entry {} not found", getOpts().getId());
-                } else {
-                    throw rpe;
-                }
+            } catch (HttpClientErrorException.NotFound nf) {
+                log.error("Glossary entry {} not found", getOpts().getId());
             }
         }
     }

@@ -1,11 +1,10 @@
 package org.zanata.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.Label;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -17,8 +16,6 @@ import org.zanata.common.Namespaces;
  * Information about a specific Glossary.
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  */
-@XmlRootElement(name = "glossaryInfo")
-@XmlType(name = "glossaryInfoType", propOrder = { "srcLocale", "transLocale"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "srcLocale", "transLocale"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -41,8 +38,7 @@ public class GlossaryInfo implements Serializable {
     /**
      * The glossary's source locale
      */
-    @XmlElement(name = "srcLocale", required = false,
-        namespace = Namespaces.ZANATA_API)
+    @JsonProperty("srcLocale")
     public GlossaryLocaleInfo getSrcLocale() {
         return srcLocale;
     }
@@ -54,8 +50,7 @@ public class GlossaryInfo implements Serializable {
     /**
      * The list of translated locale's available for the glossary
      */
-    @XmlElement(name = "transLocale", required = false,
-        namespace = Namespaces.ZANATA_API)
+    @JsonProperty("transLocale")
     public List<GlossaryLocaleInfo> getTransLocale() {
         return transLocale;
     }

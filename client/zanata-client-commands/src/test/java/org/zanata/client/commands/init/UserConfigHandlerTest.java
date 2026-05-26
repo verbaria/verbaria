@@ -40,7 +40,7 @@ public class UserConfigHandlerTest {
     }
 
     private void ensureUserConfigExistsWithOneServer() throws IOException {
-        userConfig = tempFolder.newFile("zanata.ini");
+        userConfig = tempFolder.newFile("verbaria.ini");
         BufferedWriter writer =
                 Files.newWriter(userConfig, Charsets.UTF_8);
         PrintWriter printWriter = new PrintWriter(writer);
@@ -57,7 +57,7 @@ public class UserConfigHandlerTest {
     public void exitWhenThereIsNoUserConfig() throws Exception {
         expectException.expect(RuntimeException.class);
         expectException.expectMessage(get("missing.user.config"));
-        opts.setUserConfig(new File("/planet/Mars/zanata.ini"));
+        opts.setUserConfig(new File("/planet/Mars/verbaria.ini"));
 
         handler.verifyUserConfig();
     }

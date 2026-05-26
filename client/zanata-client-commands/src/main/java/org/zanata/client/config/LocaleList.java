@@ -7,11 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
-@XmlRootElement(name = "locales")
-@XmlType(name = "localesType")
 public class LocaleList implements List<LocaleMapping>, Serializable {
     private static final long serialVersionUID = 1L;
     private final List<LocaleMapping> locales = new ArrayList<LocaleMapping>();

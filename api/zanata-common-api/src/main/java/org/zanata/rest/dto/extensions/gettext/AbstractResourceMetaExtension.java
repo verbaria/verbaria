@@ -1,7 +1,6 @@
 package org.zanata.rest.dto.extensions.gettext;
 
-import jakarta.xml.bind.annotation.XmlSeeAlso;
-import jakarta.xml.bind.annotation.XmlTransient;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -13,8 +12,6 @@ import org.zanata.rest.dto.ExtensionValue;
         property = "object-type")
 @JsonSubTypes({ @Type(value = PoHeader.class, name = "po-header") })
 @JsonTypeName("AbstractResourceMetaExtension")
-@XmlSeeAlso({ PoHeader.class })
-@XmlTransient
 public interface AbstractResourceMetaExtension extends ExtensionValue {
 
 }

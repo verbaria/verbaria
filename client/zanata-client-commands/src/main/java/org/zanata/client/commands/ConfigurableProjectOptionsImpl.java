@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Base options for commands which supports configuration by the user's
- * zanata.ini and by a project's zanata.xml
+ * verbaria.ini and by a project's verbaria.json
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
@@ -46,7 +46,7 @@ public abstract class ConfigurableProjectOptionsImpl extends
     // When used as a CLI command, the default path (specified here) is relative
     // to CWD. ConfigurableProjectMojo specifies another default, which is
     // relative to project's basedir.
-    private File projectConfig = new File("zanata.xml");
+    private File projectConfig = new File("verbaria.json");
 
     private String project;
     private String projectVersion;
@@ -69,7 +69,7 @@ public abstract class ConfigurableProjectOptionsImpl extends
     @Option(
             name = "--project",
             metaVar = "PROJ",
-            usage = "Project ID.  This value is required unless specified in zanata.xml.")
+            usage = "Project ID.  This value is required unless specified in verbaria.json.")
     public
             void setProj(String projectSlug) {
         this.project = projectSlug;
@@ -77,8 +77,8 @@ public abstract class ConfigurableProjectOptionsImpl extends
 
     @Override
     @Option(name = "--project-config", metaVar = "FILENAME",
-            usage = "Project configuration file, eg zanata.xml\n"
-                    + "Default is zanata.xml in the current directory.",
+            usage = "Project configuration file, eg verbaria.json\n"
+                    + "Default is verbaria.json in the current directory.",
             required = false)
     public void setProjectConfig(File projectConfig) {
         this.projectConfig = projectConfig;
@@ -93,7 +93,7 @@ public abstract class ConfigurableProjectOptionsImpl extends
     @Option(
             name = "--project-version",
             metaVar = "VER",
-            usage = "Project version ID.  This value is required unless specified in zanata.xml.")
+            usage = "Project version ID.  This value is required unless specified in verbaria.json.")
     public
             void setProjectVersion(String versionSlug) {
         this.projectVersion = versionSlug;

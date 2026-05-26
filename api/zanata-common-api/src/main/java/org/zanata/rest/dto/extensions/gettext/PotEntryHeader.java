@@ -3,10 +3,6 @@ package org.zanata.rest.dto.extensions.gettext;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.zanata.rest.dto.DTOUtil;
 
@@ -17,7 +13,6 @@ import org.zanata.rest.dto.DTOUtil;
  *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
  *
  */
-@XmlRootElement(name = "pot-entry-header")
 public class PotEntryHeader implements TextFlowExtension {
 
     public static final String ID = "gettext";
@@ -30,7 +25,7 @@ public class PotEntryHeader implements TextFlowExtension {
     // use TextFlow's SimpleComment extension
     private String extractedComment;
 
-    @XmlElement(name = "context", required = false)
+    @JsonProperty("context")
     public String getContext() {
         return context;
     }
@@ -39,7 +34,7 @@ public class PotEntryHeader implements TextFlowExtension {
         this.context = context;
     }
 
-    @XmlElement(name = "extractedComment", required = false)
+    @JsonProperty("extractedComment")
     @Deprecated
     // use TextFlow's SimpleComment extension
             public
@@ -54,17 +49,14 @@ public class PotEntryHeader implements TextFlowExtension {
         this.extractedComment = comment;
     }
 
-    @XmlElementWrapper(name = "flags", required = true)
-    @XmlElement(name = "flag")
+    @JsonProperty("flags")
     public List<String> getFlags() {
         if (flags == null)
             flags = new ArrayList<String>();
         return flags;
     }
 
-    @XmlElementWrapper(name = "source-references", required = true)
-    @XmlElement(name = "sourcereference")
-    @JsonProperty("references")
+    @JsonProperty("source-references")
     public List<String> getReferences() {
         if (references == null)
             references = new ArrayList<String>();
@@ -133,7 +125,7 @@ public class PotEntryHeader implements TextFlowExtension {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
 }

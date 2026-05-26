@@ -21,59 +21,52 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
-
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.zanata.rest.MediaTypes;
 import org.zanata.rest.dto.ProjectIteration;
 
-/**
- * @author Patrick Huang
- *         <a href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class ProjectIterationClient {
+    private static final MediaType ITERATION_JSON =
+            MediaType.parseMediaType(
+                    MediaTypes.APPLICATION_ZANATA_PROJECT_ITERATION_JSON);
+
     private final RestClientFactory factory;
     private final String projectSlug;
     private final String versionSlug;
-    private URI baseUri;
 
     ProjectIterationClient(RestClientFactory factory, String projectSlug,
             String versionSlug) {
         this.factory = factory;
         this.projectSlug = projectSlug;
         this.versionSlug = versionSlug;
-        baseUri = factory.getBaseUri();
     }
 
     public ProjectIteration get() {
-        return webResource()
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .get(ProjectIteration.class);
+        return factory.getSpringRestClient().get()
+                .uri("projects/p/{slug}/iterations/i/{iter}",
+                        projectSlug, versionSlug)
+                .accept(ITERATION_JSON)
+                .retrieve()
+                .body(ProjectIteration.class);
     }
 
-    private WebTarget webResource() {
-        return factory.getClient().target(baseUri)
-                .path("projects").path("p").path(projectSlug)
-                .path("iterations").path("i").path(versionSlug);
-    }
-
-    public Response put(ProjectIteration projectVersion) {
-        Response response = webResource().request()
-                .put(Entity.xml(projectVersion));
-        if (response.getStatusInfo().getFamily() != Response.Status.Family.SUCCESSFUL) {
-            throw new RuntimeException(response.getStatusInfo().toString());
-        }
-        response.close();
-        return response;
+    public ResponseEntity<Void> put(ProjectIteration projectVersion) {
+        return factory.getSpringRestClient().put()
+                .uri("projects/p/{slug}/iterations/i/{iter}",
+                        projectSlug, versionSlug)
+                .contentType(ITERATION_JSON)
+                .body(projectVersion)
+                .retrieve()
+                .toBodilessEntity();
     }
 
     public String sampleConfiguration() {
-        return webResource().path("config")
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .get(String.class);
+        return factory.getSpringRestClient().get()
+                .uri("projects/p/{slug}/iterations/i/{iter}/config",
+                        projectSlug, versionSlug)
+                .accept(MediaType.APPLICATION_XML)
+                .retrieve()
+                .body(String.class);
     }
 }
-

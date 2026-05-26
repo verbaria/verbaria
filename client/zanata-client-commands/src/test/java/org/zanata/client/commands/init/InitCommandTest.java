@@ -64,23 +64,23 @@ public class InitCommandTest {
     public void willDownloadProjectConfigFromServer() throws IOException {
         when(clientFactory.getProjectIterationClient("gcc", "master")).thenReturn(projectIterationClient);
         when(projectIterationClient.sampleConfiguration()).thenReturn(
-                readFromClasspath("serverresponse/projectConfig.xml"));
+                readFromClasspath("serverresponse/projectConfig.json"));
 
-        File configFileDest = new File(tempFolder.getRoot(), "zanata.xml");
-        command.downloadZanataXml("gcc", "master", configFileDest);
+        File configFileDest = new File(tempFolder.getRoot(), "verbaria.json");
+        command.downloadProjectConfig("gcc", "master", configFileDest);
 
         assertThat(configFileDest.exists()).isTrue();
         List<String> lines = FileUtils.readLines(configFileDest, Charsets.UTF_8);
         String content = Joiner.on("\n").join(lines);
-        assertThat(content).contains("<project>");
+        assertThat(content).contains("\"project\"");
         assertThat(opts.getProjectConfig()).isEqualTo(configFileDest);
     }
 
     @Test
     public void willWriteSrcDirIncludesExcludesToConfigFile() throws Exception {
-        File configFile = new File(tempFolder.getRoot(), "zanata.xml");
+        File configFile = new File(tempFolder.getRoot(), "verbaria.json");
         configFile.createNewFile();
-        FileUtils.write(configFile, readFromClasspath("serverresponse/projectConfig.xml"), Charsets.UTF_8);
+        FileUtils.write(configFile, readFromClasspath("serverresponse/projectConfig.json"), Charsets.UTF_8);
 
         command.writeToConfig(new File("pot"), null, "", new File("po"),
                 configFile);
@@ -91,8 +91,10 @@ public class InitCommandTest {
             log.debug(line);
             content.append(line.trim());
         }
-        assertThat(content.toString()).contains(
-                "<src-dir>pot</src-dir><trans-dir>po</trans-dir>");
+        assertThat(content.toString().replace(" ", "")).contains(
+                "\"srcDir\":\"pot\"");
+        assertThat(content.toString().replace(" ", "")).contains(
+                "\"transDir\":\"po\"");
     }
 
     @Test
@@ -114,7 +116,7 @@ public class InitCommandTest {
             throws Exception {
         expectException.expect(RuntimeException.class);
         expectException.expectMessage(get("missing.user.config"));
-        opts.setUserConfig(new File("/planet/Mars/zanata.ini"));
+        opts.setUserConfig(new File("/planet/Mars/verbaria.ini"));
         command.run();
     }
 }

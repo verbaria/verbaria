@@ -15,10 +15,8 @@ import org.zanata.client.commands.OptionsUtil;
 import org.zanata.client.commands.ZanataCommand;
 import org.zanata.client.config.CommandHook;
 
-import com.pyx4j.log4j.MavenLogAppender;
-
 /**
- * Base class for mojos which support configuration by the user's zanata.ini
+ * Base class for mojos which support configuration by the user's verbaria.ini
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
  */
@@ -29,24 +27,24 @@ public abstract class ConfigurableMojo<O extends ConfigurableOptions> extends
     /**
      * Client configuration file for Zanata.
      */
-    @Parameter(property = "zanata.userConfig", defaultValue = "${user.home}/.config/zanata.ini")
+    @Parameter(property = "zanata.userConfig", defaultValue = "${user.home}/.config/verbaria.ini")
     private File userConfig;
 
     /**
-     * Base URL for the server. Defaults to the value in zanata.xml (if
+     * Base URL for the server. Defaults to the value in verbaria.json (if
      * present).
      */
     @Parameter(property = "zanata.url")
     private URL url;
 
     /**
-     * Username for accessing the REST API. Defaults to the value in zanata.ini.
+     * Username for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     @Parameter(property = "zanata.username")
     private String username;
 
     /**
-     * API key for accessing the REST API. Defaults to the value in zanata.ini.
+     * API key for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     @Parameter(property = "zanata.key")
     private String key;
@@ -80,35 +78,6 @@ public abstract class ConfigurableMojo<O extends ConfigurableOptions> extends
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        // @formatter:off
-      /*
-       * Configure the MavenLogAppender to use this Mojo's Maven logger. NB
-       * maven-plugin-log4j.jar includes a log4j.xml to activate the
-       * MavenLogAppender. See
-       * http://pyx4j.com/snapshot/pyx4j/pyx4j-maven-plugins/maven-plugin-log4j/index.html
-       * In case it needs to be overridden, it looks like this:
-
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE log4j:configuration PUBLIC "-//log4j//DTD//EN" "http://logging.apache.org/log4j/docs/api/org/apache/log4j/xml/log4j.dtd">
-<log4j:configuration>
-
-    <appender name="MavenLogAppender" class="com.pyx4j.log4j.MavenLogAppender">
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%m" />
-        </layout>
-    </appender>
-
-    <root>
-        <level value="debug" />
-        <appender-ref ref="MavenLogAppender" />
-    </root>
-
-</log4j:configuration>
-
-       */
-      // @formatter:on
-
-        MavenLogAppender.startPluginLog(this);
         try {
             getLog().info("Please report Zanata bugs here: " + BUG_URL);
             OptionsUtil.applyConfigFiles(this);
@@ -116,8 +85,6 @@ public abstract class ConfigurableMojo<O extends ConfigurableOptions> extends
             runCommand();
         } catch (Exception e) {
             throw new MojoExecutionException("Zanata mojo exception", e);
-        } finally {
-            MavenLogAppender.endPluginLog(this);
         }
     }
 

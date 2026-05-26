@@ -20,18 +20,12 @@
  */
 package org.zanata.rest.dto;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-
 /**
  * Status of a reindex operation.
  *
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@XmlRootElement(name = "reindexStatus")
-@XmlType(name = "reindexStatusType")
 public class ReindexStatus {
     private boolean startedReindex;
 
@@ -53,12 +47,10 @@ public class ReindexStatus {
         this.startedReindex = startedReindex;
     }
 
-    @XmlElement
     public long getPercentageComplete() {
         return this.indexedElements * 100 / this.totalElements;
     }
 
-    @XmlElement
     public long getIndexedElements() {
         return indexedElements;
     }
@@ -67,7 +59,6 @@ public class ReindexStatus {
         this.indexedElements = indexedElements;
     }
 
-    @XmlElement
     public long getTotalElements() {
         return totalElements;
     }
@@ -76,7 +67,6 @@ public class ReindexStatus {
         this.totalElements = totalElements;
     }
 
-    @XmlElement
     public String getCurrentElementType() {
         return currentElementType;
     }
@@ -85,7 +75,6 @@ public class ReindexStatus {
         this.currentElementType = currentElementType;
     }
 
-    @XmlElement
     public long getTimeElapsed() {
         return timeElapsed;
     }
@@ -94,7 +83,6 @@ public class ReindexStatus {
         this.timeElapsed = timeElapsed;
     }
 
-    @XmlElement
     public long getTimeRemaining() {
         return timeRemaining;
     }

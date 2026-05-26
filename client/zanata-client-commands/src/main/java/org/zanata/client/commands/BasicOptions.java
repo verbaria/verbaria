@@ -10,7 +10,7 @@ public interface BasicOptions {
     ZanataCommand initCommand();
 
     /**
-     * Whether to enable debug mode. Defaults to the value in zanata.ini. This
+     * Whether to enable debug mode. Defaults to the value in verbaria.ini. This
      * value is used by command line clients, but not by Maven (which uses its
      * own --debug/-X flag).
      */
@@ -22,7 +22,7 @@ public interface BasicOptions {
 
     /**
      * Whether to display full information about errors (ie exception stack
-     * traces). Defaults to the value in zanata.ini. This value is used by
+     * traces). Defaults to the value in verbaria.ini. This value is used by
      * command line clients, but not by Maven (which uses its own --errors/-e
      * flag).
      */

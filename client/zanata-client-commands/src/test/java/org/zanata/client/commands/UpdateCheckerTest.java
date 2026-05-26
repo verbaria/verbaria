@@ -8,10 +8,10 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import org.fedorahosted.openprops.Properties;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,7 +36,7 @@ import static org.zanata.client.commands.Messages.get;
 
 public class UpdateCheckerTest {
     private final DateTimeFormatter dateFormat =
-            DateTimeFormat.forPattern("yyyy-MM-dd");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final String currentVersion = "3.0.1";
     @Rule
     public TemporaryFolder tempFoler = new TemporaryFolder();
@@ -77,7 +77,7 @@ public class UpdateCheckerTest {
         assertThat(marker.exists()).isTrue();
         Properties properties = new Properties();
         properties.load(new FileReader(marker));
-        String today = dateFormat.print(new DateTime());
+        String today = LocalDate.now().format(dateFormat);
 
         assertThat(properties.getProperty("lastChecked")).isEqualTo(today);
         assertThat(properties.getProperty("frequency")).isEqualTo("weekly");
@@ -86,7 +86,7 @@ public class UpdateCheckerTest {
     }
     @Test
     public void willNotCheckIfUserSaysNo() throws Exception {
-        String sevenDaysAgo = dateFormat.print(new DateTime().minusDays(7));
+        String sevenDaysAgo = LocalDate.now().minusDays(7).format(dateFormat);
         writeLinesToMarkerFile("lastChecked=" + sevenDaysAgo, "noAsking=false");
         ConsoleInteractor console = MockConsoleInteractor.predefineAnswers("n");
         checker = new UpdateChecker("localhost", marker, console, "3.3.3");
@@ -98,7 +98,7 @@ public class UpdateCheckerTest {
     @Test
     public void byDefaultMarkerFileHasLastCheckedDateOverOneWeekWillCheck()
             throws Exception {
-        String sevenDaysAgo = dateFormat.print(new DateTime().minusDays(7));
+        String sevenDaysAgo = LocalDate.now().minusDays(7).format(dateFormat);
         writeLinesToMarkerFile("lastChecked=" + sevenDaysAgo);
 
         when(mockConsole.expectAnswerWithRetry(ConsoleInteractor.AnswerValidator.YES_NO)).thenReturn("y");
@@ -110,7 +110,7 @@ public class UpdateCheckerTest {
     public void
             byDefaultMarkerFileHasLastCheckedDateWithinOneWeekWillNotCheck()
                     throws Exception {
-        String twoDaysAgo = dateFormat.print(new DateTime().minusDays(2));
+        String twoDaysAgo = LocalDate.now().minusDays(2).format(dateFormat);
         writeLinesToMarkerFile("lastChecked=" + twoDaysAgo);
 
         boolean result = checker.needToCheckUpdates(true);
@@ -119,7 +119,7 @@ public class UpdateCheckerTest {
 
     @Test
     public void canConfigureCheckFrequency() throws Exception {
-        String twoDaysAgo = dateFormat.print(new DateTime().minusDays(2));
+        String twoDaysAgo = LocalDate.now().minusDays(2).format(dateFormat);
         writeLinesToMarkerFile("lastChecked=" + twoDaysAgo, "frequency=daily");
         when(mockConsole.expectAnswerWithRetry(ConsoleInteractor.AnswerValidator.YES_NO)).thenReturn("y");
 
@@ -151,7 +151,7 @@ public class UpdateCheckerTest {
         // comment above line and uncomment below will talk to real server
         // String url = "https://oss.sonatype.org/service/local/";
 
-        String sevenDaysAgo = dateFormat.print(new DateTime().minusDays(7));
+        String sevenDaysAgo = LocalDate.now().minusDays(7).format(dateFormat);
         writeLinesToMarkerFile("lastChecked=" + sevenDaysAgo);
 
         checker = new UpdateChecker(url, marker, mockConsole, currentVersion);
@@ -168,7 +168,7 @@ public class UpdateCheckerTest {
         Properties props = new Properties();
         props.load(new FileReader(marker));
         assertThat(props.getProperty("lastChecked"))
-                .isEqualTo(dateFormat.print(new DateTime()));
+                .isEqualTo(LocalDate.now().format(dateFormat));
 
     }
     private String startMockServer(Container container) throws IOException {

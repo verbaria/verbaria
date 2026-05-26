@@ -7,18 +7,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.zanata.common.Namespaces;
 
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * A series of text flows to be translated and sharing common metadata.
  */
-@XmlType(name = "resourceType", propOrder = { "textFlows" })
-@XmlRootElement(name = "resource")
 @JsonPropertyOrder({ "name", "contentType", "lang", "extensions", "textFlows" })
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -38,11 +32,7 @@ public class Resource extends AbstractResourceMeta {
     /**
      * Set of text flows containing the translatable strings.
      */
-    @XmlElementWrapper(name = "text-flows", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @XmlElement(name = "text-flow",
-            namespace = org.zanata.common.Namespaces.ZANATA_API)
-    @JsonProperty("textFlows")
+    @JsonProperty("text-flows")
     public List<TextFlow> getTextFlows() {
         if (textFlows == null) {
             textFlows = new ArrayList<TextFlow>();
@@ -53,7 +43,7 @@ public class Resource extends AbstractResourceMeta {
     // @Override
     // public String toString()
     // {
-    // return DTOUtil.toXML(this);
+    // return DTOUtil.toJSON(this);
     // }
 
     @Override

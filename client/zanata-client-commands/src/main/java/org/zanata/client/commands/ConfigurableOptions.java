@@ -5,7 +5,7 @@ import java.net.URL;
 
 /**
  * Base options for commands which supports configuration by the user's
- * zanata.ini
+ * verbaria.ini
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
@@ -13,14 +13,14 @@ import java.net.URL;
 public interface ConfigurableOptions extends BasicOptions {
 
     /**
-     * API key for accessing the REST API. Defaults to the value in zanata.ini.
+     * API key for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     String getKey();
 
     void setKey(String key);
 
     /**
-     * Base URL for the server. Defaults to the value in zanata.xml.
+     * Base URL for the server. Defaults to the value in verbaria.json.
      */
     URL getUrl();
 
@@ -34,7 +34,7 @@ public interface ConfigurableOptions extends BasicOptions {
     void setUserConfig(File userConfig);
 
     /**
-     * Username for accessing the REST API. Defaults to the value in zanata.ini.
+     * Username for accessing the REST API. Defaults to the value in verbaria.ini.
      */
     String getUsername();
 

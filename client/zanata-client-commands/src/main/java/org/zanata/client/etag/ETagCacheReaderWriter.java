@@ -20,42 +20,35 @@
  */
 package org.zanata.client.etag;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
 public class ETagCacheReaderWriter {
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
+
     public static ETagCache readCache(InputStream is) {
         try {
-            JAXBContext jaxbCtx =
-                    JAXBContext.newInstance(ETagCacheCollection.class);
-            Unmarshaller unmarshaller = jaxbCtx.createUnmarshaller();
-
             ETagCacheCollection cacheCol =
-                    (ETagCacheCollection) unmarshaller.unmarshal(is);
-            ETagCache cache = new ETagCache(cacheCol);
-            return cache;
-        } catch (JAXBException e) {
+                    MAPPER.readValue(is, ETagCacheCollection.class);
+            return new ETagCache(cacheCol);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void writeCache(ETagCache cache, OutputStream os) {
         try {
-            JAXBContext jaxbCtx =
-                    JAXBContext.newInstance(ETagCacheCollection.class);
-            Marshaller marshaller = jaxbCtx.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT,
-                    Boolean.TRUE);
-            marshaller.marshal(cache.asETagCacheCollection(), os);
-        } catch (JAXBException e) {
+            MAPPER.writeValue(os, cache.asETagCacheCollection());
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

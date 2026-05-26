@@ -11,7 +11,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Base options for commands which support configuration by the user's
- * zanata.ini and by a project's zanata.xml
+ * verbaria.ini and by a project's verbaria.json
  *
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
@@ -23,12 +23,12 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
     @Option(
             name = "--project",
             metaVar = "PROJ",
-            usage = "Project ID.  This value is required unless specified in zanata.xml.")
+            usage = "Project ID.  This value is required unless specified in verbaria.json.")
     public
             void setProj(String projectSlug);
 
     @Option(name = "--project-config", metaVar = "FILENAME",
-            usage = "Project configuration file, eg zanata.xml",
+            usage = "Project configuration file, eg verbaria.json",
             required = false)
     public void setProjectConfig(File projectConfig);
 
@@ -37,7 +37,7 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
     @Option(
             name = "--project-version",
             metaVar = "VER",
-            usage = "Project version ID  This value is required unless specified in zanata.xml.")
+            usage = "Project version ID  This value is required unless specified in verbaria.json.")
     public
             void setProjectVersion(String versionSlug);
 
@@ -47,7 +47,7 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
             aliases = { "-T" },
             name = "--project-type",
             metaVar = "PROJTYPE",
-            usage = "Project type  This value is required unless specified in zanata.xml.")
+            usage = "Project type  This value is required unless specified in verbaria.json.")
     public
             void setProjectType(String projectType);
 

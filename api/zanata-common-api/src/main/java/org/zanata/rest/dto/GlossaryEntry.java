@@ -25,11 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -46,9 +41,6 @@ import org.zanata.rest.MediaTypes;
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
  *
  **/
-@XmlRootElement(name = "glossaryEntry")
-@XmlType(name = "glossaryEntryType", propOrder = { "id", "pos",
-        "description", "sourceReference", "glossaryTerms", "termsCount", "qualifiedName" })
 @JsonPropertyOrder({ "id", "pos", "description", "srcLang", "sourceReference", "glossaryTerms", "termsCount", "qualifiedName" })
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @Label("Glossary Entry")
@@ -88,7 +80,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
     /**
      * Unique identifier
      */
-    @XmlElement(name = "id", namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("id")
     @DocumentationExample(value = "444555", value2 = "444556")
     public Long getId() {
@@ -102,7 +93,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
     /**
      * Glossary entry's part of speech
      */
-    @XmlElement(name = "pos", namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("pos")
     @DocumentationExample(value = "verb", value2 = "noun")
     public String getPos() {
@@ -113,7 +103,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
         this.pos = pos;
     }
 
-    @XmlElement(name = "description", namespace = Namespaces.ZANATA_OLD)
     @JsonProperty("description")
     public String getDescription() {
         return description;
@@ -127,7 +116,6 @@ public class GlossaryEntry implements Serializable, HasMediaType {
      * Number of translated terms. A term is the glossary entry's representation
      * for a specific locale
      */
-    @XmlElement(name = "termsCount", namespace = Namespaces.ZANATA_API)
     @JsonProperty("termsCount")
     @DocumentationExample("2")
     public int getTermsCount() {
@@ -141,8 +129,7 @@ public class GlossaryEntry implements Serializable, HasMediaType {
     /**
      * The full list of glossary terms
      */
-    @XmlElement(name = "glossary-term", namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("glossaryTerms")
+    @JsonProperty("glossary-term")
     public List<GlossaryTerm> getGlossaryTerms() {
         if (glossaryTerms == null) {
             glossaryTerms = new ArrayList<GlossaryTerm>();
@@ -157,9 +144,7 @@ public class GlossaryEntry implements Serializable, HasMediaType {
     /**
      * The source locale for this specific entry
      */
-    @XmlAttribute(name = "src-lang")
-    @XmlJavaTypeAdapter(type = LocaleId.class, value = LocaleIdAdapter.class)
-    @JsonProperty("srcLang")
+    @JsonProperty("src-lang")
     @DocumentationExample("en-US")
     public LocaleId getSrcLang() {
         return srcLang;
@@ -169,9 +154,7 @@ public class GlossaryEntry implements Serializable, HasMediaType {
         this.srcLang = srcLang;
     }
 
-    @XmlElement(name = "source-reference", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("sourceReference")
+    @JsonProperty("source-reference")
     public String getSourceReference() {
         return sourceReference;
     }
@@ -180,8 +163,7 @@ public class GlossaryEntry implements Serializable, HasMediaType {
         this.sourceReference = ref;
     }
 
-    @XmlElement(name = "qualified-name", namespace = Namespaces.ZANATA_API)
-    @JsonProperty("qualifiedName")
+    @JsonProperty("qualified-name")
     public QualifiedName getQualifiedName() {
         return qualifiedName;
     }
@@ -192,7 +174,7 @@ public class GlossaryEntry implements Serializable, HasMediaType {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

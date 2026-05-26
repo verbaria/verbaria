@@ -24,10 +24,9 @@ package org.zanata.rest.client;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.springframework.http.ResponseEntity;
 import org.zanata.rest.dto.ProjectIteration;
 import org.zanata.rest.service.StubbingServerRule;
-
-import jakarta.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,8 +51,9 @@ public class ProjectIterationClientTest {
 
     @Test
     public void testPut() throws Exception {
-        Response response = client.put(new ProjectIteration("1.1"));
-        assertThat(response.getStatus())
+        ResponseEntity<Void> response =
+                client.put(new ProjectIteration("1.1"));
+        assertThat(response.getStatusCode().value())
                 .as("server returns successful status code")
                 .isEqualTo(201);
     }

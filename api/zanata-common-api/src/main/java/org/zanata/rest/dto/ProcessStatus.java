@@ -22,12 +22,6 @@ package org.zanata.rest.dto;
 
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlElementWrapper;
-import jakarta.xml.bind.annotation.XmlEnum;
-import jakarta.xml.bind.annotation.XmlEnumValue;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -39,35 +33,26 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Carlos Munoz <a
  *         href="mailto:camunoz@redhat.com">camunoz@redhat.com</a>
  */
-@XmlRootElement(name = "processStatus")
-@XmlType(name = "processStatusType")
 @Label("Process Status")
 public class ProcessStatus {
-    @XmlEnum
     @Label("Process Status Code")
     public enum ProcessStatusCode {
         /** The process has not been accepted by the server */
-        @XmlEnumValue("NotAccepted")
         NotAccepted,
 
         /** The process has been accepted but is not yet running */
-        @XmlEnumValue("Waiting")
         Waiting,
 
         /** The process is being executed */
-        @XmlEnumValue("Running")
         Running,
 
         /** The process has finished normally */
-        @XmlEnumValue("Finished")
         Finished,
 
         /** The process has finshed with a failure */
-        @XmlEnumValue("Failed")
         Failed,
 
         /** The process has been cancelled */
-        @XmlEnumValue("Cancelled")
         Cancelled
     }
 
@@ -79,7 +64,6 @@ public class ProcessStatus {
 
     private ProcessStatusCode statusCode;
 
-    @XmlElement(required = true)
     @DocumentationExample("http://zanata.example.com")
     public String getUrl() {
         return url;
@@ -89,7 +73,6 @@ public class ProcessStatus {
         this.url = url;
     }
 
-    @XmlElement(required = true)
     @DocumentationExample("55")
     public int getPercentageComplete() {
         return percentageComplete;
@@ -99,9 +82,7 @@ public class ProcessStatus {
         this.percentageComplete = percentageComplete;
     }
 
-    @XmlElement(name = "message")
-    @XmlElementWrapper(name = "messages", required = true)
-    @JsonProperty("messages")
+    @JsonProperty("message")
     @DocumentationExample(value = "A warning message",
             value2 = "A second warning message")
     public List<String> getMessages() {
@@ -120,7 +101,6 @@ public class ProcessStatus {
         return this;
     }
 
-    @XmlElement
     public ProcessStatusCode getStatusCode() {
         return statusCode;
     }

@@ -1,17 +1,18 @@
 package org.zanata.client.commands;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.HierarchicalINIConfiguration;
-import org.apache.commons.configuration.SubnodeConfiguration;
+import org.apache.commons.configuration2.INIConfiguration;
+import org.apache.commons.configuration2.SubnodeConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +47,10 @@ public class OptionsUtil {
      *
      * @throws Exception
      */
+    private static final ObjectMapper CONFIG_MAPPER = new ObjectMapper();
+
     public static void applyConfigFiles(ConfigurableOptions opts)
-            throws ConfigurationException, JAXBException {
+            throws ConfigurationException, IOException {
         Optional<ZanataConfig> zanataConfig = Optional.empty();
         if (opts instanceof ConfigurableProjectOptions) {
             ConfigurableProjectOptions projOpts =
@@ -62,8 +65,8 @@ public class OptionsUtil {
         if (opts.getUserConfig() != null) {
             if (opts.getUserConfig().exists()) {
                 log.info("Loading user config from {}", opts.getUserConfig());
-                HierarchicalINIConfiguration dataConfig =
-                        new HierarchicalINIConfiguration(opts.getUserConfig());
+                INIConfiguration dataConfig =
+                        loadIniConfig(opts.getUserConfig());
                 applyUserConfig(opts, dataConfig);
             } else {
                 System.err.printf(
@@ -87,12 +90,12 @@ public class OptionsUtil {
     }
 
     public static Optional<ZanataConfig> applyProjectConfigToProjectOptions(ConfigurableProjectOptions opts)
-            throws JAXBException {
+            throws IOException {
         Optional<ZanataConfig> projectConfig =
                 readProjectConfigFile(opts);
         if (projectConfig.isPresent()) {
             // local project config is supposed to override user's
-            // zanata.ini,
+            // verbaria.ini,
             // so we apply it first
             applyProjectConfig(opts, projectConfig.get());
         } else if (opts.getProjectConfig() != null) {
@@ -129,15 +132,13 @@ public class OptionsUtil {
     }
 
     public static void applyConfigToGlossaryOptions(ConfigurableGlossaryOptions opts)
-            throws JAXBException {
+            throws IOException {
         File configFile = opts.getConfig();
         if (configFile != null) {
-            JAXBContext jc = JAXBContext.newInstance(ZanataConfig.class);
-            Unmarshaller unmarshaller = jc.createUnmarshaller();
             if (configFile.exists()) {
                 log.info("Loading config from {}", configFile);
-                ZanataConfig projectConfig = (ZanataConfig) unmarshaller
-                        .unmarshal(configFile);
+                ZanataConfig projectConfig =
+                        CONFIG_MAPPER.readValue(configFile, ZanataConfig.class);
                 applyBasicConfig(opts, projectConfig);
             } else {
                 log.warn("Config file '{}' not found; ignoring.",
@@ -147,24 +148,22 @@ public class OptionsUtil {
     }
 
     /**
-     * Unmarshal project config (zanata.xml) file.
+     * Load project config (verbaria.json) file.
      *
      * @param projOpts
      *         project options
      * @return optional ZanataConfig object
-     * @throws JAXBException
+     * @throws IOException
      */
     public static Optional<ZanataConfig> readProjectConfigFile(
-            ConfigurableProjectOptions projOpts) throws JAXBException {
+            ConfigurableProjectOptions projOpts) throws IOException {
         if (projOpts.getProjectConfig() != null) {
             File projectConfigFile = projOpts.getProjectConfig();
             if (projectConfigFile.exists()) {
-                JAXBContext jc = JAXBContext.newInstance(ZanataConfig.class);
-                Unmarshaller unmarshaller = jc.createUnmarshaller();
                 log.info("Loading project config from {}",
                         projectConfigFile);
-                return Optional.of((ZanataConfig) unmarshaller
-                        .unmarshal(projectConfigFile));
+                return Optional.of(CONFIG_MAPPER.readValue(projectConfigFile,
+                        ZanataConfig.class));
             }
         }
         return Optional.empty();
@@ -267,13 +266,13 @@ public class OptionsUtil {
 
     /**
      * Note: command line options take precedence over pom.xml which
-     * takes precedence over zanata.xml.
+     * takes precedence over verbaria.json.
      *
      * @see org.zanata.client.commands.OptionMismatchChecker
      * @param opts
      *            options
      * @param config
-     *            config from project configuration file i.e. zanata.xml
+     *            config from project configuration file i.e. verbaria.json
      */
     @VisibleForTesting
     protected static void applySrcDirAndTransDirFromProjectConfig(
@@ -288,7 +287,7 @@ public class OptionsUtil {
             opts.setSrcDir(config.getSrcDirAsFile());
         }
         srcDirChecker.logHintIfNotDefinedInConfig(
-                String.format("<src-dir>%s</src-dir>", opts.getSrcDir()));
+                String.format("\"srcDir\": \"%s\"", opts.getSrcDir()));
         srcDirChecker.logWarningIfValuesMismatch();
 
         // apply transDir configuration
@@ -299,19 +298,19 @@ public class OptionsUtil {
             opts.setTransDir(config.getTransDirAsFile());
         }
         transDirChecker.logHintIfNotDefinedInConfig(String.format(
-                "<trans-dir>%s</trans-dir>", opts.getTransDir()));
+                "\"transDir\": \"%s\"", opts.getTransDir()));
         transDirChecker.logWarningIfValuesMismatch();
     }
 
     /**
      * Note: command line options take precedence over pom.xml which
-     * takes precedence over zanata.xml.
+     * takes precedence over verbaria.json.
      *
      * @see org.zanata.client.commands.OptionMismatchChecker
      * @param opts
      *            options
      * @param config
-     *            config from project configuration file i.e. zanata.xml
+     *            config from project configuration file i.e. verbaria.json
      */
     protected static void applyIncludesAndExcludesFromProjectConfig(
             ConfigurableProjectOptions opts, ZanataConfig config) {
@@ -324,7 +323,7 @@ public class OptionsUtil {
         }
         Joiner commaJoiner = Joiner.on(",");
         includesChecker.logHintIfNotDefinedInConfig(String.format(
-                "<includes>%s</includes>",
+                "\"includes\": \"%s\"",
                 commaJoiner.join(opts.getIncludes())));
         includesChecker.logWarningIfValuesMismatch();
 
@@ -337,7 +336,7 @@ public class OptionsUtil {
         }
         excludesChecker
                 .logHintIfNotDefinedInConfig(
-                        String.format("<excludes>%s</excludes>",
+                        String.format("\"excludes\": \"%s\"",
                                 commaJoiner.join(opts.getExcludes())));
         excludesChecker.logWarningIfValuesMismatch();
     }
@@ -348,8 +347,18 @@ public class OptionsUtil {
      *
      * @param config
      */
+    /**
+     * Loads an INI file using commons-configuration2's builder API.
+     */
+    public static INIConfiguration loadIniConfig(File iniFile)
+            throws ConfigurationException {
+        return new FileBasedConfigurationBuilder<>(INIConfiguration.class)
+                .configure(new Parameters().fileBased().setFile(iniFile))
+                .getConfiguration();
+    }
+
     public static void applyUserConfig(ConfigurableOptions opts,
-            HierarchicalINIConfiguration config) {
+            INIConfiguration config) {
         if (!opts.isDebugSet()) {
             Boolean debug = config.getBoolean("defaults.debug", null);
             if (debug != null)

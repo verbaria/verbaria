@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.Response;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -376,41 +376,32 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             }
         }
 
-        Response transResponse;
+        ResponseEntity<TranslationsResource> transResponse;
         try {
             transResponse = transDocResourceClient.getTranslations(docId,
                     locale, strat.getExtensions(),
                     createSkeletons, eTag);
-        } catch (ResponseProcessingException e) {
-            // ignore 404 (no translation yet for specified
-            // document)
-            if (e.getResponse().getStatus() != 404) {
-                throw e;
-            }
+        } catch (HttpClientErrorException.NotFound e) {
             if (!createSkeletons) {
                 log.info(
                         "No translations found in locale {} for document {}",
                         locale, localDocName);
             } else {
-                transResponse = e.getResponse();
-                // Write the skeleton
-                LocaleMappedTranslatedDoc translatedDoc = new LocaleMappedTranslatedDoc(doc, null, locMapping);
+                LocaleMappedTranslatedDoc translatedDoc =
+                        new LocaleMappedTranslatedDoc(doc, null, locMapping);
                 writeTargetDoc(strat, localDocName, translatedDoc,
-                        transResponse.getStringHeaders()
-                                .getFirst(HttpHeaders.ETAG));
+                        e.getResponseHeaders() == null ? null
+                                : e.getResponseHeaders()
+                                        .getFirst(HttpHeaders.ETAG));
             }
             return;
         }
 
-        if (transResponse.getStatusInfo() == Response.Status.NOT_MODIFIED) {
-            // 304 NOT MODIFIED (the document can stay the same)
+        if (transResponse.getStatusCode().value() == 304) {
             log.info(
                     "No changes in translations for locale {} and document {}",
                     locale, localDocName);
 
-            // Check the file's MD5 matches what's stored in the
-            // cache. If not, it needs to be fetched again (with
-            // no etag)
             String fileChecksum =
                     HashUtil.getMD5Checksum(transFile);
             if (!fileChecksum.equals(eTagCacheEntry
@@ -420,21 +411,18 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                                 docId, locale,
                                 strat.getExtensions(),
                                 createSkeletons, null);
-                // rewrite the target document
-                LocaleMappedTranslatedDoc translatedDoc = new LocaleMappedTranslatedDoc(doc, transResponse.readEntity(TranslationsResource.class), locMapping);
+                LocaleMappedTranslatedDoc translatedDoc =
+                        new LocaleMappedTranslatedDoc(doc,
+                                transResponse.getBody(), locMapping);
                 writeTargetDoc(strat, localDocName, translatedDoc,
-                        transResponse.getStringHeaders()
-                                .getFirst(HttpHeaders.ETAG));
+                        transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
             }
         } else {
-            TranslationsResource targetDoc =
-                    transResponse.readEntity(TranslationsResource.class);
-
-            // Write the target document
-            LocaleMappedTranslatedDoc translatedDoc = new LocaleMappedTranslatedDoc(doc, targetDoc, locMapping);
+            TranslationsResource targetDoc = transResponse.getBody();
+            LocaleMappedTranslatedDoc translatedDoc =
+                    new LocaleMappedTranslatedDoc(doc, targetDoc, locMapping);
             writeTargetDoc(strat, localDocName, translatedDoc,
-                    transResponse.getStringHeaders()
-                            .getFirst(HttpHeaders.ETAG));
+                    transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
         }
     }
 

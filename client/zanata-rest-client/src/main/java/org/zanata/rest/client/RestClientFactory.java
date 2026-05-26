@@ -26,23 +26,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.function.Consumer;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import jakarta.ws.rs.client.Client;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.jboss.resteasy.client.jaxrs.internal.ResteasyClientBuilderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClient;
 import org.zanata.rest.MediaTypes;
 import org.zanata.rest.RestConstant;
 import org.zanata.rest.dto.VersionInfo;
@@ -60,7 +51,7 @@ public class RestClientFactory implements Serializable {
     private VersionInfo clientApiVersion;
 
     @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    private Client client;
+    private transient RestClient springRestClient;
     private URI baseURI;
 
     // for use by InitCommand
@@ -73,84 +64,51 @@ public class RestClientFactory implements Serializable {
         baseURI = base;
         this.clientApiVersion = clientApiVersion;
         clientVersion = clientApiVersion.getVersionNo();
-
-        this.client = new ResteasyClientBuilderImpl()
-                .sslContext(sslConfiguration(sslCertDisabled))
-                .register(new RedirectFilter())
-                .register(new ResponseStatusFilter())
-                .register(new ApiKeyHeaderFilter(username, apiKey, clientVersion))
-                .register(new TraceDebugFilter(logHttp))
-                .register(new InvalidContentTypeFilter())
-                .build();
+        this.springRestClient = buildSpringRestClient(username, apiKey,
+                clientVersion);
     }
 
-    /**
-     * This constructor will provider an extension point for other class to
-     * customize resteasy client builder.
-     *
-     * @param base
-     *         zanata server REST api base url
-     * @param username
-     *         zanata username
-     * @param apiKey
-     *         zanata api key
-     * @param clientApiVersion
-     *         client api version
-     * @param logHttp
-     *         whether to log http request and response
-     * @param sslCertDisabled
-     *         whether ssl certificate verification will be disabled
-     * @param resteasyClientBuilderModifier
-     *         resteasy client builder customization function
-     */
-    public RestClientFactory(URI base, String username, String apiKey,
-            VersionInfo clientApiVersion, boolean logHttp,
-            boolean sslCertDisabled,
-            Consumer<ResteasyClientBuilder> resteasyClientBuilderModifier) {
-        this.baseURI = base;
-        this.clientApiVersion = clientApiVersion;
-        this.clientVersion = clientApiVersion.getVersionNo();
-        ResteasyClientBuilder clientBuilder = new ResteasyClientBuilderImpl()
-                .sslContext(sslConfiguration(sslCertDisabled))
-                .register(new RedirectFilter())
-                .register(new ResponseStatusFilter())
-                .register(
-                        new ApiKeyHeaderFilter(username, apiKey, clientVersion))
-                .register(new TraceDebugFilter(logHttp))
-                .register(new InvalidContentTypeFilter());
-        resteasyClientBuilderModifier.accept(clientBuilder);
-        this.client = clientBuilder
+    private RestClient buildSpringRestClient(String username, String apiKey,
+            String clientVersion) {
+        return RestClient.builder()
+                .baseUrl(getBaseUri().toString())
+                .defaultHeader(RestConstant.HEADER_USERNAME,
+                        username == null ? "" : username)
+                .defaultHeader(RestConstant.HEADER_API_KEY,
+                        apiKey == null ? "" : apiKey)
+                .defaultHeader(RestConstant.HEADER_VERSION_NO,
+                        clientVersion == null ? "" : clientVersion)
+                .defaultStatusHandler(HttpStatusCode::isError,
+                        (request, response) -> {
+                            int status = response.getStatusCode().value();
+                            if (status == 503) {
+                                throw HttpServerErrorException.create(
+                                        response.getStatusCode(),
+                                        "Service is currently unavailable. " +
+                                                "Please check outage notification or try again later.",
+                                        response.getHeaders(), null, null);
+                            }
+                            if (status >= 500) {
+                                throw HttpServerErrorException.create(
+                                        response.getStatusCode(),
+                                        response.getStatusText(),
+                                        response.getHeaders(), null, null);
+                            }
+                            throw HttpClientErrorException.create(
+                                    response.getStatusCode(),
+                                    response.getStatusText(),
+                                    response.getHeaders(), null, null);
+                        })
                 .build();
-        ;
-    }
-
-    private static SSLContext sslConfiguration(boolean sslCertDisabled) {
-        if (!sslCertDisabled) {
-            return null;
-        }
-        try {
-            final SSLContext sslContext = SSLContext.getInstance("TLS");
-
-            // Create a trust manager that does not validate certificate chains
-            // against our server
-            final TrustManager[] trustAllCerts;
-            trustAllCerts =
-                    new TrustManager[] { new AcceptAllX509TrustManager() };
-            sslContext.init(null, trustAllCerts, new SecureRandom());
-            HttpsURLConnection
-                    .setDefaultSSLSocketFactory(sslContext
-                            .getSocketFactory());
-            return sslContext;
-        } catch (Exception e) {
-            log.warn("error creating SSL client", e);
-            throw new RuntimeException(e);
-        }
     }
 
     public VersionInfo getServerVersionInfo() {
-        return client.target(getBaseUri()).path("version")
-                .request(MediaTypes.APPLICATION_ZANATA_VERSION_XML)
-                .get(VersionInfo.class);
+        return springRestClient.get()
+                .uri("version")
+                .accept(org.springframework.http.MediaType.parseMediaType(
+                        MediaTypes.APPLICATION_ZANATA_VERSION_JSON))
+                .retrieve()
+                .body(VersionInfo.class);
     }
 
     public void performVersionCheck() {
@@ -214,8 +172,8 @@ public class RestClientFactory implements Serializable {
         return "rest/";
     }
 
-    protected Client getClient() {
-        return client;
+    protected RestClient getSpringRestClient() {
+        return springRestClient;
     }
 
     /**
@@ -228,12 +186,40 @@ public class RestClientFactory implements Serializable {
      *         than the given version. 0 if both versions are the same.
      */
     public int compareToServerVersion(String version) {
-        DefaultArtifactVersion srvVersion =
-                new DefaultArtifactVersion(serverVersion);
-        DefaultArtifactVersion providedVersion =
-                new DefaultArtifactVersion(version);
+        return compareVersions(serverVersion, version);
+    }
 
-        return srvVersion.compareTo(providedVersion);
+    /**
+     * Compares two Maven-style version strings. Numeric segments are compared
+     * numerically, others lexicographically. A version with a -SNAPSHOT (or
+     * any qualifier) suffix is considered less than the corresponding release.
+     */
+    static int compareVersions(String a, String b) {
+        String[] aParts = splitVersion(a);
+        String[] bParts = splitVersion(b);
+        int max = Math.max(aParts.length, bParts.length);
+        for (int i = 0; i < max; i++) {
+            String ap = i < aParts.length ? aParts[i] : "0";
+            String bp = i < bParts.length ? bParts[i] : "0";
+            int cmp;
+            if (ap.matches("\\d+") && bp.matches("\\d+")) {
+                cmp = Integer.compare(Integer.parseInt(ap), Integer.parseInt(bp));
+            } else {
+                cmp = ap.compareTo(bp);
+            }
+            if (cmp != 0) {
+                return cmp;
+            }
+        }
+        return 0;
+    }
+
+    private static String[] splitVersion(String version) {
+        if (version == null) {
+            return new String[] { "0" };
+        }
+        // 1.2.3-SNAPSHOT -> [1, 2, 3, SNAPSHOT]
+        return version.split("[.\\-]");
     }
 
     public AccountClient getAccountClient() {
@@ -286,21 +272,5 @@ public class RestClientFactory implements Serializable {
     public ProjectIterationLocalesClient getProjectLocalesClient(
             String projectSlug, String versionSlug) {
         return new ProjectIterationLocalesClient(this, projectSlug, versionSlug);
-    }
-
-    private static class AcceptAllX509TrustManager implements X509TrustManager {
-        public X509Certificate[] getAcceptedIssuers() {
-            return null;
-        }
-
-        public void
-                checkClientTrusted(X509Certificate[] certs, String authType)
-                        throws CertificateException {
-        }
-
-        public void
-                checkServerTrusted(X509Certificate[] certs, String authType)
-                        throws CertificateException {
-        }
     }
 }

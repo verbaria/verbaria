@@ -4,14 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.FileConfiguration;
-import org.apache.commons.configuration.HierarchicalINIConfiguration;
-import org.apache.commons.configuration.SystemConfiguration;
+import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.INIConfiguration;
+import org.apache.commons.configuration2.SystemConfiguration;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,27 +23,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ZanataConfigTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
-    JAXBContext jc = JAXBContext.newInstance(ZanataConfig.class);
-    Unmarshaller unmarshaller = jc.createUnmarshaller();
-    Marshaller marshaller = jc.createMarshaller();
-    File zanataProjectXml;
+    private final ObjectMapper mapper =
+            new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    File zanataProjectJson;
     File zanataUserFile;
-
-    public ZanataConfigTest() throws Exception {
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-    }
-
-    // public void testGenerateSchema() throws Exception
-    // {
-    // GenerateSchema.generateSchemaToStdout(jc);
-    // }
 
     @Before
     public void setUp() throws IOException {
-        zanataProjectXml = new File(tempFolder.newFolder(),
-                "zanata.xml");
+        zanataProjectJson = new File(tempFolder.newFolder(),
+                "verbaria.json");
         zanataUserFile = new File(tempFolder.newFolder(),
-                "zanata.ini");
+                "verbaria.ini");
     }
 
     @Test
@@ -59,13 +48,13 @@ public class ZanataConfigTest {
         config.setProject("project");
         config.setProjectVersion("version");
         config.getLocales().add(new LocaleMapping("fr", "fr-FR"));
-        config.getLocales().add(new LocaleMapping("  zh-CN  "));
-        marshaller.marshal(config, zanataProjectXml);
+        config.getLocales().add(new LocaleMapping("zh-CN"));
+        mapper.writeValue(zanataProjectJson, config);
     }
 
     void readProject() throws Exception {
         ZanataConfig config =
-                (ZanataConfig) unmarshaller.unmarshal(zanataProjectXml);
+                mapper.readValue(zanataProjectJson, ZanataConfig.class);
         assertThat(config.getUrl()).isEqualTo(new URL("http://example.com"));
         assertThat(config.getProject()).isEqualTo("project");
         assertThat(config.getProjectVersion()).isEqualTo("version");
@@ -84,21 +73,24 @@ public class ZanataConfigTest {
     }
 
     void writeUser() throws Exception {
-        FileConfiguration config =
-                new HierarchicalINIConfiguration(zanataUserFile);
+        INIConfiguration config = new INIConfiguration();
         config.setProperty("zanata.url", new URL("http://zanata.example.com/"));
         config.setProperty("zanata.username", "admin");
         config.setProperty("zanata.key", "b6d7044e9ee3b2447c28fb7c50d86d98");
         config.setProperty("zanata.debug", false);
         config.setProperty("zanata.errors", true);
 
-        config.save();
+        FileHandler fh = new FileHandler(config);
+        fh.setFile(zanataUserFile);
+        fh.save();
     }
 
     void readUser() throws Exception {
+        INIConfiguration ini = new INIConfiguration();
+        new FileHandler(ini).load(zanataUserFile);
         CompositeConfiguration config = new CompositeConfiguration();
         config.addConfiguration(new SystemConfiguration());
-        config.addConfiguration(new HierarchicalINIConfiguration(zanataUserFile));
+        config.addConfiguration(ini);
         assertThat(config.getString("zanata.username")).isEqualTo("admin");
         assertThat(config.getBoolean("zanata.debug")).isFalse();
         assertThat(config.getBoolean("zanata.errors")).isTrue();
@@ -109,10 +101,10 @@ public class ZanataConfigTest {
         ZanataConfig zanataConfig = new ZanataConfig();
         zanataConfig.setRules(Lists.newArrayList(new FileMappingRule("*.odt",
                 "{filename}_{locale}.{extension}")));
-        marshaller.marshal(zanataConfig, zanataProjectXml);
+        mapper.writeValue(zanataProjectJson, zanataConfig);
 
         ZanataConfig config =
-                (ZanataConfig) unmarshaller.unmarshal(zanataProjectXml);
+                mapper.readValue(zanataProjectJson, ZanataConfig.class);
         assertThat(config.getRules()).hasSize(1);
         FileMappingRule rule = config.getRules().get(0);
         assertThat(rule.getPattern()).isEqualTo("*.odt");

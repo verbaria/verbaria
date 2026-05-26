@@ -21,17 +21,15 @@
 
 package org.zanata.rest.client;
 
-import jakarta.ws.rs.core.GenericType;
-import jakarta.ws.rs.core.MediaType;
-
+import org.springframework.http.MediaType;
+import org.zanata.rest.MediaTypes;
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.service.ProjectsResource;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class ProjectsClient {
+    private static final MediaType PROJECTS_JSON =
+            MediaType.parseMediaType(MediaTypes.APPLICATION_ZANATA_PROJECTS_JSON);
+
     private final RestClientFactory factory;
 
     ProjectsClient(RestClientFactory factory) {
@@ -39,10 +37,10 @@ public class ProjectsClient {
     }
 
     public Project[] getProjects() {
-        return factory.getClient().target(factory.getBaseUri())
-                .path(ProjectsResource.SERVICE_PATH)
-                .request(MediaType.APPLICATION_XML_TYPE)
-                .get(new GenericType<Project[]>() {
-                });
+        return factory.getSpringRestClient().get()
+                .uri(ProjectsResource.SERVICE_PATH)
+                .accept(PROJECTS_JSON)
+                .retrieve()
+                .body(Project[].class);
     }
 }

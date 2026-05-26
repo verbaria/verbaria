@@ -21,146 +21,141 @@
 
 package org.zanata.rest.client;
 
-import java.lang.annotation.Annotation;
-import java.net.URI;
 import java.util.List;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.GenericType;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
-import org.zanata.common.FileTypeInfo;
-import org.jboss.resteasy.annotations.providers.multipart.MultipartForm;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.web.client.RestClient;
 import org.zanata.common.DocumentType;
+import org.zanata.common.FileTypeInfo;
 import org.zanata.rest.DocumentFileUploadForm;
 import org.zanata.rest.dto.ChunkUploadResponse;
 import org.zanata.rest.service.FileResource;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class FileResourceClient {
     private final RestClientFactory factory;
 
-    private final URI baseUri;
-    private final Annotation[] multipartFormAnnotations =
-            { new MultipartFormLiteral() };
-
     FileResourceClient(RestClientFactory restClientFactory) {
         this.factory = restClientFactory;
-        baseUri = restClientFactory.getBaseUri();
-
     }
 
     @Deprecated
     public List<DocumentType> acceptedFileTypes() {
-        List<DocumentType> types = factory.getClient()
-                .target(baseUri)
-                .path(FileResource.SERVICE_PATH
-                    + FileResource.ACCEPTED_TYPE_LIST_RESOURCE)
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .get(new GenericType<List<DocumentType>>() {
-            });
-        return types;
+        List<DocumentType> types = rest().get()
+                .uri(FileResource.SERVICE_PATH
+                        + FileResource.ACCEPTED_TYPE_LIST_RESOURCE)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<DocumentType>>() {});
+        return types == null ? List.of() : types;
     }
 
     public List<FileTypeInfo> fileTypeInfoList() {
-        List<FileTypeInfo> types = factory.getClient()
-                .target(baseUri)
-                .path(FileResource.SERVICE_PATH
+        List<FileTypeInfo> types = rest().get()
+                .uri(FileResource.SERVICE_PATH
                         + FileResource.FILE_TYPE_INFO_RESOURCE)
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .get(new GenericType<List<FileTypeInfo>>() {
-                });
-        return types;
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<FileTypeInfo>>() {});
+        return types == null ? List.of() : types;
     }
 
-    public ChunkUploadResponse uploadSourceFile(
-            String projectSlug,
+    public ChunkUploadResponse uploadSourceFile(String projectSlug,
             String iterationSlug, String docId,
-            DocumentFileUploadForm documentFileUploadForm) {
-        Client client = factory.getClient();
-        Invocation.Builder builder = client
-                .target(baseUri)
-                .path("file").path("source").path(projectSlug)
-                .path(iterationSlug)
-                .queryParam("docId", docId)
-                .request(MediaType.APPLICATION_XML_TYPE);
-
-        // there seems to be a gap in the resteasy api to support multipart form
-        // with this fluent client. We have to provide the @MultipartForm
-        // annotation to the method.
-        // otherwise Resteasy can't find the writer for multipart form
-        Response response = builder.post(Entity.entity(documentFileUploadForm,
-                MediaType.MULTIPART_FORM_DATA_TYPE, multipartFormAnnotations));
-        response.bufferEntity();
-
-        return response.readEntity(ChunkUploadResponse.class);
+            DocumentFileUploadForm form) {
+        return rest().post()
+                .uri(uri -> uri.path("file/source/{proj}/{iter}")
+                        .queryParam("docId", docId)
+                        .build(projectSlug, iterationSlug))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(toMultipart(form))
+                .retrieve()
+                .body(ChunkUploadResponse.class);
     }
 
-
-    public ChunkUploadResponse uploadTranslationFile(
-            String projectSlug,
+    public ChunkUploadResponse uploadTranslationFile(String projectSlug,
             String iterationSlug, String locale, String docId,
-            String mergeType,
-            DocumentFileUploadForm documentFileUploadForm) {
-        Client client = factory.getClient();
-        Invocation.Builder builder = client.target(baseUri)
-                .path(FileResource.SERVICE_PATH)
-                .path("translation")
-                .path(projectSlug)
-                .path(iterationSlug)
-                .path(locale)
-                .queryParam("docId", docId)
-                .queryParam("merge", mergeType)
-                .request(MediaType.APPLICATION_XML_TYPE);
-
-
-        Response response = builder.post(Entity.entity(documentFileUploadForm,
-                MediaType.MULTIPART_FORM_DATA_TYPE, multipartFormAnnotations));
-        response.bufferEntity();
-        return response.readEntity(ChunkUploadResponse.class);
+            String mergeType, DocumentFileUploadForm form) {
+        return rest().post()
+                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                                + "/translation/{proj}/{iter}/{loc}")
+                        .queryParam("docId", docId)
+                        .queryParam("merge", mergeType)
+                        .build(projectSlug, iterationSlug, locale))
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(toMultipart(form))
+                .retrieve()
+                .body(ChunkUploadResponse.class);
     }
 
-    public Response downloadSourceFile(String projectSlug,
-            String iterationSlug,
-            String fileType, String docId) {
-        WebTarget webResource = factory.getClient().target(baseUri)
-                .path(FileResource.SERVICE_PATH).path("source")
-                .path(projectSlug).path(iterationSlug).path(fileType);
-        return webResource.queryParam("docId", docId)
-                .request(MediaType.APPLICATION_OCTET_STREAM_TYPE)
-                .get();
+    public ResponseEntity<byte[]> downloadSourceFile(String projectSlug,
+            String iterationSlug, String fileType, String docId) {
+        return rest().get()
+                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                                + "/source/{proj}/{iter}/{ft}")
+                        .queryParam("docId", docId)
+                        .build(projectSlug, iterationSlug, fileType))
+                .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL)
+                .retrieve()
+                .toEntity(byte[].class);
     }
 
-    public Response downloadTranslationFile(String projectSlug,
-                                            String iterationSlug, String locale, String fileExtension,
-                                            String docId) {
-        return downloadTranslationFile(projectSlug, iterationSlug, locale, fileExtension, docId, false);
+    public ResponseEntity<byte[]> downloadTranslationFile(String projectSlug,
+            String iterationSlug, String locale, String fileExtension,
+            String docId) {
+        return downloadTranslationFile(projectSlug, iterationSlug, locale,
+                fileExtension, docId, false);
     }
 
-    public Response downloadTranslationFile(String projectSlug,
-                                            String iterationSlug, String locale, String fileExtension,
-                                            String docId, boolean approvedOnly) {
-        WebTarget webResource = factory.getClient().target(baseUri)
-                .path(FileResource.SERVICE_PATH).path("translation")
-                .path(projectSlug).path(iterationSlug).path(locale)
-                .path(fileExtension);
-        return webResource.queryParam("docId", docId)
-                          .queryParam("approvedOnly", approvedOnly)
-                .request(MediaType.APPLICATION_OCTET_STREAM_TYPE).get();
+    public ResponseEntity<byte[]> downloadTranslationFile(String projectSlug,
+            String iterationSlug, String locale, String fileExtension,
+            String docId, boolean approvedOnly) {
+        return rest().get()
+                .uri(uri -> uri.path(FileResource.SERVICE_PATH
+                                + "/translation/{proj}/{iter}/{loc}/{ext}")
+                        .queryParam("docId", docId)
+                        .queryParam("approvedOnly", approvedOnly)
+                        .build(projectSlug, iterationSlug, locale,
+                                fileExtension))
+                .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL)
+                .retrieve()
+                .toEntity(byte[].class);
     }
 
-    @SuppressWarnings("all")
-    private static class MultipartFormLiteral implements MultipartForm {
-
-        @Override
-        public java.lang.Class<? extends Annotation> annotationType() {
-            return MultipartForm.class;
+    private static Object toMultipart(DocumentFileUploadForm form) {
+        MultipartBodyBuilder b = new MultipartBodyBuilder();
+        if (form.getFileStream() != null) {
+            // Wrap as ByteArrayResource so RestClient streams it as a file part.
+            try {
+                byte[] bytes = form.getFileStream().readAllBytes();
+                b.part("file", new org.springframework.core.io.ByteArrayResource(bytes) {
+                    @Override
+                    public String getFilename() {
+                        return "file";
+                    }
+                }, MediaType.APPLICATION_OCTET_STREAM);
+            } catch (java.io.IOException e) {
+                throw new RuntimeException(e);
+            }
         }
+        if (form.getFileType() != null) b.part("type", form.getFileType());
+        if (form.getUploadId() != null)
+            b.part("uploadId", form.getUploadId().toString());
+        if (form.getFirst() != null)
+            b.part("first", form.getFirst().toString());
+        if (form.getLast() != null) b.part("last", form.getLast().toString());
+        if (form.getHash() != null) b.part("hash", form.getHash());
+        if (form.getSize() != null) b.part("size", form.getSize().toString());
+        if (form.getAdapterParams() != null)
+            b.part("adapterParams", form.getAdapterParams());
+        return b.build();
+    }
+
+    private RestClient rest() {
+        return factory.getSpringRestClient();
     }
 }

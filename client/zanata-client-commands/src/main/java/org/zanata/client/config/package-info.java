@@ -19,17 +19,4 @@
  * site: http://www.fsf.org.
  */
 
-/*
- * Package-level annotations
- */
-@XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-@XmlSchema(namespace = Namespaces.ZANATA_CONFIG,
-        elementFormDefault = XmlNsForm.QUALIFIED)
 package org.zanata.client.config;
-
-import jakarta.xml.bind.annotation.XmlAccessOrder;
-import jakarta.xml.bind.annotation.XmlAccessorOrder;
-import jakarta.xml.bind.annotation.XmlNsForm;
-import jakarta.xml.bind.annotation.XmlSchema;
-
-import org.zanata.common.Namespaces;

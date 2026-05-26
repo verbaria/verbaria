@@ -25,23 +25,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.fedorahosted.openprops.Properties;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.Weeks;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
@@ -64,7 +59,7 @@ public class UpdateChecker {
     private static final Logger log =
             LoggerFactory.getLogger(UpdateChecker.class);
     private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormat.forPattern("yyyy-MM-dd");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String OSS_URL =
             "https://oss.sonatype.org/service/local/";
     // update marker file valid properties
@@ -98,7 +93,7 @@ public class UpdateChecker {
     }
 
     public boolean needToCheckUpdates(boolean interactiveMode) {
-        DateTime today = new DateTime();
+        LocalDate today = LocalDate.now();
         try {
             if (!updateMarker.exists()) {
                 createUpdateMarkerFile(updateMarker);
@@ -108,13 +103,14 @@ public class UpdateChecker {
             }
             // read the content and see if we need to check
             Properties props = loadFileToProperties(updateMarker);
-            DateTime lastCheckedDate = readLastCheckedDate(props);
-            Days daysPassed = Days.daysBetween(lastCheckedDate, today);
+            LocalDate lastCheckedDate = readLastCheckedDate(props);
+            long daysPassed =
+                    ChronoUnit.DAYS.between(lastCheckedDate, today);
             Frequency frequency = readFrequency(props);
-            boolean timeToCheck = daysPassed.compareTo(frequency.days()) >= 0;
+            boolean timeToCheck = daysPassed >= frequency.days();
             boolean noAsking = readNoAsking(props);
             if (timeToCheck && !noAsking && interactiveMode) {
-                console.printf(get("check.update.yes.no"), daysPassed.getDays());
+                console.printf(get("check.update.yes.no"), (int) daysPassed);
                 String check = console.expectAnswerWithRetry(
                         AnswerValidator.YES_NO);
                 if (check.toLowerCase().startsWith("n")) {
@@ -130,8 +126,9 @@ public class UpdateChecker {
         }
     }
 
-    private static DateTime readLastCheckedDate(Properties props) {
-        return DATE_FORMATTER.parseDateTime(props.getProperty(LAST_CHECKED));
+    private static LocalDate readLastCheckedDate(Properties props) {
+        return LocalDate.parse(props.getProperty(LAST_CHECKED),
+                DATE_FORMATTER);
     }
 
     private static Frequency readFrequency(Properties props) {
@@ -160,7 +157,7 @@ public class UpdateChecker {
         boolean created = updateMarker.createNewFile();
         Preconditions.checkState(created, get("create.file.failure"),
                 updateMarker);
-        String today = DATE_FORMATTER.print(new DateTime());
+        String today = LocalDate.now().format(DATE_FORMATTER);
         Properties props = new Properties();
         props.setProperty(LAST_CHECKED, today);
         props.setComment(FREQUENCY, get("valid.frequency"));
@@ -183,7 +180,7 @@ public class UpdateChecker {
         }
         try {
             Properties props = loadFileToProperties(updateMarker);
-            String today = DATE_FORMATTER.print(new DateTime());
+            String today = LocalDate.now().format(DATE_FORMATTER);
             props.setProperty(LAST_CHECKED, today);
             props.store(new BufferedWriter(new FileWriterWithEncoding(
                     updateMarker, Charsets.UTF_8)), null);
@@ -199,35 +196,36 @@ public class UpdateChecker {
      * @return latest version of client in sonatype oss
      */
     private Optional<String> checkLatestVersion(ConsoleInteractor console) {
-        Response response;
+        String payload;
         try {
-            Client client = ResteasyClientBuilder.newClient();
-            WebTarget target =
-                    client.target(sonatypeRestUrl)
+            payload = RestClient.builder()
+                    .baseUrl(sonatypeRestUrl)
+                    .build()
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
                             .path("artifact/maven/resolve")
                             .queryParam("g", "org.zanata")
                             .queryParam("a", "client")
                             .queryParam("p", "pom")
                             .queryParam("v", "LATEST")
-                            .queryParam("r", "releases");
-            response = target.request(MediaType.APPLICATION_XML_TYPE).get();
-            if (response.getStatusInfo() != Response.Status.OK) {
-                log.debug(
-                        "Failed to resolve latest client artifact [status {}]. Ignored",
-                        response.getStatus());
-                console.printfln(get("check.update.failed"));
-                return Optional.absent();
-            }
+                            .queryParam("r", "releases")
+                            .build())
+                    .accept(MediaType.APPLICATION_XML)
+                    .retrieve()
+                    .body(String.class);
         } catch (Exception e) {
             log.warn("Exception when checking updates", e);
             console.printfln(get("check.update.failed"));
             return Optional.absent();
         }
+        if (payload == null) {
+            console.printfln(get("check.update.failed"));
+            return Optional.absent();
+        }
         // cheap xml parsing
-        String payload =
-                response.readEntity(String.class).replaceAll("\\n", "");
+        String flat = payload.replaceAll("\\n", "");
         Pattern pattern = Pattern.compile("^.+<version>(.+)</version>.+");
-        Matcher matcher = pattern.matcher(payload);
+        Matcher matcher = pattern.matcher(flat);
         return matcher.matches() ? Optional.of(matcher.group(1)) :
                 Optional.absent();
     }
@@ -242,14 +240,14 @@ public class UpdateChecker {
                 return weekly;
             }
         }
-        Days days() {
+        int days() {
             switch (this) {
                 case monthly:
-                    return Days.days(30);
+                    return 30;
                 case daily:
-                    return Days.ONE;
+                    return 1;
                 default:
-                    return Weeks.ONE.toStandardDays();
+                    return 7;
             }
         }
     }

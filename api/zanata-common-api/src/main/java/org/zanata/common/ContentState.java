@@ -4,9 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import jakarta.xml.bind.annotation.XmlType;
 
-@XmlType(name = "contentStateType")
 public enum ContentState {
     // translation life cycle order:
     // New -> NeedReview || Rejected -> Translated -> Approved (Translated in

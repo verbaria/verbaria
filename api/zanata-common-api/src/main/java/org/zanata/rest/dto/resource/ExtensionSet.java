@@ -40,7 +40,7 @@ public class ExtensionSet<T extends ExtensionValue> extends
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     public <E extends T> E findOrAddByType(Class<E> clz) {

@@ -12,7 +12,7 @@ public interface ConfigurableGlossaryOptions extends ConfigurableOptions {
     public File getConfig();
 
     @Option(name = "--config", metaVar = "FILENAME",
-        usage = "Configuration file, eg zanata.xml",
+        usage = "Configuration file, eg verbaria.json",
         required = false)
     public void setConfig(File config);
 

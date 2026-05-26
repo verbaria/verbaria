@@ -3,10 +3,6 @@ package org.zanata.rest.dto;
 import java.io.Serializable;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,8 +12,6 @@ import org.hibernate.validator.constraints.Email;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.zanata.common.Namespaces;
 
-@XmlType(name = "personType")
-@XmlRootElement(name = "person")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({ "email", "name", "links" })
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -37,7 +31,7 @@ public class Person implements Serializable, HasSample<Person> {
         this.name = name;
     }
 
-    @XmlAttribute(name = "email", required = true)
+    @JsonProperty("email")
     @Email
     @NotNull
     public String getEmail() {
@@ -48,7 +42,7 @@ public class Person implements Serializable, HasSample<Person> {
         this.email = email;
     }
 
-    @XmlAttribute(name = "name", required = true)
+    @JsonProperty("name")
     @NotEmpty
     public String getName() {
         return name;
@@ -65,9 +59,7 @@ public class Person implements Serializable, HasSample<Person> {
      *
      * @return set of Links managed by this resource
      */
-    @XmlElement(name = "link", required = false,
-            namespace = Namespaces.ZANATA_OLD)
-    @JsonProperty("links")
+    @JsonProperty("link")
     public Links getLinks() {
         return links;
     }
@@ -89,7 +81,7 @@ public class Person implements Serializable, HasSample<Person> {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

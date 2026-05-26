@@ -9,15 +9,14 @@ import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders.all
 import static org.zanata.client.commands.Messages.get;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.xml.bind.JAXBException;
-
-import org.apache.commons.configuration.HierarchicalINIConfiguration;
+import org.apache.commons.configuration2.INIConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -120,8 +119,8 @@ public class OptionsUtilTest {
         opts.setUsername("username");
         opts.setUrl(new URL("http://localhost"));
 
-        HierarchicalINIConfiguration config =
-                Mockito.mock(HierarchicalINIConfiguration.class);
+        INIConfiguration config =
+                Mockito.mock(INIConfiguration.class);
         OptionsUtil.applyUserConfig(opts, config);
 
         verify(config).getSection("servers");
@@ -138,8 +137,8 @@ public class OptionsUtilTest {
         opts.setQuiet(false);
         opts.setInteractiveMode(false);
 
-        HierarchicalINIConfiguration config =
-                Mockito.mock(HierarchicalINIConfiguration.class);
+        INIConfiguration config =
+                Mockito.mock(INIConfiguration.class);
         OptionsUtil.applyUserConfig(opts, config);
 
         verifyNoMoreInteractions(config);
@@ -209,32 +208,35 @@ public class OptionsUtilTest {
 
     @Test
     public void readProjectConfigWillReturnEmptyIfNoProjectConfigDefinedInOptions()
-            throws JAXBException {
+            throws IOException {
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isFalse();
     }
 
     @Test
     public void readProjectConfigWillReturnEmptyIfProjectConfigDefinedInOptionsDoesNotExist()
-            throws JAXBException {
+            throws IOException {
         opts.setProjectConfig(new File("does not exist"));
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isFalse();
     }
 
     @Test
-    public void readProjectConfigCanUnmarshalToZanataConfig() throws Exception {
+    public void readProjectConfigCanReadJsonZanataConfig() throws Exception {
         File configFile = tempFolder.newFile();
         List<String> configLines = Lists.newArrayList(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>",
-                "<config xmlns=\"http://zanata.org/namespace/config/\">",
-                "<url>http://localhost:8080/</url>",
-                "<project>sample-project</project>",
-                "<project-version>1.1</project-version>",
-                "</config>");
+                "{",
+                "  \"url\": \"http://localhost:8080/\",",
+                "  \"project\": \"sample-project\",",
+                "  \"projectVersion\": \"1.1\"",
+                "}");
         Files.write(configFile.toPath(), configLines, Charsets.UTF_8);
         opts.setProjectConfig(configFile);
 
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isTrue();
         assertThat(OptionsUtil.readProjectConfigFile(opts).get())
                 .isInstanceOfAny(ZanataConfig.class);
+        ZanataConfig zc = OptionsUtil.readProjectConfigFile(opts).get();
+        assertThat(zc.getProject()).isEqualTo("sample-project");
+        assertThat(zc.getProjectVersion()).isEqualTo("1.1");
+        assertThat(zc.getUrl().toString()).isEqualTo("http://localhost:8080/");
     }
 }

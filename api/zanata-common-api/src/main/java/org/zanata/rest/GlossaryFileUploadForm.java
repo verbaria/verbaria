@@ -55,7 +55,6 @@ public class GlossaryFileUploadForm implements Serializable {
     @PartType("text/plain")
     private String qualifiedName;
 
-
     public InputStream getFileStream() {
         return fileStream;
     }

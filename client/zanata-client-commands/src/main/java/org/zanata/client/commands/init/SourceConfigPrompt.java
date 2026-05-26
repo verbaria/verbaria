@@ -134,7 +134,7 @@ class SourceConfigPrompt {
             console.printfln(Hint, PushOptionsImpl.fileTypeHelp);
             console.printf(Question, get("file.type.prompt"));
             String answer = console.expectAnyNotBlankAnswer();
-            // TODO this answer is not persisted in zanata.xml so user will still need to type it when they do the actual push
+            // TODO this answer is not persisted in verbaria.json so user will still need to type it when they do the actual push
             ((PushOptionsImpl) pushOptions).setFileTypes(answer);
         }
 

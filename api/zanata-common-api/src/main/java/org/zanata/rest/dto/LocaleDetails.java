@@ -21,13 +21,11 @@
 
 package org.zanata.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 import com.webcohesion.enunciate.metadata.Label;
@@ -36,8 +34,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.zanata.common.LocaleId;
 
-@XmlType(name = "localeDetailsType")
-@XmlRootElement(name = "localeDetails")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonPropertyOrder({"localeId", "displayName", "alias", "nativeName", "enabled", "enabledByDefault", "pluralForms"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -75,8 +71,7 @@ public class LocaleDetails implements Serializable {
     /**
      * Unique locale identifier
      */
-    @XmlAttribute(name = "localeId", required = true)
-    @XmlJavaTypeAdapter(type = LocaleId.class, value = LocaleIdAdapter.class)
+    @JsonProperty("localeId")
     @NotNull
     @DocumentationExample(value = "es-ES", value2 = "ja")
     public LocaleId getLocaleId() {
@@ -90,7 +85,7 @@ public class LocaleDetails implements Serializable {
     /**
      * Locale's display name (in English)
      */
-    @XmlAttribute(name = "displayName", required = true)
+    @JsonProperty("displayName")
     @DocumentationExample(value = "Spanish (Spain)", value2 = "Japanese")
     public String getDisplayName() {
       return displayName;
@@ -103,7 +98,7 @@ public class LocaleDetails implements Serializable {
     /**
      * An alternative name (if present) for this locale
      */
-    @XmlAttribute(name = "alias", required = false)
+    @JsonProperty("alias")
     @DocumentationExample(value = "es", value2 = "ja-JP")
     public String getAlias() {
       return alias;
@@ -113,7 +108,7 @@ public class LocaleDetails implements Serializable {
       this.alias = alias;
     }
 
-    @XmlAttribute(name = "nativeName", required = false)
+    @JsonProperty("nativeName")
     @DocumentationExample(value = "Español", value2 = "日本語")
     public String getNativeName() {
         return nativeName;
@@ -126,7 +121,7 @@ public class LocaleDetails implements Serializable {
     /**
      * Indicates whether the locale is enabled in the system or not.
      */
-    @XmlAttribute(name = "enabled", required = true)
+    @JsonProperty("enabled")
     @NotNull
     public boolean isEnabled() {
         return enabled;
@@ -141,7 +136,7 @@ public class LocaleDetails implements Serializable {
      * e.g. when creating a new project, 'enabled by default' locales will
      * automatically be added to the project unless specifically indicating so.
      */
-    @XmlAttribute(name = "enabledByDefault", required = true)
+    @JsonProperty("enabledByDefault")
     @NotNull
     public boolean isEnabledByDefault() {
         return enabledByDefault;
@@ -154,7 +149,7 @@ public class LocaleDetails implements Serializable {
     /**
      * A string describing the formula for the locale's plural forms
      */
-    @XmlAttribute(name = "pluralForms", required = false)
+    @JsonProperty("pluralForms")
     @DocumentationExample(value = "nplurals=2; plural=(n != 1)",
             value2 = "nplurals=1; plural=0")
     public String getPluralForms() {
@@ -168,7 +163,7 @@ public class LocaleDetails implements Serializable {
     /**
      * Indicates if this locale is Right-to-Left
      */
-    @XmlAttribute(name = "rtl")
+    @JsonProperty("rtl")
     public boolean isRtl() {
         return rtl;
     }
@@ -179,7 +174,7 @@ public class LocaleDetails implements Serializable {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

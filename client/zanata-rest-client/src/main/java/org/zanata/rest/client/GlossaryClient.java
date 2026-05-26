@@ -21,13 +21,10 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
 import java.util.List;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.dto.QualifiedName;
@@ -42,76 +39,84 @@ import com.google.common.collect.ImmutableList;
  */
 public class GlossaryClient {
     private final RestClientFactory factory;
-    private final URI baseUri;
 
     GlossaryClient(RestClientFactory factory) {
         this.factory = factory;
-        baseUri = factory.getBaseUri();
     }
 
-    public Response post(List<GlossaryEntry> glossaryEntries, LocaleId localeId,
+    public void post(List<GlossaryEntry> glossaryEntries, LocaleId localeId,
             String qualifiedName) {
-
-        Entity<List<GlossaryEntry>> entity = Entity.json(glossaryEntries);
-
-        Response response = webResource().path("entries")
-                .queryParam("locale", localeId.getId())
-                .queryParam("qualifiedName", qualifiedName)
-                .request(MediaType.APPLICATION_JSON_TYPE).post(entity);
-        response.close();
-        return response;
+        factory.getSpringRestClient().post()
+                .uri(uriBuilder -> uriBuilder
+                        .path(GlossaryResource.SERVICE_PATH)
+                        .path("/entries")
+                        .queryParam("locale", localeId.getId())
+                        .queryParam("qualifiedName", qualifiedName)
+                        .build())
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(glossaryEntries)
+                .retrieve()
+                .toBodilessEntity();
     }
 
-    public Response downloadFile(String fileType,
+    public ResponseEntity<byte[]> downloadFile(String fileType,
             ImmutableList<String> transLang, String qualifiedName) {
-        if (transLang != null && !transLang.isEmpty()) {
-            return webResource().path("file").queryParam("fileType", fileType)
-                    .queryParam("locales", Joiner.on(",").join(transLang))
-                    .queryParam("qualifiedName", qualifiedName)
-                    .request(MediaType.APPLICATION_OCTET_STREAM_TYPE)
-                    .get();
-        }
-        return webResource().path("file").queryParam("fileType", fileType)
-                .queryParam("qualifiedName", qualifiedName)
-                .request(MediaType.APPLICATION_OCTET_STREAM_TYPE)
-                .get();
+        return factory.getSpringRestClient().get()
+                .uri(uriBuilder -> {
+                    var b = uriBuilder
+                            .path(GlossaryResource.SERVICE_PATH)
+                            .path("/file")
+                            .queryParam("fileType", fileType)
+                            .queryParam("qualifiedName", qualifiedName);
+                    if (transLang != null && !transLang.isEmpty()) {
+                        b.queryParam("locales", Joiner.on(",").join(transLang));
+                    }
+                    return b.build();
+                })
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .toEntity(byte[].class);
     }
 
     public void delete(String id, String qualifiedName) {
-        webResource().path("entries/" + id)
-                .queryParam("qualifiedName", qualifiedName)
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .delete().close();
+        factory.getSpringRestClient().delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(GlossaryResource.SERVICE_PATH)
+                        .path("/entries/" + id)
+                        .queryParam("qualifiedName", qualifiedName)
+                        .build())
+                .retrieve()
+                .toBodilessEntity();
     }
 
     public int deleteAll(String qualifiedName) {
-        return webResource().queryParam("qualifiedName", qualifiedName)
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .delete(Integer.class);
+        Integer result = factory.getSpringRestClient().delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(GlossaryResource.SERVICE_PATH)
+                        .queryParam("qualifiedName", qualifiedName)
+                        .build())
+                .retrieve()
+                .body(Integer.class);
+        return result == null ? 0 : result;
     }
 
     public String getProjectQualifiedName(String projectSlug) {
-        return projectGlossaryWebResource(projectSlug).path("qualifiedName")
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .get(QualifiedName.class).getName();
+        QualifiedName qn = factory.getSpringRestClient().get()
+                .uri("projects/p/{slug}/glossary/qualifiedName", projectSlug)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(QualifiedName.class);
+        return qn == null ? null : qn.getName();
     }
 
     public String getGlobalQualifiedName() {
-        return webResource().path("qualifiedName")
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .get(QualifiedName.class)
-                .getName();
-    }
-
-    private WebTarget webResource() {
-        return factory.getClient().target(baseUri)
-                .path(GlossaryResource.SERVICE_PATH);
-    }
-
-    private WebTarget projectGlossaryWebResource(String projectSlug) {
-        return factory.getClient()
-                .target(factory.getBaseUri())
-                .path("projects").path("p").path(projectSlug).path("glossary");
+        QualifiedName qn = factory.getSpringRestClient().get()
+                .uri(GlossaryResource.SERVICE_PATH + "/qualifiedName")
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(QualifiedName.class);
+        return qn == null ? null : qn.getName();
     }
 
 }

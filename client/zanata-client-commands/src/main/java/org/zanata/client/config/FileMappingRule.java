@@ -24,35 +24,28 @@ package org.zanata.client.config;
 import org.zanata.client.commands.DocNameWithExt;
 
 import java.io.Serializable;
-import jakarta.xml.bind.annotation.XmlAccessOrder;
-import jakarta.xml.bind.annotation.XmlAccessorOrder;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.XmlValue;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * If your project has single type of source documents, you can omit
- * the pattern. It will then map everything belong to that project type with this
- * rule. This is typically used for non-file type projects.
- * <br />
- * For example for a "gettext" type project, all pot file will be mapped:<br />
- * {@code <rule>{path}/{locale_with_underscore}.po</rule>}
- * <p>
+ * the pattern. It will then map everything belonging to that project type with
+ * this rule. This is typically used for non-file type projects.
+ *
+ * For example for a "gettext" type project, all pot files will be mapped:
+ * <pre>{ "rule": "{path}/{locale_with_underscore}.po" }</pre>
+ *
  * To map multiple file types in a "file" type project, you can use pattern to
  * set individual rule(s):
- * <br />
- * {@code <rule pattern="**&#47*.odt">{path}/{locale}/{filename}.{extension}</rule> }
- * {@code <rule pattern="**&#47*.idml">output/{path}/{locale}/{filename}.{extension}</rule> }
- * <p>
+ * <pre>
+ * { "pattern": "**&#47*.odt",  "rule": "{path}/{locale}/{filename}.{extension}" }
+ * { "pattern": "**&#47*.idml", "rule": "output/{path}/{locale}/{filename}.{extension}" }
+ * </pre>
  *
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-@XmlType(name = "fileMappingRule")
-@XmlRootElement(name = "rule")
-@XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class FileMappingRule implements Serializable {
     private static final long serialVersionUID = -6320576568976862094L;
     private String pattern;
@@ -78,8 +71,6 @@ public class FileMappingRule implements Serializable {
     /**
      * Represents glob pattern to files that are applicable for this rule.
      */
-    @XmlAttribute(name = "pattern", required = false)
-    @XmlJavaTypeAdapter(StringTrimAdapter.class)
     public String getPattern() {
         return pattern;
     }
@@ -87,17 +78,15 @@ public class FileMappingRule implements Serializable {
     /**
      * Represents the actual mapping rule.
      */
-    @XmlValue
-    @XmlJavaTypeAdapter(StringTrimAdapter.class)
     public String getRule() {
         return rule;
     }
 
     public void setPattern(String pattern) {
-        this.pattern = pattern;
+        this.pattern = pattern == null ? null : pattern.trim();
     }
 
     public void setRule(String rule) {
-        this.rule = rule;
+        this.rule = rule == null ? null : rule.trim();
     }
 }

@@ -21,9 +21,17 @@
 package org.zanata.client.commands.push;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.tools.ant.DirectoryScanner;
+import org.springframework.util.AntPathMatcher;
 
 /**
  * Strategy that provides basic directory scanning for source files.
@@ -33,11 +41,23 @@ import org.apache.tools.ant.DirectoryScanner;
  */
 public abstract class AbstractCommonPushStrategy<O extends PushOptions> {
 
+    /**
+     * Patterns matched against any path segment to mimic Ant's
+     * {@code addDefaultExcludes()} (common VCS / editor artefacts).
+     */
+    private static final String[] DEFAULT_EXCLUDES = {
+            "**/.svn", "**/.svn/**",
+            "**/.git", "**/.git/**",
+            "**/.gitignore", "**/.gitattributes",
+            "**/.hg", "**/.hg/**",
+            "**/.bzr", "**/.bzr/**",
+            "**/CVS", "**/CVS/**",
+            "**/.DS_Store",
+            "**/*~", "**/.#*", "**/#*#", "**/%*%", "**/._*"
+    };
+
     private O opts;
 
-    /**
-     * @return the Options object associated with this strategy.
-     */
     public O getOpts() {
         return opts;
     }
@@ -61,34 +81,70 @@ public abstract class AbstractCommonPushStrategy<O extends PushOptions> {
             includes = builder.build();
         }
 
-        ImmutableList.Builder<String> emptyFileExcludesBuilder = ImmutableList.builder();
+        List<String> allExcludes = new ArrayList<>();
         for (String fileExtension : fileExtensions) {
-            emptyFileExcludesBuilder.add("**/" + fileExtension);
+            allExcludes.add("**/" + fileExtension);
         }
-
-        DirectoryScanner dirScanner = new DirectoryScanner();
-
+        allExcludes.addAll(excludes);
         if (useDefaultExcludes) {
-            dirScanner.addDefaultExcludes();
+            for (String def : DEFAULT_EXCLUDES) {
+                allExcludes.add(def);
+            }
         }
 
-        dirScanner.setBasedir(srcDir);
+        AntPathMatcher matcher = new AntPathMatcher();
+        matcher.setCaseSensitive(isCaseSensitive);
+        matcher.setPathSeparator("/");
 
-        dirScanner.setCaseSensitive(isCaseSensitive);
-
-        emptyFileExcludesBuilder.addAll(excludes);
-        ImmutableList<String> allExcludes = emptyFileExcludesBuilder.build();
-
-
-        dirScanner.setExcludes(allExcludes.toArray(new String[allExcludes.size()]));
-        dirScanner.setIncludes(includes.toArray(new String[includes.size()]));
-        dirScanner.scan();
-        String[] includedFiles = dirScanner.getIncludedFiles();
-        for (int i = 0; i < includedFiles.length; i++) {
-            // canonicalise file separator (to handle backslash on Windows)
-            includedFiles[i] = includedFiles[i].replace(File.separator, "/");
+        List<String> matches = new ArrayList<>();
+        Path baseDir = srcDir.toPath();
+        if (!Files.isDirectory(baseDir)) {
+            return new String[0];
         }
-        return includedFiles;
+        try {
+            final ImmutableList<String> finalIncludes = includes;
+            Files.walkFileTree(baseDir, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file,
+                        BasicFileAttributes attrs) {
+                    String rel = baseDir.relativize(file).toString()
+                            .replace(File.separatorChar, '/');
+                    if (matchesAny(matcher, rel, finalIncludes)
+                            && !matchesAny(matcher, rel, allExcludes)) {
+                        matches.add(rel);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir,
+                        BasicFileAttributes attrs) {
+                    if (dir.equals(baseDir)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    String rel = baseDir.relativize(dir).toString()
+                            .replace(File.separatorChar, '/');
+                    if (matchesAny(matcher, rel, allExcludes)) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Failed to scan source directory: " + srcDir, e);
+        }
+        return matches.toArray(new String[0]);
+    }
+
+    private static boolean matchesAny(AntPathMatcher matcher, String path,
+            List<String> patterns) {
+        for (String pattern : patterns) {
+            if (matcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

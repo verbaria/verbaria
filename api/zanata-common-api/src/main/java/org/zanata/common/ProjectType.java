@@ -20,15 +20,11 @@
  */
 package org.zanata.common;
 
-import jakarta.xml.bind.annotation.XmlEnum;
-import jakarta.xml.bind.annotation.XmlType;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.zanata.common.DocumentType.*;
 
-@XmlType(name = "projectTypeType")
-@XmlEnum(String.class)
 public enum ProjectType {
     Utf8Properties, Properties, Gettext, Podir, Xliff, Xml, File, Consulo;
 

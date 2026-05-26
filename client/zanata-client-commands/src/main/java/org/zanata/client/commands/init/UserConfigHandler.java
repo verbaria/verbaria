@@ -25,10 +25,10 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.DataConfiguration;
-import org.apache.commons.configuration.HierarchicalINIConfiguration;
-import org.apache.commons.configuration.SubnodeConfiguration;
+import org.apache.commons.configuration2.DataConfiguration;
+import org.apache.commons.configuration2.INIConfiguration;
+import org.apache.commons.configuration2.SubnodeConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.ConsoleInteractor;
@@ -58,7 +58,7 @@ class UserConfigHandler {
     }
 
     /**
-     * Search for zanata.ini. (If there's none, link them to the help page).
+     * Search for verbaria.ini. (If there's none, link them to the help page).
      * Provide a list of servers to choose from.
      * @throws Exception
      */
@@ -71,8 +71,8 @@ class UserConfigHandler {
         }
         clearValueSetByConfigurableMojo();
         // read in content and get all available server urls
-        HierarchicalINIConfiguration config =
-                new HierarchicalINIConfiguration(opts.getUserConfig());
+        INIConfiguration config =
+                OptionsUtil.loadIniConfig(opts.getUserConfig());
         List<URL> serverUrls = readServerUrlsFromUserConfig(config);
 
         // apply user config
@@ -103,7 +103,7 @@ class UserConfigHandler {
     }
 
     private List<URL> readServerUrlsFromUserConfig(
-            HierarchicalINIConfiguration config)
+            INIConfiguration config)
             throws ConfigurationException {
         SubnodeConfiguration servers = config.getSection("servers");
         DataConfiguration dataConfig = new DataConfiguration(servers);

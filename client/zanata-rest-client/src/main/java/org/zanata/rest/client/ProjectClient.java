@@ -21,19 +21,16 @@
 
 package org.zanata.rest.client;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.zanata.rest.MediaTypes;
 import org.zanata.rest.dto.Project;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class ProjectClient {
+    private static final MediaType PROJECT_JSON =
+            MediaType.parseMediaType(MediaTypes.APPLICATION_ZANATA_PROJECT_JSON);
+
     private final RestClientFactory factory;
     private final String projectSlug;
 
@@ -44,30 +41,22 @@ public class ProjectClient {
 
     public Project get() {
         try {
-            return webResource()
-                    .get(Project.class);
-        } catch (ResponseProcessingException rpe) {
-            if (rpe.getResponse().getStatus() == 404) {
-                return null;
-            }
-            throw rpe;
+            return factory.getSpringRestClient().get()
+                    .uri("projects/p/{slug}", projectSlug)
+                    .accept(PROJECT_JSON)
+                    .retrieve()
+                    .body(Project.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return null;
         }
     }
 
-    private Invocation.Builder webResource() {
-        return factory.getClient()
-                .target(factory.getBaseUri())
-                .path("projects").path("p").path(projectSlug)
-                .request(MediaType.APPLICATION_XML_TYPE);
-    }
-
-    public Response put(Project project) {
-        Response response = webResource().put(Entity.xml(project));
-        if (response.getStatusInfo().getFamily() != Response.Status.Family.SUCCESSFUL) {
-            throw new RuntimeException(response.getStatusInfo().toString());
-        }
-        response.close();
-        return response;
+    public ResponseEntity<Void> put(Project project) {
+        return factory.getSpringRestClient().put()
+                .uri("projects/p/{slug}", projectSlug)
+                .contentType(PROJECT_JSON)
+                .body(project)
+                .retrieve()
+                .toBodilessEntity();
     }
 }
-

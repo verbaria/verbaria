@@ -22,18 +22,17 @@ package org.zanata.client.commands.glossary.pull;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
-
-import jakarta.ws.rs.client.ResponseProcessingException;
-import jakarta.ws.rs.core.Response;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.zanata.client.commands.ConfigurableCommand;
 import org.zanata.client.commands.OptionsUtil;
-import org.zanata.rest.client.ClientUtil;
 import org.zanata.rest.client.GlossaryClient;
 import org.zanata.rest.client.RestClientFactory;
 import org.zanata.util.PathUtil;
@@ -90,53 +89,63 @@ public class GlossaryPullCommand extends
             qualifiedName = StringUtils.isBlank(project)
                     ? client.getGlobalQualifiedName()
                     : client.getProjectQualifiedName(project);
-        } catch (ResponseProcessingException rpe) {
-            if (rpe.getResponse().getStatus() == 404) {
-                log.error("Project {} not found", project);
-                return;
-            }
-            throw rpe;
+        } catch (HttpClientErrorException.NotFound nf) {
+            log.error("Project {} not found", project);
+            return;
         }
 
         log.info("Pulling glossary from server");
-        Response response;
+        ResponseEntity<byte[]> response;
         try {
             response =
                     client.downloadFile(fileType, transLang, qualifiedName);
-        } catch (ResponseProcessingException e) {
-            if (e.getResponse().getStatus() == 404) {
-                log.info("No glossary file in server");
-                return;
-            }
-            throw e;
-        }
-
-        InputStream glossaryFile = response.readEntity(InputStream.class);
-        if (glossaryFile == null) {
+        } catch (HttpClientErrorException.NotFound nf) {
             log.info("No glossary file in server");
             return;
         }
 
-        String fileName =
-                ClientUtil.getFileNameFromHeader(response.getStringHeaders());
+        byte[] glossaryFile = response.getBody();
+        if (glossaryFile == null || glossaryFile.length == 0) {
+            log.info("No glossary file in server");
+            return;
+        }
+
+        String fileName = filenameFromHeader(response);
         if (fileName == null) {
             log.error("Null filename response from server: {}",
-                    response.getStatusInfo());
+                    response.getStatusCode());
             return;
         }
 
         File file = new File(fileName);
         PathUtil.makeDirs(file.getParentFile());
         try (OutputStream out = new FileOutputStream(file)) {
-            int read;
-            byte[] buffer = new byte[1024];
-            while ((read = glossaryFile.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
+            out.write(glossaryFile);
             out.flush();
-        } finally {
-            glossaryFile.close();
         }
         log.info("Glossary pulled to {}", fileName);
+    }
+
+    private static String filenameFromHeader(ResponseEntity<?> response) {
+        HttpHeaders headers = response.getHeaders();
+        List<String> values =
+                headers.get(HttpHeaders.CONTENT_DISPOSITION);
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        for (String header : values) {
+            for (String part : header.split(";")) {
+                String trimmed = part.trim();
+                if (trimmed.startsWith("filename=")) {
+                    String name = trimmed.substring("filename=".length());
+                    if (name.startsWith("\"") && name.endsWith("\"")
+                            && name.length() >= 2) {
+                        name = name.substring(1, name.length() - 1);
+                    }
+                    return name;
+                }
+            }
+        }
+        return null;
     }
 }

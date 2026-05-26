@@ -96,7 +96,6 @@ public interface LocalesResource {
     @TypeHint(SourceLocaleDetails[].class)
     Response getSourceLocales();
 
-
     /**
      * Retrieves a list of locales that is not added yet in the server.
      *

@@ -21,55 +21,36 @@
 
 package org.zanata.rest.client;
 
-import java.net.URI;
-
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
+import org.springframework.http.MediaType;
 import org.zanata.rest.dto.CopyTransStatus;
-import org.zanata.rest.service.CopyTransResource;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
-public class CopyTransClient implements CopyTransResource {
+public class CopyTransClient {
+    private static final String BASE =
+            "/copytrans/proj/{proj}/iter/{iter}/doc/{doc}";
+
     private final RestClientFactory factory;
-    private final URI baseUri;
 
     CopyTransClient(RestClientFactory factory) {
         this.factory = factory;
-        baseUri = factory.getBaseUri();
     }
 
-    @Override
     public CopyTransStatus startCopyTrans(String projectSlug,
             String iterationSlug, String docId) {
-        Client client = factory.getClient();
-        Response response = webResource(client, projectSlug, iterationSlug, docId)
-                .post(Entity.json(""));
-        response.bufferEntity();
-        return response.readEntity(CopyTransStatus.class);
+        return factory.getSpringRestClient().post()
+                .uri(BASE, projectSlug, iterationSlug, docId)
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("\"\"")
+                .retrieve()
+                .body(CopyTransStatus.class);
     }
 
-    private Invocation.Builder webResource(Client client, String projectSlug,
-            String iterationSlug,
-            String docId) {
-        return client.target(baseUri)
-                .path(CopyTransResource.SERVICE_PATH)
-                .path("/proj").path(projectSlug)
-                .path("iter").path(iterationSlug)
-                .path("doc").path(docId)
-                .request(MediaType.APPLICATION_XML_TYPE);
-    }
-
-    @Override
     public CopyTransStatus getCopyTransStatus(String projectSlug,
             String iterationSlug, String docId) {
-        return webResource(factory.getClient(), projectSlug, iterationSlug, docId
-        ).get(CopyTransStatus.class);
+        return factory.getSpringRestClient().get()
+                .uri(BASE, projectSlug, iterationSlug, docId)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(CopyTransStatus.class);
     }
 }

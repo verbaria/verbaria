@@ -2,13 +2,8 @@ package org.zanata.client.config;
 
 import java.io.Serializable;
 
-import jakarta.xml.bind.annotation.XmlAccessOrder;
-import jakarta.xml.bind.annotation.XmlAccessorOrder;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.XmlValue;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import org.zanata.rest.dto.DTOUtil;
 
@@ -16,9 +11,7 @@ import org.zanata.rest.dto.DTOUtil;
  * @author Sean Flanigan <sflaniga@redhat.com>
  *
  */
-@XmlType(name = "localeType")
-@XmlRootElement(name = "locale")
-@XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class LocaleMapping implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -54,8 +47,6 @@ public class LocaleMapping implements Serializable {
     /**
      * BCP47 locale ID
      */
-    @XmlValue
-    @XmlJavaTypeAdapter(StringTrimAdapter.class)
     public String getLocale() {
         return locale;
     }
@@ -64,8 +55,6 @@ public class LocaleMapping implements Serializable {
         this.locale = localeID;
     }
 
-    @XmlAttribute(name = "map-from", required = false)
-    @XmlJavaTypeAdapter(StringTrimAdapter.class)
     public String getMapFrom() {
         return mapFrom;
     }
@@ -74,6 +63,7 @@ public class LocaleMapping implements Serializable {
         this.mapFrom = localID;
     }
 
+    @JsonIgnore
     public String getLocalLocale() {
         if (mapFrom != null)
             return mapFrom;
@@ -81,13 +71,14 @@ public class LocaleMapping implements Serializable {
             return locale;
     }
 
+    @JsonIgnore
     public String getJavaLocale() {
         return getLocalLocale().replace('-', '_');
     }
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

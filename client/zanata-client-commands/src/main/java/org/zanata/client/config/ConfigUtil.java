@@ -7,8 +7,8 @@ import java.util.Iterator;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.configuration.DataConfiguration;
-import org.apache.commons.configuration.SubnodeConfiguration;
+import org.apache.commons.configuration2.DataConfiguration;
+import org.apache.commons.configuration2.SubnodeConfiguration;
 
 public class ConfigUtil {
 

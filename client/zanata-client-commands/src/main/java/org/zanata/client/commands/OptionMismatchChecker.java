@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class will check values passed in as option (commandline argument or
- * pom.xml) and defined in project config (zanata.xml).
+ * pom.xml) and defined in project config (verbaria.json).
  *
  * It will consider a value
  * presents only if it's not null; or if it's string, it's not blank; or if it's
@@ -98,11 +98,11 @@ class OptionMismatchChecker<T> {
      * file, log a message to hint user that they can define it in config file.
      *
      * @param configExample
-     *            how it should be defined in zanata.xml
+     *            how it should be defined in verbaria.json
      */
     public void logHintIfNotDefinedInConfig(String configExample) {
         if (hasValueInOptionOnly()) {
-            log.info("You can define {} in zanata.xml now ({})", fieldDesc,
+            log.info("You can define {} in verbaria.json now ({})", fieldDesc,
                     configExample);
         }
     }
@@ -114,9 +114,9 @@ class OptionMismatchChecker<T> {
     public void logWarningIfValuesMismatch() {
         if (valueMismatch()) {
             log.warn(
-                    "{} in zanata.xml is set to [{}] but is now given as [{}]",
+                    "{} in verbaria.json is set to [{}] but is now given as [{}]",
                     fieldDesc, valueInConfig, valueInOption);
-            log.warn("You are overriding your {} defined in zanata.xml",
+            log.warn("You are overriding your {} defined in verbaria.json",
                     fieldDesc);
         }
     }

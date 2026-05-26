@@ -240,7 +240,6 @@ public interface SourceDocResource {
                     @QueryParam("ext") Set<String> extensions,
                     @QueryParam("copyTrans") @DefaultValue("true") boolean copytrans);
 
-
     /**
      * Creates or modifies a source Document.
      *

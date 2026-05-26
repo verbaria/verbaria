@@ -4,9 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.xml.bind.annotation.XmlElementRef;
-import jakarta.xml.bind.annotation.XmlType;
-
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.zanata.common.Namespaces;
 
@@ -17,13 +14,11 @@ import org.zanata.common.Namespaces;
  * @author asgeirf
  *
  */
-@XmlType(name = "projectListType", propOrder = { "projects" })
 public class ProjectList implements Serializable, HasSample<ProjectList> {
 
     private static final long serialVersionUID = 2093156157626506919L;
     private List<Project> projects;
 
-    @XmlElementRef(namespace = Namespaces.ZANATA_OLD)
     @JsonValue
     public List<Project> getProjects() {
         if (projects == null) {
@@ -41,7 +36,7 @@ public class ProjectList implements Serializable, HasSample<ProjectList> {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
     @Override

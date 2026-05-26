@@ -49,8 +49,8 @@ class ProjectConfigHandler {
     }
 
     /**
-     * If there's an existing zanata.xml, ask the user if they want to proceed,
-     * back it up and continue (tell them where it is)
+     * If there's an existing verbaria.json, ask the user if they want to
+     * proceed, back it up and continue (tell them where it is)
      *
      * @throws IOException
      */
@@ -62,11 +62,11 @@ class ProjectConfigHandler {
                     .printfln(Warning, get("project.config.exists"))
                     .printf(Question, get("continue.yes.no"));
             consoleInteractor.expectYes();
-            // back up old zanata.xml
+            // back up old verbaria.json
             String suffix = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss").format(
                     new Date());
             backup = new File(projectConfig.getParent(),
-                    "zanata.xml." + suffix);
+                    projectConfig.getName() + "." + suffix);
             FileUtils.moveFile(projectConfig, backup);
             consoleInteractor
                     .printfln(Confirmation, get("backup.old.project.config"), backup);

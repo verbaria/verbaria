@@ -25,7 +25,7 @@ import org.zanata.rest.dto.ProjectIteration;
 
 import com.google.common.collect.Lists;
 
-import jakarta.ws.rs.core.Response;
+import org.springframework.http.ResponseEntity;
 
 public class ProjectPromptTest {
     private ProjectPrompt prompt;
@@ -142,7 +142,8 @@ public class ProjectPromptTest {
                         "C compiler",
                         projectType, versionId);
         when(clientFactory.getProjectClient("gcc")).thenReturn(projectClient);
-        when(projectClient.put(projectCaptor.capture())).thenReturn(Response.created(null).build());
+        when(projectClient.put(projectCaptor.capture()))
+                .thenReturn(ResponseEntity.created(null).build());
         prompt =
                 new ProjectPrompt(console, opts,
                         iterationPrompt, clientFactory);

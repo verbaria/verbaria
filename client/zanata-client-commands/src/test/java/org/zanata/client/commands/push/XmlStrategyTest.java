@@ -25,8 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import jakarta.xml.bind.Unmarshaller;
-
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.collect.ImmutableList;
 import org.junit.Assert;
 import org.junit.Before;
@@ -68,12 +67,12 @@ public class XmlStrategyTest {
     @Captor
     private ArgumentCaptor<File> fileCapture;
     @Mock
-    private Unmarshaller unmarshaller;
+    private XmlMapper xmlMapper;
 
     @Before
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
-        strategy = new XmlStrategy(unmarshaller);
+        strategy = new XmlStrategy(xmlMapper);
         opts = new PushOptionsImpl();
         opts.setLocaleMapList(new LocaleList());
         opts.setTransDir(tempFileRule.getTransDir());
@@ -135,7 +134,8 @@ public class XmlStrategyTest {
 
         verify(visitor).visit(eq(deMapping), transResourceCaptor.capture());
         verify(visitor).visit(eq(zhMapping), transResourceCaptor.capture());
-        verify(unmarshaller, times(2)).unmarshal(fileCapture.capture());
+        verify(xmlMapper, times(2)).readValue(fileCapture.capture(),
+                eq(TranslationsResource.class));
         assertThat(fileCapture.getAllValues()).contains(deTransFile, zhTransFile);
 
         verifyNoMoreInteractions(visitor);
@@ -169,7 +169,8 @@ public class XmlStrategyTest {
 
         verify(visitor).visit(eq(deMapping), transResourceCaptor.capture());
         verify(visitor).visit(eq(zhMapping), transResourceCaptor.capture());
-        verify(unmarshaller, times(2)).unmarshal(fileCapture.capture());
+        verify(xmlMapper, times(2)).readValue(fileCapture.capture(),
+                eq(TranslationsResource.class));
         assertThat(fileCapture.getAllValues()).contains(deTransFile, zhTransFile);
 
         verifyNoMoreInteractions(visitor);

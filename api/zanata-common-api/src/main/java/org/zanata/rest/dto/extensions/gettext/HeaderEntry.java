@@ -1,18 +1,13 @@
 package org.zanata.rest.dto.extensions.gettext;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.Objects;
-
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.XmlValue;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.zanata.rest.dto.DTOUtil;
 
-@XmlType(name = "headerEntryType")
-@XmlRootElement(name = "header-entry")
 @JsonPropertyOrder({ "key", "value" })
 public class HeaderEntry implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -27,7 +22,7 @@ public class HeaderEntry implements Serializable {
         this.value = value;
     }
 
-    @XmlAttribute(name = "key", required = true)
+    @JsonProperty("key")
     public String getKey() {
         if (key == null)
             key = "";
@@ -38,7 +33,6 @@ public class HeaderEntry implements Serializable {
         this.key = key;
     }
 
-    @XmlValue
     public String getValue() {
         if (value == null)
             value = "";
@@ -74,7 +68,7 @@ public class HeaderEntry implements Serializable {
 
     @Override
     public String toString() {
-        return DTOUtil.toXML(this);
+        return DTOUtil.toJSON(this);
     }
 
 }
