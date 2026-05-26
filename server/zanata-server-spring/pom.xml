@@ -155,7 +155,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.verbaria</groupId>
+            <groupId>com.github.verbaria</groupId>
             <artifactId>ace</artifactId>
             <version>25.0.0</version>
         </dependency>
