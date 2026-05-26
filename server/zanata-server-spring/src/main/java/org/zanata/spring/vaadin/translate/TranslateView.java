@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
+import org.springframework.beans.factory.ObjectProvider;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -69,16 +69,9 @@ import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.HTextFlowTargetHistory;
-import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.DocumentRepository;
-import org.zanata.spring.repository.LocaleMemberRepository;
-import org.zanata.spring.repository.LocaleRepository;
 import org.zanata.spring.repository.TextFlowRepository;
-import org.zanata.spring.repository.TextFlowTargetHistoryRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
-import org.zanata.spring.repository.TextFlowTargetReviewCommentRepository;
-import org.zanata.model.HTextFlowTargetReviewComment;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -106,13 +99,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final DocumentRepository documentRepository;
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
-    private final TextFlowTargetHistoryRepository historyRepository;
-    private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final TranslationEditService translationEditService;
-    private final LocaleRepository localeRepository;
-    private final LocaleMemberRepository localeMemberRepository;
-    private final AccountRepository accountRepository;
     private final BreadcrumbsService breadcrumbsService;
+    private final ObjectProvider<TranslationRow> rowFactory;
 
     private LocaleId currentLocale;
     private LocaleId sourceLocale;
@@ -166,31 +155,23 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     public TranslateView(DocumentRepository documentRepository,
                          TextFlowRepository textFlowRepository,
                          TextFlowTargetRepository targetRepository,
-                         TextFlowTargetHistoryRepository historyRepository,
-                         TextFlowTargetReviewCommentRepository reviewCommentRepository,
                          TranslationEditService translationEditService,
-                         LocaleRepository localeRepository,
-                         LocaleMemberRepository localeMemberRepository,
-                         AccountRepository accountRepository,
                          TranslationProviderRegistry aiRegistry,
                          AiPolicyService aiPolicy,
                          ProgressDialogService progressDialogs,
                          EditorPreferencesService editorPreferences,
-                         BreadcrumbsService breadcrumbsService) {
+                         BreadcrumbsService breadcrumbsService,
+                         ObjectProvider<TranslationRow> rowFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
-        this.historyRepository = historyRepository;
-        this.reviewCommentRepository = reviewCommentRepository;
         this.translationEditService = translationEditService;
-        this.localeRepository = localeRepository;
-        this.localeMemberRepository = localeMemberRepository;
-        this.accountRepository = accountRepository;
         this.aiRegistry = aiRegistry;
         this.aiPolicy = aiPolicy;
         this.progressDialogs = progressDialogs;
         this.editorPreferences = editorPreferences;
         this.breadcrumbsService = breadcrumbsService;
+        this.rowFactory = rowFactory;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -342,8 +323,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         rowsList.setWidthFull();
         rowsList.setHeight("calc(100vh - 220px)");  // fills below the filter bar
         rowsList.getStyle().set("max-width", "100%");
-        rowsList.setRenderer(new ComponentRenderer<Component, RowData>(
-                d -> buildRow(d.flow(), d.existing(), d.state(), d.source())));
+        rowsList.setRenderer(new ComponentRenderer<Component, RowData>(d ->
+                rowFactory.getObject().populate(rowContext(), d.flow(),
+                        d.existing(), d.state(), d.source())));
         add(rowsList);
 
         installDataProvider(docIdForProvider);
@@ -803,693 +785,6 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         );
     }
 
-    private Div buildRow(HTextFlow flow, Optional<HTextFlowTarget> existing,
-                         ContentState initialState, String source) {
-        Div card = new Div();
-        card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        card.getStyle().set("border-radius", "8px");
-        // Editor preference: tight padding when "Compact rows" is on.
-        card.getStyle().set("padding", prefs.compactRows() ? "0.4rem 0.6rem" : "0.75rem");
-        card.getStyle().set("margin-bottom", prefs.compactRows() ? "0.4rem" : "0.75rem");
-        card.getStyle().set("box-sizing", "border-box");
-        card.getStyle().set("overflow", "hidden");
-        card.setWidthFull();
-
-        String initialContent = existing.map(HTextFlowTarget::getContents)
-                .filter(l -> !l.isEmpty())
-                .map(l -> l.get(0))
-                .orElse("");
-
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setSpacing(false);
-        row.getStyle().set("box-sizing", "border-box");
-
-        VerticalLayout left = new VerticalLayout();
-        left.setPadding(false);
-        left.setSpacing(false);
-        left.setWidth(null);
-        left.getStyle().set("flex", "1 1 0");
-        left.getStyle().set("min-width", "0");
-        left.getStyle().set("border-right", "1px solid var(--vaadin-border-color)");
-        left.getStyle().set("padding-right", "1rem");
-        left.getStyle().set("margin-right", "1rem");
-        // Prefer the human-readable key (PotEntryData.context) over the
-        // 32-char MD5 hash that lives in resId. Falls back to the hash
-        // for legacy rows that have no context yet.
-        String displayKey = flow.getPotEntryData() != null
-                && flow.getPotEntryData().getContext() != null
-                && !flow.getPotEntryData().getContext().isEmpty()
-                ? flow.getPotEntryData().getContext()
-                : flow.getResId();
-        Span resId = new Span(displayKey);
-        resId.addClassNames(LumoUtility.FontSize.XSMALL);
-        resId.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        Paragraph srcText = new Paragraph(source);
-        srcText.addClassNames(LumoUtility.Margin.NONE);
-        srcText.getStyle().set("white-space", "pre-wrap");
-
-        Button detailsBtn = new Button(getTranslation("translate.action.details"),
-                LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
-        detailsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        // Bookmark / permalink — copies a deep link to this text flow to the
-        // clipboard. Replaces the older "Link" panel which only displayed it.
-        Button bookmarkBtn = new Button(LineAwesomeIcon.BOOKMARK_SOLID.create(),
-                e -> copyPermalink(flow.getId()));
-        bookmarkBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
-                ButtonVariant.LUMO_ICON);
-        String bookmarkTip = getTranslation("translate.action.bookmarkTooltip");
-        bookmarkBtn.getElement().setAttribute("title", bookmarkTip);
-        bookmarkBtn.getElement().setAttribute("aria-label", bookmarkTip);
-
-        Div detailsPanel = buildDetailsPanel(flow);
-        detailsPanel.setVisible(false);
-
-        detailsBtn.addClickListener(e -> detailsPanel.setVisible(!detailsPanel.isVisible()));
-
-        HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, bookmarkBtn);
-        leftBtns.setSpacing(true);
-
-        left.add(resId, srcText, leftBtns, detailsPanel);
-
-        VerticalLayout right = new VerticalLayout();
-        right.setPadding(false);
-        right.setSpacing(false);
-        right.setWidth(null);
-        right.getStyle().set("flex", "1 1 0");
-        right.getStyle().set("min-width", "0");
-
-        boolean isSourceLocale = sourceLocale != null
-                && sourceLocale.getId().equalsIgnoreCase(localeStr);
-        boolean canEdit = isAuthenticated();
-
-        TextArea area = new TextArea(getTranslation(
-                isSourceLocale ? "translate.row.source" : "translate.row.translation"));
-        area.setWidthFull();
-        area.setMinHeight("4rem");
-        area.setValue(isSourceLocale ? source : initialContent);
-        area.setReadOnly(!canEdit);
-
-        // Per-row keyboard shortcuts — fire only when this textarea is focused
-        // so they don't collide between rows. Matches the legacy editor.
-        if (canEdit && !isSourceLocale) {
-            // Alt+G — copy text from source string
-            Shortcuts.addShortcutListener(area, () -> area.setValue(source),
-                    Key.KEY_G, KeyModifier.ALT).listenOn(area);
-            // Alt+X — clear translation (docs call this "attention mode" but
-            // legacy editor also wiped the field on this combo).
-            Shortcuts.addShortcutListener(area, () -> area.setValue(""),
-                    Key.KEY_X, KeyModifier.ALT).listenOn(area);
-        }
-
-        Span stateSpan = new Span(initialState.name());
-        applyStateColor(stateSpan, initialState);
-
-        Button save = new Button(getTranslation("translate.row.save"));
-        save.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
-        save.setEnabled(canEdit);
-        if (!canEdit) {
-            save.setTooltipText(getTranslation("translate.tooltip.signInToEdit"));
-        }
-        save.addClickListener(e -> {
-            if (isSourceLocale) {
-                translationEditService.updateSource(flow.getId(), area.getValue());
-                Notification.show(getTranslation("translate.row.savedSource"),
-                        2000, Notification.Position.BOTTOM_START);
-            } else {
-                ContentState newState = translationEditService.save(
-                        flow.getId(), currentLocale, area.getValue());
-                stateSpan.setText(newState.name());
-                applyStateColor(stateSpan, newState);
-                Notification.show(getTranslation("translate.row.saved"),
-                        2000, Notification.Position.BOTTOM_START);
-            }
-        });
-        // Ctrl+Enter — save as Translated (matches legacy + Zanata docs).
-        if (canEdit) {
-            Shortcuts.addShortcutListener(area, save::click,
-                    Key.ENTER, KeyModifier.CONTROL).listenOn(area);
-            // Ctrl+S — save as fuzzy (NeedReview). Only valid for target rows.
-            if (!isSourceLocale) {
-                Shortcuts.addShortcutListener(area, () -> {
-                    try {
-                        translationEditService.save(
-                                flow.getId(), currentLocale, area.getValue());
-                        ContentState ns = translationEditService.changeState(
-                                flow.getId(), currentLocale, ContentState.NeedReview);
-                        stateSpan.setText(ns.name());
-                        applyStateColor(stateSpan, ns);
-                        Notification.show(getTranslation("translate.row.savedFuzzy"),
-                                2000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show(getTranslation("translate.row.saveFuzzyFailed", ex.getMessage()),
-                                4000, Notification.Position.MIDDLE);
-                    }
-                }, Key.KEY_S, KeyModifier.CONTROL).listenOn(area)
-                        .setBrowserDefaultAllowed(false);
-            }
-        }
-
-        Button historyBtn = new Button(getTranslation("translate.action.history"),
-                LineAwesomeIcon.CLOCK_SOLID.create());
-        historyBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        Div historyPanel = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
-        // Initial visibility: explicit user toggle wins over the global pref.
-        boolean initiallyOpen = historyExpanded.contains(flow.getId())
-                || (prefs.autoOpenHistory() && !historyCollapsed.contains(flow.getId()));
-        historyPanel.setVisible(initiallyOpen);
-        historyBtn.addClickListener(e -> {
-            // Re-render every open so the "Unsaved" row reflects the current
-            // textarea value and review-comments stay fresh.
-            Div fresh = buildHistoryPanel(flow.getId(), initialContent, () -> area.getValue());
-            historyPanel.getElement().removeAllChildren();
-            fresh.getChildren().forEach(child -> historyPanel.getElement()
-                    .appendChild(child.getElement()));
-            boolean nowOpen = !historyPanel.isVisible();
-            historyPanel.setVisible(nowOpen);
-            // Record the explicit state so VirtualList row recycling doesn't
-            // snap us back to the default.
-            if (nowOpen) {
-                historyExpanded.add(flow.getId());
-                historyCollapsed.remove(flow.getId());
-            } else {
-                historyCollapsed.add(flow.getId());
-                historyExpanded.remove(flow.getId());
-            }
-        });
-
-        // Per-row "AI translate" — gated by the global flag, provider availability,
-        // and the per-user opt-in. Source locale never gets the button.
-        MenuBar aiBtn = null;
-        if (!isSourceLocale && aiPolicy.canCurrentUserUseAi()) {
-            aiBtn = new MenuBar();
-            aiBtn.addThemeVariants(
-                    MenuBarVariant.LUMO_TERTIARY_INLINE,
-                    MenuBarVariant.SMALL);
-            var trigger = aiBtn.addItem(LineAwesomeIcon.MAGIC_SOLID.create());
-            trigger.getElement().setAttribute("aria-label", getTranslation("translate.action.aiPerRow"));
-            trigger.getElement().setAttribute("title", getTranslation("translate.action.aiPerRow"));
-            for (var provider : aiRegistry.available()) {
-                trigger.getSubMenu().addItem(provider.displayName(), ev -> {
-                    String ctx = flow.getPotEntryData() == null ? null
-                            : flow.getPotEntryData().getContext();
-                    String providerName = provider.displayName();
-                    progressDialogs.run(getTranslation("ai.translate.bulkRunning", providerName),
-                            handle -> {
-                                handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
-                                return provider.translate(source, sourceLocale, currentLocale, ctx);
-                            })
-                            .whenComplete((out, err) -> {
-                                if (err != null) {
-                                    Notification.show(getTranslation("ai.translate.failed", err.getMessage()),
-                                            5000, Notification.Position.MIDDLE);
-                                    return;
-                                }
-                                if (out != null && !out.isBlank()) {
-                                    area.setValue(out);
-                                    Notification.show(getTranslation("ai.translate.filledBy", providerName),
-                                            2000, Notification.Position.BOTTOM_START);
-                                }
-                            });
-                });
-            }
-        }
-
-        boolean canReview = canReviewLocale();
-        boolean hasSavedContent = !initialContent.isBlank();
-
-        Button approve = new Button(getTranslation("translate.action.approve"),
-                LineAwesomeIcon.CHECK_SOLID.create());
-        approve.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
-        approve.setEnabled(!isSourceLocale && canReview && hasSavedContent);
-        if (isSourceLocale) {
-            approve.setVisible(false);
-        } else if (!canReview) {
-            approve.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
-                    localeStr, getTranslation("translate.row.approveTip.review")));
-        } else if (!hasSavedContent) {
-            approve.setTooltipText(getTranslation("translate.tooltip.saveBeforeReview",
-                    getTranslation("translate.row.approveTip.review")));
-        }
-        approve.addClickListener(e -> {
-            try {
-                ContentState newState = translationEditService.changeState(
-                        flow.getId(), currentLocale, ContentState.Approved);
-                stateSpan.setText(newState.name());
-                applyStateColor(stateSpan, newState);
-                Notification.show(getTranslation("translate.approve.success"),
-                        2000, Notification.Position.BOTTOM_START);
-            } catch (Exception ex) {
-                Notification.show(getTranslation("translate.row.approveFailed", ex.getMessage()),
-                        4000, Notification.Position.MIDDLE);
-            }
-        });
-
-        Button reject = new Button(getTranslation("translate.action.reject"),
-                LineAwesomeIcon.TIMES_SOLID.create());
-        reject.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
-        reject.setEnabled(!isSourceLocale && canReview && hasSavedContent);
-        if (isSourceLocale) {
-            reject.setVisible(false);
-        } else if (!canReview) {
-            reject.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
-                    localeStr, getTranslation("translate.row.rejectTip.review")));
-        } else if (!hasSavedContent) {
-            reject.setTooltipText(getTranslation("translate.tooltip.saveBeforeReview",
-                    getTranslation("translate.row.rejectTip.review")));
-        }
-        reject.addClickListener(e -> openRejectDialog(flow, stateSpan, historyPanel));
-
-        HorizontalLayout actionRow = new HorizontalLayout(
-                save, approve, reject, historyBtn, stateSpan);
-        if (aiBtn != null) actionRow.add(aiBtn);
-        actionRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        actionRow.setSpacing(true);
-        actionRow.getStyle().set("margin-top", "0.4rem");
-        actionRow.getStyle().set("flex-wrap", "wrap");
-
-        right.add(area, actionRow, historyPanel);
-
-        row.add(left, right);
-        row.setFlexGrow(1, left);
-        row.setFlexGrow(1, right);
-        card.add(row);
-        return card;
-    }
-
-    private Div buildDetailsPanel(HTextFlow flow) {
-        Div d = new Div();
-        d.getStyle().set("background", "var(--vaadin-background-color)");
-        d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        d.getStyle().set("border-radius", "6px");
-        d.getStyle().set("padding", "0.6rem");
-        d.getStyle().set("margin-top", "0.5rem");
-        d.getStyle().set("font-size", "0.875rem");
-        List<String> rows = new ArrayList<>();
-        rows.add(label(getTranslation("translate.details.resourceId"), flow.getResId()));
-        rows.add(label(getTranslation("translate.details.messageContext"), noContent(flow.getPotEntryData() == null
-                ? null : flow.getPotEntryData().getContext())));
-        rows.add(label(getTranslation("translate.details.reference"), noContent(flow.getPotEntryData() == null
-                ? null : flow.getPotEntryData().getReferences())));
-        rows.add(label(getTranslation("translate.details.flags"), noContent(flow.getPotEntryData() == null
-                ? null : flow.getPotEntryData().getFlags())));
-        rows.add(label(getTranslation("translate.details.sourceComment"), noContent(flow.getComment() == null
-                ? null : String.valueOf(flow.getComment()))));
-        for (String r : rows) {
-            Paragraph p = new Paragraph();
-            p.getElement().setProperty("innerHTML", r);
-            p.addClassNames(LumoUtility.Margin.NONE);
-            d.add(p);
-        }
-        return d;
-    }
-
-    /**
-     * Build the History panel: review comments at the top, then a selectable
-     * Grid of {version, state, modifier, date, content}. Selecting exactly
-     * two rows enables "Compare selected" which opens a side-by-side diff.
-     * If the live textarea value differs from the saved current target, an
-     * "Unsaved" pseudo-row is appended so the user can diff what they're
-     * typing against any saved version.
-     */
-    private Div buildHistoryPanel(Long textFlowId, String savedContent,
-                                  Supplier<String> liveContent) {
-        Div d = new Div();
-        d.getStyle().set("background", "var(--vaadin-background-color)");
-        d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        d.getStyle().set("border-radius", "6px");
-        d.getStyle().set("padding", "0.6rem");
-        d.getStyle().set("margin-top", "0.5rem");
-        d.getStyle().set("font-size", "0.875rem");
-
-        // Review comments (rejection reasons) come first so the most recent
-        // feedback is immediately visible to the translator. Suppressed when
-        // the user has disabled "Show review comments inline" in editor settings.
-        List<HTextFlowTargetReviewComment> comments = prefs.showReviewComments()
-                ? reviewCommentRepository.findByTextFlowAndLocale(textFlowId, currentLocale)
-                : List.of();
-        if (!comments.isEmpty()) {
-            Span header = new Span(getTranslation("translate.history.review"));
-            header.getStyle().set("font-weight", "600");
-            header.getStyle().set("display", "block");
-            header.getStyle().set("margin-bottom", "0.3rem");
-            d.add(header);
-            for (HTextFlowTargetReviewComment c : comments) {
-                Div entry = new Div();
-                entry.getStyle().set("padding", "0.3rem 0");
-                entry.getStyle().set("border-left", "3px solid var(--aura-red-text)");
-                entry.getStyle().set("padding-left", "0.5rem");
-                entry.getStyle().set("margin", "0.25rem 0");
-                String who = c.getCommenterName() == null ? "" : c.getCommenterName();
-                String when = c.getCreationDate() == null ? "" : " — " + c.getCreationDate();
-                Span meta = new Span(getTranslation("translate.history.commentBy",
-                        who, c.getTargetVersion(), when));
-                meta.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-                meta.getStyle().set("font-size", "0.8rem");
-                Paragraph p = new Paragraph(c.getCommentText());
-                p.getStyle().set("margin", "0.15rem 0 0 0");
-                p.getStyle().set("white-space", "pre-wrap");
-                entry.add(meta, p);
-                d.add(entry);
-            }
-            Div sep = new Div();
-            sep.getStyle().set("height", "1px");
-            sep.getStyle().set("background", "var(--vaadin-border-color)");
-            sep.getStyle().set("margin", "0.5rem 0");
-            d.add(sep);
-        }
-
-        // Build the version rows: every persisted HTextFlowTargetHistory +
-        // the current saved target (rendered as "current") + the live
-        // unsaved value when it differs from saved.
-        List<HistoryRow> rows = new ArrayList<>();
-        List<HTextFlowTargetHistory> hist =
-                historyRepository.findByTextFlowAndLocale(textFlowId, currentLocale);
-        for (HTextFlowTargetHistory h : hist) {
-            rows.add(new HistoryRow(
-                    "v" + h.getVersionNum(),
-                    h.getState() == null ? "" : h.getState().name(),
-                    h.getLastModifiedBy() == null ? "" : h.getLastModifiedBy().getName(),
-                    h.getLastChanged() == null ? "" : h.getLastChanged().toString(),
-                    firstContent(h.getContents())));
-        }
-        // Current saved target — show as "current" only when there's something
-        // saved AND it isn't already covered by the latest history row.
-        if (savedContent != null && !savedContent.isBlank()) {
-            HTextFlowTarget cur = targetRepository
-                    .findByTextFlowAndLocaleWithModifier(textFlowId, currentLocale)
-                    .orElse(null);
-            if (cur != null) {
-                rows.add(new HistoryRow(
-                        "current",
-                        cur.getState() == null ? "" : cur.getState().name(),
-                        cur.getLastModifiedBy() == null ? "" : cur.getLastModifiedBy().getName(),
-                        cur.getLastChanged() == null ? "" : cur.getLastChanged().toString(),
-                        firstContent(cur.getContents())));
-            }
-        }
-        // Live (unsaved) typed value, only if it differs from the saved one
-        String live = liveContent == null ? null : liveContent.get();
-        if (live != null && !live.isEmpty()
-                && !Objects.equals(live, savedContent)) {
-            rows.add(new HistoryRow(getTranslation("translate.history.unsavedRow"),
-                    "—", getTranslation("translate.history.you"), "—", live));
-        }
-
-        if (rows.isEmpty() && comments.isEmpty()) {
-            Paragraph empty = new Paragraph(getTranslation("translate.history.empty.noVersions"));
-            empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            empty.getStyle().set("margin", "0");
-            d.add(empty);
-            return d;
-        }
-
-        Grid<HistoryRow> grid =
-                new Grid<>();
-        grid.setItems(rows);
-        grid.setAllRowsVisible(true);
-        grid.setSelectionMode(Grid.SelectionMode.MULTI);
-        grid.addColumn(HistoryRow::version).setHeader(getTranslation("translate.history.col.version"))
-                .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::state).setHeader(getTranslation("translate.history.col.state"))
-                .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::modifier).setHeader(getTranslation("translate.history.col.by"))
-                .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::when).setHeader(getTranslation("translate.history.col.when"))
-                .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(r -> {
-            String c = r.content() == null ? "" : r.content();
-            return c.length() > 120 ? c.substring(0, 117) + "…" : c;
-        }).setHeader(getTranslation("translate.history.col.content")).setFlexGrow(1);
-
-        Button compare = new Button(getTranslation("translate.history.compareSelected"),
-                LineAwesomeIcon.NOT_EQUAL_SOLID.create());
-        compare.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        compare.setEnabled(false);
-        Span hint = new Span(getTranslation("translate.history.selectExactlyTwo"));
-        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        hint.getStyle().set("font-size", "0.8rem");
-        hint.getStyle().set("margin-left", "0.5rem");
-        grid.asMultiSelect().addSelectionListener(ev -> {
-            int n = ev.getValue().size();
-            compare.setEnabled(n == 2);
-            hint.setText(n == 2 ? getTranslation("translate.history.clickToCompare")
-                    : getTranslation("translate.history.selectionCount", n));
-        });
-        compare.addClickListener(ev -> {
-            var sel = new ArrayList<>(grid.getSelectedItems());
-            if (sel.size() != 2) return;
-            openDiffDialog(sel.get(0), sel.get(1));
-        });
-
-        HorizontalLayout toolbar = new HorizontalLayout(compare, hint);
-        toolbar.setAlignItems(FlexComponent.Alignment.CENTER);
-        toolbar.getStyle().set("margin", "0.25rem 0");
-        d.add(toolbar, grid);
-        return d;
-    }
-
-    /** Snapshot row for the history Grid + diff view. */
-    private record HistoryRow(String version, String state, String modifier,
-                              String when, String content) {}
-
-    /** Open a side-by-side diff of two history rows in a modal dialog. */
-    private void openDiffDialog(HistoryRow a, HistoryRow b) {
-        Dialog dlg = new Dialog();
-        dlg.setHeaderTitle(getTranslation("translate.diff.title", a.version(), b.version()));
-        dlg.setWidth("min(900px, 90vw)");
-        dlg.setHeight("min(600px, 80vh)");
-        dlg.setCloseOnEsc(true);
-
-        HorizontalLayout body = new HorizontalLayout();
-        body.setSizeFull();
-        body.setSpacing(true);
-
-        Div left = diffCell(a.version(), a.state(), a.when(),
-                renderDiffHtml(a.content(), b.content(), true));
-        Div right = diffCell(b.version(), b.state(), b.when(),
-                renderDiffHtml(a.content(), b.content(), false));
-        left.getStyle().set("flex", "1 1 0");
-        right.getStyle().set("flex", "1 1 0");
-        body.add(left, right);
-
-        dlg.add(body);
-        Button close =
-                new Button(getTranslation("progress.close"), e -> dlg.close());
-        close.addThemeVariants(ButtonVariant.TERTIARY);
-        dlg.getFooter().add(close);
-        dlg.open();
-    }
-
-    private static Div diffCell(String version, String state, String when, String html) {
-        Div cell = new Div();
-        cell.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        cell.getStyle().set("border-radius", "6px");
-        cell.getStyle().set("padding", "0.5rem");
-        cell.getStyle().set("background", "var(--vaadin-background-color)");
-        cell.getStyle().set("overflow", "auto");
-        Span header = new Span(version + " — " + state + (when.isEmpty() ? "" : " — " + when));
-        header.getStyle().set("font-weight", "600");
-        header.getStyle().set("display", "block");
-        header.getStyle().set("margin-bottom", "0.4rem");
-        Div content = new Div();
-        content.getStyle().set("white-space", "pre-wrap");
-        content.getStyle().set("font-family", "var(--lumo-font-family-mono, monospace)");
-        content.getStyle().set("font-size", "0.88rem");
-        content.getElement().setProperty("innerHTML", html);
-        cell.add(header, content);
-        return cell;
-    }
-
-    /**
-     * Word-level LCS diff between {@code a} and {@code b}; if {@code leftSide}
-     * is true, colour removed-from-a words red; otherwise colour added-in-b
-     * words green. Whitespace is preserved by splitting on word boundaries
-     * but rejoining the originals.
-     */
-    private static String renderDiffHtml(String a, String b, boolean leftSide) {
-        if (a == null) a = "";
-        if (b == null) b = "";
-        String[] aw = a.split("(?<=\\s)|(?=\\s)");
-        String[] bw = b.split("(?<=\\s)|(?=\\s)");
-        int n = aw.length, m = bw.length;
-        int[][] lcs = new int[n + 1][m + 1];
-        for (int i = n - 1; i >= 0; i--) {
-            for (int j = m - 1; j >= 0; j--) {
-                lcs[i][j] = aw[i].equals(bw[j])
-                        ? lcs[i + 1][j + 1] + 1
-                        : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
-            }
-        }
-        StringBuilder out = new StringBuilder();
-        int i = 0, j = 0;
-        String[] side = leftSide ? aw : bw;
-        String addColor = "var(--aura-green-text)";
-        String delColor = "var(--aura-red-text)";
-        String bg = leftSide ? "rgba(255,0,0,0.12)" : "rgba(0,160,0,0.12)";
-        String color = leftSide ? delColor : addColor;
-        while (i < n && j < m) {
-            if (aw[i].equals(bw[j])) {
-                out.append(escapeHtml(side == aw ? aw[i] : bw[j]));
-                i++; j++;
-            } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-                // a[i] removed
-                if (leftSide) appendMarked(out, aw[i], color, bg);
-                i++;
-            } else {
-                // b[j] added
-                if (!leftSide) appendMarked(out, bw[j], color, bg);
-                j++;
-            }
-        }
-        while (leftSide && i < n) { appendMarked(out, aw[i++], color, bg); }
-        while (!leftSide && j < m) { appendMarked(out, bw[j++], color, bg); }
-        return out.toString();
-    }
-
-    private static void appendMarked(StringBuilder sb, String word,
-                                     String color, String bg) {
-        sb.append("<span style=\"color:").append(color)
-                .append(";background:").append(bg).append("\">")
-                .append(escapeHtml(word))
-                .append("</span>");
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
-    }
-
-    private static String firstContent(List<String> contents) {
-        if (contents == null || contents.isEmpty()) return "";
-        String c = contents.get(0);
-        return c == null ? "" : c;
-    }
-
-    /**
-     * Open the reject-with-reason modal. A non-empty reason is required —
-     * docs mandate this so the translator knows what to fix. On confirm the
-     * comment is attached to the target version being rejected and the
-     * history panel is re-rendered in place.
-     */
-    private void openRejectDialog(HTextFlow flow, Span stateSpan, Div historyPanel) {
-        Dialog dlg = new Dialog();
-        dlg.setHeaderTitle(getTranslation("translate.reject.title"));
-        dlg.setWidth("480px");
-        dlg.setCloseOnEsc(true);
-        dlg.setCloseOnOutsideClick(false);
-
-        Paragraph intro = new Paragraph(getTranslation("translate.reject.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("margin", "0 0 0.75rem 0");
-        intro.getStyle().set("font-size", "0.9rem");
-
-        TextArea reason = new TextArea(getTranslation("translate.reject.reasonLabel"));
-        reason.setWidthFull();
-        reason.setMinHeight("6rem");
-        reason.setRequired(true);
-        reason.setValueChangeMode(ValueChangeMode.EAGER);
-
-        Button confirm = new Button(getTranslation("translate.reject.confirm"));
-        confirm.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.ERROR);
-        confirm.setEnabled(false);
-        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
-        cancel.addThemeVariants(ButtonVariant.TERTIARY);
-
-        // "Confirm rejection" will not work until a reason has been entered.
-        reason.addValueChangeListener(e -> confirm.setEnabled(
-                e.getValue() != null && !e.getValue().trim().isEmpty()));
-
-        confirm.addClickListener(e -> {
-            String text = reason.getValue() == null ? "" : reason.getValue().trim();
-            if (text.isEmpty()) return;
-            String reviewer = currentUsername();
-            try {
-                ContentState newState = translationEditService.changeState(
-                        flow.getId(), currentLocale, ContentState.Rejected,
-                        text, reviewer);
-                stateSpan.setText(newState.name());
-                applyStateColor(stateSpan, newState);
-                // Refresh the history panel in place so the new comment shows up
-                // without losing the user's expand/collapse state on other rows.
-                Div fresh = buildHistoryPanel(flow.getId(), null, () -> null);
-                historyPanel.getElement().removeAllChildren();
-                fresh.getChildren().forEach(child -> historyPanel.getElement()
-                        .appendChild(child.getElement()));
-                Notification.show(getTranslation("translate.reject.success"), 2000, Notification.Position.BOTTOM_START);
-                dlg.close();
-            } catch (Exception ex) {
-                Notification.show(getTranslation("translate.row.rejectFailed", ex.getMessage()),
-                        4000, Notification.Position.MIDDLE);
-            }
-        });
-
-        dlg.add(intro, reason);
-        dlg.getFooter().add(cancel, confirm);
-        dlg.open();
-        reason.focus();
-    }
-
-    private static String currentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()
-                || auth instanceof AnonymousAuthenticationToken) return null;
-        return auth.getName();
-    }
-
-    /**
-     * Build the deep-link URL for a text flow and copy it to the clipboard
-     * via JavaScript. The format mirrors the existing {@code ?tf=ID} query
-     * param the page already accepts.
-     */
-    private void copyPermalink(Long textFlowId) {
-        String href = "/translate/" + projectSlug + "/" + versionSlug + "/"
-                + localeStr + "?doc=" + currentDocId + "&tf=" + textFlowId;
-        UI.getCurrent().getPage().executeJs(
-                "const u = new URL($0, location.origin).toString();"
-                + "navigator.clipboard.writeText(u);", href);
-        Notification.show(getTranslation("translate.permalink.copied"),
-                1800, Notification.Position.BOTTOM_START);
-    }
-
-    private String label(String k, String v) {
-        return "<strong>" + k + "</strong> "
-                + (v == null || v.isBlank()
-                    ? "<span style=\"color: var(--vaadin-text-color-secondary)\">"
-                            + escape(getTranslation("translate.details.noContent")) + "</span>"
-                    : escape(v));
-    }
-
-    private String noContent(String s) {
-        return (s == null || s.isBlank()) ? null : s;
-    }
-
-    private String escape(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
-
-    private static boolean isAuthenticated() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null && auth.isAuthenticated()
-                && !(auth instanceof AnonymousAuthenticationToken);
-    }
-
-    private boolean canReviewLocale() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()
-                || auth instanceof AnonymousAuthenticationToken) return false;
-        boolean admin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        if (admin) return true;
-        var account = accountRepository.findByUsername(auth.getName()).orElse(null);
-        if (account == null || account.getPerson() == null) return false;
-        var locale = localeRepository.findByLocaleId(currentLocale).orElse(null);
-        if (locale == null) return false;
-        return localeMemberRepository.findByLocaleAndPerson(locale, account.getPerson())
-                .map(m -> m.isReviewer() || m.isCoordinator())
-                .orElse(false);
-    }
 
     /** Pre-translated stat labels — captured on the UI thread then passed
      *  into the background worker that builds the stats badge. */
@@ -1569,17 +864,16 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return row;
     }
 
-    private void applyStateColor(Span span, ContentState state) {
-        String color;
-        switch (state) {
-            case Translated -> color = "var(--aura-green)";
-            case Approved -> color = "darkgreen";
-            case NeedReview -> color = "orange";
-            case Rejected -> color = "crimson";
-            case New -> color = "var(--vaadin-text-color-secondary)";
-            default -> color = "var(--vaadin-text-color-secondary)";
-        }
-        span.getStyle().set("color", color);
-        span.getStyle().set("font-weight", "600");
+    private TranslationRow.RowContext rowContext() {
+        return new TranslationRow.RowContext(
+                prefs, currentLocale, sourceLocale, localeStr,
+                projectSlug, versionSlug, currentDocId,
+                historyExpanded, historyCollapsed);
+    }
+
+    private static boolean isAuthenticated() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken);
     }
 }

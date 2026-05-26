@@ -75,6 +75,7 @@
     <hibernate.entitymanager.version>${hibernate.version}</hibernate.entitymanager.version>
     <war_bundles_jsf_impl>false</war_bundles_jsf_impl>
     <hibernate.validator.version>8.0.2.Final</hibernate.validator.version>
+    <languagetool.version>6.8</languagetool.version>
 
     <concordion.output.dir>${project.build.directory}/concordion</concordion.output.dir>
 

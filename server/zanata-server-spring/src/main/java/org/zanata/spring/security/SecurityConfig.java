@@ -54,7 +54,8 @@ public class SecurityConfig {
                             "/error/**",
                             "/resources/**", "/static/**",
                             "/messages/**",
-                            "/line-awesome/**"
+                            "/line-awesome/**",
+                            "/ace-builds/**"
                     ).permitAll())
             .csrf(csrf -> csrf
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())

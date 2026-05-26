@@ -41,6 +41,11 @@
     --view-inset: 0.75vmax;
 
     --blur-radius: 20px;
+
+    --lumo-error-color: hsl(0 75% 55% / 0.35);
+    --lumo-primary-color: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.35);
+    --lumo-shade-50pct: hsl(0 0% 0% / 0.35);
+    --lumo-primary-contrast-color: hsl(0 0% 100%);
 }
 
 html[theme~="dark"],

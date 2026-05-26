@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Entry point for the Zanata server.
@@ -15,6 +16,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @EntityScan(basePackages = "org.zanata.model")
 @EnableJpaRepositories(basePackages = "org.zanata.spring.repository")
+@EnableScheduling
 public class ZanataServerApplication {
     public static void main(String[] args) {
         SpringApplication.run(ZanataServerApplication.class, args);
