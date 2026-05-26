@@ -301,10 +301,7 @@ public class MainLayout extends AppLayout
         MenuBar bar = new MenuBar();
         // Theme-agnostic variants only — Aura is the active theme, no Lumo.
         bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
-        Component icon = mode == ThemeSelector.Mode.DARK
-                ? LineAwesomeIcon.MOON_SOLID.create()
-                : LineAwesomeIcon.SUN_SOLID.create();
-        MenuItem trigger = bar.addItem(icon);
+        MenuItem trigger = bar.addItem(themeIcon(mode));
         trigger.getElement().setAttribute("aria-label", getTranslation("theme.label"));
         trigger.getElement().setAttribute("title", getTranslation("theme.label"));
 
@@ -317,12 +314,29 @@ public class MainLayout extends AppLayout
             choices.add(item);
             // Radio-group behavior: picking one item unchecks the others.
             // Without this MenuItem.setCheckable independently toggles each.
+            // Also swap the trigger's icon so it reflects the new mode without
+            // requiring a page refresh.
             item.addClickListener(e -> {
                 themeSelector.select(target);
                 for (MenuItem other : choices) other.setChecked(other == item);
+                trigger.removeAll();
+                trigger.add(themeIcon(target));
             });
         }
         return bar;
+    }
+
+    /**
+     * Glyph for the theme trigger: moon for dark, sun otherwise (light or
+     * follow-system both show the sun — the system-controlled rendering can
+     * itself be dark, but the trigger is keyed off the user's stated choice
+     * to keep the affordance predictable). Recomputed on every theme switch
+     * by {@link #buildThemeButton}'s click handler.
+     */
+    private static Component themeIcon(ThemeSelector.Mode mode) {
+        return mode == ThemeSelector.Mode.DARK
+                ? LineAwesomeIcon.MOON_SOLID.create()
+                : LineAwesomeIcon.SUN_SOLID.create();
     }
 
     /**
