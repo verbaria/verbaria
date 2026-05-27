@@ -1,5 +1,7 @@
 package org.zanata.spring.vaadin.project;
 
+import org.zanata.spring.security.Roles;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -107,13 +109,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     private boolean canManageProject(String projectSlug) {
         var auth = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()
-                || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
-            return false;
-        }
-        boolean admin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        if (admin) return true;
+        if (Roles.isAdmin(auth)) return true;
+        if (auth == null) return false;
         return accountRepository.findByUsername(auth.getName())
                 .map(a -> a.getPerson())
                 .flatMap(p -> projectRepository.findBySlugWithIterations(projectSlug)

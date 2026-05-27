@@ -101,7 +101,7 @@ GitHub.
 
 ## Developer setup
 
-See the root [README.md](README.md) for prerequisites (JDK 21, Maven 3.9+,
+See the root [README.md](README.md) for prerequisites (JDK 25, Maven 3.9+,
 PostgreSQL when running the server) and the build / run instructions.
 
 

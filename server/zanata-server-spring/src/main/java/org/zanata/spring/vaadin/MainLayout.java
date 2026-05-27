@@ -1,5 +1,7 @@
 package org.zanata.spring.vaadin;
 
+import org.zanata.spring.security.Roles;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -478,16 +480,10 @@ public class MainLayout extends AppLayout
             nav.addItem(new SideNavItem(getTranslation("nav.dashboard"), DashboardHomeView.class, LineAwesomeIcon.TACHOMETER_ALT_SOLID.create()));
             nav.addItem(new SideNavItem(getTranslation("nav.profile"),   org.zanata.spring.vaadin.profile.ProfileView.class, LineAwesomeIcon.USER_SOLID.create()));
         }
-        if (isAdmin()) {
+        if (Roles.isCurrentUserAdmin()) {
             nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminHomeView.class, LineAwesomeIcon.COG_SOLID.create()));
         }
         return nav;
-    }
-
-    private static boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
     private static boolean isAuthenticated() {

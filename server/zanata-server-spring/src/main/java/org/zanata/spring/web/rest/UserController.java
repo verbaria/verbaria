@@ -1,5 +1,7 @@
 package org.zanata.spring.web.rest;
 
+import org.zanata.spring.security.Roles;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -67,8 +69,7 @@ public class UserController {
             return new CurrentUser(null, "Anonymous", "", false);
         }
         String username = auth.getName();
-        boolean admin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        boolean admin = Roles.isAdmin(auth);
         return accountRepository.findByUsername(username)
                 .map(a -> new CurrentUser(
                         a.getUsername(),
@@ -102,7 +103,7 @@ public class UserController {
         if (auth == null) {
             return permMap(false);
         }
-        if (hasAdmin(auth)) {
+        if (Roles.isAdmin(auth)) {
             return permMap(true);
         }
         if (qualifiedName != null && qualifiedName.startsWith("project/")) {
@@ -202,10 +203,6 @@ public class UserController {
         return auth;
     }
 
-    private static boolean hasAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-    }
 
     private Optional<HPerson> currentPerson(Authentication auth) {
         return accountRepository.findByUsername(auth.getName())

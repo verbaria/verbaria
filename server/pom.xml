@@ -317,13 +317,6 @@
       </dependency>
 
       <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <!-- 1.4.180 is from 2014 and lacks features Hibernate ORM 6's
-             H2Dialect relies on; parent BOM ships 2.3.232. -->
-        <version>2.3.232</version>
-      </dependency>
-      <dependency>
         <groupId>com.ibm.icu</groupId>
         <artifactId>icu4j</artifactId>
         <version>${icu4j.version}</version>

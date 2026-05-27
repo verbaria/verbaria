@@ -1,5 +1,7 @@
 package org.zanata.spring.vaadin.language;
 
+import org.zanata.spring.security.Roles;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -91,7 +93,7 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
 
         Optional<HAccount> currentOpt = currentAccount();
         boolean canManage = currentOpt.isPresent() && languageTeamService.canManage(
-                locale, currentOpt.get().getPerson(), isAdmin());
+                locale, currentOpt.get().getPerson(), Roles.isCurrentUserAdmin());
         if (canManage) {
             add(buildPendingRequestsPanel(locale, currentOpt.get()));
         }
@@ -331,10 +333,4 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
         return accountRepository.findByUsername(auth.getName());
     }
 
-    private static boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return false;
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-    }
 }

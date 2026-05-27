@@ -1,5 +1,7 @@
 package org.zanata.spring.vaadin.translate;
 
+import org.zanata.spring.security.Roles;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -647,11 +649,9 @@ public class TranslationRow extends Div {
 
     private boolean canReviewLocale() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (Roles.isAdmin(auth)) return true;
         if (auth == null || !auth.isAuthenticated()
                 || auth instanceof AnonymousAuthenticationToken) return false;
-        boolean admin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        if (admin) return true;
         var account = accountRepository.findByUsername(auth.getName()).orElse(null);
         if (account == null || account.getPerson() == null) return false;
         var locale = localeRepository.findByLocaleId(ctx.currentLocale()).orElse(null);

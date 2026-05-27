@@ -142,10 +142,10 @@
     <!--
     Version of java compiler used for building.
     -->
-    <required.java>21</required.java>
+    <required.java>25</required.java>
     <java.version.range>[21,)</java.version.range>
     <maven.compiler.source>${required.java}</maven.compiler.source>
-    <required.jvm>21</required.jvm>
+    <required.jvm>25</required.jvm>
     <maven.compiler.target>${required.jvm}</maven.compiler.target>
     <maven.compiler.release>${required.java}</maven.compiler.release>
     <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
@@ -173,7 +173,7 @@
     <jackson.version>2.18.2</jackson.version>
     <maven.javadoc.version>3.11.2</maven.javadoc.version>
     <maven.jxr.version>3.6.0</maven.jxr.version>
-    <surefire.version>3.5.2</surefire.version>
+    <surefire.version>3.5.5</surefire.version>
     <maven.source.version>3.3.1</maven.source.version>
 
     <checkstyle.maven.version>3.6.0</checkstyle.maven.version>
@@ -276,7 +276,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
+          <version>3.15.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
@@ -308,7 +308,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.6.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-source-plugin</artifactId>
@@ -344,7 +344,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.15.1</version>
+          <version>3.15.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
@@ -889,13 +889,6 @@
         <version>${jackson.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <version>2.3.232</version>
-        <scope>provided</scope>
       </dependency>
 
       <dependency>

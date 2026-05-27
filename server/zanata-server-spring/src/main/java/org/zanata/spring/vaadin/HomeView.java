@@ -1,5 +1,7 @@
 package org.zanata.spring.vaadin;
 
+import org.zanata.spring.security.Roles;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -14,9 +16,6 @@ import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.spring.service.HomeContentService;
 import org.zanata.spring.service.MarkdownRenderer;
 import org.zanata.spring.vaadin.admin.AdminHomeContentView;
@@ -73,7 +72,7 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver, Tit
             container.add(rendered);
         }
 
-        if (isAdmin()) {
+        if (Roles.isCurrentUserAdmin()) {
             Button edit = new Button(getTranslation("home.editButton"),
                     e -> getUI().ifPresent(ui -> ui.navigate(AdminHomeContentView.class)));
             edit.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
@@ -86,13 +85,4 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver, Tit
         add(container);
     }
 
-    private static boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()
-                || auth instanceof AnonymousAuthenticationToken) {
-            return false;
-        }
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-    }
 }

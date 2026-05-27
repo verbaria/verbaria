@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
@@ -38,14 +39,17 @@ import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.repository.RoleRepository;
 import org.zanata.spring.repository.TextFlowRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.security.Roles;
 
 /**
- * Inserts a handful of demo projects on startup so the React /explore screen
- * has something to render against the H2 in-memory database. Active only
- * when the H2 datasource is in use.
+ * Inserts a handful of demo projects on startup so the explore screen has
+ * something to render. Active only when the {@code dev} Spring profile is
+ * enabled — run with {@code -Dspring.profiles.active=dev} or the
+ * {@code SPRING_PROFILES_ACTIVE=dev} env var.
  */
 @Component
-@Profile("!postgres")
+@Profile("dev")
+@Order(100)
 public class DevSeedData implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DevSeedData.class);
@@ -198,8 +202,8 @@ public class DevSeedData implements CommandLineRunner {
     }
 
     private void seedRolesAndAccounts() {
-        HAccountRole admin = roleRepository.findByName("admin").orElseGet(() -> saveRole("admin"));
-        HAccountRole user  = roleRepository.findByName("user").orElseGet(() -> saveRole("user"));
+        HAccountRole admin = roleRepository.findByName(Roles.ADMIN).orElseThrow();
+        HAccountRole user  = roleRepository.findByName(Roles.USER).orElseThrow();
         // Deterministic API keys so the CLI smoke test can authenticate
         // without UI clicks. Override in production.
         ensureAccount("admin",   "admin", "Administrator",    "admin@example.com",            Set.of(admin, user), "b6d7044e9ee3b720c81dba7e3ea53d56");
