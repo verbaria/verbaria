@@ -37,4 +37,15 @@ public interface LanguageRequestRepository extends JpaRepository<LanguageRequest
     Optional<LanguageRequest> findOpenByLocaleAndRequester(@Param("locale") HLocale locale,
                                                            @Param("requester") HAccount requester,
                                                            @Param("state") RequestState state);
+
+    @Query("""
+            select lr from LanguageRequest lr
+            join fetch lr.request r
+            join fetch r.requester
+            left join fetch r.requester.person
+            join fetch lr.locale
+            where r.state = :state
+            order by r.validFrom asc
+            """)
+    List<LanguageRequest> findAllByState(@Param("state") RequestState state);
 }

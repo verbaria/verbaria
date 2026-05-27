@@ -30,6 +30,7 @@ public class AdminHomeView extends VerticalLayout implements TitleKey {
         add(new RouterLink(getTranslation("page.createUser"),      AdminCreateUserView.class));
         add(new RouterLink(getTranslation("page.roleManager"),     AdminRoleManagerView.class));
         add(new RouterLink(getTranslation("page.roleRules"),       AdminRoleRulesView.class));
+        add(new RouterLink(getTranslation("page.requests"),        AdminRequestsView.class));
         add(new RouterLink(getTranslation("page.reviewCriteria"),  AdminReviewView.class));
         add(new RouterLink(getTranslation("admin.menu.searchReindex"), AdminSearchView.class));
         add(new RouterLink(getTranslation("page.cacheStats"),      AdminCacheStatsView.class));

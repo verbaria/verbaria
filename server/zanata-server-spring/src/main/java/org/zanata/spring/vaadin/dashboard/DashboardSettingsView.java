@@ -211,7 +211,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
         if (memberships.isEmpty()) {
             Paragraph p = new Paragraph(getTranslation("dashboardSettings.languages.notInTeams"));
             p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            Anchor browse = new Anchor("/language/list",
+            Anchor browse = new Anchor("/languages",
                     getTranslation("dashboardSettings.languages.browse"));
             card.add(p, browse);
             return card;
@@ -227,7 +227,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
             row.setAlignItems(FlexComponent.Alignment.CENTER);
             row.getStyle().set("padding", "0.4rem 0");
             row.getStyle().set("border-bottom", "1px solid var(--vaadin-border-color)");
-            Anchor link = new Anchor("/language/view/" + code, label + " (" + code + ")");
+            Anchor link = new Anchor("/language/" + code, label + " (" + code + ")");
             link.getStyle().set("flex", "1 1 auto");
             link.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
             link.getStyle().set("font-weight", "600");

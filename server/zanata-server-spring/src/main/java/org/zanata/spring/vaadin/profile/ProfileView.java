@@ -280,7 +280,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
             Paragraph p = new Paragraph(getTranslation("profile.notInTeams"));
             p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
             panel.add(p);
-            Anchor join = new Anchor("/language/list", getTranslation("profile.browseLanguages"));
+            Anchor join = new Anchor("/languages", getTranslation("profile.browseLanguages"));
             panel.add(join);
             return panel;
         }
@@ -293,7 +293,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
             HorizontalLayout row = new HorizontalLayout();
             row.setWidthFull();
             row.setAlignItems(FlexComponent.Alignment.CENTER);
-            Anchor link = new Anchor("/language/view/" + code, label);
+            Anchor link = new Anchor("/language/" + code, label);
             link.getStyle().set("flex", "1 1 auto");
             link.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
             link.getStyle().set("font-weight", "600");
@@ -330,7 +330,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         VerticalLayout list = new VerticalLayout(
                 link(getTranslation("profile.quickLink.dashboard"), "/dashboard"),
                 link(getTranslation("profile.quickLink.accountApi"), "/dashboard/settings"),
-                link(getTranslation("profile.quickLink.browseLanguages"), "/language/list"));
+                link(getTranslation("profile.quickLink.browseLanguages"), "/languages"));
         list.setPadding(false);
         list.setSpacing(false);
         panel.add(list);
