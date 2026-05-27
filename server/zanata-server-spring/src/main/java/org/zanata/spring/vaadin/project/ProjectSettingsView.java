@@ -20,6 +20,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -106,8 +107,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
 
         add(new H3(getTranslation("projectSettings.targetLanguages")));
         Paragraph hint = new Paragraph(getTranslation("projectSettings.targetLanguagesHint"));
-        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        hint.getStyle().set("margin", "0 0 0.5rem 0");
+        hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Bottom.SMALL);
         add(hint);
 
         MultiSelectComboBox<HLocale> targetLocales =
@@ -124,8 +124,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         // --- Validations card ---
         add(new H3(getTranslation("projectSettings.validations")));
         Paragraph valHint = new Paragraph(getTranslation("projectSettings.validationsHint"));
-        valHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        valHint.getStyle().set("margin", "0 0 0.5rem 0");
+        valHint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Bottom.SMALL);
         add(valHint);
         FormLayout valForm = new FormLayout();
         valForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),

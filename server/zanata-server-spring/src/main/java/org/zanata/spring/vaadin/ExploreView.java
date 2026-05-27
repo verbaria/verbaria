@@ -17,7 +17,7 @@ import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.List;
 import java.util.function.Function;
@@ -109,49 +109,43 @@ public class ExploreView extends VerticalLayout implements TitleKey {
     private Component projectRow(HProject p) {
         RouterLink title = new RouterLink(p.getSlug(), ProjectView.class,
                 new com.vaadin.flow.router.RouteParameters("slug", p.getSlug()));
-        title.getStyle().set("font-weight", "600");
-        title.getStyle().set("display", "block");
+        title.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
         Span desc = new Span(p.getName() == null ? "" : getTranslation("explore.projectPrefix", p.getName()));
-        desc.getStyle().set("font-style", "italic");
-        desc.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        desc.addClassNames(AuraUtility.FontStyle.ITALIC, AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         Div d = new Div(title, desc);
-        d.getStyle().set("padding", "0.4rem 0");
+        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
         return d;
     }
 
     private Component groupRow(HIterationGroup g) {
         Anchor title = new Anchor("/version-group/version_group/" + g.getSlug(),
                 g.getName() == null ? g.getSlug() : g.getName());
-        title.getStyle().set("font-weight", "600");
-        title.getStyle().set("display", "block");
+        title.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
         Span desc = new Span(g.getDescription() == null ? "" : g.getDescription());
-        desc.getStyle().set("font-style", "italic");
-        desc.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        desc.addClassNames(AuraUtility.FontStyle.ITALIC, AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         Div d = new Div(title, desc);
-        d.getStyle().set("padding", "0.4rem 0");
+        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
         return d;
     }
 
     private Component personRow(HPerson p) {
         Span name = new Span(p.getName() == null ? getTranslation("explore.unnamed") : p.getName());
-        name.getStyle().set("font-weight", "600");
-        name.getStyle().set("display", "block");
+        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
         Span email = new Span(p.getEmail() == null ? "" : p.getEmail());
-        email.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        email.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         Div d = new Div(name, email);
-        d.getStyle().set("padding", "0.4rem 0");
+        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
         return d;
     }
 
     private Component languageRow(HLocale l) {
         Span name = new Span(l.getDisplayName() == null
                 ? l.getLocaleId().getId() : l.getDisplayName());
-        name.getStyle().set("font-weight", "600");
-        name.getStyle().set("display", "block");
+        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
         Span code = new Span(l.getLocaleId() == null ? "" : l.getLocaleId().getId());
-        code.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        code.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         Div d = new Div(name, code);
-        d.getStyle().set("padding", "0.4rem 0");
+        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
         return d;
     }
 
@@ -174,23 +168,23 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             this.icon = icon;
             this.renderer = renderer;
 
-            getStyle().set("margin-top", "1.5rem");
+            addClassNames(AuraUtility.Margin.Top.LARGE);
 
             var ico = icon.create();
-            ico.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            ico.addClassNames(AuraUtility.TextColor.SECONDARY);
             H4 heading = new H4(title);
-            heading.addClassNames(LumoUtility.Margin.NONE, LumoUtility.FontSize.SMALL,
-                    LumoUtility.TextColor.SECONDARY);
+            heading.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.SMALL,
+                    AuraUtility.TextColor.SECONDARY);
             heading.getStyle().set("letter-spacing", "0.1em");
 
-            countSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+            countSpan.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
 
             prev.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
             next.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
             prev.addClickListener(e -> { if (currentPage > 0) { currentPage--; reloadPage(); } });
             next.addClickListener(e -> { if (currentPage + 1 < totalPages) { currentPage++; reloadPage(); } });
 
-            pageInfo.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+            pageInfo.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
 
             HorizontalLayout left = new HorizontalLayout(ico, heading, countSpan);
             left.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -203,8 +197,8 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             header.setAlignItems(FlexComponent.Alignment.CENTER);
             header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
             header.add(left, right);
-            header.getStyle().set("border-bottom", "1px solid var(--vaadin-border-color)");
-            header.getStyle().set("padding-bottom", "0.5rem");
+            header.addClassNames(AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT,
+                    AuraUtility.Padding.Bottom.SMALL);
 
             add(header, list);
         }
@@ -226,7 +220,7 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             List<T> items = page.getContent();
             if (items.isEmpty()) {
                 Paragraph empty = new Paragraph(getTranslation("explore.noResults"));
-                empty.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
+                empty.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
                 list.add(empty);
             } else {
                 items.forEach(item -> list.add(renderer.apply(item)));

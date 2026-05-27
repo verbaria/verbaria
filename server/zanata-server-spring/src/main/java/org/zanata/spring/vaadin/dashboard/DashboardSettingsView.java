@@ -26,6 +26,7 @@ import jakarta.annotation.security.PermitAll;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
         setSizeFull();
         setPadding(true);
         getStyle().set("max-width", "1000px");
-        getStyle().set("margin", "0 auto");
+        addClassNames(AuraUtility.Margin.Horizontal.AUTO);
 
         H2 heading = new H2(getTranslation("dashboardSettings.title"));
 
@@ -184,9 +185,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
                 toast(getTranslation("dashboardSettings.profile.aiSaved"), false);
             });
             Paragraph aiHint = new Paragraph(getTranslation("dashboardSettings.profile.aiHint"));
-            aiHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            aiHint.getStyle().set("font-size", "0.85rem");
-            aiHint.getStyle().set("margin", "0.25rem 0 0 0");
+            aiHint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL, AuraUtility.Margin.Top.XSMALL);
             card.add(allowAi, aiHint);
         }
         return card;
@@ -210,7 +209,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
         card.add(sectionTitle(getTranslation("dashboardSettings.languages.yourTeams")));
         if (memberships.isEmpty()) {
             Paragraph p = new Paragraph(getTranslation("dashboardSettings.languages.notInTeams"));
-            p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            p.addClassNames(AuraUtility.TextColor.SECONDARY);
             Anchor browse = new Anchor("/languages",
                     getTranslation("dashboardSettings.languages.browse"));
             card.add(p, browse);
@@ -225,15 +224,11 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
             HorizontalLayout row = new HorizontalLayout();
             row.setWidthFull();
             row.setAlignItems(FlexComponent.Alignment.CENTER);
-            row.getStyle().set("padding", "0.4rem 0");
-            row.getStyle().set("border-bottom", "1px solid var(--vaadin-border-color)");
+            row.addClassNames(AuraUtility.Padding.Vertical.SMALL, AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT);
             Anchor link = new Anchor("/language/" + code, label + " (" + code + ")");
-            link.getStyle().set("flex", "1 1 auto");
-            link.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
-            link.getStyle().set("font-weight", "600");
+            link.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.TextColor.PRIMARY, AuraUtility.FontWeight.SEMIBOLD);
             Span roles = new Span(roleSummary(m));
-            roles.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            roles.getStyle().set("font-size", "0.85rem");
+            roles.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
             row.add(link, roles);
             list.add(row);
         }
@@ -269,7 +264,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
         Paragraph intro = new Paragraph(getTranslation(
                 "dashboardSettings.client.intro",
                 getTranslation("brand.name")));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY);
 
         // --- API key row ---
         TextField apiKey = new TextField(getTranslation("dashboardSettings.client.apiKey"));
@@ -351,19 +346,14 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
     private static Div card() {
         Div d = new Div();
         d.setWidthFull();
-        d.getStyle().set("padding", "1.25rem 1.5rem");
-        d.getStyle().set("background", "var(--vaadin-background-color)");
-        d.getStyle().set("border-radius", "10px");
-        d.getStyle().set("box-sizing", "border-box");
+        d.addClassNames(AuraUtility.Padding.LARGE, AuraUtility.Background.BASE, AuraUtility.BorderRadius.MEDIUM, AuraUtility.BoxSizing.BORDER);
         return d;
     }
 
     private static Span sectionTitle(String text) {
         Span s = new Span(text);
-        s.getStyle().set("display", "block");
-        s.getStyle().set("font-weight", "700");
-        s.getStyle().set("font-size", "1.05rem");
-        s.getStyle().set("margin", "0.75rem 0 0.5rem 0");
+        s.addClassNames(AuraUtility.Display.BLOCK, AuraUtility.FontWeight.BOLD, AuraUtility.FontSize.MEDIUM,
+                AuraUtility.Margin.Top.MEDIUM, AuraUtility.Margin.Bottom.SMALL);
         return s;
     }
 
@@ -375,7 +365,7 @@ public class DashboardSettingsView extends VerticalLayout implements TitleKey {
 
     private Paragraph notSignedIn() {
         Paragraph p = new Paragraph(getTranslation("dashboardSettings.notSignedIn"));
-        p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        p.addClassNames(AuraUtility.TextColor.SECONDARY);
         return p;
     }
 

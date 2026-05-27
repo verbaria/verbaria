@@ -32,6 +32,7 @@ import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.zanata.spring.service.AccountRegistrationService;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 /**
  * Single entry point for the sign-in / sign-up popover. Views call
@@ -144,19 +145,14 @@ public class LoginDialogService {
         Checkbox rememberMe = new Checkbox(ui.getTranslation("login.rememberMe"));
 
         Div errorBanner = new Div(ui.getTranslation("login.errorMessage"));
-        // Theme-agnostic error color — Aura ships --aura-red-text (light/dark
-        // aware), fall back to Vaadin's input-field invalid token if Aura
-        // isn't loaded.
-        errorBanner.getStyle().set("color",
-                "var(--aura-red-text, var(--vaadin-input-field-invalid-text-color))");
-        errorBanner.getStyle().set("font-size", "0.9rem");
+        errorBanner.addClassNames(AuraUtility.TextColor.ERROR, AuraUtility.FontSize.SMALL);
         errorBanner.setVisible(false);
 
         Button submit = new Button(ui.getTranslation("login.submit"));
         submit.addThemeVariants(ButtonVariant.PRIMARY);
         submit.setWidthFull();
         // Visual breathing room — fields and the submit shouldn't touch.
-        submit.getStyle().set("margin-top", "1rem");
+        submit.addClassNames(AuraUtility.Margin.Top.MEDIUM);
         Runnable trySubmit = () -> {
             errorBanner.setVisible(false);
             try {
@@ -198,24 +194,19 @@ public class LoginDialogService {
 
         // Honeypot — bots fill every input. Real users never see this.
         TextField honeypot = new TextField();
-        honeypot.getStyle().set("display", "none");
+        honeypot.addClassNames(AuraUtility.Display.HIDDEN);
         honeypot.setTabIndex(-1);
         honeypot.setVisible(false);
 
         Div errorBanner = new Div();
-        // Theme-agnostic error color — Aura ships --aura-red-text (light/dark
-        // aware), fall back to Vaadin's input-field invalid token if Aura
-        // isn't loaded.
-        errorBanner.getStyle().set("color",
-                "var(--aura-red-text, var(--vaadin-input-field-invalid-text-color))");
-        errorBanner.getStyle().set("font-size", "0.9rem");
-        errorBanner.getStyle().set("margin", "0.25rem 0");
+        errorBanner.addClassNames(AuraUtility.TextColor.ERROR, AuraUtility.FontSize.SMALL,
+                AuraUtility.Margin.Vertical.XSMALL);
         errorBanner.setVisible(false);
 
         Button submit = new Button(ui.getTranslation("account.register.submit"));
         submit.addThemeVariants(ButtonVariant.PRIMARY);
         submit.setWidthFull();
-        submit.getStyle().set("margin-top", "1rem");
+        submit.addClassNames(AuraUtility.Margin.Top.MEDIUM);
         submit.addClickListener(e -> {
             errorBanner.setVisible(false);
             // Drop honeypot-tripped requests silently.

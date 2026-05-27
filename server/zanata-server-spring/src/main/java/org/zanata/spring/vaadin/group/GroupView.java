@@ -14,7 +14,7 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.zanata.model.HIterationGroup;
 import org.zanata.model.HPerson;
@@ -57,12 +57,12 @@ public class GroupView extends VerticalLayout implements BeforeEnterObserver, Ti
 
         H1 name = new H1(group.getName() == null || group.getName().isBlank()
                 ? slug : group.getName());
-        name.addClassNames(LumoUtility.Margin.NONE);
+        name.addClassNames(AuraUtility.Margin.NONE);
         add(name);
 
         if (group.getDescription() != null && !group.getDescription().isBlank()) {
             Paragraph desc = new Paragraph(group.getDescription());
-            desc.getStyle().set("font-style", "italic");
+            desc.addClassNames(AuraUtility.FontStyle.ITALIC);
             add(desc);
         }
 

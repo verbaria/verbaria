@@ -14,7 +14,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.zanata.spring.service.HomeContentService;
 import org.zanata.spring.service.MarkdownRenderer;
@@ -59,8 +59,7 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver, Tit
         Div container = new Div();
         container.setWidthFull();
         container.getStyle().set("max-width", "880px");
-        container.getStyle().set("margin", "0 auto");
-        container.addClassNames(LumoUtility.Padding.MEDIUM);
+        container.addClassNames(AuraUtility.Margin.Horizontal.AUTO, AuraUtility.Padding.MEDIUM, AuraUtility.BoxSizing.BORDER);
 
         if (html.isEmpty()) {
             Paragraph empty = new Paragraph(getTranslation("home.empty"));

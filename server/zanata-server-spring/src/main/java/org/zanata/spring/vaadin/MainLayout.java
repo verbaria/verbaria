@@ -1,6 +1,7 @@
 package org.zanata.spring.vaadin;
 
 import org.zanata.spring.security.Roles;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.List;
 import java.util.Locale;
@@ -124,7 +125,7 @@ public class MainLayout extends AppLayout
         // Clip overflow at the wrapper — the toolbar is fixed-height and the
         // routed view is flex:1 with min-height:0 (set in showRouterLayoutContent),
         // so a scrolling view contains its own overflow inside the wrapper.
-        contentWrapper.getStyle().set("overflow", "hidden");
+        contentWrapper.addClassNames(AuraUtility.Overflow.HIDDEN);
         contentWrapper.add(buildToolbar());
         setContent(contentWrapper);
     }
@@ -152,9 +153,9 @@ public class MainLayout extends AppLayout
             // flex column (toolbar at top is fixed-height). Without
             // {@code min-height:0} a scrolling view (e.g. TranslateView)
             // would push its content past the bottom of the wrapper.
-            el.getStyle().set("flex", "1 1 auto");
-            el.getStyle().set("min-height", "0");
-            el.getStyle().set("min-width", "0");
+            el.getClassList().add(AuraUtility.Flex.AUTO);
+            el.getClassList().add(AuraUtility.MinHeight.NONE);
+            el.getClassList().add(AuraUtility.MinWidth.NONE);
             contentWrapper.getElement().appendChild(el);
         }
     }
@@ -237,42 +238,37 @@ public class MainLayout extends AppLayout
         // wordmark, the theme controls the colour, and we don't ship a
         // separate asset to keep in sync with rebrands.
         Span logo = new Span(getTranslation("brand.name"));
-        logo.getStyle().set("font-size", "1.35rem");
-        logo.getStyle().set("font-weight", "700");
+        logo.addClassNames(AuraUtility.FontSize.XLARGE, AuraUtility.FontWeight.BOLD);
         logo.getStyle().set("letter-spacing", "-0.02em");
         logo.getStyle().set("color",
                 "var(--aura-green-text, var(--vaadin-input-field-label-color))");
-        logo.getStyle().set("line-height", "1");
+        logo.addClassNames(AuraUtility.LineHeight.NONE);
         Anchor home = new Anchor("/", logo);
-        home.getStyle().set("display", "flex");
-        home.getStyle().set("align-items", "center");
-        home.getStyle().set("justify-content", "center");
-        home.getStyle().set("text-decoration", "none");
-        home.getStyle().set("flex", "1 1 auto");
-        home.getStyle().set("min-width", "0");
+        home.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER, AuraUtility.JustifyContent.CENTER, AuraUtility.TextDecoration.NONE, AuraUtility.Flex.AUTO, AuraUtility.MinWidth.NONE);
 
         Div header = new Div(home);
-        header.getStyle().set("display", "flex");
-        header.getStyle().set("align-items", "center");
-        header.getStyle().set("justify-content", "center");
+        header.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER, AuraUtility.JustifyContent.CENTER);
         header.getStyle().set("padding", "0.35rem 0.5rem");
-        header.getStyle().set("box-sizing", "border-box");
+        header.addClassNames(AuraUtility.BoxSizing.BORDER);
         header.setWidthFull();
 
-        // Hairline divider between brand and nav. `--view-divider-color` is
-        // a single-value token defined in verbaria.css (the card border
-        // token is a 3-value shorthand and can't be used in `border-top`).
+        // Hairline divider between brand and nav. Built from utility classes;
+        // the custom `--view-divider-color` is wired in through the standard
+        // `--aura-utility-border-color` extension point (set by Border.TOP's
+        // CSS rule), so the verbaria.css theme override still wins. The Hr's
+        // default browser border is stripped with Border.NONE first.
         Hr divider = new Hr();
-        // Vertical margin lifts the line clear of the logo above and the
-        // first nav item below; horizontal margin keeps it from running
-        // flush against the drawer card border.
-        divider.getStyle().set("margin", "0.5rem 0.5rem 0.75rem");
-        divider.getStyle().set("border", "none");
-        divider.getStyle().set("border-top",
-                "1px solid var(--view-divider-color, var(--vaadin-border-color))");
+        divider.addClassNames(
+                AuraUtility.Border.NONE,
+                AuraUtility.Border.TOP,
+                AuraUtility.Margin.Top.SMALL,
+                AuraUtility.Margin.Horizontal.SMALL,
+                AuraUtility.Margin.Bottom.MEDIUM);
+        divider.getStyle().set("--aura-utility-border-color",
+                "var(--view-divider-color, var(--vaadin-border-color))");
 
         SideNav nav = createSideNav();
-        nav.getStyle().set("padding", "0 0.5rem");
+        nav.addClassNames(AuraUtility.Padding.Horizontal.SMALL);
         Scroller scroller = new Scroller(nav);
         scroller.setSizeFull();
 
@@ -282,8 +278,7 @@ public class MainLayout extends AppLayout
         FlexLayout drawer = new FlexLayout(header, divider, scroller);
         drawer.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         drawer.setSizeFull();
-        scroller.getStyle().set("flex", "1 1 auto");
-        scroller.getStyle().set("min-height", "0");
+        scroller.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.MinHeight.NONE);
 
         addToDrawer(drawer);
     }
@@ -363,7 +358,7 @@ public class MainLayout extends AppLayout
                 new Span(displayName(active)));
         label.setSpacing(false);
         label.setAlignItems(FlexComponent.Alignment.CENTER);
-        label.getStyle().set("gap", "0.35rem");
+        label.addClassNames(AuraUtility.Gap.SMALL);
         MenuItem trigger = bar.addItem(label);
         trigger.getElement().setAttribute("aria-label", getTranslation("locale.label"));
         trigger.getElement().setAttribute("title", getTranslation("locale.label"));
@@ -406,7 +401,7 @@ public class MainLayout extends AppLayout
                 new Span(currentUsername()));
         label.setSpacing(false);
         label.setAlignItems(FlexComponent.Alignment.CENTER);
-        label.getStyle().set("gap", "0.35rem");
+        label.addClassNames(AuraUtility.Gap.SMALL);
         MenuItem trigger = bar.addItem(label);
         trigger.getSubMenu().addItem(getTranslation("auth.contactAdmin"),
                 e -> openContactAdminDialog());
@@ -432,8 +427,7 @@ public class MainLayout extends AppLayout
         var auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth == null ? "" : auth.getName();
         Paragraph intro = new Paragraph(getTranslation("contact.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("font-size", "0.9rem");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
 
         TextField subject = new TextField(getTranslation("contact.subject"));
         subject.setWidthFull();

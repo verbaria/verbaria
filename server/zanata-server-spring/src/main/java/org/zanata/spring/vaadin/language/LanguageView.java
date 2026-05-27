@@ -28,7 +28,7 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -111,16 +111,16 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
         panel.setWidthFull();
         H1 name = new H1(locale.getDisplayName() == null
                 ? locale.getLocaleId().getId() : locale.getDisplayName());
-        name.addClassNames(LumoUtility.Margin.NONE);
+        name.addClassNames(AuraUtility.Margin.NONE);
         panel.add(name);
         if (locale.getNativeName() != null && !locale.getNativeName().isBlank()) {
             Paragraph nativeName = new Paragraph(locale.getNativeName());
-            nativeName.addClassNames(LumoUtility.Margin.NONE, LumoUtility.TextColor.SECONDARY);
+            nativeName.addClassNames(AuraUtility.Margin.NONE, AuraUtility.TextColor.SECONDARY);
             panel.add(nativeName);
         }
         Paragraph code = new Paragraph(locale.getLocaleId().getId());
-        code.addClassNames(LumoUtility.Margin.NONE, LumoUtility.FontSize.SMALL,
-                LumoUtility.TextColor.SECONDARY);
+        code.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.SMALL,
+                AuraUtility.TextColor.SECONDARY);
         panel.add(code);
         return panel;
     }
@@ -211,15 +211,16 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
     private Div buildMembersPanel(HLocale locale) {
         Div panel = new Div();
         panel.setWidthFull();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER);
         H3 title = new H3(getTranslation("language.team.members"));
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         panel.add(title);
 
         List<HLocaleMember> members = localeMemberRepository.findByLocale(locale);
         Span counter = new Span(members.size() + " member" + (members.size() == 1 ? "" : "s"));
-        counter.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        counter.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         panel.add(counter);
 
         Grid<HLocaleMember> grid = new Grid<>(HLocaleMember.class, false);
@@ -242,17 +243,18 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
     private Div buildPendingRequestsPanel(HLocale locale, HAccount currentAccount) {
         Div panel = new Div();
         panel.setWidthFull();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER);
         H3 title = new H3(getTranslation("language.team.pendingTitle"));
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         panel.add(title);
 
         List<LanguageRequest> requests = new ArrayList<>(
                 languageRequestRepository.findByLocaleAndState(locale, RequestState.NEW));
         if (requests.isEmpty()) {
             Paragraph empty = new Paragraph(getTranslation("language.team.noPending"));
-            empty.addClassNames(LumoUtility.TextColor.SECONDARY);
+            empty.addClassNames(AuraUtility.TextColor.SECONDARY);
             panel.add(empty);
             return panel;
         }

@@ -30,7 +30,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.TaskScheduler;
@@ -129,18 +129,19 @@ public class TranslationRow extends Div {
     }
 
     private void build() {
-        getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        getStyle().set("border-radius", "8px");
-        getStyle().set("padding", ctx.prefs().compactRows() ? "0.4rem 0.6rem" : "0.75rem");
-        getStyle().set("margin-bottom", ctx.prefs().compactRows() ? "0.4rem" : "0.75rem");
-        getStyle().set("box-sizing", "border-box");
-        getStyle().set("overflow", "hidden");
+        boolean compact = ctx.prefs().compactRows();
+        addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT,
+                AuraUtility.BorderRadius.MEDIUM,
+                compact ? AuraUtility.Padding.SMALL : AuraUtility.Padding.MEDIUM,
+                compact ? AuraUtility.Margin.Bottom.SMALL : AuraUtility.Margin.Bottom.MEDIUM,
+                AuraUtility.BoxSizing.BORDER,
+                AuraUtility.Overflow.HIDDEN);
         setWidthFull();
 
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setSpacing(false);
-        row.getStyle().set("box-sizing", "border-box");
+        row.addClassNames(AuraUtility.BoxSizing.BORDER);
 
         VerticalLayout left = buildLeftColumn();
         VerticalLayout right = buildRightColumn();
@@ -156,11 +157,9 @@ public class TranslationRow extends Div {
         left.setPadding(false);
         left.setSpacing(false);
         left.setWidth(null);
-        left.getStyle().set("flex", "1 1 0");
-        left.getStyle().set("min-width", "0");
-        left.getStyle().set("border-right", "1px solid var(--vaadin-border-color)");
-        left.getStyle().set("padding-right", "1rem");
-        left.getStyle().set("margin-right", "1rem");
+        left.addClassNames(AuraUtility.Flex.ONE,
+                AuraUtility.Border.RIGHT, AuraUtility.BorderColor.DEFAULT,
+                AuraUtility.Padding.Right.LARGE, AuraUtility.Margin.Right.LARGE, AuraUtility.MinWidth.NONE);
 
         String displayKey = flow.getPotEntryData() != null
                 && flow.getPotEntryData().getContext() != null
@@ -168,19 +167,16 @@ public class TranslationRow extends Div {
                 ? flow.getPotEntryData().getContext()
                 : flow.getResId();
         Span resId = new Span(displayKey);
-        resId.addClassNames(LumoUtility.FontSize.XSMALL);
-        resId.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        resId.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
         Paragraph srcText = new Paragraph(source);
-        srcText.addClassNames(LumoUtility.Margin.NONE);
-        srcText.getStyle().set("white-space", "pre-wrap");
+        srcText.addClassNames(AuraUtility.Margin.NONE, AuraUtility.Whitespace.PRE_WRAP);
 
         Button detailsBtn = new Button(getTranslation("translate.action.details"),
                 LineAwesomeIcon.INFO_CIRCLE_SOLID.create());
         detailsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         Button bookmarkBtn = new Button(LineAwesomeIcon.BOOKMARK_SOLID.create(),
                 e -> copyPermalink(flow.getId()));
-        bookmarkBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
-                ButtonVariant.LUMO_ICON);
+        bookmarkBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         String bookmarkTip = getTranslation("translate.action.bookmarkTooltip");
         bookmarkBtn.getElement().setAttribute("title", bookmarkTip);
         bookmarkBtn.getElement().setAttribute("aria-label", bookmarkTip);
@@ -200,8 +196,7 @@ public class TranslationRow extends Div {
         right.setPadding(false);
         right.setSpacing(false);
         right.setWidth(null);
-        right.getStyle().set("flex", "1 1 0");
-        right.getStyle().set("min-width", "0");
+        right.addClassNames(AuraUtility.Flex.ONE, AuraUtility.MinWidth.NONE);
 
         LocaleId rowLocale = isSourceLocale ? ctx.sourceLocale() : ctx.currentLocale();
         TranslationEditor area = new TranslationEditor(
@@ -265,8 +260,7 @@ public class TranslationRow extends Div {
         if (aiBtn != null) actionRow.add(aiBtn);
         actionRow.setAlignItems(FlexComponent.Alignment.CENTER);
         actionRow.setSpacing(true);
-        actionRow.getStyle().set("margin-top", "0.4rem");
-        actionRow.getStyle().set("flex-wrap", "wrap");
+        actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
         right.add(area, actionRow, historyPanel);
         return right;
@@ -316,7 +310,7 @@ public class TranslationRow extends Div {
             return null;
         }
         MenuBar bar = new MenuBar();
-        bar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE, MenuBarVariant.SMALL);
+        bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
         var trigger = bar.addItem(LineAwesomeIcon.MAGIC_SOLID.create());
         trigger.getElement().setAttribute("aria-label", getTranslation("translate.action.aiPerRow"));
         trigger.getElement().setAttribute("title", getTranslation("translate.action.aiPerRow"));
@@ -400,12 +394,7 @@ public class TranslationRow extends Div {
 
     private Div buildDetailsPanel() {
         Div d = new Div();
-        d.getStyle().set("background", "var(--vaadin-background-color)");
-        d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        d.getStyle().set("border-radius", "6px");
-        d.getStyle().set("padding", "0.6rem");
-        d.getStyle().set("margin-top", "0.5rem");
-        d.getStyle().set("font-size", "0.875rem");
+        d.addClassNames(AuraUtility.Background.BASE, AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.SMALL, AuraUtility.Margin.Top.SMALL, AuraUtility.FontSize.SMALL);
         List<String> rows = new ArrayList<>();
         rows.add(label(getTranslation("translate.details.resourceId"), flow.getResId()));
         rows.add(label(getTranslation("translate.details.messageContext"),
@@ -423,7 +412,7 @@ public class TranslationRow extends Div {
         for (String r : rows) {
             Paragraph p = new Paragraph();
             p.getElement().setProperty("innerHTML", r);
-            p.addClassNames(LumoUtility.Margin.NONE);
+            p.addClassNames(AuraUtility.Margin.NONE);
             d.add(p);
         }
         return d;
@@ -432,44 +421,40 @@ public class TranslationRow extends Div {
     private Div buildHistoryPanel(Long textFlowId, String savedContent,
                                   Supplier<String> liveContent) {
         Div d = new Div();
-        d.getStyle().set("background", "var(--vaadin-background-color)");
-        d.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        d.getStyle().set("border-radius", "6px");
-        d.getStyle().set("padding", "0.6rem");
-        d.getStyle().set("margin-top", "0.5rem");
-        d.getStyle().set("font-size", "0.875rem");
+        d.addClassNames(AuraUtility.Background.BASE, AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.SMALL, AuraUtility.Margin.Top.SMALL, AuraUtility.FontSize.SMALL);
 
         List<HTextFlowTargetReviewComment> comments = ctx.prefs().showReviewComments()
                 ? reviewCommentRepository.findByTextFlowAndLocale(textFlowId, ctx.currentLocale())
                 : List.of();
         if (!comments.isEmpty()) {
             Span header = new Span(getTranslation("translate.history.review"));
-            header.getStyle().set("font-weight", "600");
-            header.getStyle().set("display", "block");
-            header.getStyle().set("margin-bottom", "0.3rem");
+            header.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK, AuraUtility.Margin.Bottom.XSMALL);
             d.add(header);
             for (HTextFlowTargetReviewComment c : comments) {
                 Div entry = new Div();
-                entry.getStyle().set("padding", "0.3rem 0");
-                entry.getStyle().set("border-left", "3px solid var(--aura-red-text)");
-                entry.getStyle().set("padding-left", "0.5rem");
-                entry.getStyle().set("margin", "0.25rem 0");
+                entry.addClassNames(AuraUtility.Padding.Vertical.XSMALL,
+                        AuraUtility.Padding.Left.SMALL,
+                        AuraUtility.Border.LEFT,
+                        AuraUtility.Margin.Vertical.XSMALL);
+                // 3px accent (utility border-left is 1px). Theme-token color
+                // via the standard --aura-utility-border-color extension point.
+                entry.getStyle().set("--aura-utility-border-color", "var(--aura-red-text)");
+                entry.getStyle().set("border-left-width", "3px");
                 String who = c.getCommenterName() == null ? "" : c.getCommenterName();
                 String when = c.getCreationDate() == null ? "" : " — " + c.getCreationDate();
                 Span meta = new Span(getTranslation("translate.history.commentBy",
                         who, c.getTargetVersion(), when));
-                meta.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-                meta.getStyle().set("font-size", "0.8rem");
+                meta.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
                 Paragraph p = new Paragraph(c.getCommentText());
                 p.getStyle().set("margin", "0.15rem 0 0 0");
-                p.getStyle().set("white-space", "pre-wrap");
+                p.addClassNames(AuraUtility.Whitespace.PRE_WRAP);
                 entry.add(meta, p);
                 d.add(entry);
             }
             Div sep = new Div();
             sep.getStyle().set("height", "1px");
             sep.getStyle().set("background", "var(--vaadin-border-color)");
-            sep.getStyle().set("margin", "0.5rem 0");
+            sep.addClassNames(AuraUtility.Margin.Vertical.SMALL);
             d.add(sep);
         }
 
@@ -505,8 +490,7 @@ public class TranslationRow extends Div {
 
         if (rows.isEmpty() && comments.isEmpty()) {
             Paragraph empty = new Paragraph(getTranslation("translate.history.empty.noVersions"));
-            empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            empty.getStyle().set("margin", "0");
+            empty.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.NONE);
             d.add(empty);
             return d;
         }
@@ -533,9 +517,8 @@ public class TranslationRow extends Div {
         compare.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         compare.setEnabled(false);
         Span hint = new Span(getTranslation("translate.history.selectExactlyTwo"));
-        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        hint.getStyle().set("font-size", "0.8rem");
-        hint.getStyle().set("margin-left", "0.5rem");
+        hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL,
+                AuraUtility.Margin.Left.SMALL);
         grid.asMultiSelect().addSelectionListener(ev -> {
             int n = ev.getValue().size();
             compare.setEnabled(n == 2);
@@ -550,7 +533,7 @@ public class TranslationRow extends Div {
 
         HorizontalLayout toolbar = new HorizontalLayout(compare, hint);
         toolbar.setAlignItems(FlexComponent.Alignment.CENTER);
-        toolbar.getStyle().set("margin", "0.25rem 0");
+        toolbar.addClassNames(AuraUtility.Margin.Vertical.XSMALL);
         d.add(toolbar, grid);
         return d;
     }
@@ -563,9 +546,7 @@ public class TranslationRow extends Div {
         dlg.setCloseOnOutsideClick(false);
 
         Paragraph intro = new Paragraph(getTranslation("translate.reject.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("margin", "0 0 0.75rem 0");
-        intro.getStyle().set("font-size", "0.9rem");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Bottom.MEDIUM, AuraUtility.FontSize.SMALL);
 
         TextArea reason = new TextArea(getTranslation("translate.reject.reasonLabel"));
         reason.setWidthFull();
@@ -626,8 +607,8 @@ public class TranslationRow extends Div {
                 renderDiffHtml(a.content(), b.content(), true));
         Div right = diffCell(b.version(), b.state(), b.when(),
                 renderDiffHtml(a.content(), b.content(), false));
-        left.getStyle().set("flex", "1 1 0");
-        right.getStyle().set("flex", "1 1 0");
+        left.addClassNames(AuraUtility.Flex.ONE);
+        right.addClassNames(AuraUtility.Flex.ONE);
         body.add(left, right);
 
         dlg.add(body);
@@ -675,17 +656,17 @@ public class TranslationRow extends Div {
     }
 
     static void applyStateColor(Span span, ContentState state) {
-        String color;
-        switch (state) {
-            case Translated -> color = "green";
-            case Approved -> color = "darkgreen";
-            case NeedReview -> color = "orange";
-            case Rejected -> color = "crimson";
-            case New -> color = "var(--vaadin-text-color-secondary)";
-            default -> color = "var(--vaadin-text-color-secondary)";
-        }
-        span.getStyle().set("color", color);
-        span.getStyle().set("font-weight", "600");
+        // Approved and Translated both render as success-green (the legacy
+        // "darkgreen" / "green" distinction is dropped — text-success already
+        // uses the theme's contrast-tuned dark green token).
+        String colorClass = switch (state) {
+            case Translated, Approved -> AuraUtility.TextColor.SUCCESS;
+            case NeedReview -> AuraUtility.TextColor.ORANGE;
+            case Rejected -> AuraUtility.TextColor.ERROR;
+            case New -> AuraUtility.TextColor.SECONDARY;
+            default -> AuraUtility.TextColor.SECONDARY;
+        };
+        span.addClassNames(colorClass, AuraUtility.FontWeight.SEMIBOLD);
     }
 
     private String label(String k, String v) {
@@ -714,19 +695,13 @@ public class TranslationRow extends Div {
 
     private static Div diffCell(String version, String state, String when, String html) {
         Div cell = new Div();
-        cell.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        cell.getStyle().set("border-radius", "6px");
-        cell.getStyle().set("padding", "0.5rem");
-        cell.getStyle().set("background", "var(--vaadin-background-color)");
-        cell.getStyle().set("overflow", "auto");
+        cell.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.SMALL, AuraUtility.Background.BASE, AuraUtility.Overflow.AUTO);
         Span header = new Span(version + " — " + state + (when.isEmpty() ? "" : " — " + when));
-        header.getStyle().set("font-weight", "600");
-        header.getStyle().set("display", "block");
-        header.getStyle().set("margin-bottom", "0.4rem");
+        header.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK, AuraUtility.Margin.Bottom.SMALL);
         Div content = new Div();
-        content.getStyle().set("white-space", "pre-wrap");
-        content.getStyle().set("font-family", "var(--lumo-font-family-mono, monospace)");
-        content.getStyle().set("font-size", "0.88rem");
+        content.addClassNames(AuraUtility.Whitespace.PRE_WRAP);
+        content.getStyle().set("font-family", "monospace");
+        content.addClassNames(AuraUtility.FontSize.SMALL);
         content.getElement().setProperty("innerHTML", html);
         cell.add(header, content);
         return cell;

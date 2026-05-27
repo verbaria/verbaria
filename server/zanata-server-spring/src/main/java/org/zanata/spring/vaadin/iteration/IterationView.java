@@ -51,7 +51,7 @@ import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -173,7 +173,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         add(bar);
         Paragraph total = new Paragraph(
                 getTranslation("iteration.totalSourceWords", String.format("%,d", stats.totalSourceWords)));
-        total.addClassNames(LumoUtility.Margin.Vertical.SMALL);
+        total.addClassNames(AuraUtility.Margin.Vertical.SMALL);
         add(total);
 
         TabSheet tabs = new TabSheet();
@@ -195,7 +195,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
     private HorizontalLayout buildHeading(HProjectIteration iteration) {
         H1 slug = new H1(iteration.getSlug());
-        slug.addClassNames(LumoUtility.Margin.NONE);
+        slug.addClassNames(AuraUtility.Margin.NONE);
         HorizontalLayout layout = new HorizontalLayout(slug);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         layout.setSpacing(true);
@@ -204,7 +204,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         if (iteration.getStatus() == EntityStatus.READONLY) {
             var lock = LineAwesomeIcon.LOCK_SOLID.create();
             lock.setSize("0.9em");
-            lock.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            lock.addClassNames(AuraUtility.TextColor.SECONDARY);
             layout.addComponentAtIndex(1, lock);
         }
         // Settings link → /project/:slug/version/:vslug/settings
@@ -250,8 +250,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         dlg.setWidth("min(640px, 92vw)");
 
         Paragraph intro = new Paragraph(getTranslation("iteration.copyTrans.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("font-size", "0.9rem");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
 
         ComboBox<CopyTransService.Action> onProj =
                 actionPicker(getTranslation("iteration.copyTrans.onProject"));
@@ -326,8 +325,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         dlg.setWidth("min(640px, 92vw)");
 
         Paragraph intro = new Paragraph(getTranslation("iteration.merge.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("font-size", "0.9rem");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
 
         ComboBox<org.zanata.model.HProject> projectBox =
                 new ComboBox<>(getTranslation("iteration.merge.sourceProject"));
@@ -419,45 +417,46 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         row.setAlignItems(FlexComponent.Alignment.BASELINE);
         row.add(statBlock(String.format("%.2f%%", stats.approvedPct),
                 getTranslation("iteration.stats.approved"),
-                "var(--aura-green)"));
+                AuraUtility.TextColor.SUCCESS));
         row.add(statBlock(String.format("%.2f%%", stats.translatedPct),
                 getTranslation("iteration.stats.translated"),
-                "var(--aura-green)"));
+                AuraUtility.TextColor.SUCCESS));
         row.add(statBlock(String.format("%.2f", stats.hoursRemaining),
                 getTranslation("iteration.stats.hoursRemaining"),
-                "var(--vaadin-text-color)"));
+                AuraUtility.TextColor.BODY));
         return row;
     }
 
-    private VerticalLayout statBlock(String value, String label, String color) {
+    private VerticalLayout statBlock(String value, String label, String valueColorClass) {
         VerticalLayout col = new VerticalLayout();
         col.setPadding(false);
         col.setSpacing(false);
         col.setAlignItems(FlexComponent.Alignment.START);
         H2 valueEl = new H2(value);
-        valueEl.addClassNames(LumoUtility.Margin.NONE, LumoUtility.FontSize.XXLARGE);
-        valueEl.getStyle().set("color", color);
+        valueEl.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.XXLARGE,
+                valueColorClass);
         Span labelEl = new Span(label);
-        labelEl.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        labelEl.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         col.add(valueEl, labelEl);
-        col.getStyle().set("padding-inline-end", "2rem");
+        col.addClassNames(AuraUtility.Padding.End.LARGE);
         return col;
     }
 
     private Tab tabWithBadge(String label, int count) {
-        Span badge = new Span(String.valueOf(count));
-        badge.getElement().getThemeList().add("badge contrast small");
-        badge.getStyle().set("margin-inline-start", "0.5rem");
+        com.vaadin.flow.component.badge.Badge badge =
+                new com.vaadin.flow.component.badge.Badge();
+        badge.setNumber(count);
+        badge.addThemeVariants(
+                com.vaadin.flow.component.badge.BadgeVariant.CONTRAST,
+                com.vaadin.flow.component.badge.BadgeVariant.SMALL);
+        badge.addClassNames(AuraUtility.Margin.Start.SMALL);
         return new Tab(new Span(label), badge);
     }
 
     private Div buildLanguagesPanel(IterationStats stats) {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
-        panel.getStyle().set("box-sizing", "border-box");
-        panel.getStyle().set("overflow-x", "hidden");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM, AuraUtility.Width.FULL, AuraUtility.BoxSizing.BORDER, AuraUtility.Overflow.X.HIDDEN);
 
         Select<String> sortSelect =
                 new Select<>();
@@ -474,7 +473,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         H3 title = new H3(getTranslation("iteration.languages.heading"));
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         HorizontalLayout sortBox = new HorizontalLayout(
                 new Span(getTranslation("iteration.languages.sort")), sortSelect);
         sortBox.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -484,9 +483,9 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
         Span counter = new Span(getTranslation("iteration.languages.counter",
                 stats.perLocale.size()));
-        counter.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        counter.getStyle().set("display", "block");
-        counter.getStyle().set("margin", "0.5rem 0 0.75rem 0");
+        counter.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY,
+                AuraUtility.Display.BLOCK,
+                AuraUtility.Margin.Top.SMALL, AuraUtility.Margin.Bottom.MEDIUM);
         panel.add(counter);
 
         Div listContainer = new Div();
@@ -546,12 +545,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private Div buildLocaleRow(IterationStats.LocaleStats ls) {
         Div card = new Div();
         card.addClassNames("zanata-locale-row",
-                LumoUtility.Border.BOTTOM, LumoUtility.BorderColor.CONTRAST_10);
-        card.getStyle().set("width", "100%");
-        card.getStyle().set("box-sizing", "border-box");
-        card.getStyle().set("cursor", "pointer");
-        card.getStyle().set("padding", "0.85rem 1rem");
-        card.getStyle().set("overflow", "hidden");
+                AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.SECONDARY, AuraUtility.Width.FULL, AuraUtility.BoxSizing.BORDER, AuraUtility.Cursor.POINTER, AuraUtility.Padding.MEDIUM, AuraUtility.Overflow.HIDDEN);
         card.getStyle().set("transition", "background-color 100ms ease-out");
         // Hover state — matches the legacy row interaction.
         card.getElement().executeJs(
@@ -581,14 +575,14 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             display = ls.locale.getLocaleId() == null ? "" : ls.locale.getLocaleId().getId();
         }
         Span name = new Span(display);
-        name.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+        name.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD);
         // Aura ships --aura-blue-text (light/dark aware); fall back to the
         // Lumo primary token if the theme ever changes.
         name.getStyle().set("color",
-                "var(--aura-blue-text, var(--lumo-primary-text-color))");
+                "var(--aura-blue-text)");
         Span code = new Span(ls.locale.getLocaleId() == null
                 ? "" : ls.locale.getLocaleId().getId());
-        code.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        code.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
         left.add(name, code);
 
         VerticalLayout right = new VerticalLayout();
@@ -598,19 +592,16 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         boolean isSource = currentSourceLocaleId.equalsIgnoreCase(localeIdStr);
         if (isSource) {
             Span src = new Span(getTranslation("iteration.languages.source"));
-            src.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
-            src.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            src.getStyle().set("line-height", "1.1");
+            src.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD, AuraUtility.TextColor.SECONDARY, AuraUtility.LineHeight.XSMALL);
             Span tag = new Span(getTranslation("iteration.languages.primaryContribution"));
-            tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+            tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
             right.add(src, tag);
         } else {
             Span pct = new Span(String.format("%.2f%%", ls.translatedPct));
-            pct.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
-            pct.getStyle().set("color", "var(--aura-green)");
-            pct.getStyle().set("line-height", "1.1");
+            pct.addClassNames(AuraUtility.FontSize.XLARGE, AuraUtility.FontWeight.BOLD,
+                    AuraUtility.TextColor.SUCCESS, AuraUtility.LineHeight.XSMALL);
             Span tag = new Span(getTranslation("iteration.languages.translated"));
-            tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+            tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
             right.add(pct, tag);
         }
 
@@ -624,10 +615,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                 && !currentSourceLocaleId.equalsIgnoreCase(localeIdStr)
                 && currentProjectSlug != null && currentVersionSlug != null) {
             overflow = new MenuBar();
-            overflow.addThemeVariants(
-                    MenuBarVariant.LUMO_TERTIARY_INLINE,
-                    MenuBarVariant.SMALL,
-                    MenuBarVariant.LUMO_ICON);
+            overflow.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
             MenuItem trigger =
                     overflow.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
             trigger.getElement().setAttribute("aria-label",
@@ -656,10 +644,9 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         }
         rightCol.setAlignItems(FlexComponent.Alignment.CENTER);
         rightCol.setSpacing(true);
-        rightCol.getStyle().set("flex-shrink", "0");
+        rightCol.addClassNames(AuraUtility.Flex.SHRINK_NONE);
 
-        left.getStyle().set("min-width", "0");
-        left.getStyle().set("flex", "1 1 auto");
+        left.addClassNames(AuraUtility.MinWidth.NONE, AuraUtility.Flex.AUTO);
 
         row.add(left, rightCol);
         row.setFlexGrow(1, left);
@@ -670,7 +657,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             ProgressBar bar = new ProgressBar(0.0, 1.0,
                     Math.max(0.0, Math.min(1.0, ls.translatedPct / 100.0)));
             bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
-            bar.getStyle().set("margin-top", "0.4rem");
+            bar.addClassNames(AuraUtility.Margin.Top.SMALL);
             card.add(bar);
         }
         return card;
@@ -678,10 +665,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
 
     private Div buildDocumentsPanel() {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
-        panel.getStyle().set("box-sizing", "border-box");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM, AuraUtility.Width.FULL, AuraUtility.BoxSizing.BORDER);
 
         if (canUpload()) {
             panel.add(buildUploader());
@@ -696,7 +681,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);
         filter.setValueChangeTimeout(250);
-        filter.getStyle().set("margin-bottom", "0.5rem");
+        filter.addClassNames(AuraUtility.Margin.Bottom.SMALL);
         panel.add(filter);
 
         Grid<HDocument> grid = new Grid<>(HDocument.class, false);
@@ -719,12 +704,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                     .toList();
             boolean canUpload = canUpload();
             grid.addComponentColumn(doc -> {
-                MenuBar mb =
-                        new MenuBar();
-                mb.addThemeVariants(
-                        MenuBarVariant.LUMO_TERTIARY_INLINE,
-                        MenuBarVariant.SMALL,
-                        MenuBarVariant.LUMO_ICON);
+                MenuBar mb = new MenuBar();
+                mb.addThemeVariants( MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
                 var trigger = mb.addItem(LineAwesomeIcon.ELLIPSIS_H_SOLID.create());
                 trigger.getElement().setAttribute("aria-label",
                         getTranslation("iteration.docs.actionsAria"));
@@ -822,9 +803,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         upload.setMaxFiles(1);
 
         Paragraph intro = new Paragraph(getTranslation("iteration.upload.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("font-size", "0.9rem");
-        intro.getStyle().set("margin", "0 0 0.5rem 0");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL, AuraUtility.Margin.Bottom.SMALL);
 
         Button cancel =
                 new Button(getTranslation("common.cancel"), e -> dlg.close());
@@ -910,7 +889,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             }
         });
         Div wrap = new Div(upload);
-        wrap.getStyle().set("margin-bottom", "0.75rem");
+        wrap.addClassNames(AuraUtility.Margin.Bottom.MEDIUM);
         return wrap;
     }
 

@@ -12,6 +12,7 @@ import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 import jakarta.annotation.security.PermitAll;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.spring.repository.IterationGroupRepository;
@@ -45,24 +46,18 @@ public class DashboardHomeView extends VerticalLayout implements TitleKey {
         links.add(linkCard(getTranslation("dashboard.subnav.activity"),  LineAwesomeIcon.HISTORY_SOLID, DashboardActivityView.class));
         links.add(linkCard(getTranslation("dashboard.subnav.groups"),    LineAwesomeIcon.USERS_SOLID, DashboardGroupsView.class));
         links.add(linkCard(getTranslation("dashboard.subnav.settings"),  LineAwesomeIcon.COG_SOLID, DashboardSettingsView.class));
-        links.getStyle().set("display", "flex");
-        links.getStyle().set("flex-wrap", "wrap");
-        links.getStyle().set("gap", "0.75rem");
+        links.addClassNames(AuraUtility.Display.FLEX, AuraUtility.FlexWrap.WRAP, AuraUtility.Gap.MEDIUM);
         add(links);
     }
 
     private Div statCard(String label, long value) {
         Div card = new Div();
-        card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        card.getStyle().set("border-radius", "8px");
-        card.getStyle().set("padding", "1rem 1.5rem");
+        card.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM);
         card.getStyle().set("min-width", "180px");
         H2 num = new H2(String.valueOf(value));
-        num.getStyle().set("margin", "0");
-        num.getStyle().set("font-size", "1.75rem");
+        num.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.XXLARGE);
         Span lbl = new Span(label);
-        lbl.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        lbl.getStyle().set("font-size", "0.875rem");
+        lbl.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
         VerticalLayout layout = new VerticalLayout(num, lbl);
         layout.setPadding(false);
         layout.setSpacing(false);
@@ -73,16 +68,10 @@ public class DashboardHomeView extends VerticalLayout implements TitleKey {
     private RouterLink linkCard(String label, LineAwesomeIcon icon, Class<? extends com.vaadin.flow.component.Component> target) {
         @SuppressWarnings({"unchecked", "rawtypes"})
         RouterLink link = new RouterLink(label, (Class) target);
-        link.getStyle().set("display", "inline-flex");
-        link.getStyle().set("align-items", "center");
-        link.getStyle().set("gap", "0.5rem");
-        link.getStyle().set("padding", "0.65rem 1rem");
-        link.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        link.getStyle().set("border-radius", "8px");
-        link.getStyle().set("text-decoration", "none");
-        link.getStyle().set("color", "var(--vaadin-text-color)");
+        link.addClassNames(AuraUtility.Display.INLINE_FLEX, AuraUtility.AlignItems.CENTER, AuraUtility.Gap.SMALL,
+                AuraUtility.Padding.Vertical.SMALL, AuraUtility.Padding.Horizontal.LARGE, AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.TextDecoration.NONE, AuraUtility.TextColor.BODY);
         var ico = icon.create();
-        ico.getStyle().set("font-size", "1rem");
+        ico.addClassNames(AuraUtility.FontSize.MEDIUM);
         ico.getStyle().set("color", "var(--vaadin-color-primary)");
         HorizontalLayout row = new HorizontalLayout(ico, new Span(label));
         row.setSpacing(true);

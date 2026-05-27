@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Service;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 /**
  * Run a long-running background task while showing a small modal progress
@@ -72,13 +73,11 @@ public class ProgressDialogService implements DisposableBean {
         bar.setWidthFull();
 
         Span status = new Span(ui.getTranslation("progress.starting"));
-        status.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        status.getStyle().set("font-size", "0.9rem");
+        status.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
 
         Span counter = new Span("");
         counter.getStyle().set("font-variant-numeric", "tabular-nums");
-        counter.getStyle().set("font-weight", "600");
-        counter.getStyle().set("color", "var(--vaadin-text-color)");
+        counter.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.TextColor.BODY);
 
         HorizontalLayout statusRow = new HorizontalLayout(status, counter);
         statusRow.setWidthFull();
@@ -110,7 +109,7 @@ public class ProgressDialogService implements DisposableBean {
                     bar.setIndeterminate(false);
                     bar.setValue(bar.getMin());
                     status.setText(ui.getTranslation("progress.failed", ex.getMessage()));
-                    status.getStyle().set("color", "var(--aura-red-text)");
+                    status.addClassNames(AuraUtility.TextColor.ERROR);
                     Button close = new Button(ui.getTranslation("progress.close"), e -> dlg.close());
                     close.addThemeVariants(ButtonVariant.TERTIARY);
                     dlg.getFooter().removeAll();

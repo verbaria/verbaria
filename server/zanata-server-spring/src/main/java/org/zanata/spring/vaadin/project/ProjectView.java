@@ -43,7 +43,7 @@ import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -134,8 +134,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         add(buildHeading(project, slug));
         if (project.getDescription() != null && !project.getDescription().isBlank()) {
             Paragraph desc = new Paragraph(project.getDescription());
-            desc.getStyle().set("font-style", "italic");
-            desc.addClassNames(LumoUtility.Margin.Top.NONE);
+            desc.addClassNames(AuraUtility.Margin.Top.NONE, AuraUtility.FontStyle.ITALIC);
             add(desc);
         }
 
@@ -176,27 +175,24 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
      */
     private Div buildGlossaryPanel(String slug) {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
 
         H3 title = new H3(getTranslation("project.tab.glossary"));
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         panel.add(title);
 
         Paragraph intro = new Paragraph(getTranslation("project.glossary.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        intro.getStyle().set("margin", "0.5rem 0");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Vertical.SMALL);
         panel.add(intro);
 
         Paragraph empty = new Paragraph(getTranslation("project.glossary.empty"));
-        empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        empty.getStyle().set("margin", "0.25rem 0");
+        empty.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Vertical.XSMALL);
         panel.add(empty);
 
         Anchor systemGlossary = new Anchor("/glossary", getTranslation("project.glossary.systemLink"));
-        systemGlossary.getStyle().set("color",
-                "var(--aura-blue-text, var(--lumo-primary-text-color))");
+        systemGlossary.addClassNames(AuraUtility.TextColor.PRIMARY);
         panel.add(systemGlossary);
         return panel;
     }
@@ -211,7 +207,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     private HorizontalLayout buildHeading(HProject project, String slug) {
         H1 name = new H1(project.getName() == null || project.getName().isBlank()
                 ? slug : project.getName());
-        name.addClassNames(LumoUtility.Margin.NONE);
+        name.addClassNames(AuraUtility.Margin.NONE);
         HorizontalLayout layout = new HorizontalLayout(name);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         layout.setSpacing(true);
@@ -219,17 +215,21 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private Tab tabWithBadge(String label, int count) {
-        Span badge = new Span(String.valueOf(count));
-        badge.getElement().getThemeList().add("badge contrast small");
-        badge.getStyle().set("margin-inline-start", "0.5rem");
+        com.vaadin.flow.component.badge.Badge badge =
+                new com.vaadin.flow.component.badge.Badge();
+        badge.setNumber(count);
+        badge.addThemeVariants(
+                com.vaadin.flow.component.badge.BadgeVariant.CONTRAST,
+                com.vaadin.flow.component.badge.BadgeVariant.SMALL);
+        badge.addClassNames(AuraUtility.Margin.Start.SMALL);
         return new Tab(new Span(label), badge);
     }
 
     private Div buildVersionsPanel(String projectSlug, List<HProjectIteration> iterations) {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
 
         Select<String> sort = new Select<>();
         sort.setItems("Slug (Z-A)", "Slug (A-Z)", "Status", "Translated % (desc)", "Approved % (desc)");
@@ -241,7 +241,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         H3 title = new H3("Versions");
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
 
         HorizontalLayout right = new HorizontalLayout();
         right.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -262,9 +262,9 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         panel.add(header);
 
         Span counter = new Span("v " + iterations.size());
-        counter.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        counter.getStyle().set("display", "block");
-        counter.getStyle().set("margin", "0.5rem 0 0.75rem 0");
+        counter.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY,
+                AuraUtility.Display.BLOCK,
+                AuraUtility.Margin.Top.SMALL, AuraUtility.Margin.Bottom.MEDIUM);
         panel.add(counter);
 
         Div listContainer = new Div();
@@ -309,14 +309,12 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
                 new RouteParameters(
                         new RouteParam("projectSlug", projectSlug),
                         new RouteParam("versionSlug", iter.getSlug())));
-        link.getStyle().set("text-decoration", "none");
+        link.addClassNames(AuraUtility.TextDecoration.NONE, AuraUtility.Display.BLOCK);
         link.getStyle().set("color", "inherit");
-        link.getStyle().set("display", "block");
 
         Div card = new Div();
-        card.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.Border.BOTTOM,
-                LumoUtility.BorderColor.CONTRAST_10);
-        card.getStyle().set("width", "100%");
+        card.addClassNames(AuraUtility.Padding.SMALL, AuraUtility.Border.BOTTOM,
+                AuraUtility.BorderColor.SECONDARY, AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
 
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
@@ -327,12 +325,12 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         left.setSpacing(true);
         left.setAlignItems(FlexComponent.Alignment.CENTER);
         Span slugSpan = new Span(iter.getSlug());
-        slugSpan.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.FontSize.MEDIUM);
+        slugSpan.addClassNames(AuraUtility.FontWeight.BOLD, AuraUtility.FontSize.MEDIUM);
         left.add(slugSpan);
         if (iter.getStatus() == EntityStatus.READONLY) {
             var lock = LineAwesomeIcon.LOCK_SOLID.create();
             lock.setSize("0.9em");
-            lock.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            lock.addClassNames(AuraUtility.TextColor.SECONDARY);
             left.add(lock);
         }
 
@@ -341,10 +339,10 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         right.setSpacing(false);
         right.setAlignItems(FlexComponent.Alignment.END);
         Span pct = new Span(String.format("%.2f%%", stats.translatedPct));
-        pct.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
-        pct.getStyle().set("color", "var(--aura-green)");
+        pct.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD,
+                AuraUtility.TextColor.SUCCESS);
         Span tag = new Span("translated");
-        tag.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
+        tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
         right.add(pct, tag);
 
         row.add(left, right);
@@ -352,7 +350,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
 
         ProgressBar bar = new ProgressBar(0.0, 1.0, stats.translatedPct / 100.0);
         bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
-        bar.getStyle().set("margin-top", "0.4rem");
+        bar.addClassNames(AuraUtility.Margin.Top.SMALL);
         card.add(bar);
 
         link.getElement().appendChild(card.getElement());
@@ -361,16 +359,16 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
 
     private Div wrap(RouterLink link) {
         Div wrap = new Div(link);
-        wrap.getStyle().set("width", "100%");
+        wrap.addClassNames(AuraUtility.Width.FULL);
         return wrap;
     }
 
     private Div buildPeoplePanel(List<HPerson> people,
                                  Map<HPerson, EnumSet<ProjectRole>> rolesByPerson) {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
 
         boolean canManage = canManageProject(currentSlug);
 
@@ -379,7 +377,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         H3 title = new H3("Project team");
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         header.add(title);
         if (canManage) {
             Button add = new Button(
@@ -542,18 +540,18 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
 
     private Div buildAboutPanel(HProject project) {
         Div panel = new Div();
-        panel.addClassNames(LumoUtility.Border.ALL, LumoUtility.BorderColor.CONTRAST_10,
-                LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM);
-        panel.getStyle().set("width", "100%");
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
 
         String home = project.getHomeContent();
         if (home == null || home.isBlank()) {
             Paragraph empty = new Paragraph("No content");
-            empty.addClassNames(LumoUtility.TextColor.SECONDARY);
+            empty.addClassNames(AuraUtility.TextColor.SECONDARY);
             panel.add(empty);
         } else {
             Paragraph p = new Paragraph(home);
-            p.getStyle().set("white-space", "pre-wrap");
+            p.addClassNames(AuraUtility.Whitespace.PRE_WRAP);
             panel.add(p);
         }
         return panel;

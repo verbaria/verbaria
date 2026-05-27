@@ -25,6 +25,7 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.vaadin.lineawesome.LineAwesomeIcon;
@@ -144,8 +145,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
         VerticalLayout card = card();
         card.add(new H3(getTranslation("versionSettings.languages")));
         Paragraph hint = new Paragraph(getTranslation("versionSettings.languagesIntro"));
-        hint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        hint.getStyle().set("font-size", "0.9rem");
+        hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
         card.add(hint);
 
         Checkbox override = new Checkbox(getTranslation("versionSettings.overrideLocales"));
@@ -180,7 +180,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
                     Notification n = Notification.show(
                             getTranslation("versionSettings.deleteResult", versionSlug),
                             3000, Notification.Position.BOTTOM_END);
-                    n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+                    n.addThemeVariants(NotificationVariant.INFO);
                     UI.getCurrent().navigate("project/view/" + projectSlug);
                 },
                 getTranslation("common.cancel"),
@@ -225,10 +225,7 @@ public class VersionSettingsView extends VerticalLayout implements BeforeEnterOb
         c.setWidthFull();
         c.setPadding(true);
         c.setSpacing(true);
-        c.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        c.getStyle().set("border-radius", "8px");
-        c.getStyle().set("background", "var(--vaadin-background-color)");
-        c.getStyle().set("margin-bottom", "1rem");
+        c.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Background.BASE, AuraUtility.Margin.Bottom.MEDIUM);
         return c;
     }
 

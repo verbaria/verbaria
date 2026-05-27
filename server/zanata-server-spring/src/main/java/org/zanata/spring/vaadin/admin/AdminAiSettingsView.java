@@ -19,6 +19,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.RolesAllowed;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,21 +44,14 @@ public class AdminAiSettingsView extends VerticalLayout implements TitleKey {
         setHeightFull();
         setPadding(true);
         setSpacing(false);
-        getStyle().set("overflow-y", "auto");
-        getStyle().set("box-sizing", "border-box");
+        addClassNames(AuraUtility.Overflow.Y.AUTO, AuraUtility.BoxSizing.BORDER);
 
         add(new H2(getTranslation("adminAi.heading")));
 
         // --- global enable toggle ---
         Div gate = new Div();
         gate.setWidthFull();
-        gate.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        gate.getStyle().set("border-radius", "8px");
-        gate.getStyle().set("padding", "0.9rem 1.1rem");
-        gate.getStyle().set("background", "var(--vaadin-background-color)");
-        gate.getStyle().set("margin-bottom", "1rem");
-        gate.getStyle().set("box-sizing", "border-box");
-        gate.getStyle().set("flex-shrink", "0");
+        gate.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM, AuraUtility.Background.BASE, AuraUtility.Margin.Bottom.MEDIUM, AuraUtility.BoxSizing.BORDER, AuraUtility.Flex.SHRINK_NONE);
         Checkbox enable = new Checkbox(getTranslation("adminAi.enableGlobal"));
         enable.setValue(policy.isGloballyEnabled());
         enable.addValueChangeListener(e -> {
@@ -67,14 +61,12 @@ public class AdminAiSettingsView extends VerticalLayout implements TitleKey {
                     2500, Notification.Position.BOTTOM_END);
         });
         Paragraph gateHint = new Paragraph(getTranslation("adminAi.gateHint"));
-        gateHint.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        gateHint.getStyle().set("margin", "0.25rem 0 0 0");
-        gateHint.getStyle().set("font-size", "0.85rem");
+        gateHint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Top.XSMALL, AuraUtility.FontSize.SMALL);
         gate.add(enable, gateHint);
         add(gate);
 
         Paragraph intro = new Paragraph(getTranslation("adminAi.providersIntro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY);
         add(intro);
 
         for (TranslationProvider p : registry.all()) {
@@ -86,25 +78,17 @@ public class AdminAiSettingsView extends VerticalLayout implements TitleKey {
             TranslationProvider p, AiSettingsService settings) {
         Div card = new Div();
         card.setWidthFull();
-        card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        card.getStyle().set("border-radius", "8px");
-        card.getStyle().set("padding", "1rem 1.25rem");
-        card.getStyle().set("margin-bottom", "1rem");
-        card.getStyle().set("box-sizing", "border-box");
-        card.getStyle().set("flex-shrink", "0");
+        card.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM, AuraUtility.Margin.Bottom.MEDIUM, AuraUtility.BoxSizing.BORDER, AuraUtility.Flex.SHRINK_NONE);
 
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         H3 title = new H3(p.displayName());
-        title.getStyle().set("margin", "0");
-        title.getStyle().set("flex", "1 1 auto");
+        title.addClassNames(AuraUtility.Margin.NONE, AuraUtility.Flex.AUTO);
         Span status = new Span(getTranslation(p.isAvailable()
                 ? "adminAi.configured" : "adminAi.notConfigured"));
-        status.getStyle().set("color", p.isAvailable()
-                ? "var(--aura-green-text)"
-                : "var(--vaadin-text-color-secondary)");
-        status.getStyle().set("font-size", "0.85rem");
+        status.addClassNames(AuraUtility.FontSize.SMALL,
+                p.isAvailable() ? AuraUtility.TextColor.SUCCESS : AuraUtility.TextColor.SECONDARY);
         header.add(title, status);
         card.add(header);
 

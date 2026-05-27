@@ -14,6 +14,7 @@ import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.zanata.spring.service.AccountRegistrationService;
 import org.zanata.spring.vaadin.LoginView;
@@ -36,7 +37,7 @@ public class InactiveAccountView extends VerticalLayout implements TitleKey {
 
         panel.add(new H2(getTranslation("account.inactive.title")));
         Paragraph intro = new Paragraph(getTranslation("account.inactive.intro"));
-        intro.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        intro.addClassNames(AuraUtility.TextColor.SECONDARY);
         panel.add(intro);
 
         TextField username = new TextField(getTranslation("account.inactive.username"));
@@ -54,7 +55,7 @@ public class InactiveAccountView extends VerticalLayout implements TitleKey {
             Notification n = Notification.show(
                     getTranslation("account.inactive.neutralResend"),
                     3500, Notification.Position.BOTTOM_CENTER);
-            n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+            n.addThemeVariants(NotificationVariant.INFO);
         });
         resend.addThemeVariants(ButtonVariant.TERTIARY);
 
@@ -76,7 +77,7 @@ public class InactiveAccountView extends VerticalLayout implements TitleKey {
             Notification n = Notification.show(
                     getTranslation("account.inactive.neutralUpdate"),
                     4000, Notification.Position.BOTTOM_CENTER);
-            n.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+            n.addThemeVariants(NotificationVariant.INFO);
             if (ok) registrationService.resendActivation(username.getValue().trim());
         });
         update.addThemeVariants(ButtonVariant.PRIMARY);

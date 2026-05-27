@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.util.Collections;
 import java.util.List;
@@ -64,13 +65,13 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
 
         if (!signedIn) {
             Paragraph signIn = new Paragraph(getTranslation("dashboardActivity.signInToSee"));
-            signIn.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            signIn.addClassNames(AuraUtility.TextColor.SECONDARY);
             add(heading, signIn);
             return;
         }
         if (activities.isEmpty()) {
             Paragraph empty = new Paragraph(getTranslation("dashboardActivity.empty"));
-            empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            empty.addClassNames(AuraUtility.TextColor.SECONDARY);
             add(heading, empty);
             return;
         }
@@ -104,10 +105,7 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
      */
     private Div contextLinks(Activity a) {
         Div d = new Div();
-        d.getStyle().set("display", "inline-flex");
-        d.getStyle().set("gap", "0.4rem");
-        d.getStyle().set("align-items", "center");
-        d.getStyle().set("flex-wrap", "wrap");
+        d.addClassNames(AuraUtility.Display.INLINE_FLEX, AuraUtility.Gap.SMALL, AuraUtility.AlignItems.CENTER, AuraUtility.FlexWrap.WRAP);
 
         // Context first — only HProjectIteration is enumerated in this model
         // (no HProject value in EntityType). For other ctx types fall through
@@ -135,7 +133,7 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
 
         if (d.getComponentCount() == 0) {
             Span fallback = new Span(ct == null ? "" : ct.name());
-            fallback.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            fallback.addClassNames(AuraUtility.TextColor.SECONDARY);
             d.add(fallback);
         }
         return d;
@@ -144,8 +142,7 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
     private static Anchor projectLink(HProject p) {
         Anchor a = new Anchor("/project/view/" + p.getSlug(),
                 p.getName() == null ? p.getSlug() : p.getName());
-        a.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
-        a.getStyle().set("font-weight", "600");
+        a.addClassNames(AuraUtility.TextColor.PRIMARY, AuraUtility.FontWeight.SEMIBOLD);
         return a;
     }
 
@@ -153,7 +150,7 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
         String slug = i.getProject() == null ? "" : i.getProject().getSlug();
         Anchor a = new Anchor("/project/" + slug + "/version/" + i.getSlug(),
                 i.getSlug());
-        a.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
+        a.addClassNames(AuraUtility.TextColor.PRIMARY);
         return a;
     }
 
@@ -166,13 +163,13 @@ public class DashboardActivityView extends VerticalLayout implements TitleKey {
         String version = doc.getProjectIteration().getSlug();
         Anchor a = new Anchor("/project/" + slug + "/version/" + version,
                 doc.getDocId());
-        a.getStyle().set("color", "var(--vaadin-text-color)");
+        a.addClassNames(AuraUtility.TextColor.BODY);
         return a;
     }
 
     private static Span sep() {
         Span s = new Span("›");
-        s.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        s.addClassNames(AuraUtility.TextColor.SECONDARY);
         return s;
     }
 }

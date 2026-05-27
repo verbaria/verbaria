@@ -7,12 +7,11 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.theme.aura.Aura;
-import com.vaadin.flow.theme.lumo.Lumo;
 import de.f0rce.ace.AceEditor;
 
 @Push(PushMode.MANUAL)
 @StyleSheet(Aura.STYLESHEET)
-@StyleSheet(Lumo.UTILITY_STYLESHEET)
+@CssImport("./aura-utilities.css")
 @CssImport("./verbaria.css")
 @CssImport("./@f0rce/lit-ace/themes/ace-aura.css")
 @Uses(AceEditor.class)

@@ -13,7 +13,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import de.f0rce.ace.AceEditor;
 import de.f0rce.ace.enums.AceMode;
@@ -47,16 +47,19 @@ public class AdminHomeContentView extends VerticalLayout implements TitleKey {
         setSpacing(true);
 
         H3 title = new H3(getTranslation("adminHomeContent.heading"));
-        title.addClassNames(LumoUtility.Margin.NONE);
+        title.addClassNames(AuraUtility.Margin.NONE);
         Paragraph hint = new Paragraph(getTranslation("adminHomeContent.hint"));
-        hint.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL,
-                LumoUtility.Margin.NONE);
+        hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL,
+                AuraUtility.Margin.NONE);
         add(title, hint);
 
         AceEditor editor = new AceEditor();
         editor.setMode(AceMode.markdown);
         editor.setTheme(AceTheme.textmate);
-        editor.setHeight("60vh");
+        // Fill the flex parent (the HorizontalLayout split has setSizeFull
+        // and setFlexGrow(1, ...) on both panes). 60vh was a viewport-bound
+        // hardcode that ignored the actual content area.
+        editor.setHeight("100%");
         editor.setWidth("100%");
         editor.setShowPrintMargin(false);
         editor.setLiveAutocompletion(false);
@@ -64,12 +67,9 @@ public class AdminHomeContentView extends VerticalLayout implements TitleKey {
 
         Div preview = new Div();
         preview.setWidthFull();
-        preview.getStyle().set("height", "60vh");
-        preview.getStyle().set("overflow", "auto");
-        preview.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        preview.getStyle().set("border-radius", "6px");
-        preview.getStyle().set("padding", "1rem");
-        preview.getStyle().set("background", "var(--vaadin-background-color)");
+        preview.addClassNames(AuraUtility.Height.FULL,
+                AuraUtility.Overflow.AUTO, AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM, AuraUtility.Background.BASE);
         preview.getElement().setProperty("innerHTML",
                 markdownRenderer.render(editor.getValue()));
 
@@ -109,13 +109,11 @@ public class AdminHomeContentView extends VerticalLayout implements TitleKey {
 
     private static Div wrap(String label, com.vaadin.flow.component.Component body) {
         H3 h = new H3(label);
-        h.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY,
-                LumoUtility.Margin.NONE);
+        h.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY,
+                AuraUtility.Margin.NONE);
         Div pane = new Div(h, body);
         pane.setWidthFull();
-        pane.getStyle().set("display", "flex");
-        pane.getStyle().set("flex-direction", "column");
-        pane.getStyle().set("gap", "0.4rem");
+        pane.addClassNames(AuraUtility.Display.FLEX, AuraUtility.FlexDirection.COLUMN, AuraUtility.Gap.SMALL);
         return pane;
     }
 }

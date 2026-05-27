@@ -20,6 +20,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.zanata.spring.service.AccountRegistrationService;
 import org.zanata.spring.vaadin.LoginView;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 @Route("account/register")
 @AnonymousAllowed
@@ -91,8 +92,7 @@ public class RegisterView extends VerticalLayout implements TitleKey {
         Paragraph signInHint = new Paragraph();
         signInHint.add(new com.vaadin.flow.component.html.Span(getTranslation("account.register.alreadyHaveAccount") + " "));
         signInHint.add(new RouterLink(getTranslation("account.register.signIn"), LoginView.class));
-        signInHint.getStyle().set("text-align", "center");
-        signInHint.getStyle().set("font-size", "0.9rem");
+        signInHint.addClassNames(AuraUtility.TextAlignment.CENTER, AuraUtility.FontSize.SMALL);
 
         panel.add(heading, form, submit, signInHint);
         add(panel);

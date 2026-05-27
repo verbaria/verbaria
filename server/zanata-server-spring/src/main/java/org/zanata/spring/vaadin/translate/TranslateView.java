@@ -57,7 +57,7 @@ import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -249,7 +249,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         headingRow.setAlignItems(FlexComponent.Alignment.CENTER);
         headingRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
-        heading.addClassNames(LumoUtility.Margin.NONE);
+        heading.addClassNames(AuraUtility.Margin.NONE);
 
         // Doc switcher — renders immediately as just a button. The expensive
         // findByVersion + per-doc count queries are deferred until the user
@@ -261,10 +261,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 ? null : doc.getProjectIteration().getId();
         Button docSwitcher = new Button(currentDocId + "  \u25BE");
         docSwitcher.addThemeVariants(ButtonVariant.TERTIARY);
-        docSwitcher.getStyle().set("font-weight", "600");
+        docSwitcher.addClassNames(AuraUtility.FontWeight.SEMIBOLD);
         docSwitcher.getStyle().set("max-width", "520px");
-        docSwitcher.getStyle().set("overflow", "hidden");
-        docSwitcher.getStyle().set("text-overflow", "ellipsis");
+        docSwitcher.addClassNames(AuraUtility.Overflow.HIDDEN, AuraUtility.TextOverflow.ELLIPSIS);
         Popover docPopover =
                 new Popover();
         docPopover.setPosition(PopoverPosition.BOTTOM);
@@ -305,8 +304,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         Button prefsBtn = new Button(LineAwesomeIcon.COG_SOLID.create(),
                 e -> openEditorSettings());
-        prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL,
-                ButtonVariant.LUMO_ICON);
+        prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         prefsBtn.getElement().setAttribute("title", getTranslation("translate.editorSettings"));
         prefsBtn.getElement().setAttribute("aria-label", getTranslation("translate.editorSettings"));
         headingRight.add(prefsBtn);
@@ -349,7 +347,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         dlg.setCloseOnOutsideClick(true);
 
         Button closeX = new Button(LineAwesomeIcon.TIMES_SOLID.create(), e -> dlg.close());
-        closeX.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL, ButtonVariant.LUMO_ICON);
+        closeX.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         closeX.getElement().setAttribute("aria-label", getTranslation("common.close"));
         closeX.getElement().setAttribute("title", getTranslation("common.close"));
         dlg.getHeader().add(closeX);
@@ -368,9 +366,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         boolean signedIn = isAuthenticated();
         if (!signedIn) {
             Paragraph note = new Paragraph(getTranslation("editor.settings.signInToPersist"));
-            note.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            note.getStyle().set("font-size", "0.85rem");
-            note.getStyle().set("margin", "0 0 0.5rem 0");
+            note.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL, AuraUtility.Margin.Bottom.SMALL);
             dlg.add(note);
         }
 
@@ -619,12 +615,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             long done = viewingSource ? total
                     : translatedByDoc.getOrDefault(d.getId(), 0L);
             int pct = pctOf.applyAsInt(d);
-            String color = pct == 100 ? "var(--aura-green-text)"
-                    : pct >= 50 ? "var(--aura-orange-text)"
-                    : "var(--aura-red-text)";
+            String colorClass = pct == 100 ? AuraUtility.TextColor.SUCCESS
+                    : pct >= 50 ? AuraUtility.TextColor.ORANGE
+                    : AuraUtility.TextColor.ERROR;
             Span pill = new Span(String.format("%d%% (%d/%d)", pct, done, total));
-            pill.getStyle().set("color", color);
-            pill.getStyle().set("font-weight", "600");
+            pill.addClassNames(colorClass, AuraUtility.FontWeight.SEMIBOLD);
             pill.getStyle().set("font-variant-numeric", "tabular-nums");
             return pill;
         }).setHeader(getTranslation("translate.docPicker.column.translated"))
@@ -659,10 +654,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // The Popover content slot doesn't propagate its height down to flex
         // children, so we give the body an explicit viewport-relative height
         // matching the popover's 70vh.
-        search.getStyle().set("flex-shrink", "0");
+        search.addClassNames(AuraUtility.Flex.SHRINK_NONE);
         grid.setSizeFull();
-        grid.getStyle().set("min-height", "0");
-        grid.getStyle().set("flex", "1 1 0");
+        grid.addClassNames(AuraUtility.MinHeight.NONE, AuraUtility.Flex.ONE);
         grid.setAllRowsVisible(false);
 
         VerticalLayout body = new VerticalLayout(search, grid);
@@ -672,8 +666,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         body.setHeight("calc(70vh - 2rem)");
         body.setFlexGrow(0, search);
         body.setFlexGrow(1, grid);
-        body.getStyle().set("min-height", "0");
-        body.getStyle().set("overflow", "hidden");
+        body.addClassNames(AuraUtility.MinHeight.NONE, AuraUtility.Overflow.HIDDEN);
         return body;
     }
 
@@ -688,14 +681,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // Filter/checkbox listeners are installed by installDataProvider(),
         // which has access to the per-doc provider instance.
         // Stop the label wrapping when the bar runs out of room.
-        incompleteOnly.getStyle().set("white-space", "nowrap");
-        completeOnly.getStyle().set("white-space", "nowrap");
+        incompleteOnly.addClassNames(AuraUtility.Whitespace.NOWRAP);
+        completeOnly.addClassNames(AuraUtility.Whitespace.NOWRAP);
 
         HorizontalLayout checks = new HorizontalLayout(incompleteOnly, completeOnly);
         checks.setAlignItems(FlexComponent.Alignment.CENTER);
         checks.setSpacing(true);
-        checks.getStyle().set("flex-shrink", "0");
-        checks.getStyle().set("white-space", "nowrap");
+        checks.addClassNames(AuraUtility.Flex.SHRINK_NONE, AuraUtility.Whitespace.NOWRAP);
 
         HorizontalLayout bar = new HorizontalLayout(filter, checks);
         bar.setWidthFull();
@@ -704,8 +696,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         bar.setFlexGrow(1, filter);
 
         Div wrap = new Div(bar);
-        wrap.getStyle().set("border-bottom", "1px solid var(--vaadin-border-color)");
-        wrap.getStyle().set("padding", "0.5rem 0 0.75rem 0");
+        wrap.addClassNames(AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT, AuraUtility.Padding.Top.SMALL, AuraUtility.Padding.Bottom.MEDIUM);
         wrap.setWidthFull();
         return wrap;
     }
@@ -829,19 +820,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         double pct = totalW == 0 ? 0.0 : (translatedW + approvedW) * 100.0 / totalW;
 
         Div badge = new Div();
-        badge.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        badge.getStyle().set("border-radius", "6px");
-        badge.getStyle().set("padding", "0.5rem 0.75rem");
-        badge.getStyle().set("background", "var(--vaadin-background-color)");
-        badge.getStyle().set("font-size", "0.85rem");
+        badge.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.Vertical.SMALL, AuraUtility.Padding.Horizontal.MEDIUM, AuraUtility.Background.BASE, AuraUtility.FontSize.SMALL);
         badge.getStyle().set("min-width", "420px");
 
         Div top = new Div(new Span(handle.t("translate.stats.translatedSummary",
                 String.format("%.1f", pct),
                 translatedW + approvedW, totalW,
                 translated + approved, total)));
-        top.getStyle().set("font-weight", "600");
-        top.getStyle().set("margin-bottom", "0.4rem");
+        top.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Margin.Bottom.SMALL);
         badge.add(top);
 
         badge.add(statRow(labels.approved(),     approvedW,     approved));
@@ -853,11 +839,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private Div statRow(String label, long words, long msgs) {
         Div row = new Div();
-        row.getStyle().set("display", "flex");
-        row.getStyle().set("gap", "1rem");
-        row.getStyle().set("justify-content", "space-between");
+        row.addClassNames(AuraUtility.Display.FLEX, AuraUtility.Gap.MEDIUM, AuraUtility.JustifyContent.BETWEEN);
         Span l = new Span(label);
-        l.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        l.addClassNames(AuraUtility.TextColor.SECONDARY);
         Span w = new Span(words + "w");
         Span m = new Span(msgs + "m");
         row.add(l, w, m);

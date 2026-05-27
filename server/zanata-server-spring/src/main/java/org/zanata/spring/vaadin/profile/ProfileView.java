@@ -20,6 +20,7 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
+import org.zanata.spring.vaadin.theme.AuraUtility;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -69,7 +70,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         setPadding(true);
         setSpacing(true);
         getStyle().set("max-width", "960px");
-        getStyle().set("margin", "0 auto");
+        addClassNames(AuraUtility.Margin.Horizontal.AUTO);
     }
 
     @Override
@@ -102,7 +103,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
                 buildQuickLinks());
         side.setPadding(false);
         side.setSpacing(true);
-        side.getStyle().set("flex", "1 1 0");
+        side.addClassNames(AuraUtility.Flex.ONE);
         side.getStyle().set("min-width", "240px");
 
         body.add(activity, side);
@@ -120,18 +121,17 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         Component avatar = buildAvatar(displayName, email);
 
         H1 name = new H1(displayName);
-        name.getStyle().set("margin", "0");
+        name.addClassNames(AuraUtility.Margin.NONE);
         Span usernameSpan = new Span("@" + account.getUsername());
-        usernameSpan.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+        usernameSpan.addClassNames(AuraUtility.TextColor.SECONDARY);
         Span emailSpan = new Span(email == null ? "" : email);
-        emailSpan.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-        emailSpan.getStyle().set("font-size", "0.9rem");
+        emailSpan.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
 
         // Role chips (admin/user).
         HorizontalLayout chips = new HorizontalLayout();
         chips.setSpacing(true);
         chips.setPadding(false);
-        chips.getStyle().set("margin-top", "0.5rem");
+        chips.addClassNames(AuraUtility.Margin.Top.SMALL);
         if (account.getRoles() != null) {
             account.getRoles().forEach(r -> chips.add(roleChip(r.getName())));
         }
@@ -139,7 +139,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         VerticalLayout info = new VerticalLayout(name, usernameSpan, emailSpan, chips);
         info.setPadding(false);
         info.setSpacing(false);
-        info.getStyle().set("flex", "1 1 auto");
+        info.addClassNames(AuraUtility.Flex.AUTO);
 
         Button settings = new Button(getTranslation("profile.settings"),
                 LineAwesomeIcon.COG_SOLID.create(),
@@ -161,44 +161,28 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private Component buildAvatar(String displayName, String email) {
-        // Prefer Gravatar (matches legacy behavior); fall back to an
-        // initials disk if no email is on file.
-        String hash = email == null ? null : md5LowerHex(email.trim().toLowerCase(Locale.ROOT));
-        if (hash != null) {
-            String url = "https://www.gravatar.com/avatar/" + hash + "?s=160&d=identicon&r=g";
-            Image img = new Image(url, displayName);
-            img.setWidth("96px");
-            img.setHeight("96px");
-            img.getStyle().set("border-radius", "50%");
-            img.getStyle().set("flex", "0 0 auto");
-            return img;
+        // Vaadin Avatar handles the circular shape, initials fallback, and
+        // image loading — when no image URL is set it falls back to the
+        // first-letter abbreviation of `name`. We feed it Gravatar when an
+        // email is on file, otherwise leave imageless for the initials.
+        com.vaadin.flow.component.avatar.Avatar avatar =
+                new com.vaadin.flow.component.avatar.Avatar(displayName);
+        avatar.setHeight("96px");
+        avatar.setWidth("96px");
+        avatar.addClassNames(AuraUtility.Flex.NONE);
+        if (email != null) {
+            String hash = md5LowerHex(email.trim().toLowerCase(Locale.ROOT));
+            avatar.setImage("https://www.gravatar.com/avatar/" + hash + "?s=160&d=identicon&r=g");
         }
-        Div disk = new Div();
-        disk.getStyle().set("width", "96px");
-        disk.getStyle().set("height", "96px");
-        disk.getStyle().set("flex", "0 0 auto");
-        disk.getStyle().set("border-radius", "50%");
-        disk.getStyle().set("background", "var(--aura-blue-text, var(--lumo-primary-color))");
-        disk.getStyle().set("color", "white");
-        disk.getStyle().set("display", "flex");
-        disk.getStyle().set("align-items", "center");
-        disk.getStyle().set("justify-content", "center");
-        disk.getStyle().set("font-size", "2.5rem");
-        disk.getStyle().set("font-weight", "700");
-        disk.setText(displayName == null || displayName.isEmpty()
-                ? "?" : displayName.substring(0, 1).toUpperCase());
-        return disk;
+        return avatar;
     }
 
     private Span roleChip(String role) {
         String text = role == null ? "" : role.replace("ROLE_", "").toLowerCase();
         Span chip = new Span(text);
-        chip.getStyle().set("background", "var(--vaadin-background-container)");
-        chip.getStyle().set("color", "var(--vaadin-text-color)");
-        chip.getStyle().set("border-radius", "999px");
+        chip.addClassNames(AuraUtility.Background.CONTRAST_5, AuraUtility.TextColor.BODY, AuraUtility.BorderRadius.FULL);
         chip.getStyle().set("padding", "0.15rem 0.6rem");
-        chip.getStyle().set("font-size", "0.75rem");
-        chip.getStyle().set("font-weight", "600");
+        chip.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.FontWeight.SEMIBOLD);
         return chip;
     }
 
@@ -254,13 +238,11 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         long totalWords = recent.stream().mapToLong(Activity::getWordCount).sum();
         if (recent.isEmpty()) {
             Paragraph empty = new Paragraph(getTranslation("profile.noActivityRecorded"));
-            empty.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            empty.getStyle().set("margin-top", "0.5rem");
+            empty.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Top.SMALL);
             panel.add(empty);
         } else {
             Paragraph summary = new Paragraph(getTranslation("profile.wordsTranslatedSummary", totalWords));
-            summary.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            summary.getStyle().set("margin-top", "0.5rem");
+            summary.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Top.SMALL);
             panel.add(summary);
         }
         return panel;
@@ -278,7 +260,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
                 : localeMemberRepository.findByPerson(account.getPerson());
         if (memberships.isEmpty()) {
             Paragraph p = new Paragraph(getTranslation("profile.notInTeams"));
-            p.getStyle().set("color", "var(--vaadin-text-color-secondary)");
+            p.addClassNames(AuraUtility.TextColor.SECONDARY);
             panel.add(p);
             Anchor join = new Anchor("/languages", getTranslation("profile.browseLanguages"));
             panel.add(join);
@@ -294,12 +276,9 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
             row.setWidthFull();
             row.setAlignItems(FlexComponent.Alignment.CENTER);
             Anchor link = new Anchor("/language/" + code, label);
-            link.getStyle().set("flex", "1 1 auto");
-            link.getStyle().set("color", "var(--aura-blue-text, var(--lumo-primary-text-color))");
-            link.getStyle().set("font-weight", "600");
+            link.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.TextColor.PRIMARY, AuraUtility.FontWeight.SEMIBOLD);
             Span role = new Span(roleSummary(m));
-            role.getStyle().set("color", "var(--vaadin-text-color-secondary)");
-            role.getStyle().set("font-size", "0.8rem");
+            role.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
             row.add(link, role);
             rows.add(row);
         }
@@ -340,7 +319,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
     private Anchor link(String label, String href) {
         Anchor a = new Anchor(href, label);
         a.getStyle().set("padding", "0.35rem 0");
-        a.getStyle().set("display", "block");
+        a.addClassNames(AuraUtility.Display.BLOCK);
         return a;
     }
 
@@ -348,22 +327,17 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
 
     private static void cardStyle(Div card) {
         card.setWidthFull();
-        card.getStyle().set("background", "var(--vaadin-background-color)");
-        card.getStyle().set("border", "1px solid var(--vaadin-border-color)");
-        card.getStyle().set("border-radius", "10px");
-        card.getStyle().set("padding", "1.25rem 1.5rem");
+        card.addClassNames(AuraUtility.Background.BASE, AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT, AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.LARGE);
         card.getStyle().set("box-shadow", "0 1px 2px rgba(0,0,0,0.04)");
-        card.getStyle().set("box-sizing", "border-box");
+        card.addClassNames(AuraUtility.BoxSizing.BORDER);
     }
 
     private Div cell(String text, String color, boolean bold) {
         Div d = new Div();
         d.setText(text);
-        d.getStyle().set("flex", "1");
-        d.getStyle().set("text-align", "center");
-        d.getStyle().set("padding", "0.4rem");
+        d.addClassNames(AuraUtility.Flex.ONE, AuraUtility.TextAlignment.CENTER, AuraUtility.Padding.SMALL);
         d.getStyle().set("color", color);
-        if (bold) d.getStyle().set("font-weight", "600");
+        if (bold) d.addClassNames(AuraUtility.FontWeight.SEMIBOLD);
         return d;
     }
 
