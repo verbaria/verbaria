@@ -164,7 +164,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         // findByVersion + .size(). That blew up on large versions (Consulo).
         long docCount = documentRepository.countByVersion(projectSlug, versionSlug);
 
-        publishBreadcrumb(projectSlug);
+        publishBreadcrumb(projectSlug, versionSlug);
         add(buildHeading(iteration));
         add(buildStatsRow(stats));
         ProgressBar bar = new ProgressBar(0.0, 1.0, stats.translatedPct / 100.0);
@@ -185,11 +185,15 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         add(tabs);
     }
 
-    private void publishBreadcrumb(String projectSlug) {
+    private void publishBreadcrumb(String projectSlug, String versionSlug) {
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
-                BreadcrumbsService.Crumb.here(projectSlug)
+                // Project slug links back to the project overview so the user
+                // can hop sideways between versions; the current version slug
+                // is the "here" leaf.
+                BreadcrumbsService.Crumb.of(projectSlug, "/project/view/" + projectSlug),
+                BreadcrumbsService.Crumb.here(versionSlug)
         );
     }
 

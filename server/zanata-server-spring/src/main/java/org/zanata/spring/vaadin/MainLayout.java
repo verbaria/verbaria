@@ -6,8 +6,8 @@ import org.zanata.spring.vaadin.theme.AuraUtility;
 import java.util.List;
 import java.util.Locale;
 
-import com.vaadin.componentfactory.Breadcrumb;
-import com.vaadin.componentfactory.Breadcrumbs;
+import org.zanata.spring.vaadin.component.Breadcrumbs;
+import org.zanata.spring.vaadin.component.BreadcrumbsItem;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -47,6 +47,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.spring.i18n.LocaleSelector;
 import org.zanata.spring.i18n.ThemeSelector;
+import org.zanata.spring.i18n.TitleKey;
 import org.zanata.spring.service.ContactAdminService;
 import org.zanata.spring.vaadin.admin.AdminHomeView;
 import org.zanata.spring.vaadin.dashboard.DashboardHomeView;
@@ -189,10 +190,41 @@ public class MainLayout extends AppLayout
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         // Check the routed view (not our wrapper) — see showRouterLayoutContent.
+        // Views that publish a non-trivial trail themselves implement
+        // {@link HasBreadcrumbs}; for everything else we synthesize a
+        // default "Home → <page title>" trail (or just "Home" when we're
+        // already on the home page) so every top-level route surfaces a
+        // breadcrumb without each view having to duplicate the wiring.
         if (!(currentRoutedContent instanceof HasBreadcrumbs)) {
             breadcrumbsService.clear();
+            publishDefaultBreadcrumb(event);
         }
         renderBreadcrumbs();
+    }
+
+    /**
+     * Build the fallback trail for views that don't implement
+     * {@link HasBreadcrumbs}. The view's page-title bundle key (via
+     * {@link TitleKey}) drives the leaf label, so the trail is locale-aware
+     * for free. Skips when the routed view has no title or when the user
+     * is already on the home page (no point in "Home → Home").
+     */
+    private void publishDefaultBreadcrumb(AfterNavigationEvent event) {
+        if (!(currentRoutedContent instanceof TitleKey titled)) {
+            return;
+        }
+        String path = event.getLocation().getPath();
+        String homeLabel = getTranslation("translate.breadcrumb.home");
+        String pageLabel = getTranslation(titled.pageTitleKey());
+        if (path == null || path.isEmpty() || "/".equals(path)) {
+            // On the home page itself: a single "Home" leaf crumb.
+            breadcrumbsService.set(BreadcrumbsService.Crumb.here(homeLabel));
+        } else {
+            breadcrumbsService.set(
+                    BreadcrumbsService.Crumb.of(homeLabel, "/"),
+                    BreadcrumbsService.Crumb.here(pageLabel)
+            );
+        }
     }
 
     private void renderBreadcrumbs() {
@@ -201,9 +233,11 @@ public class MainLayout extends AppLayout
         if (crumbs.isEmpty()) return;
         Breadcrumbs widget = new Breadcrumbs();
         for (BreadcrumbsService.Crumb c : crumbs) {
-            widget.add(new Breadcrumb(c.label(),
-                    c.href() == null ? "#" : c.href(),
-                    c.current()));
+            // Items flagged as "current" (or with no href) render as plain
+            // text — pass null path so vaadin-breadcrumbs marks the last
+            // item as aria-current="page" automatically.
+            String path = c.current() ? null : c.href();
+            widget.add(new BreadcrumbsItem(c.label(), path));
         }
         breadcrumbsSlot.add(widget);
     }

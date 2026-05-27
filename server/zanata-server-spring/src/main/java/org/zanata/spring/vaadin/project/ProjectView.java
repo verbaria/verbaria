@@ -130,7 +130,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         HProject withMembers = projectRepository.findBySlugWithMembers(slug)
                 .orElse(project);
 
-        publishBreadcrumb();
+        publishBreadcrumb(slug);
         add(buildHeading(project, slug));
         if (project.getDescription() != null && !project.getDescription().isBlank()) {
             Paragraph desc = new Paragraph(project.getDescription());
@@ -197,10 +197,13 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return panel;
     }
 
-    private void publishBreadcrumb() {
+    private void publishBreadcrumb(String slug) {
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.here(getTranslation("translate.breadcrumb.projects"))
+                // "Projects" links to the explore index; the project's own
+                // slug is the current-page leaf.
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.here(slug)
         );
     }
 

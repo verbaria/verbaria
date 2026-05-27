@@ -202,20 +202,24 @@ vaadin-app-layout > [slot="drawer"] vaadin-scroller {
     height: auto !important;
 }
 
-/* Content's left offset is computed by Vaadin from the drawer's measured
- * width (--_vaadin-app-layout-drawer-offset-size, set inline on the
- * host). It doesn't include the margin we added on ::part(drawer), so
- * content slides leftward and overlaps the now-shifted drawer.
+/* Vaadin 25.2 changed the AppLayout drawer to `position: fixed` (it
+ * floats over the content area instead of occupying a column in a CSS
+ * grid). That means the unslotted content no longer gets auto-shifted
+ * by the drawer's measured width — it stays at x=0 and the fixed drawer
+ * paints on top of it.
  *
- * Math: drawer ends at `view-inset + drawer_width`; content starts at
- * `drawer_width + margin-left`. To leave a one-inset visible GAP between
- * the cards we need margin-left = view-inset (to cancel the drawer's
- * shift) + view-inset (the gap) = view-inset * 2. Width is trimmed by
- * the same amount so the inline `width: 100%` (from setSizeFull on the
- * contentWrapper) doesn't push the right edge past the host padding. */
+ * Vaadin still publishes the drawer width as
+ * `--_vaadin-app-layout-drawer-offset-size` on the host (0 when the
+ * drawer is closed). We add that to our own `view-inset * 2` so the
+ * content card starts to the RIGHT of the drawer with a one-inset gap
+ * between the two cards, and the width is trimmed by the same amount
+ * so the right edge respects the host's own `view-inset` padding. */
 vaadin-app-layout > :not([slot]) {
-    margin-left: calc(var(--view-inset) * 2) !important;
-    width: calc(100% - var(--view-inset) * 2) !important;
+    margin-left: calc(var(--_vaadin-app-layout-drawer-offset-size, 0px)
+                      + var(--view-inset) * 2) !important;
+    width: calc(100%
+                - var(--_vaadin-app-layout-drawer-offset-size, 0px)
+                - var(--view-inset) * 2) !important;
 }
 
 vaadin-side-nav-item::part(content) {
