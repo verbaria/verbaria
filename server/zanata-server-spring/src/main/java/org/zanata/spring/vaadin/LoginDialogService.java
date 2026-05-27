@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
@@ -27,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.zanata.spring.service.AccountRegistrationService;
@@ -48,13 +50,16 @@ public class LoginDialogService {
 
     private final AuthenticationManager authenticationManager;
     private final AccountRegistrationService registrationService;
+    private final RememberMeServices rememberMeServices;
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
     public LoginDialogService(AuthenticationManager authenticationManager,
-                              AccountRegistrationService registrationService) {
+                              AccountRegistrationService registrationService,
+                              RememberMeServices rememberMeServices) {
         this.authenticationManager = authenticationManager;
         this.registrationService = registrationService;
+        this.rememberMeServices = rememberMeServices;
     }
 
     /** Open the popover. On success, reload the current page in place. */
@@ -111,6 +116,7 @@ public class LoginDialogService {
         username.setAutofocus(true);
         PasswordField password = new PasswordField(ui.getTranslation("login.password"));
         password.setWidthFull();
+        Checkbox rememberMe = new Checkbox(ui.getTranslation("login.rememberMe"));
 
         Div errorBanner = new Div(ui.getTranslation("login.errorMessage"));
         // Theme-agnostic error color — Aura ships --aura-red-text (light/dark
@@ -129,7 +135,8 @@ public class LoginDialogService {
         Runnable trySubmit = () -> {
             errorBanner.setVisible(false);
             try {
-                authenticate(username.getValue(), password.getValue());
+                authenticate(username.getValue(), password.getValue(),
+                        Boolean.TRUE.equals(rememberMe.getValue()));
                 dialog.close();
                 finishSuccess(ui, returnPath);
             } catch (AuthenticationException ex) {
@@ -143,7 +150,7 @@ public class LoginDialogService {
 
         FormLayout form = new FormLayout(username, password);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
-        panel.add(form, errorBanner, submit);
+        panel.add(form, rememberMe, errorBanner, submit);
         return panel;
     }
 
@@ -197,7 +204,7 @@ public class LoginDialogService {
                 // Auto-sign-in after a successful registration so the user
                 // lands on the authenticated UI without a second prompt.
                 try {
-                    authenticate(username.getValue(), password.getValue());
+                    authenticate(username.getValue(), password.getValue(), false);
                     dialog.close();
                     finishSuccess(ui, returnPath);
                 } catch (AuthenticationException ignore) {
@@ -242,7 +249,7 @@ public class LoginDialogService {
     // ------------------------------------------------------------------
     // Auth helpers
     // ------------------------------------------------------------------
-    private void authenticate(String username, String password) {
+    private void authenticate(String username, String password, boolean rememberMe) {
         UsernamePasswordAuthenticationToken request =
                 UsernamePasswordAuthenticationToken.unauthenticated(username, password);
         Authentication result = authenticationManager.authenticate(request);
@@ -254,6 +261,14 @@ public class LoginDialogService {
         HttpServletResponse httpResp = currentHttpResponse();
         if (httpReq != null && httpResp != null) {
             securityContextRepository.saveContext(context, httpReq, httpResp);
+            // Set the remember-me cookie when the user opted in. Without this
+            // call the persistent cookie is never written — Spring Security's
+            // RememberMeServices.loginSuccess only fires from the form filter,
+            // which we bypass by authenticating programmatically.
+            if (rememberMe) {
+                httpReq.setAttribute("remember-me", "true");
+                rememberMeServices.loginSuccess(httpReq, httpResp, result);
+            }
         }
     }
 

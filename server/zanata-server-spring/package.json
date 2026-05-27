@@ -206,7 +206,6 @@
     "@vaadin/field-highlighter": "25.1.2",
     "@vaadin/vaadin-usage-statistics": "$@vaadin/vaadin-usage-statistics",
     "@vaadin/dialog": "25.1.2",
-    "@f0rce/lit-ace": "$@f0rce/lit-ace",
     "@vaadin/item": "25.1.2",
     "@vaadin/markdown": "25.1.2",
     "@vaadin/react-components": "$@vaadin/react-components",
@@ -225,6 +224,7 @@
     "@vaadin/scroller": "25.1.2",
     "@vaadin/vaadin-lumo-styles": "$@vaadin/vaadin-lumo-styles",
     "@vaadin/email-field": "25.1.2",
-    "@vaadin/message-input": "25.1.2"
+    "@vaadin/message-input": "25.1.2",
+    "@f0rce/lit-ace": "$@f0rce/lit-ace"
   }
 }

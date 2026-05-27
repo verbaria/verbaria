@@ -53,6 +53,8 @@ Suggestions (pick whichever fits your setup):
   | `VERBARIA_DB_OPTIONS`  | *(empty)* — JDBC query string fragment, e.g. `options=-c%20TimeZone%3DUTC` |
   | `VERBARIA_ADMIN_LOGIN`    | *(empty)* — admin username to bootstrap on first boot |
   | `VERBARIA_ADMIN_PASSWORD` | *(empty)* — admin password to bootstrap on first boot |
+  | `VERBARIA_REMEMBER_ME_KEY`  | *(empty — insecure default)* — random secret used as salt for the remember-me cookie's `series:token` pair. Persistent tokens are stored in the `persistent_logins` table; this key only protects the cookie value in transit. **Set in production** so token rotation can validate. |
+  | `VERBARIA_REMEMBER_ME_DAYS` | `30` — how long a remember-me cookie stays valid |
 
   Setting both `VERBARIA_ADMIN_LOGIN` and `VERBARIA_ADMIN_PASSWORD`
   creates an account with `admin` + `user` roles on startup, but only

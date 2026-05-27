@@ -4,6 +4,7 @@ import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.vaadin.LoginView;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,8 +16,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpMethod;
+import javax.sql.DataSource;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
@@ -24,9 +30,35 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${VERBARIA_REMEMBER_ME_KEY:verbaria-insecure-default-change-me}")
+    private String rememberMeKey;
+
+    @Value("${VERBARIA_REMEMBER_ME_DAYS:30}")
+    private int rememberMeDays;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository(DataSource dataSource) {
+        JdbcTokenRepositoryImpl repo = new JdbcTokenRepositoryImpl();
+        repo.setDataSource(dataSource);
+        // Table is created by Hibernate via the HPersistentLogin entity, so
+        // we don't ask the repo to create it on startup.
+        return repo;
+    }
+
+    @Bean
+    public RememberMeServices rememberMeServices(UserDetailsService uds,
+                                                 PersistentTokenRepository tokenRepository) {
+        PersistentTokenBasedRememberMeServices svc =
+                new PersistentTokenBasedRememberMeServices(rememberMeKey, uds, tokenRepository);
+        svc.setTokenValiditySeconds(rememberMeDays * 24 * 60 * 60);
+        svc.setParameter("remember-me");
+        svc.setCookieName("VERBARIA_REMEMBER_ME");
+        return svc;
     }
 
     /**
@@ -45,7 +77,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   AccountRepository accountRepository) throws Exception {
+                                                   AccountRepository accountRepository,
+                                                   RememberMeServices rememberMeServices) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
@@ -62,6 +95,9 @@ public class SecurityConfig {
                     .ignoringRequestMatchers(
                             PathPatternRequestMatcher.withDefaults().matcher("/rest/**"),
                             PathPatternRequestMatcher.withDefaults().matcher("/actuator/**")))
+            .rememberMe(rm -> rm
+                    .rememberMeServices(rememberMeServices)
+                    .key(rememberMeKey))
             // Default Spring Security logout filter only matches POST /logout.
             // Our user menu navigates to /logout via GET (LoginDialogService
             // uses Page.setLocation), so we widen the matcher to accept GET
@@ -71,7 +107,7 @@ public class SecurityConfig {
                             .matcher(HttpMethod.GET, "/logout"))
                     .logoutSuccessUrl("/")
                     .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID"))
+                    .deleteCookies("JSESSIONID", "VERBARIA_REMEMBER_ME"))
             // CLI auth: X-Auth-User + X-Auth-Token headers populate the
             // SecurityContext before authorization runs, so the CLI bridge's
             // write endpoints can identify the caller.
