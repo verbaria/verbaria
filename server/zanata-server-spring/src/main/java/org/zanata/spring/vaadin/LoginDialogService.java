@@ -64,7 +64,7 @@ public class LoginDialogService {
 
     /** Open the popover. On success, reload the current page in place. */
     public void open() {
-        open(null);
+        open(null, false);
     }
 
     /**
@@ -73,6 +73,20 @@ public class LoginDialogService {
      * Pass {@code null} to just reload the current page.
      */
     public void open(String returnPath) {
+        open(returnPath, false);
+    }
+
+    /**
+     * Open the popover in <em>standalone</em> mode — used by the {@code /login}
+     * route where the surrounding page is intentionally blank. ESC and outside
+     * clicks navigate to the home page instead of leaving the user staring at
+     * an empty backdrop with no recovery path.
+     */
+    public void openStandalone(String returnPath) {
+        open(returnPath, true);
+    }
+
+    private void open(String returnPath, boolean standalone) {
         UI ui = UI.getCurrent();
         if (ui == null) return;
 
@@ -84,6 +98,17 @@ public class LoginDialogService {
         dialog.setCloseOnEsc(true);
         dialog.setCloseOnOutsideClick(true);
         dialog.setWidth("420px");
+
+        // In standalone mode (/login route) the surrounding page is blank —
+        // dismissing the dialog without a destination leaves the user stuck.
+        // Intercept the close action and navigate home so they always land on
+        // a real view.
+        if (standalone) {
+            dialog.addDialogCloseActionListener(e -> {
+                dialog.close();
+                ui.getPage().setLocation("/");
+            });
+        }
 
         Tabs tabs = new Tabs();
         Tab signInTab = new Tab(ui.getTranslation("login.tabSignIn"));

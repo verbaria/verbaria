@@ -38,8 +38,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver, Ti
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         // Open the popover automatically — without this the user lands on a
-        // blank page when Spring Security redirects them here.
-        loginDialogService.open(resolveSavedRequestPath());
+        // blank page when Spring Security redirects them here. Standalone
+        // mode redirects to "/" if the user dismisses the dialog, so they
+        // never get stuck on a blank /login page.
+        loginDialogService.openStandalone(resolveSavedRequestPath());
     }
 
     /**
