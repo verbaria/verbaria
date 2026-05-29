@@ -1,7 +1,6 @@
 package org.zanata.spring.service.ai;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Objects;
 
 import com.openai.client.OpenAIClient;
@@ -41,15 +40,8 @@ public class OpenAiTranslationProvider implements TranslationProvider, Disposabl
     @Override public String displayName() { return "OpenAI"; }
 
     @Override
-    public List<SettingField> settings() {
-        return List.of(
-                new SettingField(KEY_API_KEY, "API key",
-                        "OpenAI secret key (sk-…). Leave empty to disable.", "", true),
-                new SettingField(KEY_MODEL, "Model",
-                        "Chat model id, e.g. " + DEFAULT_MODEL, DEFAULT_MODEL, false),
-                new SettingField(KEY_BASE, "Base URL",
-                        "Override only for OpenAI-compatible self-hosted endpoints.",
-                        DEFAULT_BASE, false));
+    public com.vaadin.flow.component.Component createSettingsPage() {
+        return new OpenAiSettingsPage(settings, displayName());
     }
 
     @Override

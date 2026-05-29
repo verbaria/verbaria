@@ -20,8 +20,15 @@ public interface TranslationProvider {
     String displayName();
     boolean isAvailable();
 
-    /** Config keys this provider reads, in display order. Used by the admin UI to render the form. */
-    List<SettingField> settings();
+    /**
+     * Build the provider's own settings UI as a self-contained Vaadin
+     * component (fields + save handling). Replaces the old declarative
+     * {@code List<SettingField>} contract: a provider can now render whatever
+     * it needs — dependent fields, an auth-mode switch (API key vs OAuth),
+     * validation — instead of being limited to a flat list of text inputs.
+     * The admin view just drops the returned component into a titled card.
+     */
+    com.vaadin.flow.component.Component createSettingsPage();
 
     String translate(String source, LocaleId sourceLocale, LocaleId targetLocale, String context);
 
@@ -222,8 +229,6 @@ public interface TranslationProvider {
         // (it won't parse as JSON anyway).
         return out;
     }
-
-    record SettingField(String key, String label, String hint, String defaultValue, boolean secret) {}
 
     record TranslationRequest(String source, LocaleId sourceLocale,
                               LocaleId targetLocale, String context) {}

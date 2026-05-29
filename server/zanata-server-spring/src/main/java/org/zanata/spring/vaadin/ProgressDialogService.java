@@ -1,5 +1,6 @@
 package org.zanata.spring.vaadin;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,11 +10,11 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.i18n.I18NProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -51,6 +52,19 @@ public class ProgressDialogService implements DisposableBean {
         t.setDaemon(true);
         return t;
     });
+
+    /**
+     * I18N provider bean used to resolve translations from the worker thread.
+     * {@code UI.getTranslation()} can't be used there: it reaches through
+     * {@code VaadinService.getCurrent()} / the session, both {@code null} off
+     * the UI thread, so it falls back to the {@code !{key}!} marker. Resolving
+     * against this bean with a captured {@link Locale} is thread-independent.
+     */
+    private final I18NProvider i18n;
+
+    public ProgressDialogService(I18NProvider i18n) {
+        this.i18n = i18n;
+    }
 
     /**
      * Run {@code work} on a background thread, blocking the UI with a modal
@@ -91,7 +105,9 @@ public class ProgressDialogService implements DisposableBean {
         dlg.add(body);
         dlg.open();
 
-        Handle handle = new Handle(ui, bar, status, counter);
+        // Capture the locale on the UI thread; the worker uses it (plus the
+        // injected provider) to translate without a Vaadin session context.
+        Handle handle = new Handle(ui, i18n, ui.getLocale(), bar, status, counter);
         CompletableFuture<T> future = new CompletableFuture<>();
 
         pool.submit(() -> {
@@ -131,12 +147,17 @@ public class ProgressDialogService implements DisposableBean {
      */
     public static final class Handle {
         private final UI ui;
+        private final I18NProvider i18n;
+        private final Locale locale;
         private final ProgressBar bar;
         private final Span status;
         private final Span counter;
 
-        Handle(UI ui, ProgressBar bar, Span status, Span counter) {
+        Handle(UI ui, I18NProvider i18n, Locale locale,
+               ProgressBar bar, Span status, Span counter) {
             this.ui = ui;
+            this.i18n = i18n;
+            this.locale = locale;
             this.bar = bar;
             this.status = status;
             this.counter = counter;
@@ -144,12 +165,12 @@ public class ProgressDialogService implements DisposableBean {
 
         /**
          * Translate a key with arguments. Safe to call from the background
-         * worker because we resolve via the captured {@link UI} (which holds
-         * its locale) instead of {@link UI#getCurrent()} (which returns
-         * {@code null} off the UI thread).
+         * worker: resolves against the injected {@link I18NProvider} with the
+         * locale captured on the UI thread, so it never touches the (null)
+         * Vaadin session that {@link UI#getTranslation} would.
          */
         public String t(String key, Object... args) {
-            return ui.getTranslation(key, args);
+            return i18n.getTranslation(key, locale, args);
         }
 
         public void update(int done, int total, String message) {
