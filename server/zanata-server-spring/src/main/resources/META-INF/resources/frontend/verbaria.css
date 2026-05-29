@@ -40,6 +40,14 @@
     --view-radius: 16px;
     --view-inset: 0.75vmax;
 
+    /* Fixed drawer width. Vaadin 25.2 dropped the
+     * `--_vaadin-app-layout-drawer-offset-size` the content used to read to
+     * sit beside the (now position:fixed) drawer, and no longer offsets
+     * `[part=content]` itself — so we own the geometry: the drawer is pinned
+     * to this width and the content card is pushed right by the same amount.
+     * One value keeps the two in sync. */
+    --app-drawer-width: 200px;
+
     --blur-radius: 20px;
 
     --lumo-error-color: hsl(0 75% 55% / 0.35);
@@ -100,9 +108,16 @@ html, body {
  * no height mismatch between the two cards.
  */
 
+/* Strip the chrome backgrounds so only our two glass cards (drawer +
+ * content slot) paint over the page gradient. Vaadin 25.2 added a solid
+ * default fill + gradient to `::part(content)` (the shadow wrapper around
+ * the routed view) — without zeroing it a grey-blue panel paints behind
+ * the content card, filling the whole content area. */
 vaadin-app-layout,
-vaadin-app-layout::part(navbar) {
+vaadin-app-layout::part(navbar),
+vaadin-app-layout::part(content) {
     background: transparent !important;
+    background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border: none !important;
@@ -178,11 +193,17 @@ vaadin-dialog-overlay::part(overlay) {
  */
 vaadin-app-layout::part(drawer) {
     margin: var(--view-inset) !important;
-    /* Drawer sizes to its own contents (logo header + menu items) rather
-     * than stretching to fill the viewport. `max-height` caps it at the
-     * viewport so a very long menu still scrolls instead of running off
-     * the bottom. `align-self: flex-start` defangs the flex stretch that
-     * would otherwise pull the drawer back to full height. */
+    /* Pin the drawer to a fixed width so the content offset (below) can be
+     * a static calc — Vaadin 25.2 no longer measures/publishes the drawer
+     * width, and the drawer is position:fixed (out of flow), so nothing
+     * else reserves space for it. */
+    width: var(--app-drawer-width) !important;
+    box-sizing: border-box !important;
+    /* Drawer sizes its own height to its contents (logo header + menu
+     * items) rather than stretching to fill the viewport. `max-height`
+     * caps it at the viewport so a very long menu still scrolls instead of
+     * running off the bottom. `align-self: flex-start` defangs the flex
+     * stretch that would otherwise pull the drawer back to full height. */
     height: fit-content !important;
     max-height: calc(100vh - var(--view-inset) * 2) !important;
     align-self: flex-start !important;
@@ -202,24 +223,26 @@ vaadin-app-layout > [slot="drawer"] vaadin-scroller {
     height: auto !important;
 }
 
-/* Vaadin 25.2 changed the AppLayout drawer to `position: fixed` (it
- * floats over the content area instead of occupying a column in a CSS
- * grid). That means the unslotted content no longer gets auto-shifted
- * by the drawer's measured width — it stays at x=0 and the fixed drawer
- * paints on top of it.
+/* The AppLayout drawer is `position: fixed` (out of flow) and — as of
+ * Vaadin 25.2 — the content area is NOT auto-shifted to make room for it,
+ * nor is a drawer-width variable published anymore. So we own the offset:
+ * push the content card right by the fixed drawer width plus two insets
+ * (one cancels the drawer's own left inset, one is the visible gap between
+ * the cards) and trim the width by the same amount so the right edge keeps
+ * the host's `view-inset` padding.
  *
- * Vaadin still publishes the drawer width as
- * `--_vaadin-app-layout-drawer-offset-size` on the host (0 when the
- * drawer is closed). We add that to our own `view-inset * 2` so the
- * content card starts to the RIGHT of the drawer with a one-inset gap
- * between the two cards, and the width is trimmed by the same amount
- * so the right edge respects the host's own `view-inset` padding. */
+ * When the drawer is closed the toggle removes `drawer-opened`; the rule
+ * below collapses the offset back to a single inset in that state. */
 vaadin-app-layout > :not([slot]) {
-    margin-left: calc(var(--_vaadin-app-layout-drawer-offset-size, 0px)
-                      + var(--view-inset) * 2) !important;
-    width: calc(100%
-                - var(--_vaadin-app-layout-drawer-offset-size, 0px)
-                - var(--view-inset) * 2) !important;
+    margin-left: calc(var(--app-drawer-width) + var(--view-inset) * 2) !important;
+    width: calc(100% - var(--app-drawer-width) - var(--view-inset) * 2) !important;
+}
+
+/* Drawer closed: no drawer to clear, so the content card just keeps its
+ * own inset on the left and reclaims the full width. */
+vaadin-app-layout:not([drawer-opened]) > :not([slot]) {
+    margin-left: var(--view-inset) !important;
+    width: calc(100% - var(--view-inset)) !important;
 }
 
 vaadin-side-nav-item::part(content) {

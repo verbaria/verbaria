@@ -6,8 +6,8 @@ import org.zanata.spring.vaadin.theme.AuraUtility;
 import java.util.List;
 import java.util.Locale;
 
-import org.zanata.spring.vaadin.component.Breadcrumbs;
-import org.zanata.spring.vaadin.component.BreadcrumbsItem;
+import com.vaadin.flow.component.breadcrumbs.Breadcrumbs;
+import com.vaadin.flow.component.breadcrumbs.BreadcrumbsItem;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -233,11 +233,15 @@ public class MainLayout extends AppLayout
         if (crumbs.isEmpty()) return;
         Breadcrumbs widget = new Breadcrumbs();
         for (BreadcrumbsService.Crumb c : crumbs) {
-            // Items flagged as "current" (or with no href) render as plain
-            // text — pass null path so vaadin-breadcrumbs marks the last
-            // item as aria-current="page" automatically.
-            String path = c.current() ? null : c.href();
-            widget.add(new BreadcrumbsItem(c.label(), path));
+            // Current-page crumbs use the single-arg (text-only) constructor —
+            // an item with no path renders as a non-link and the web component
+            // marks the last such item as aria-current="page". Passing null to
+            // the (String text, String path) constructor would be an ambiguous
+            // overload (String vs Class), so branch explicitly.
+            BreadcrumbsItem item = c.current()
+                    ? new BreadcrumbsItem(c.label())
+                    : new BreadcrumbsItem(c.label(), c.href());
+            widget.add(item);
         }
         breadcrumbsSlot.add(widget);
     }
