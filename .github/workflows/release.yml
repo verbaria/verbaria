@@ -43,8 +43,10 @@ jobs:
 
       # Build the whole reactor (tests included) and produce the CLI
       # distribution archives and the repackaged Spring Boot server jar.
+      # -Pproduction builds the Vaadin production bundle and excludes
+      # vaadin-dev so the server jar runs in production mode.
       - name: Build + test + package
-        run: ./mvnw -B -ntp package
+        run: ./mvnw -B -ntp -Pproduction package
 
       # Read the Maven project version so the release tag, name, and asset
       # paths follow the poms (e.g. 5.0.0) rather than being hard-coded.

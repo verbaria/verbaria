@@ -38,8 +38,11 @@ jobs:
       # archives. `-B` is non-interactive (no progress bars in CI logs).
       # Maven Surefire fails the build on any test failure by default — no
       # extra flag needed for "fail if tests failed".
+      # -Pproduction builds the Vaadin production bundle (prepare-frontend +
+      # build-frontend) and excludes vaadin-dev, so the packaged server jar
+      # runs in production mode instead of demanding vaadin-dev-server.
       - name: Build + test + package
-        run: ./mvnw -B -ntp package
+        run: ./mvnw -B -ntp -Pproduction package
 
       # Surface the test reports even when the job fails, so the failure is
       # diagnosable from the workflow run page.
