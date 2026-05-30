@@ -81,6 +81,9 @@ public class SecurityConfig {
                                                    RememberMeServices rememberMeServices) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                    // Metrics may expose JVM/HTTP internals — admins only.
+                    .requestMatchers("/actuator/metrics", "/actuator/metrics/**")
+                            .hasRole("ADMIN")
                     .requestMatchers(
                             "/actuator/health", "/actuator/info",
                             "/rest/**",
