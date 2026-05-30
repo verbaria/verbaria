@@ -396,6 +396,15 @@
                         <version>25.2.0-beta1</version>
                         <executions>
                             <execution>
+                                <!-- Run AFTER compile: this module defines its
+                                     own FeatureFlagProvider
+                                     (BreadcrumbsFeatureFlagProvider) in source,
+                                     and Vaadin's frontend goals ServiceLoader it.
+                                     At the default (pre-compile) phase the class
+                                     isn't compiled yet -> "Provider ... not
+                                     found". prepare-package is after compile and
+                                     before the jar is assembled. -->
+                                <phase>prepare-package</phase>
                                 <goals>
                                     <!-- prepare-frontend writes the
                                          flow-build-info.json token that flips
