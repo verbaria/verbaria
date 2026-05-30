@@ -11,10 +11,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zanata.model.HAccount;
 import org.zanata.spring.repository.AccountRepository;
 
 /**
- * Resolves Spring Security users by username against the HAccount table.
+ * Resolves Spring Security users against the HAccount table. The login
+ * identifier may be a username or an email — usernames can't contain '@', so
+ * the two never collide; we try username first, then email.
  * Roles flow through as ROLE_&lt;name&gt; authorities to match Spring Security's
  * hasRole() convention; the HAccountRole.name column already stores values
  * like "admin", "user" without prefix.
@@ -30,9 +33,13 @@ public class ZanataUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var account = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("No account: " + username));
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        // '@' can't appear in a username, so it unambiguously marks an email.
+        HAccount account = (identifier.contains("@")
+                ? accountRepository.findFirstByPersonEmailIgnoreCase(identifier)
+                : accountRepository.findByUsername(identifier))
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "No account: " + identifier));
 
         List<GrantedAuthority> authorities = account.getRoles() == null
                 ? List.of()

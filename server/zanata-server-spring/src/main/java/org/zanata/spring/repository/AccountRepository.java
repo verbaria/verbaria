@@ -14,6 +14,9 @@ import org.zanata.model.HAccount;
 public interface AccountRepository extends JpaRepository<HAccount, Long> {
     Optional<HAccount> findByUsername(String username);
 
+    /** Look up an account by its person's email (case-insensitive). */
+    Optional<HAccount> findFirstByPersonEmailIgnoreCase(String email);
+
     /**
      * Eager-loads {@code roles} so callers running outside an open Hibernate
      * session — notably {@link org.zanata.spring.security.ApiKeyAuthenticationFilter}
