@@ -219,6 +219,16 @@ public class MainLayout extends AppLayout
         if (path == null || path.isEmpty() || "/".equals(path)) {
             // On the home page itself: a single "Home" leaf crumb.
             breadcrumbsService.set(BreadcrumbsService.Crumb.here(homeLabel));
+        } else if (path.startsWith("admin/") && !path.equals("admin/home")) {
+            // Admin sub-pages get an intermediate "Administration" crumb that
+            // links back to the admin landing page.
+            breadcrumbsService.set(
+                    BreadcrumbsService.Crumb.of(homeLabel, "/"),
+                    BreadcrumbsService.Crumb.of(
+                            getTranslation("page.administration"),
+                            "/admin/home"),
+                    BreadcrumbsService.Crumb.here(pageLabel)
+            );
         } else {
             breadcrumbsService.set(
                     BreadcrumbsService.Crumb.of(homeLabel, "/"),
