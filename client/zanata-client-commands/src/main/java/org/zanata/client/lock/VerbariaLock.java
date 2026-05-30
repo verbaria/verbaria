@@ -130,19 +130,16 @@ public class VerbariaLock {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonPropertyOrder({ "revision", "md5" })
+    @JsonPropertyOrder({ "revision" })
     public static class SourceLock {
         /** server-side document revision ({@code ResourceMeta.revision}). */
         private Integer revision;
-        /** md5 of the local source file, for local-drift detection. */
-        private String md5;
 
         public SourceLock() {
         }
 
-        public SourceLock(Integer revision, String md5) {
+        public SourceLock(Integer revision) {
             this.revision = revision;
-            this.md5 = md5;
         }
 
         public Integer getRevision() {
@@ -152,18 +149,10 @@ public class VerbariaLock {
         public void setRevision(Integer revision) {
             this.revision = revision;
         }
-
-        public String getMd5() {
-            return md5;
-        }
-
-        public void setMd5(String md5) {
-            this.md5 = md5;
-        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonPropertyOrder({ "sig", "state", "total", "md5", "translators" })
+    @JsonPropertyOrder({ "sig", "state", "total", "translators" })
     public static class TranslationLock {
         /** hash over the included {@code (resId, state, revision)} targets. */
         private String sig;
@@ -171,8 +160,6 @@ public class VerbariaLock {
         private String state;
         /** number of targets included in the signature. */
         private Integer total;
-        /** md5 of the local translation file, for local-drift detection. */
-        private String md5;
         /**
          * Contributors to this document+locale, as {@code "Name <email>"},
          * used to attribute changes with {@code Co-authored-by} trailers in the
@@ -184,11 +171,10 @@ public class VerbariaLock {
         }
 
         public TranslationLock(String sig, String state, Integer total,
-                String md5, List<String> translators) {
+                List<String> translators) {
             this.sig = sig;
             this.state = state;
             this.total = total;
-            this.md5 = md5;
             this.translators = translators;
         }
 
@@ -214,14 +200,6 @@ public class VerbariaLock {
 
         public void setTotal(Integer total) {
             this.total = total;
-        }
-
-        public String getMd5() {
-            return md5;
-        }
-
-        public void setMd5(String md5) {
-            this.md5 = md5;
         }
 
         public List<String> getTranslators() {

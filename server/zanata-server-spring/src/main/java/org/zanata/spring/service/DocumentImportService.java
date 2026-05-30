@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.ContentState;
+import org.zanata.spring.security.Roles;
 import org.zanata.common.ContentType;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HAccount;
@@ -244,6 +245,13 @@ public class DocumentImportService {
             target.setContents(contents);
             ContentState state = incoming.getState() == null
                     ? ContentState.Translated : incoming.getState();
+            // Review states (approved/rejected) require admin rights; for
+            // everyone else, downgrade an approved push to translated.
+            if ((state == ContentState.Approved
+                    || state == ContentState.Rejected)
+                    && !Roles.isCurrentUserAdmin()) {
+                state = ContentState.Translated;
+            }
             target.setState(state);
             target.setTextFlowRevision(tf.getRevision());
             if (translator != null) {

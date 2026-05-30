@@ -61,4 +61,10 @@ public interface PushOptions extends PushPullOptions {
 
     public boolean isMyTrans();
 
+    /**
+     * Whether to upload translations as reviewed/approved
+     * ({@code ContentState.Approved}) instead of {@code Translated}.
+     */
+    public boolean getApprove();
+
 }

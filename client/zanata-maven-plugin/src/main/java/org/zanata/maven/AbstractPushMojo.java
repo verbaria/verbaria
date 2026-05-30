@@ -163,6 +163,18 @@ abstract class AbstractPushMojo extends
     @Parameter(property = "zanata.myTrans", defaultValue = "false")
     private boolean myTrans = false;
 
+    /**
+     * Upload translations as reviewed (approved). Server enforces that only
+     * admins may actually set the approved state.
+     */
+    @Parameter(property = "zanata.approve", defaultValue = "false")
+    private boolean approve = false;
+
+    @Override
+    public boolean getApprove() {
+        return approve;
+    }
+
     @Override
     public String getSourceLang() {
         return sourceLang;

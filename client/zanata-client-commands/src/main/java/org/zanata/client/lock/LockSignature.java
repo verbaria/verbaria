@@ -71,11 +71,10 @@ public final class LockSignature {
      * or {@code null} when no target counts (nothing worth recording).
      *
      * @param targets the targets returned for one document and locale
-     * @param md5 md5 of the written translation file (may be {@code null})
      * @param includeFuzzy whether NeedReview targets count
      */
     public static TranslationLock fromTargets(List<TextFlowTarget> targets,
-            String md5, boolean includeFuzzy) {
+            boolean includeFuzzy) {
         List<TextFlowTarget> included = new ArrayList<>();
         for (TextFlowTarget t : targets) {
             if (counts(t.getState(), includeFuzzy)) {
@@ -111,7 +110,7 @@ public final class LockSignature {
         String state = representative == null ? null : representative.name();
         List<String> people =
                 translators.isEmpty() ? null : new ArrayList<>(translators);
-        return new TranslationLock(sig, state, included.size(), md5, people);
+        return new TranslationLock(sig, state, included.size(), people);
     }
 
     /** Renders a translator as {@code "Name <email>"}, or {@code null}. */

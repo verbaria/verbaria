@@ -34,8 +34,7 @@ public class LockChangelogTest {
 
     private static TranslationLock tl(String sig, String... who) {
         List<String> people = who.length == 0 ? null : Arrays.asList(who);
-        return new TranslationLock(sig, "Translated", who.length, "md5",
-                people);
+        return new TranslationLock(sig, "Translated", who.length, people);
     }
 
     private static VerbariaLock lock() {

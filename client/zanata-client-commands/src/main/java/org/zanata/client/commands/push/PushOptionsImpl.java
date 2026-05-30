@@ -64,6 +64,7 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
     @Nullable
     private String validate;
     private boolean myTrans = DEF_MY_TRANS;
+    private boolean approve = false;
 
     @Override
     public ZanataCommand initCommand() {
@@ -286,5 +287,17 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
             usage = "Indicates all uploaded translations were translated by you ")
     public void setMyTrans(boolean myTrans) {
         this.myTrans = myTrans;
+    }
+
+    @Override
+    public boolean getApprove() {
+        return approve;
+    }
+
+    @Option(name = "--approve",
+            usage = "Upload translations as reviewed (approved) instead of "
+                    + "translated. Useful for initial/bulk imports.")
+    public void setApprove(boolean approve) {
+        this.approve = approve;
     }
 }

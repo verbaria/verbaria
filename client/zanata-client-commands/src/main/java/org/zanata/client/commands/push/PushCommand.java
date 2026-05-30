@@ -25,9 +25,16 @@ import org.zanata.adapter.properties.PropWriter;
 import org.zanata.adapter.xliff.XliffCommon.ValidationType;
 import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
+import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.exceptions.ConfigException;
+import org.zanata.client.lock.LockSignature;
+import org.zanata.client.lock.VerbariaLock;
+import org.zanata.client.lock.VerbariaLock.SourceLock;
+import org.zanata.client.lock.VerbariaLock.TranslationLock;
+import org.zanata.client.lock.VerbariaLockReaderWriter;
 import org.zanata.client.util.ConsoleUtils;
+import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.common.MergeType;
 import org.zanata.rest.StringSet;
@@ -531,6 +538,9 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                                                 localDocName, locale);
                                         return;
                                     }
+                                    if (getOpts().getApprove()) {
+                                        markApproved(targetDoc);
+                                    }
                                     pushTargetDocToServer(qualifiedDocName, locale,
                                             qualifiedDocName, targetDoc,
                                             extensions);
@@ -565,6 +575,97 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             }
         }
         deleteSourceDocsFromServer(obsoleteDocs);
+
+        // Record the resulting server state so the lock reflects what was just
+        // pushed (read back from the server to capture any server-side merge).
+        writeLockFromServer(docsToPush, extensions);
+    }
+
+    /**
+     * Builds {@code verbaria-lock.json} from the server's state for the pushed
+     * documents: source revisions (one call) plus, when translations were
+     * pushed, a signature per locale read back from the server. Mirrors what
+     * {@code pull} records, so push- and pull-written locks stay consistent.
+     * Best-effort: a failure here must not fail the push.
+     */
+    private void writeLockFromServer(SortedSet<String> docsToPush,
+            StringSet extensions) {
+        if (getOpts().isDryRun() || docsToPush.isEmpty()) {
+            return;
+        }
+        try {
+            VerbariaLock lock = new VerbariaLock();
+            lock.setServer(getOpts().getUrl() == null ? null
+                    : getOpts().getUrl().toString());
+            lock.setProject(getOpts().getProj());
+            lock.setProjectVersion(getOpts().getProjectVersion());
+            lock.setGeneratedAt(java.time.Instant.now().toString());
+
+            // Source revisions for all docs in a single request.
+            Map<String, Integer> revisionByDoc = new HashMap<>();
+            for (ResourceMeta meta : getDocListForProjectIterationFromServer()) {
+                revisionByDoc.put(meta.getName(), meta.getRevision());
+            }
+
+            boolean trans = pushTrans();
+            LocaleList locales = getOpts().getLocaleMapList();
+            for (String localDocName : docsToPush) {
+                String qualified = qualifiedDocName(localDocName);
+                Integer revision = revisionByDoc.get(qualified);
+                if (revision != null) {
+                    lock.document(localDocName)
+                            .setSource(new SourceLock(revision));
+                }
+                if (trans && locales != null) {
+                    for (LocaleMapping lm : locales) {
+                        recordTranslationLock(lock, localDocName, qualified,
+                                new LocaleId(lm.getLocale()), extensions);
+                    }
+                }
+            }
+
+            File lockFile = new File(VerbariaLockReaderWriter.FILE_NAME);
+            VerbariaLockReaderWriter.write(lock, lockFile);
+            log.info("Wrote sync state to {}", lockFile);
+        } catch (RuntimeException e) {
+            log.warn("Could not write {}: {}",
+                    VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
+        }
+    }
+
+    private void recordTranslationLock(VerbariaLock lock, String localDocName,
+            String qualifiedDocName, LocaleId locale, StringSet extensions) {
+        try {
+            TranslationsResource body = transDocResourceClient
+                    .getTranslations(qualifiedDocName, locale, extensions,
+                            false, null)
+                    .getBody();
+            if (body == null) {
+                return;
+            }
+            TranslationLock entry = LockSignature.fromTargets(
+                    body.getTextFlowTargets(), false);
+            if (entry != null) {
+                lock.document(localDocName).getTranslations()
+                        .put(locale.getId(), entry);
+            }
+        } catch (HttpClientErrorException.NotFound e) {
+            // No translations stored for this doc+locale yet.
+        }
+    }
+
+    /**
+     * Mark every non-empty target as approved (reviewed). The server enforces
+     * that only admins may actually keep the approved state; for other users it
+     * downgrades to translated.
+     */
+    private static void markApproved(TranslationsResource targetDoc) {
+        for (TextFlowTarget tft : targetDoc.getTextFlowTargets()) {
+            if (tft != null && !tft.getContents().isEmpty()
+                    && !all(tft.getContents(), Strings::isNullOrEmpty)) {
+                tft.setState(ContentState.Approved);
+            }
+        }
     }
 
     private static void stripUntranslatedEntriesIfMergeTypeIsNotImport(

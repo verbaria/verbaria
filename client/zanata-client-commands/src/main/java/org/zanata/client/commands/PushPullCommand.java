@@ -22,8 +22,6 @@
 package org.zanata.client.commands;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
-import org.zanata.client.etag.ETagCache;
-import org.zanata.client.etag.ETagCacheReaderWriter;
 import org.zanata.client.exceptions.ConfigException;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.client.RestClientFactory;
@@ -53,7 +49,6 @@ import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TranslationsResource;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
 import org.zanata.rest.dto.stats.TranslationStatistics;
-import org.zanata.util.PathUtil;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -71,7 +66,6 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
 
     protected static final String PROJECT_TYPE_OFFLINE_PO = "offlinepo";
 
-    protected ETagCache eTagCache;
     private static final ObjectMapper DEBUG_MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private String modulePrefix;
@@ -84,9 +78,6 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
         this.modulePrefix =
                 opts.getEnableModules() ? getOpts().getCurrentModule()
                         + opts.getModuleSuffix() : "";
-        if (opts instanceof PullOptions) {
-            this.loadETagCache(((PullOptions) opts).getCacheDir());
-        }
         rebuildProjectScopedClients();
         statsClient = getClientFactory().getStatisticsClient();
     }
@@ -210,40 +201,6 @@ public abstract class PushPullCommand<O extends PushPullOptions> extends
         }
     }
 
-    protected void loadETagCache(File cacheDir) {
-        try {
-            String location =
-                    ".zanata-cache" + File.separator + "etag-cache.json";
-            if (modulePrefix != null && !modulePrefix.trim().isEmpty()) {
-                location = modulePrefix + File.separator + location;
-            }
-            eTagCache =
-                    ETagCacheReaderWriter.readCache(new FileInputStream(
-                            new File(cacheDir, location)));
-        } catch (Exception e) {
-            // could not read for some reason, use a new one
-            eTagCache = new ETagCache();
-        }
-    }
-
-    protected void storeETagCache(File cacheDir) {
-        try {
-            String location =
-                    ".zanata-cache" + File.separator + "etag-cache.json";
-            if (modulePrefix != null && !modulePrefix.trim().isEmpty()) {
-                location = modulePrefix + File.separator + location;
-            }
-
-            File targetFile = new File(cacheDir, location);
-            if (!targetFile.exists()) {
-                PathUtil.makeDirs(targetFile.getParentFile());
-            }
-            ETagCacheReaderWriter.writeCache(this.eTagCache,
-                    new FileOutputStream(targetFile));
-        } catch (IOException e) {
-            log.warn("Could not create Zanata ETag cache file. Will proceed without it.");
-        }
-    }
 
     protected Map<String, Map<LocaleId, TranslatedPercent>> getDocsTranslatedPercent(
             LocaleList locales) {

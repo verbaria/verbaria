@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -22,7 +21,6 @@ import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
-import org.zanata.client.etag.ETagCacheEntry;
 import org.zanata.client.exceptions.ConfigException;
 import org.zanata.client.lock.LockSignature;
 import org.zanata.client.lock.VerbariaLock;
@@ -30,11 +28,9 @@ import org.zanata.client.lock.VerbariaLock.SourceLock;
 import org.zanata.client.lock.VerbariaLock.TranslationLock;
 import org.zanata.client.lock.VerbariaLockReaderWriter;
 import org.zanata.common.LocaleId;
-import org.zanata.common.io.FileDetails;
 import org.zanata.rest.client.RestClientFactory;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.util.HashUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -171,8 +167,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         logger.info("Username: {}", opts.getUsername());
         logger.info("Project type: {}", opts.getProjectType());
         logger.info("Enable modules: {}", opts.getEnableModules());
-        logger.info("Using ETag cache: {}", opts.getUseCache());
-        logger.info("Purging ETag cache beforehand: {}", opts.getPurgeCache());
         if (opts.getEnableModules()) {
             logger.info("Current Module: {}", opts.getCurrentModule());
             if (opts.isRootModule()) {
@@ -294,9 +288,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     "This will overwrite/delete any existing translations in the above directory.\n");
         }
 
-        if (getOpts().getPurgeCache()) {
-            eTagCache.clear();
-        }
         Optional<Map<String, Map<LocaleId, TranslatedPercent>>> optionalStats =
                 prepareStatsIfApplicable(pullTarget, locales);
 
@@ -324,7 +315,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 if (doc != null && doc.getRevision() != null) {
                     // record the server-side source revision as a version handle
                     lock.document(localDocName)
-                            .setSource(new SourceLock(doc.getRevision(), null));
+                            .setSource(new SourceLock(doc.getRevision()));
                 }
 
                 if (pullTarget) {
@@ -348,9 +339,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                                 "Translation file for document {} for locales {} are skipped due to insufficient completed percentage",
                                 localDocName, skippedLocales);
                     }
-
-                    // write the cache
-                    super.storeETagCache(getOpts().getCacheDir());
                 }
 
             } catch (RuntimeException e) {
@@ -408,17 +396,8 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         if (lock == null || targetDoc == null) {
             return;
         }
-        String md5 = null;
-        if (transFile != null && transFile.isFile()) {
-            try {
-                md5 = HashUtil.getMD5Checksum(transFile);
-            } catch (IOException e) {
-                log.debug("md5 of {} failed: {}", transFile, e.getMessage());
-            }
-        }
         TranslationLock entry = LockSignature.fromTargets(
-                targetDoc.getTextFlowTargets(), md5,
-                getOpts().getIncludeFuzzy());
+                targetDoc.getTextFlowTargets(), getOpts().getIncludeFuzzy());
         if (entry != null) {
             lock.document(localDocName).getTranslations()
                     .put(locale.getId(), entry);
@@ -430,28 +409,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             String localDocName, String docId, boolean createSkeletons,
             LocaleMapping locMapping, File transFile) throws IOException {
         LocaleId locale = new LocaleId(locMapping.getLocale());
-        String eTag = null;
-        ETagCacheEntry eTagCacheEntry =
-                eTagCache.findEntry(localDocName,
-                        locale.getId());
-
-        if (getOpts().getUseCache() && eTagCacheEntry != null) {
-            // Check the last updated date on the file matches
-            // what's in the cache
-            // only then use the cached ETag
-            if (transFile.exists()
-                    && Long.toString(transFile.lastModified())
-                    .equals(eTagCacheEntry
-                            .getLocalFileTime())) {
-                eTag = eTagCacheEntry.getServerETag();
-            }
-        }
 
         ResponseEntity<TranslationsResource> transResponse;
         try {
             transResponse = transDocResourceClient.getTranslations(docId,
-                    locale, strat.getExtensions(),
-                    createSkeletons, eTag);
+                    locale, strat.getExtensions(), createSkeletons, null);
         } catch (HttpClientErrorException.NotFound e) {
             if (!createSkeletons) {
                 log.info(
@@ -460,44 +422,16 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             } else {
                 LocaleMappedTranslatedDoc translatedDoc =
                         new LocaleMappedTranslatedDoc(doc, null, locMapping);
-                writeTargetDoc(strat, localDocName, translatedDoc,
-                        e.getResponseHeaders() == null ? null
-                                : e.getResponseHeaders()
-                                        .getFirst(HttpHeaders.ETAG));
+                writeTargetDoc(strat, localDocName, translatedDoc);
             }
             return;
         }
 
-        if (transResponse.getStatusCode().value() == 304) {
-            log.info(
-                    "No changes in translations for locale {} and document {}",
-                    locale, localDocName);
-
-            String fileChecksum =
-                    HashUtil.getMD5Checksum(transFile);
-            if (!fileChecksum.equals(eTagCacheEntry
-                    .getLocalFileMD5())) {
-                transResponse =
-                        transDocResourceClient.getTranslations(
-                                docId, locale,
-                                strat.getExtensions(),
-                                createSkeletons, null);
-                LocaleMappedTranslatedDoc translatedDoc =
-                        new LocaleMappedTranslatedDoc(doc,
-                                transResponse.getBody(), locMapping);
-                writeTargetDoc(strat, localDocName, translatedDoc,
-                        transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
-                recordTranslationLock(localDocName, locale,
-                        transResponse.getBody(), transFile);
-            }
-        } else {
-            TranslationsResource targetDoc = transResponse.getBody();
-            LocaleMappedTranslatedDoc translatedDoc =
-                    new LocaleMappedTranslatedDoc(doc, targetDoc, locMapping);
-            writeTargetDoc(strat, localDocName, translatedDoc,
-                    transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
-            recordTranslationLock(localDocName, locale, targetDoc, transFile);
-        }
+        TranslationsResource targetDoc = transResponse.getBody();
+        LocaleMappedTranslatedDoc translatedDoc =
+                new LocaleMappedTranslatedDoc(doc, targetDoc, locMapping);
+        writeTargetDoc(strat, localDocName, translatedDoc);
+        recordTranslationLock(localDocName, locale, targetDoc, transFile);
     }
 
     /**
@@ -540,22 +474,13 @@ public class PullCommand extends PushPullCommand<PullOptions> {
      * source Resource may be null if needsDocToWriteTrans() returns false
      */
     private void writeTargetDoc(PullStrategy strat, String localDocName,
-            LocaleMappedTranslatedDoc translatedDoc, String serverETag)
+            LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {
         LocaleMapping locMapping = translatedDoc.getLocale();
         if (!getOpts().isDryRun()) {
             log.info("Writing translation file in locale {} for document {}",
                     locMapping.getLocalLocale(), localDocName);
-            FileDetails fileDetails =
-                    strat.writeTransFile(localDocName, translatedDoc);
-
-            // Insert to cache if the strategy returned file details and we are
-            // using the cache
-            if (getOpts().getUseCache() && fileDetails != null) {
-                eTagCache.addEntry(new ETagCacheEntry(localDocName, locMapping
-                        .getLocale(), Long.toString(fileDetails.getFile()
-                        .lastModified()), fileDetails.getMd5(), serverETag));
-            }
+            strat.writeTransFile(localDocName, translatedDoc);
         } else {
             log.info(
                     "Writing translation file in locale {} for document {} (skipped due to dry run)",
