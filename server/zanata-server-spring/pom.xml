@@ -102,6 +102,22 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Email (activation messages). Spring Boot 4 moved the mail
+             auto-config into a separate module, so we wire JavaMailSender
+             ourselves (MailConfig) and depend on the concrete artifacts only:
+             spring-context-support provides JavaMailSenderImpl, angus-mail is
+             the Jakarta Mail implementation. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+            <version>7.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+            <version>2.0.5</version>
+        </dependency>
+
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>

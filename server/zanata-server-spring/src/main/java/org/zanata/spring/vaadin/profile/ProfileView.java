@@ -43,9 +43,12 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.model.Activity;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocaleMember;
+import org.zanata.model.HApplicationConfiguration;
 import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.repository.ActivityRepository;
+import org.zanata.spring.repository.ApplicationConfigurationRepository;
 import org.zanata.spring.repository.LocaleMemberRepository;
+import org.zanata.spring.settings.ServerSetting;
 import org.zanata.spring.vaadin.MainLayout;
 import org.zanata.spring.vaadin.dashboard.DashboardSettingsView;
 
@@ -59,13 +62,16 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
     private final AccountRepository accountRepository;
     private final ActivityRepository activityRepository;
     private final LocaleMemberRepository localeMemberRepository;
+    private final ApplicationConfigurationRepository configRepository;
 
     public ProfileView(AccountRepository accountRepository,
                        ActivityRepository activityRepository,
-                       LocaleMemberRepository localeMemberRepository) {
+                       LocaleMemberRepository localeMemberRepository,
+                       ApplicationConfigurationRepository configRepository) {
         this.accountRepository = accountRepository;
         this.activityRepository = activityRepository;
         this.localeMemberRepository = localeMemberRepository;
+        this.configRepository = configRepository;
         setWidthFull();
         setPadding(true);
         setSpacing(true);
@@ -172,9 +178,25 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         avatar.addClassNames(AuraUtility.Flex.NONE);
         if (email != null) {
             String hash = md5LowerHex(email.trim().toLowerCase(Locale.ROOT));
-            avatar.setImage("https://www.gravatar.com/avatar/" + hash + "?s=160&d=identicon&r=g");
+            avatar.setImage("https://www.gravatar.com/avatar/" + hash
+                    + "?s=160&d=identicon&r=" + gravatarRating());
         }
         return avatar;
+    }
+
+    /**
+     * Configured Gravatar max rating ({@code gravatar.rating}); defaults to
+     * {@code g}. Restricted to Gravatar's allowed values so a bad config can't
+     * produce a broken URL.
+     */
+    private String gravatarRating() {
+        return configRepository
+                .findByKey(ServerSetting.GRAVATAR_RATING.key())
+                .map(HApplicationConfiguration::getValue)
+                .map(v -> v == null ? "" : v.trim().toLowerCase(Locale.ROOT))
+                .filter(v -> v.equals("g") || v.equals("pg")
+                        || v.equals("r") || v.equals("x"))
+                .orElse("g");
     }
 
     private Span roleChip(String role) {

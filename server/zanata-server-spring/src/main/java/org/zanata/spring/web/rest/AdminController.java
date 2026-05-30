@@ -13,39 +13,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zanata.model.HApplicationConfiguration;
 import org.zanata.spring.repository.ApplicationConfigurationRepository;
+import org.zanata.spring.settings.ServerSetting;
 
 /**
  * Reads/writes the HApplicationConfiguration key/value table consumed by
- * the React admin screen at /rest/admin/server-settings.
+ * the React admin screen at /rest/admin/server-settings. The set of settings
+ * comes from {@link ServerSetting}.
  */
 @RestController
 @RequestMapping("/rest/admin/server-settings")
 public class AdminController {
-
-    /** (key, default-value) pairs.  The default tells the JSON renderer
-     *  which type to coerce ('false' for booleans, '0' for integers). */
-    private static final List<Property> KNOWN_PROPERTIES = List.of(
-            new Property(HApplicationConfiguration.KEY_ADMIN_EMAIL, ""),
-            new Property(HApplicationConfiguration.KEY_ALLOW_ANONYMOUS_USER, false),
-            new Property(HApplicationConfiguration.KEY_AUTO_ACCEPT_TRANSLATOR, false),
-            new Property(HApplicationConfiguration.KEY_DISPLAY_USER_EMAIL, false),
-            new Property(HApplicationConfiguration.KEY_DOMAIN, ""),
-            new Property(HApplicationConfiguration.KEY_EMAIL_FROM_ADDRESS, ""),
-            new Property(HApplicationConfiguration.KEY_EMAIL_LOG_EVENTS, false),
-            new Property(HApplicationConfiguration.KEY_EMAIL_LOG_LEVEL, ""),
-            new Property(HApplicationConfiguration.KEY_GRAVATAR_RATING, ""),
-            new Property(HApplicationConfiguration.KEY_HELP_URL, ""),
-            new Property(HApplicationConfiguration.KEY_HOST, ""),
-            new Property(HApplicationConfiguration.KEY_LOG_DESTINATION_EMAIL, ""),
-            new Property(HApplicationConfiguration.KEY_MAX_ACTIVE_REQ_PER_API_KEY, 2),
-            new Property(HApplicationConfiguration.KEY_MAX_CONCURRENT_REQ_PER_API_KEY, 2),
-            new Property(HApplicationConfiguration.KEY_MAX_FILES_PER_UPLOAD, 100),
-            new Property(HApplicationConfiguration.KEY_PERMITTED_USER_EMAIL_DOMAIN, ""),
-            new Property(HApplicationConfiguration.KEY_PIWIK_URL, ""),
-            new Property(HApplicationConfiguration.KEY_PIWIK_IDSITE, ""),
-            new Property(HApplicationConfiguration.KEY_REGISTER, ""),
-            new Property(HApplicationConfiguration.KEY_TERMS_CONDITIONS_URL, ""),
-            new Property(HApplicationConfiguration.KEY_TM_FUZZY_BANDS, ""));
 
     private final ApplicationConfigurationRepository repo;
 
@@ -56,13 +33,13 @@ public class AdminController {
     @GetMapping
     @Transactional(readOnly = true)
     public List<Property> get() {
-        List<Property> out = new ArrayList<>(KNOWN_PROPERTIES.size());
-        for (Property p : KNOWN_PROPERTIES) {
-            Object value = repo.findByKey(p.key())
+        List<Property> out = new ArrayList<>(ServerSetting.values().length);
+        for (ServerSetting setting : ServerSetting.values()) {
+            Object value = repo.findByKey(setting.key())
                     .map(HApplicationConfiguration::getValue)
-                    .map(s -> coerce(s, p.defaultValue()))
-                    .orElse(p.defaultValue());
-            out.add(new Property(p.key(), value));
+                    .map(s -> coerce(s, setting.defaultValue()))
+                    .orElse(setting.defaultValue());
+            out.add(new Property(setting.key(), value));
         }
         return out;
     }

@@ -47,8 +47,7 @@ public class HApplicationConfigurationTest {
     @Test
     public void testListKeys() {
         assertThat(HApplicationConfiguration.getAvailableKeys())
-                .contains(HApplicationConfiguration.KEY_HOST,
-                        HApplicationConfiguration.KEY_EMAIL_LOG_EVENTS);
+                .contains(HApplicationConfiguration.KEY_HOME_CONTENT);
     }
 
     @Test

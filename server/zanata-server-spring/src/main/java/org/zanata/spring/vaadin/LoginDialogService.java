@@ -111,23 +111,36 @@ public class LoginDialogService {
             });
         }
 
+        boolean allowSignUp = registrationService.isRegistrationAllowed();
+
         Tabs tabs = new Tabs();
         Tab signInTab = new Tab(ui.getTranslation("login.tabSignIn"));
         Tab signUpTab = new Tab(ui.getTranslation("login.tabSignUp"));
-        tabs.add(signInTab, signUpTab);
+        tabs.add(signInTab);
+        if (allowSignUp) {
+            tabs.add(signUpTab);
+        }
         tabs.setSelectedTab(signInTab);
 
         VerticalLayout signInPanel = buildSignInPanel(ui, dialog, returnPath);
-        VerticalLayout signUpPanel = buildSignUpPanel(ui, dialog, returnPath);
-        signUpPanel.setVisible(false);
+        VerticalLayout signUpPanel = allowSignUp
+                ? buildSignUpPanel(ui, dialog, returnPath) : null;
+        if (signUpPanel != null) {
+            signUpPanel.setVisible(false);
+        }
 
         tabs.addSelectedChangeListener(e -> {
             boolean signIn = e.getSelectedTab() == signInTab;
             signInPanel.setVisible(signIn);
-            signUpPanel.setVisible(!signIn);
+            if (signUpPanel != null) {
+                signUpPanel.setVisible(!signIn);
+            }
         });
 
-        dialog.add(tabs, signInPanel, signUpPanel);
+        dialog.add(tabs, signInPanel);
+        if (signUpPanel != null) {
+            dialog.add(signUpPanel);
+        }
         dialog.open();
     }
 
@@ -215,8 +228,19 @@ public class LoginDialogService {
                 return;
             }
             try {
-                registrationService.register(username.getValue(), password.getValue(),
-                        name.getValue(), email.getValue());
+                AccountRegistrationService.Result result =
+                        registrationService.register(username.getValue(),
+                                password.getValue(), name.getValue(),
+                                email.getValue());
+                if (!result.enabled()) {
+                    // Activation required — can't auto-login a disabled account.
+                    dialog.close();
+                    Notification n = Notification.show(
+                            ui.getTranslation("account.register.checkEmail"),
+                            4000, Notification.Position.BOTTOM_CENTER);
+                    n.addThemeVariants(NotificationVariant.SUCCESS);
+                    return;
+                }
                 // Auto-sign-in after a successful registration so the user
                 // lands on the authenticated UI without a second prompt.
                 try {

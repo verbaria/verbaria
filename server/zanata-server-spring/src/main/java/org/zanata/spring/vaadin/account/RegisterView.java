@@ -13,6 +13,8 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.Style;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import com.vaadin.flow.router.RouterLink;
@@ -24,12 +26,15 @@ import org.zanata.spring.vaadin.theme.AuraUtility;
 
 @Route("account/register")
 @AnonymousAllowed
-public class RegisterView extends VerticalLayout implements TitleKey {
+public class RegisterView extends VerticalLayout
+        implements TitleKey, BeforeEnterObserver {
 
     @Override public String pageTitleKey() { return "page.signUp"; }
 
+    private final AccountRegistrationService registrationService;
 
     public RegisterView(AccountRegistrationService registrationService) {
+        this.registrationService = registrationService;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -68,11 +73,15 @@ public class RegisterView extends VerticalLayout implements TitleKey {
                 return;
             }
             try {
-                registrationService.register(username.getValue(), password.getValue(),
-                        name.getValue(), email.getValue());
+                AccountRegistrationService.Result result =
+                        registrationService.register(username.getValue(),
+                                password.getValue(), name.getValue(),
+                                email.getValue());
                 Notification n = Notification.show(
-                        getTranslation("account.register.success"),
-                        3500, Notification.Position.BOTTOM_CENTER);
+                        getTranslation(result.enabled()
+                                ? "account.register.success"
+                                : "account.register.checkEmail"),
+                        4000, Notification.Position.BOTTOM_CENTER);
                 n.addThemeVariants(NotificationVariant.SUCCESS);
                 UI.getCurrent().navigate(LoginView.class);
             } catch (AccountRegistrationService.RegistrationException ex) {
@@ -95,6 +104,27 @@ public class RegisterView extends VerticalLayout implements TitleKey {
         signInHint.addClassNames(AuraUtility.TextAlignment.CENTER, AuraUtility.FontSize.SMALL);
 
         panel.add(heading, form, submit, signInHint);
+        add(panel);
+    }
+
+    /**
+     * When self-service registration is disabled, replace the form with a
+     * notice and a link back to sign-in (the service also rejects the request,
+     * so this is the user-facing half of the gate).
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (registrationService.isRegistrationAllowed()) {
+            return;
+        }
+        removeAll();
+        VerticalLayout panel = new VerticalLayout();
+        panel.setWidth("420px");
+        panel.setPadding(true);
+        panel.add(new H2(getTranslation("account.register.title")));
+        panel.add(new Paragraph(getTranslation("account.register.disabled")));
+        panel.add(new RouterLink(getTranslation("account.register.signIn"),
+                LoginView.class));
         add(panel);
     }
 }

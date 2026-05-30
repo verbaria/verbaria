@@ -11,6 +11,7 @@ import org.zanata.model.HAccount;
 import org.zanata.model.HApplicationConfiguration;
 import org.zanata.model.HPerson;
 import org.zanata.spring.repository.AccountRepository;
+import org.zanata.spring.settings.ServerSetting;
 import org.zanata.spring.repository.ApplicationConfigurationRepository;
 
 /**
@@ -55,7 +56,7 @@ public class UserSettingsService {
      */
     @Transactional(readOnly = true)
     public String serverUrl() {
-        return appConfigRepository.findByKey(HApplicationConfiguration.KEY_HOST)
+        return appConfigRepository.findByKey(ServerSetting.HOST.key())
                 .map(HApplicationConfiguration::getValue)
                 .filter(UserSettingsService::isValidHttpUrl)
                 .orElse(null);

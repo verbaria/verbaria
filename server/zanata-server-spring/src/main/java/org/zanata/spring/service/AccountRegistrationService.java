@@ -9,8 +9,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.model.HAccount;
+import org.zanata.model.HAccountActivationKey;
+import org.zanata.model.HApplicationConfiguration;
 import org.zanata.model.HPerson;
 import org.zanata.spring.repository.AccountRepository;
+import org.zanata.spring.repository.ActivationKeyRepository;
+import org.zanata.spring.repository.ApplicationConfigurationRepository;
+import org.zanata.spring.settings.ServerSetting;
 
 /**
  * Account creation backing the {@code /account/register} sign-up form.
@@ -36,11 +41,36 @@ public class AccountRegistrationService {
 
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationConfigurationRepository configRepository;
+    private final ActivationKeyRepository activationKeyRepository;
+    private final EmailService emailService;
+    private final UserSettingsService userSettingsService;
 
     public AccountRegistrationService(AccountRepository accountRepository,
-                                      PasswordEncoder passwordEncoder) {
+                                      PasswordEncoder passwordEncoder,
+                                      ApplicationConfigurationRepository configRepository,
+                                      ActivationKeyRepository activationKeyRepository,
+                                      EmailService emailService,
+                                      UserSettingsService userSettingsService) {
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
+        this.configRepository = configRepository;
+        this.activationKeyRepository = activationKeyRepository;
+        this.emailService = emailService;
+        this.userSettingsService = userSettingsService;
+    }
+
+    /**
+     * Whether self-service registration is currently enabled. Defaults to
+     * {@code true} when the setting is absent, preserving open registration.
+     */
+    @Transactional(readOnly = true)
+    public boolean isRegistrationAllowed() {
+        return configRepository
+                .findByKey(ServerSetting.ALLOW_REGISTRATION.key())
+                .map(HApplicationConfiguration::getValue)
+                .map(v -> !"false".equalsIgnoreCase(v.trim()))
+                .orElse(true);
     }
 
     /**
@@ -76,14 +106,22 @@ public class AccountRegistrationService {
     @Transactional
     public Result register(String username, String password,
                            String fullName, String email) {
+        if (!isRegistrationAllowed()) {
+            throw new RegistrationException(
+                    "Registration is currently disabled.");
+        }
         validate(username, password, fullName, email);
         if (accountRepository.findByUsername(username).isPresent()) {
             throw new RegistrationException("That username is already taken.");
         }
+        // When email is configured, require activation; otherwise (e.g. no
+        // SMTP in a dev instance) enable immediately so the user can log in.
+        boolean requireActivation = emailService.isEnabled();
+
         HAccount a = new HAccount();
         a.setUsername(username);
         a.setPasswordHash(passwordEncoder.encode(password));
-        a.setEnabled(true); // see class javadoc — toggle once email lands
+        a.setEnabled(!requireActivation);
         a.setApiKey(generateApiKey());
         a.setRoles(new HashSet<>());
 
@@ -94,7 +132,48 @@ public class AccountRegistrationService {
         a.setPerson(p);
 
         HAccount saved = accountRepository.save(a);
-        return new Result(saved, true);
+
+        if (requireActivation) {
+            sendActivationEmail(saved);
+        }
+        return new Result(saved, saved.isEnabled());
+    }
+
+    /** Creates an activation key and emails the activation link. */
+    private void sendActivationEmail(HAccount account) {
+        String key = generateApiKey();
+        HAccountActivationKey activationKey = new HAccountActivationKey();
+        activationKey.setKeyHash(key);
+        activationKey.setAccount(account);
+        activationKeyRepository.save(activationKey);
+
+        String base = userSettingsService.serverUrl();
+        String activationUrl = (base == null ? "" : base)
+                + "/account/activate?key=" + key;
+        emailService.sendActivation(
+                account.getPerson() == null ? null : account.getPerson().getEmail(),
+                account.getPerson() == null ? null : account.getPerson().getName(),
+                activationUrl);
+    }
+
+    /**
+     * Activates the account for the given key: enables it and consumes the key.
+     * Returns false if the key is unknown (invalid or already used).
+     */
+    @Transactional
+    public boolean activate(String key) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        return activationKeyRepository.findById(key).map(activationKey -> {
+            HAccount account = activationKey.getAccount();
+            if (account != null) {
+                account.setEnabled(true);
+                accountRepository.save(account);
+            }
+            activationKeyRepository.delete(activationKey);
+            return true;
+        }).orElse(false);
     }
 
     private static void validate(String username, String password,
