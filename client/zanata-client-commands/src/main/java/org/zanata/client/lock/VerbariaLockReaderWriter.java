@@ -27,14 +27,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
- * Reads and writes {@code verbaria.lock} as pretty-printed JSON with
+ * Reads and writes {@code verbaria-lock.json} as pretty-printed JSON with
  * deterministic key ordering, so that commits produce minimal, reviewable
  * diffs.
  */
 public final class VerbariaLockReaderWriter {
 
     /** Default file name, written at the project root (the cache dir). */
-    public static final String FILE_NAME = "verbaria.lock";
+    public static final String FILE_NAME = "verbaria-lock.json";
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)

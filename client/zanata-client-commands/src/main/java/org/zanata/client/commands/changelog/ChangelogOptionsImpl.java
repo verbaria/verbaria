@@ -24,7 +24,7 @@ import org.zanata.client.commands.ZanataCommand;
 
 /**
  * Options for the offline {@code changelog} command, which diffs two
- * {@code verbaria.lock} files and renders the change set as a git commit
+ * {@code verbaria-lock.json} files and renders the change set as a git commit
  * message (default) or a Markdown changelog.
  */
 public class ChangelogOptionsImpl extends BasicOptionsImpl
@@ -41,7 +41,7 @@ public class ChangelogOptionsImpl extends BasicOptionsImpl
     }
 
     @Option(name = "--old", metaVar = "FILE",
-            usage = "Previous verbaria.lock to compare against. "
+            usage = "Previous verbaria-lock.json to compare against. "
                     + "If omitted or missing, every translation is treated as new.")
     public void setOldLock(File oldLock) {
         this.oldLock = oldLock;
@@ -53,7 +53,7 @@ public class ChangelogOptionsImpl extends BasicOptionsImpl
     }
 
     @Option(name = "--new", metaVar = "FILE", required = true,
-            usage = "Current verbaria.lock (the freshly pulled state).")
+            usage = "Current verbaria-lock.json (the freshly pulled state).")
     public void setNewLock(File newLock) {
         this.newLock = newLock;
     }
@@ -94,7 +94,7 @@ public class ChangelogOptionsImpl extends BasicOptionsImpl
 
     @Override
     public String getCommandDescription() {
-        return "Generates a translation changelog by diffing two verbaria.lock "
+        return "Generates a translation changelog by diffing two verbaria-lock.json "
                 + "files. Outputs a git commit message (what changed and by "
                 + "whom, with Co-authored-by trailers) or a Markdown changelog.";
     }

@@ -706,7 +706,7 @@ public class ZanataCliBridgeController {
             dto.setRevision(t.getVersionNum());
             dto.setTextFlowRevision(t.getTextFlowRevision());
             // expose who translated so clients can attribute changes (e.g.
-            // Co-authored-by trailers in verbaria.lock-driven commit messages)
+            // Co-authored-by trailers in verbaria-lock.json-driven commit messages)
             HPerson author = t.getTranslator() != null ? t.getTranslator()
                     : t.getLastModifiedBy();
             if (author != null) {

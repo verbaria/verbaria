@@ -29,7 +29,7 @@ import org.zanata.client.lock.VerbariaLock;
 import org.zanata.client.lock.VerbariaLockReaderWriter;
 
 /**
- * Offline command: diffs two {@code verbaria.lock} files and writes the change
+ * Offline command: diffs two {@code verbaria-lock.json} files and writes the change
  * set (git commit message, or Markdown changelog) to stdout or a file. Needs no
  * server connection. An empty diff produces empty output, so the scheduled-sync
  * workflow can gate the commit/PR on a non-empty result.

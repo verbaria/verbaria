@@ -55,7 +55,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
 
     /**
      * Sync state recorded during {@link #run()} and written to
-     * {@code verbaria.lock} at the end. Null when not pulling translations.
+     * {@code verbaria-lock.json} at the end. Null when not pulling translations.
      */
     private VerbariaLock lock;
 
@@ -379,7 +379,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     }
 
     /**
-     * Writes {@code verbaria.lock} at the project root (the cache dir),
+     * Writes {@code verbaria-lock.json} at the project root (the cache dir),
      * capturing the sync state for incremental pulls and commit-message
      * generation. Best-effort: a failure here must not fail the pull.
      */

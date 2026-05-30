@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * The committed sync state written by {@code pull}/{@code push} as
- * {@code verbaria.lock}. It records, per document and per locale, a compact
+ * {@code verbaria-lock.json}. It records, per document and per locale, a compact
  * signature of the last synced translations so that a later diff (see
  * {@link LockChangelog}) can produce a changelog and commit message without
  * re-inspecting every string.
