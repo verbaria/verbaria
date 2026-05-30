@@ -9,7 +9,7 @@ name: Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 # Need write access to create the tag, release, and upload assets.
