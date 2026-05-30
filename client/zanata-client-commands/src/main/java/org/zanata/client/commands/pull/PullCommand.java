@@ -24,6 +24,11 @@ import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
 import org.zanata.client.etag.ETagCacheEntry;
 import org.zanata.client.exceptions.ConfigException;
+import org.zanata.client.lock.LockSignature;
+import org.zanata.client.lock.VerbariaLock;
+import org.zanata.client.lock.VerbariaLock.SourceLock;
+import org.zanata.client.lock.VerbariaLock.TranslationLock;
+import org.zanata.client.lock.VerbariaLockReaderWriter;
 import org.zanata.common.LocaleId;
 import org.zanata.common.io.FileDetails;
 import org.zanata.rest.client.RestClientFactory;
@@ -47,6 +52,12 @@ public class PullCommand extends PushPullCommand<PullOptions> {
 
     private static final Map<String, Class<? extends PullStrategy>> strategies =
             new HashMap<String, Class<? extends PullStrategy>>();
+
+    /**
+     * Sync state recorded during {@link #run()} and written to
+     * {@code verbaria.lock} at the end. Null when not pulling translations.
+     */
+    private VerbariaLock lock;
 
     static {
         strategies.put(PROJECT_TYPE_UTF8_PROPERTIES,
@@ -289,6 +300,13 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         Optional<Map<String, Map<LocaleId, TranslatedPercent>>> optionalStats =
                 prepareStatsIfApplicable(pullTarget, locales);
 
+        // Start a fresh lock describing this sync; populated below per doc.
+        lock = new VerbariaLock();
+        lock.setServer(getOpts().getUrl() == null ? null
+                : getOpts().getUrl().toString());
+        lock.setProject(getOpts().getProj());
+        lock.setProjectVersion(getOpts().getProjectVersion());
+        lock.setGeneratedAt(java.time.Instant.now().toString());
 
         for (String qualifiedDocName : docsToPull) {
             try {
@@ -302,6 +320,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 }
                 if (pullSrc) {
                     writeSrcDoc(strat, doc);
+                }
+                if (doc != null && doc.getRevision() != null) {
+                    // record the server-side source revision as a version handle
+                    lock.document(localDocName)
+                            .setSource(new SourceLock(doc.getRevision(), null));
                 }
 
                 if (pullTarget) {
@@ -352,6 +375,54 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             }
         }
 
+        writeLock();
+    }
+
+    /**
+     * Writes {@code verbaria.lock} at the project root (the cache dir),
+     * capturing the sync state for incremental pulls and commit-message
+     * generation. Best-effort: a failure here must not fail the pull.
+     */
+    private void writeLock() {
+        if (lock == null || getOpts().isDryRun()) {
+            return;
+        }
+        try {
+            File lockFile = new File(getOpts().getCacheDir(),
+                    VerbariaLockReaderWriter.FILE_NAME);
+            VerbariaLockReaderWriter.write(lock, lockFile);
+            log.info("Wrote sync state to {}", lockFile);
+        } catch (RuntimeException e) {
+            log.warn("Could not write {}: {}",
+                    VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
+        }
+    }
+
+    /**
+     * Records the lock entry for one document+locale from the pulled targets.
+     * No-op when there are no countable targets. Uses the include-fuzzy policy
+     * to decide which targets count (accepted-only by default).
+     */
+    private void recordTranslationLock(String localDocName, LocaleId locale,
+            TranslationsResource targetDoc, File transFile) {
+        if (lock == null || targetDoc == null) {
+            return;
+        }
+        String md5 = null;
+        if (transFile != null && transFile.isFile()) {
+            try {
+                md5 = HashUtil.getMD5Checksum(transFile);
+            } catch (IOException e) {
+                log.debug("md5 of {} failed: {}", transFile, e.getMessage());
+            }
+        }
+        TranslationLock entry = LockSignature.fromTargets(
+                targetDoc.getTextFlowTargets(), md5,
+                getOpts().getIncludeFuzzy());
+        if (entry != null) {
+            lock.document(localDocName).getTranslations()
+                    .put(locale.getId(), entry);
+        }
     }
 
     @VisibleForTesting
@@ -416,6 +487,8 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                                 transResponse.getBody(), locMapping);
                 writeTargetDoc(strat, localDocName, translatedDoc,
                         transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
+                recordTranslationLock(localDocName, locale,
+                        transResponse.getBody(), transFile);
             }
         } else {
             TranslationsResource targetDoc = transResponse.getBody();
@@ -423,6 +496,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     new LocaleMappedTranslatedDoc(doc, targetDoc, locMapping);
             writeTargetDoc(strat, localDocName, translatedDoc,
                     transResponse.getHeaders().getFirst(HttpHeaders.ETAG));
+            recordTranslationLock(localDocName, locale, targetDoc, transFile);
         }
     }
 

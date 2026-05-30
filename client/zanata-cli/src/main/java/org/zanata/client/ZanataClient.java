@@ -27,6 +27,7 @@ import org.zanata.client.commands.PutUserOptionsImpl;
 import org.zanata.client.commands.PutVersionOptionsImpl;
 import org.zanata.client.commands.SystemExitStrategy;
 import org.zanata.client.commands.ZanataCommand;
+import org.zanata.client.commands.changelog.ChangelogOptionsImpl;
 import org.zanata.client.commands.glossary.delete.GlossaryDeleteOptionsImpl;
 import org.zanata.client.commands.glossary.pull.GlossaryPullOptionsImpl;
 import org.zanata.client.commands.glossary.push.GlossaryPushOptionsImpl;
@@ -75,7 +76,8 @@ public class ZanataClient extends BasicOptionsImpl {
             @SubCommand(name = "stats", impl = GetStatisticsOptionsImpl.class),
             @SubCommand(name = "glossary-delete", impl = GlossaryDeleteOptionsImpl.class),
             @SubCommand(name = "glossary-push", impl = GlossaryPushOptionsImpl.class),
-            @SubCommand(name = "glossary-pull", impl = GlossaryPullOptionsImpl.class)})
+            @SubCommand(name = "glossary-pull", impl = GlossaryPullOptionsImpl.class),
+            @SubCommand(name = "changelog", impl = ChangelogOptionsImpl.class)})
 
     // if this field name changes, change COMMAND_FIELD too
     private Object command;

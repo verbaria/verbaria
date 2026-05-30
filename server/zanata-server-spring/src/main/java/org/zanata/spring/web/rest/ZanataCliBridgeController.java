@@ -41,8 +41,10 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
+import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.dto.ProjectIteration;
@@ -703,6 +705,13 @@ public class ZanataCliBridgeController {
             dto.setContents(t.getContents() == null ? List.of("") : t.getContents());
             dto.setRevision(t.getVersionNum());
             dto.setTextFlowRevision(t.getTextFlowRevision());
+            // expose who translated so clients can attribute changes (e.g.
+            // Co-authored-by trailers in verbaria.lock-driven commit messages)
+            HPerson author = t.getTranslator() != null ? t.getTranslator()
+                    : t.getLastModifiedBy();
+            if (author != null) {
+                dto.setTranslator(new Person(author.getEmail(), author.getName()));
+            }
             out.getTextFlowTargets().add(dto);
         }
         if (out.getTextFlowTargets().isEmpty()) {
