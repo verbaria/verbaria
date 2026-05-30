@@ -52,15 +52,38 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # Publish the Verbaria CLI distribution archives so PR reviewers and
+      # Read the Maven project version so artifact names follow the poms.
+      - name: Resolve project version
+        if: success()
+        id: ver
+        run: |
+          VERSION="$(./mvnw -B -ntp -q help:evaluate \
+            -Dexpression=project.version -DforceStdout)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Rebrand the build outputs to the published asset names (same as the
+      # release workflow) without touching the Maven build itself.
+      - name: Collect artifacts
+        if: success()
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p build-artifacts
+          cp "client/zanata-cli/target/verbaria-${VERSION}-dist.tar.gz" \
+            "build-artifacts/verbaria-cli-${VERSION}.tar.gz"
+          cp "client/zanata-cli/target/verbaria-${VERSION}-dist.zip" \
+            "build-artifacts/verbaria-cli-${VERSION}.zip"
+          cp "server/zanata-server-spring/target/zanata-server-spring-${VERSION}.jar" \
+            "build-artifacts/verbaria-server-${VERSION}.jar"
+          ls -lh build-artifacts
+
+      # Publish the Verbaria CLI archives and server jar so PR reviewers and
       # release managers can grab them from the run summary.
-      - name: Upload CLI distribution
+      - name: Upload Verbaria artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: verbaria-cli-dist
-          path: |
-            client/zanata-cli/target/verbaria-*-dist.zip
-            client/zanata-cli/target/verbaria-*-dist.tar.gz
+          name: verbaria-artifacts
+          path: build-artifacts/*
           if-no-files-found: warn
           retention-days: 30
