@@ -14,11 +14,8 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.zanata.model.HAccount;
 import org.zanata.model.HAccountRole;
-import org.zanata.spring.repository.AccountRepository;
 import org.zanata.spring.vaadin.MainLayout;
 
 @Route(value = "admin/usermanager", layout = MainLayout.class)
@@ -28,7 +25,7 @@ public class AdminUserManagerView extends VerticalLayout implements TitleKey {
     @Override public String pageTitleKey() { return "page.userManager"; }
 
 
-    public AdminUserManagerView(AccountRepository accountRepository) {
+    public AdminUserManagerView(AdminUserQueryService userQuery) {
         setSizeFull();
         setPadding(true);
         add(new H2(getTranslation("page.userManager")));
@@ -53,31 +50,19 @@ public class AdminUserManagerView extends VerticalLayout implements TitleKey {
                 .setHeader(getTranslation("admin.users.rolesCol"));
 
         // Server-paged DataProvider — never loads more than the visible page
-        // even when there are tens of thousands of accounts. Filter applied
-        // via JpaRepository's paged Specification-free path: case-insensitive
-        // username prefix via findUsernameContaining + a count query.
+        // even when there are tens of thousands of accounts. The query service
+        // pages at the DB and initialises each page's roles in one extra query
+        // within a read-only transaction, so the roles column renders even
+        // though the grid flushes after the entities detach.
         CallbackDataProvider<HAccount, String> dp =
                 DataProvider.fromFilteringCallbacks(
                         q -> {
                             int page = q.getOffset() / Math.max(1, q.getLimit());
-                            String text = q.getFilter().orElse("").trim();
-                            return (text.isEmpty()
-                                    ? accountRepository.findAll(
-                                            PageRequest.of(page, q.getLimit(),
-                                                    Sort.by("username")))
-                                    : accountRepository.findByUsernameContaining(
-                                            text,
-                                            PageRequest.of(page, q.getLimit(),
-                                                    Sort.by("username")))
-                            ).stream();
+                            return userQuery.findPage(q.getFilter().orElse(""),
+                                    page, q.getLimit()).stream();
                         },
-                        q -> {
-                            String text = q.getFilter().orElse("").trim();
-                            long n = text.isEmpty()
-                                    ? accountRepository.count()
-                                    : accountRepository.countByUsernameContaining(text);
-                            return (int) Math.min(Integer.MAX_VALUE, n);
-                        });
+                        q -> (int) Math.min(Integer.MAX_VALUE,
+                                userQuery.count(q.getFilter().orElse(""))));
         ConfigurableFilterDataProvider<HAccount, Void, String> filterable =
                 dp.withConfigurableFilter();
         filterable.setFilter("");

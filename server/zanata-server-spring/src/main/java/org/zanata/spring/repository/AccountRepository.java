@@ -1,5 +1,7 @@
 package org.zanata.spring.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,4 +41,18 @@ public interface AccountRepository extends JpaRepository<HAccount, Long> {
             where lower(a.username) like concat('%', lower(:q), '%')
             """)
     long countByUsernameContaining(@Param("q") String q);
+
+    /**
+     * Initialises {@code roles} on an already-loaded page of accounts in a
+     * single query. Used to keep DB-side pagination (a collection join-fetch
+     * combined with a page limit forces inefficient in-memory pagination) while
+     * still making roles available to callers that render outside an open
+     * session — e.g. the admin User Manager grid.
+     */
+    @Query("""
+            select distinct a from HAccount a
+            left join fetch a.roles
+            where a in :accounts
+            """)
+    List<HAccount> fetchRolesFor(@Param("accounts") Collection<HAccount> accounts);
 }
