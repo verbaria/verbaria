@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.zanata</groupId>
     <artifactId>client</artifactId>
-    <version>5.1.1</version>
+    <version>5.1.2</version>
   </parent>
   <artifactId>zanata-cli</artifactId>
   <name>Verbaria command-line client</name>
@@ -186,6 +186,9 @@
               </programs>
               <repositoryName>lib</repositoryName>
               <repositoryLayout>flat</repositoryLayout>
+              <!-- Launcher sources bin/setenv before Java detection, letting it
+                   honour VERBARIA_JRE for selecting the JVM. -->
+              <environmentSetupFileName>setenv</environmentSetupFileName>
             </configuration>
           </plugin>
           <!-- package in zip and tar.gz -->

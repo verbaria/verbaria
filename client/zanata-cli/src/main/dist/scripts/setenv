@@ -1,0 +1,9 @@
+#!/bin/sh
+# Sourced by the `verbaria` launcher before it detects Java.
+#
+# If VERBARIA_JRE is set, use that JRE to run the CLI; otherwise leave Java
+# selection to the launcher's default logic (JAVA_HOME, then `java` on PATH).
+if [ -n "$VERBARIA_JRE" ]; then
+  JAVA_HOME="$VERBARIA_JRE"
+  JAVACMD="$VERBARIA_JRE/bin/java"
+fi

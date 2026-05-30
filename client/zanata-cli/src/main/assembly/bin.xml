@@ -31,6 +31,18 @@
       </includes>
       <fileMode>744</fileMode>
     </fileSet>
+    <!-- Environment setup sourced by the launcher (selects the JVM from
+         VERBARIA_JRE). Kept under scripts/ rather than bin/ in source so the
+         root .gitignore "bin/" rule doesn't exclude it. -->
+    <fileSet>
+      <directory>src/main/dist/scripts</directory>
+      <outputDirectory>bin</outputDirectory>
+      <includes>
+        <include>setenv</include>
+        <include>setenv.bat</include>
+      </includes>
+      <fileMode>744</fileMode>
+    </fileSet>
     <fileSet>
       <directory>target</directory>
       <outputDirectory>bin</outputDirectory>
