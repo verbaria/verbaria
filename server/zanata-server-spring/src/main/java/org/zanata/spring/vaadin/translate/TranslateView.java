@@ -673,7 +673,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private Div buildFilterBar() {
         filter.setPlaceholder(getTranslation("translate.filter.placeholder"));
         incompleteOnly.setLabel(getTranslation("translate.filter.incomplete"));
+        incompleteOnly.getElement().setAttribute("title",
+                getTranslation("translate.filter.incompleteTip"));
         completeOnly.setLabel(getTranslation("translate.filter.complete"));
+        completeOnly.getElement().setAttribute("title",
+                getTranslation("translate.filter.completeTip"));
         filter.setClearButtonVisible(true);
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);

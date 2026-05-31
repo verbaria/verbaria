@@ -178,7 +178,43 @@ public class DocumentImportService {
         doc.getTextFlows().clear();
         doc.getTextFlows().addAll(newOrder);
 
-        return new ImportResult(documentRepository.save(doc), created);
+        HDocument savedDoc = documentRepository.save(doc);
+
+        // The source language is the project's base / "key-sharing" locale —
+        // the only place keys (text flows) are ever defined — and is itself an
+        // editable, reviewable localization. Give every source flow a target in
+        // the source locale so the base shows up and reviews like any locale
+        // instead of a perpetual "New". Approved for an admin importer (the
+        // authoritative base), Translated otherwise; mirrors the push --approve
+        // / non-admin-downgrade rule.
+        ensureSourceLocaleTargets(srcLocale, newOrder);
+
+        return new ImportResult(savedDoc, created);
+    }
+
+    /**
+     * Ensure every (non-empty) source flow has a target in the source locale,
+     * with content equal to the source. State is Approved for an admin importer
+     * and Translated otherwise.
+     */
+    private void ensureSourceLocaleTargets(HLocale srcLocale,
+            List<HTextFlow> flows) {
+        ContentState state = Roles.isCurrentUserAdmin()
+                ? ContentState.Approved : ContentState.Translated;
+        for (HTextFlow tf : flows) {
+            List<String> contents = tf.getContents();
+            if (contents == null || contents.isEmpty()
+                    || contents.get(0) == null || contents.get(0).isEmpty()) {
+                continue;
+            }
+            HTextFlowTarget target = textFlowTargetRepository
+                    .findByTextFlowAndLocale(tf.getId(), srcLocale.getLocaleId())
+                    .orElseGet(() -> new HTextFlowTarget(tf, srcLocale));
+            target.setContents(contents);
+            target.setState(state);
+            target.setTextFlowRevision(tf.getRevision());
+            textFlowTargetRepository.save(target);
+        }
     }
 
     /**

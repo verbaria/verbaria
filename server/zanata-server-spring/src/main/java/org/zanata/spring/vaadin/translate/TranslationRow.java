@@ -82,6 +82,10 @@ public class TranslationRow extends Div {
     private ContentState initialState;
     private String source;
     private String initialContent;
+    /** Last persisted editor content; Save is enabled only when it differs. */
+    private String savedContent = "";
+    /** Recomputes whether the Save button should be enabled. */
+    private Runnable refreshSaveEnabled;
     private boolean isSourceLocale;
     private boolean canEdit;
     private boolean canReview;
@@ -316,10 +320,19 @@ public class TranslationRow extends Div {
     private Button buildSaveButton(TranslationEditor area, Span stateSpan) {
         Button save = new Button(getTranslation("translate.row.save"));
         save.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
-        save.setEnabled(canEdit);
+        savedContent = (isSourceLocale ? source : initialContent);
+        if (savedContent == null) savedContent = "";
         if (!canEdit) {
             save.setTooltipText(getTranslation("translate.tooltip.signInToEdit"));
         }
+        // Save stays disabled until the editor content actually differs from
+        // what's already saved — no point offering Save on an unchanged row.
+        refreshSaveEnabled = () -> {
+            String cur = area.getValue() == null ? "" : area.getValue();
+            save.setEnabled(canEdit && !cur.equals(savedContent));
+        };
+        refreshSaveEnabled.run();
+        area.addAceChangedListener(ev -> refreshSaveEnabled.run());
         save.addClickListener(e -> {
             if (isSourceLocale) {
                 translationEditService.updateSource(flow.getId(), area.getValue());
@@ -333,6 +346,8 @@ public class TranslationRow extends Div {
                 Notification.show(getTranslation("translate.row.saved"),
                         2000, Notification.Position.BOTTOM_START);
             }
+            savedContent = area.getValue() == null ? "" : area.getValue();
+            refreshSaveEnabled.run();
         });
         return save;
     }
@@ -344,6 +359,8 @@ public class TranslationRow extends Div {
                     flow.getId(), ctx.currentLocale(), ContentState.NeedReview);
             stateSpan.setText(ns.name());
             applyStateColor(stateSpan, ns);
+            savedContent = area.getValue() == null ? "" : area.getValue();
+            if (refreshSaveEnabled != null) refreshSaveEnabled.run();
             Notification.show(getTranslation("translate.row.savedFuzzy"),
                     2000, Notification.Position.BOTTOM_START);
         } catch (Exception ex) {
@@ -394,10 +411,10 @@ public class TranslationRow extends Div {
         Button approve = new Button(getTranslation("translate.action.approve"),
                 LineAwesomeIcon.CHECK_SOLID.create());
         approve.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
-        approve.setEnabled(!isSourceLocale && canReview && hasSavedContent);
-        if (isSourceLocale) {
-            approve.setVisible(false);
-        } else if (!canReview) {
+        // The source locale is reviewable too (its base-localization target);
+        // the button self-disables when there is no saved content to review.
+        approve.setEnabled(canReview && hasSavedContent);
+        if (!canReview) {
             approve.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
                     ctx.localeStr(), getTranslation("translate.row.approveTip.review")));
         } else if (!hasSavedContent) {
@@ -425,10 +442,8 @@ public class TranslationRow extends Div {
         Button reject = new Button(getTranslation("translate.action.reject"),
                 LineAwesomeIcon.TIMES_SOLID.create());
         reject.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
-        reject.setEnabled(!isSourceLocale && canReview && hasSavedContent);
-        if (isSourceLocale) {
-            reject.setVisible(false);
-        } else if (!canReview) {
+        reject.setEnabled(canReview && hasSavedContent);
+        if (!canReview) {
             reject.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
                     ctx.localeStr(), getTranslation("translate.row.rejectTip.review")));
         } else if (!hasSavedContent) {

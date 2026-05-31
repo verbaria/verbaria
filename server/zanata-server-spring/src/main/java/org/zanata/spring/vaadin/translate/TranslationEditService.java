@@ -56,6 +56,28 @@ public class TranslationEditService {
         textFlow.setContents(List.of(fresh));
         textFlow.setRevision(textFlow.getRevision() + 1);
         textFlowRepository.save(textFlow);
+        // The source is the project's base localization with its own target;
+        // keep it in sync (editing the base re-opens it for review).
+        syncSourceTarget(textFlow, fresh);
+    }
+
+    /**
+     * Mirror edited source content into the source locale's target and reset it
+     * to Translated, so the base localization stays consistent and goes back
+     * through review after an edit.
+     */
+    private void syncSourceTarget(HTextFlow textFlow, String content) {
+        var doc = textFlow.getDocument();
+        if (doc == null) return;
+        HLocale srcLocale = doc.getLocale();
+        if (srcLocale == null || srcLocale.getLocaleId() == null) return;
+        HTextFlowTarget target = targetRepository
+                .findByTextFlowAndLocale(textFlow.getId(), srcLocale.getLocaleId())
+                .orElseGet(() -> new HTextFlowTarget(textFlow, srcLocale));
+        target.setContents(List.of(content));
+        target.setState(ContentState.Translated);
+        target.setTextFlowRevision(textFlow.getRevision());
+        targetRepository.save(target);
     }
 
     /**

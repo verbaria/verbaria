@@ -48,6 +48,7 @@ import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 
@@ -659,7 +660,8 @@ public class PushCommand extends PushPullCommand<PushOptions> {
      * that only admins may actually keep the approved state; for other users it
      * downgrades to translated.
      */
-    private static void markApproved(TranslationsResource targetDoc) {
+    @VisibleForTesting
+    static void markApproved(TranslationsResource targetDoc) {
         for (TextFlowTarget tft : targetDoc.getTextFlowTargets()) {
             if (tft != null && !tft.getContents().isEmpty()
                     && !all(tft.getContents(), Strings::isNullOrEmpty)) {
