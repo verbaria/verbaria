@@ -299,6 +299,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         lock.setProjectVersion(getOpts().getProjectVersion());
         lock.setGeneratedAt(java.time.Instant.now().toString());
 
+        // The source/base locale (the shared-keys locale, e.g. en-US) is not a
+        // translation: when it appears in the locale list, "pulling" it means
+        // syncing the on-disk source files from the server (see below).
+        int targetLocalesPulled = 0;
+        int sourceLocaleSynced = 0;
         for (String qualifiedDocName : docsToPull) {
             try {
                 Resource doc = null;
@@ -320,8 +325,23 @@ public class PullCommand extends PushPullCommand<PullOptions> {
 
                 if (pullTarget) {
                     List<LocaleId> skippedLocales = Lists.newArrayList();
+                    // The document's own source language is the base/shared-keys
+                    // locale, not a translation. When it's in the locale list,
+                    // "pulling" it means syncing the on-disk source files from
+                    // the server (overriding the scanned originals in place via
+                    // writeSrcFile) — NOT writing a translation into the source
+                    // dir. Skip the in-loop source write if pullSrc already did
+                    // it this pass (pull-type source/both).
+                    LocaleId sourceLang = doc == null ? null : doc.getLang();
                     for (LocaleMapping locMapping : locales) {
                         LocaleId locale = new LocaleId(locMapping.getLocale());
+                        if (sourceLang != null && sourceLang.equals(locale)) {
+                            if (!pullSrc && doc != null) {
+                                writeSrcDoc(strat, doc);
+                                sourceLocaleSynced++;
+                            }
+                            continue;
+                        }
                         File transFile =
                                 strat.getTransFileToWrite(localDocName,
                                         locMapping);
@@ -329,6 +349,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                         if (shouldPullThisLocale(optionalStats, localDocName, locale)) {
                             pullDocForLocale(strat, doc, localDocName, qualifiedDocName,
                                     createSkeletons, locMapping, transFile);
+                            targetLocalesPulled++;
                         } else {
                             skippedLocales.add(locale);
                         }
@@ -361,6 +382,18 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 log.error(message);
                 throw new RuntimeException(e.getMessage(), e);
             }
+        }
+
+        if (pullTarget && targetLocalesPulled == 0 && sourceLocaleSynced == 0) {
+            log.warn("Nothing was pulled. The locales to pull were {}. Configure "
+                    + "target locales for project '{}' (and have translations in "
+                    + "them), or set \"targetLocales\" in verbaria.json. To sync "
+                    + "the source/base-locale files, use --pull-type source or "
+                    + "both.", locales, getOpts().getProj());
+        }
+        if (sourceLocaleSynced > 0) {
+            log.info("Synced source files for {} document(s) from the source "
+                    + "(base) locale.", sourceLocaleSynced);
         }
 
         writeLock();

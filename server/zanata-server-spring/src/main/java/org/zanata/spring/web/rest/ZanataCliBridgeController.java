@@ -102,44 +102,6 @@ public class ZanataCliBridgeController {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(ZanataCliBridgeController.class);
 
-    /**
-     * Standard MIME types plus the legacy zanata-rest-client vendor types
-     * (application/vnd.zanata.Version+xml, +json; application/vnd.zanata.project+xml ...).
-     * Listed explicitly so Spring's content negotiator picks the right
-     * converter without needing custom MediaType registration.
-     */
-    private static final String[] MEDIA = {
-            MediaType.APPLICATION_JSON_VALUE,
-            MediaType.APPLICATION_XML_VALUE,
-            "application/vnd.zanata.Version+xml",
-            "application/vnd.zanata.Version+json",
-            "application/vnd.zanata.project+xml",
-            "application/vnd.zanata.project+json",
-            "application/vnd.zanata.projects+xml",
-            "application/vnd.zanata.projects+json",
-            "application/vnd.zanata.project.iteration+xml",
-            "application/vnd.zanata.project.iteration+json",
-            "application/vnd.zanata.account+xml",
-            "application/vnd.zanata.account+json",
-            "application/vnd.zanata.glossary+xml",
-            "application/vnd.zanata.glossary+json",
-            "application/vnd.zanata.locales+xml",
-            "application/vnd.zanata.locales+json",
-            "application/vnd.zanata.tu+xml",
-            "application/vnd.zanata.tu+json",
-            // Document / translation transport
-            "application/vnd.zanata.resource+xml",
-            "application/vnd.zanata.resource+json",
-            "application/vnd.zanata.resourceMeta+xml",
-            "application/vnd.zanata.resourceMeta+json",
-            "application/vnd.zanata.resourceMetaList+xml",
-            "application/vnd.zanata.resourceMetaList+json",
-            "application/vnd.zanata.translation+xml",
-            "application/vnd.zanata.translation+json",
-            "application/vnd.zanata.stats+xml",
-            "application/vnd.zanata.stats+json"
-    };
-
     private final ProjectRepository projectRepository;
     private final ProjectIterationRepository iterationRepository;
     private final DocumentRepository documentRepository;
@@ -188,18 +150,14 @@ public class ZanataCliBridgeController {
 
     // ---------- 1a. list all projects (CLI init flow) ----------
     //
-    // The CLI's `zanata-cli init` calls GET /rest/projects with
-    // Accept: application/xml when the user picks "select an existing
-    // project". Returns a top-level <projects><project .../>... list.
+    // The CLI's `zanata-cli init` calls GET /rest/projects when the user picks
+    // "select an existing project". JSON only.
 
     @GetMapping(value = "/projects",
-            produces = {MediaType.APPLICATION_XML_VALUE,
-                        MediaType.APPLICATION_JSON_VALUE,
-                        "application/vnd.zanata.projects+xml",
+            produces = {MediaType.APPLICATION_JSON_VALUE,
                         "application/vnd.zanata.projects+json"})
     @Transactional(readOnly = true)
-    public ResponseEntity<?> listProjects(
-            @RequestHeader(value = "Accept", required = false) String accept) {
+    public ResponseEntity<?> listProjects() {
         List<Project> dtos = new ArrayList<>();
         for (HProject p : projectRepository.findAll()) {
             // Skip soft-deleted projects so the CLI menu stays clean.
@@ -216,42 +174,7 @@ public class ZanataCliBridgeController {
             // for the picker, and including them blows up the response.
             dtos.add(dto);
         }
-        if (accept != null && accept.contains("xml")) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_XML)
-                    .body(marshalProjectsList(dtos));
-        }
         return ResponseEntity.ok(dtos);
-    }
-
-    private static String marshalProjectsList(List<Project> items) {
-        try {
-            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext
-                    .newInstance(Projects.class);
-            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
-            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            java.io.StringWriter sw = new java.io.StringWriter();
-            m.marshal(new Projects(items), sw);
-            return sw.toString();
-        } catch (jakarta.xml.bind.JAXBException e) {
-            throw new RuntimeException("Failed to marshal projects list", e);
-        }
-    }
-
-    // The CLI's JAXB context expects every Zanata-API element to live in
-    // the http://zanata.org/namespace/api/ namespace (declared via package-
-    // info on org.zanata.rest.dto). Without the explicit namespace= here
-    // children would inherit our controller package's default ("") and the
-    // CLI fails with `unexpected element (uri:"", local:"project")`.
-    @jakarta.xml.bind.annotation.XmlRootElement(name = "projects",
-            namespace = org.zanata.common.Namespaces.ZANATA_API)
-    @jakarta.xml.bind.annotation.XmlAccessorType(jakarta.xml.bind.annotation.XmlAccessType.FIELD)
-    static class Projects {
-        @jakarta.xml.bind.annotation.XmlElement(name = "project",
-                namespace = org.zanata.common.Namespaces.ZANATA_API)
-        private List<Project> project;
-        public Projects() {}
-        public Projects(List<Project> project) { this.project = project; }
     }
 
     // ---------- 2. get project (CLI Project DTO) ----------
@@ -333,13 +256,10 @@ public class ZanataCliBridgeController {
     // picks project+version.
 
     @GetMapping(value = "/projects/p/{slug}/iterations/i/{iter}/config",
-            produces = {MediaType.APPLICATION_XML_VALUE,
-                        MediaType.TEXT_XML_VALUE,
-                        MediaType.APPLICATION_JSON_VALUE,
-                        "application/vnd.zanata.project.iteration+xml",
+            produces = {MediaType.APPLICATION_JSON_VALUE,
                         "application/vnd.zanata.project.iteration+json"})
     @Transactional(readOnly = true)
-    public ResponseEntity<String> sampleConfiguration(
+    public ResponseEntity<Map<String, Object>> sampleConfiguration(
             @PathVariable("slug") String slug,
             @PathVariable("iter") String iter,
             @RequestHeader(value = "Host", required = false) String host,
@@ -353,26 +273,17 @@ public class ZanataCliBridgeController {
         if (pt == null && iteration.get().getProject() != null) {
             pt = iteration.get().getProject().getDefaultProjectType();
         }
-        String baseUrl = resolveBaseUrl(host, forwardedHost, forwardedProto);
-        StringBuilder xml = new StringBuilder();
-        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
-        xml.append("<config xmlns=\"http://zanata.org/namespace/config/\">\n");
-        xml.append("  <url>").append(baseUrl).append("</url>\n");
-        xml.append("  <project>").append(slug).append("</project>\n");
-        xml.append("  <project-version>").append(iter).append("</project-version>\n");
+        // Starter verbaria.json. The CLI's `init` fills in srcDir/includes/
+        // excludes/transDir afterward. Keys match org.zanata.client.config
+        // .ZanataConfig so the client can parse it straight back as JSON.
+        Map<String, Object> config = new java.util.LinkedHashMap<>();
+        config.put("url", resolveBaseUrl(host, forwardedHost, forwardedProto));
+        config.put("project", slug);
+        config.put("projectVersion", iter);
         if (pt != null) {
-            xml.append("  <project-type>")
-                    .append(pt.toString().toLowerCase())
-                    .append("</project-type>\n");
-        } else {
-            xml.append("  <!-- <project-type>")
-                    .append("file|gettext|podir|properties|utf8properties|xliff|xml")
-                    .append("</project-type> -->\n");
+            config.put("projectType", pt.toString().toLowerCase());
         }
-        xml.append("</config>\n");
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_XML)
-                .body(xml.toString());
+        return ResponseEntity.ok(config);
     }
 
     private static String resolveBaseUrl(String host, String forwardedHost, String forwardedProto) {
@@ -393,8 +304,7 @@ public class ZanataCliBridgeController {
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/locales")
     @Transactional(readOnly = true)
     public ResponseEntity<?> iterationLocales(@PathVariable("slug") String slug,
-                                              @PathVariable("iter") String iter,
-                                              @RequestHeader(value = "Accept", required = false) String accept) {
+                                              @PathVariable("iter") String iter) {
         var iterOpt = iterationRepository.findByProjectAndSlug(slug, iter);
         if (iterOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -425,32 +335,7 @@ public class ZanataCliBridgeController {
                     false /* rtl - not on HLocale */);
             details.add(ld);
         }
-        if (accept != null && (accept.contains("xml") || accept.equals("*/*"))) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_XML)
-                    .body(marshalLocaleDetailsList(details));
-        }
         return ResponseEntity.ok(details);
-    }
-
-    private static String marshalLocaleDetailsList(List<org.zanata.rest.dto.LocaleDetails> items) {
-        try {
-            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext.newInstance(org.zanata.rest.dto.LocaleDetails.class);
-            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
-            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
-            StringBuilder sb = new StringBuilder();
-            sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-            sb.append("<collection>");
-            for (var d : items) {
-                java.io.StringWriter w = new java.io.StringWriter();
-                m.marshal(d, w);
-                sb.append(w);
-            }
-            sb.append("</collection>");
-            return sb.toString();
-        } catch (jakarta.xml.bind.JAXBException e) {
-            throw new IllegalStateException("LocaleDetails XML marshalling failed", e);
-        }
     }
 
     // ---------- 5. put project iteration ----------
@@ -503,15 +388,12 @@ public class ZanataCliBridgeController {
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r")
     @Transactional(readOnly = true)
     public ResponseEntity<?> listSourceDocs(@PathVariable("slug") String slug,
-                                            @PathVariable("iter") String iter,
-                                            @RequestHeader(value = "Accept", required = false) String accept) {
+                                            @PathVariable("iter") String iter) {
         if (iterationRepository.findByProjectAndSlug(slug, iter).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         // CLI client (SourceDocResourceClient.getResourceMeta) expects a bare
-        // GenericType<List<ResourceMeta>>, not the ResourceMetaList wrapper —
-        // see the comment on ResourceMetaList in zanata-common-api: "List<ResourceMeta>
-        // serializes better across Json and XML."
+        // List<ResourceMeta> in JSON.
         List<ResourceMeta> out = new ArrayList<>();
         for (HDocument d : documentRepository.findByVersion(slug, iter)) {
             ResourceMeta meta = new ResourceMeta(d.getDocId());
@@ -523,37 +405,7 @@ public class ZanataCliBridgeController {
             meta.setRevision(d.getRevision());
             out.add(meta);
         }
-        // For XML we hand-marshal because Spring's JAXB converter writes
-        // single @XmlRootElement instances only, not List<X>; Jackson XML
-        // ignores the package-level @XmlSchema namespace which the CLI's
-        // RESTEasy unmarshaller requires.
-        if (accept != null && (accept.contains("xml") || accept.equals("*/*"))) {
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_XML)
-                    .body(marshalResourceMetaList(out));
-        }
         return ResponseEntity.ok(out);
-    }
-
-    private static String marshalResourceMetaList(List<ResourceMeta> items) {
-        try {
-            jakarta.xml.bind.JAXBContext ctx = jakarta.xml.bind.JAXBContext.newInstance(ResourceMeta.class);
-            jakarta.xml.bind.Marshaller m = ctx.createMarshaller();
-            m.setProperty(jakarta.xml.bind.Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
-            // RESTEasy's bare-List provider wraps elements in a <collection> root.
-            StringBuilder sb = new StringBuilder();
-            sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-            sb.append("<collection>");
-            for (ResourceMeta meta : items) {
-                java.io.StringWriter w = new java.io.StringWriter();
-                m.marshal(meta, w);
-                sb.append(w);
-            }
-            sb.append("</collection>");
-            return sb.toString();
-        } catch (jakarta.xml.bind.JAXBException e) {
-            throw new IllegalStateException("ResourceMeta XML marshalling failed", e);
-        }
     }
 
     // ---------- 7. get a source document ----------

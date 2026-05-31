@@ -60,7 +60,7 @@ public class ProjectIterationClientTest {
     public void testSampleConfig() {
         String config = client.sampleConfiguration();
 
-        assertThat(config).contains("<project>");
+        assertThat(config).contains("\"project\"");
     }
 }
 

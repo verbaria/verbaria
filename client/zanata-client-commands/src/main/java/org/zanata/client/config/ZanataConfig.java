@@ -50,6 +50,13 @@ public class ZanataConfig implements Serializable {
     private String transDir = ".";
     private String includes;
     private String excludes;
+    /**
+     * Target locale IDs (e.g. {@code ["ru-RU", "zh-CN"]}). When set, the client
+     * pulls/pushes only these locales and does NOT query the server for the
+     * project's locale list. A simpler, JSON-friendly alternative to the
+     * {@code locales} mapping list for the common "I know my target langs" case.
+     */
+    private List<String> targetLocales;
     private List<CommandHook> hooks = new ArrayList<CommandHook>();
     private transient Splitter splitter = Splitter.on(",").omitEmptyStrings()
             .trimResults();
@@ -136,6 +143,33 @@ public class ZanataConfig implements Serializable {
 
     public void setExcludes(String excludes) {
         this.excludes = excludes;
+    }
+
+    public List<String> getTargetLocales() {
+        return targetLocales;
+    }
+
+    public void setTargetLocales(List<String> targetLocales) {
+        this.targetLocales = targetLocales;
+    }
+
+    /**
+     * Convert {@link #targetLocales} into a {@link LocaleList}, or return
+     * {@code null} when none are configured (so callers fall back to the
+     * {@code locales} mapping list / server fetch). Blank entries are ignored.
+     */
+    @JsonIgnore
+    public LocaleList getTargetLocalesAsList() {
+        if (targetLocales == null || targetLocales.isEmpty()) {
+            return null;
+        }
+        LocaleList list = new LocaleList();
+        for (String id : targetLocales) {
+            if (id != null && !id.trim().isEmpty()) {
+                list.add(new LocaleMapping(id.trim()));
+            }
+        }
+        return list.isEmpty() ? null : list;
     }
 
     @JsonIgnore

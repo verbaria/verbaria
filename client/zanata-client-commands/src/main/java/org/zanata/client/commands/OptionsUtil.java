@@ -118,6 +118,12 @@ public class OptionsUtil {
             return false;
         }
         ZanataConfig zanataConfig = projectConfig.get();
+        // Explicit targetLocales is the intended way to pin locales: use them
+        // verbatim, don't query the server, and don't nag (unlike the legacy
+        // "locales" mapping list below).
+        if (zanataConfig.getTargetLocalesAsList() != null) {
+            return false;
+        }
         boolean localesDefinedInFile =
                 zanataConfig.getLocales() != null
                         && !zanataConfig.getLocales().isEmpty();
@@ -208,8 +214,12 @@ public class OptionsUtil {
         }
         applySrcDirAndTransDirFromProjectConfig(opts, config);
         applyIncludesAndExcludesFromProjectConfig(opts, config);
-        LocaleList localesInFile = config.getLocales();
-        opts.setLocaleMapList(localesInFile);
+        // Prefer the simple "targetLocales" string when present; it pins the
+        // locales to push/pull without querying the server. Otherwise fall back
+        // to the legacy "locales" mapping list.
+        LocaleList targetLocales = config.getTargetLocalesAsList();
+        opts.setLocaleMapList(
+                targetLocales != null ? targetLocales : config.getLocales());
 
         if (opts.getCommandHooks().isEmpty() && config.getHooks() != null) {
             opts.setCommandHooks(config.getHooks());

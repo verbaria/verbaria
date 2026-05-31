@@ -65,7 +65,7 @@ public class ProjectIterationClient {
         return factory.getSpringRestClient().get()
                 .uri("projects/p/{slug}/iterations/i/{iter}/config",
                         projectSlug, versionSlug)
-                .accept(MediaType.APPLICATION_XML)
+                .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .body(String.class);
     }

@@ -73,6 +73,15 @@
       <version>3.6.2</version>
       <scope>test</scope>
     </dependency>
+    <!-- TestJenkinsfile is a JUnit 5 (Jupiter) test; declare the engine so it
+         compiles and runs. Without this the only test class fails to compile
+         ("package org.junit.jupiter.api does not exist"). -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>

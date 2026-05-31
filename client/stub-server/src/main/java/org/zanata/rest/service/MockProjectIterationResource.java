@@ -66,20 +66,18 @@ public class MockProjectIterationResource {
                 .build();
     }
 
-    @GetMapping(value = "/config", produces = MediaType.APPLICATION_XML_VALUE)
+    @GetMapping(value = "/config", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sampleConfiguration(
             @PathVariable("projectSlug") String projectSlug,
             @PathVariable("iterationSlug") String iterationSlug) {
         String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .build().toUriString() + "/";
-        String config =
-                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
-                        + "<config xmlns=\"http://zanata.org/namespace/config/\">\n"
-                        + "  <url>" + baseUri + "</url>\n"
-                        + "  <project>about-fedora</project>\n"
-                        + "  <project-version>master</project-version>\n"
-                        + "</config>";
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML)
+        String config = "{\n"
+                + "  \"url\": \"" + baseUri + "\",\n"
+                + "  \"project\": \"about-fedora\",\n"
+                + "  \"projectVersion\": \"master\"\n"
+                + "}";
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
                 .body(config);
     }
 }

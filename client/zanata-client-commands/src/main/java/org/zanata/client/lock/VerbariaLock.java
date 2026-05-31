@@ -109,6 +109,9 @@ public class VerbariaLock {
     @JsonPropertyOrder({ "source", "translations" })
     public static class DocumentLock {
         private SourceLock source;
+        // Omit from JSON when empty (e.g. source-only syncs) so a document that
+        // has no translations doesn't carry a noisy "translations": {}.
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private Map<String, TranslationLock> translations = new TreeMap<>();
 
         public SourceLock getSource() {
