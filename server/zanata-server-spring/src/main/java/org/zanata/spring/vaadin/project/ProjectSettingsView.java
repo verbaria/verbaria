@@ -22,13 +22,12 @@ import com.vaadin.flow.router.Route;
 import org.zanata.spring.i18n.TitleKey;
 import org.zanata.spring.vaadin.theme.AuraUtility;
 
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.zanata.common.EntityStatus;
+import org.zanata.common.MessageEvaluateType;
 import org.zanata.common.ProjectType;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
@@ -55,9 +54,13 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         this.projectRepository = projectRepository;
         this.localeRepository = localeRepository;
         this.breadcrumbsService = breadcrumbsService;
-        setSizeFull();
+        setWidthFull();
+        setHeightFull();
         setPadding(true);
         setSpacing(true);
+        // The settings form can grow taller than the viewport — let it scroll
+        // instead of clipping the lower fields.
+        addClassNames(AuraUtility.Overflow.Y.AUTO);
     }
 
     @Override
@@ -86,6 +89,12 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("projectCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY, EntityStatus.OBSOLETE);
         status.setValue(project.getStatus() == null ? EntityStatus.ACTIVE : project.getStatus());
+        ComboBox<MessageEvaluateType> messageFormat =
+                new ComboBox<>(getTranslation("projectSettings.messageFormat"));
+        messageFormat.setItems(MessageEvaluateType.values());
+        messageFormat.setHelperText(
+                getTranslation("projectSettings.messageFormatHint"));
+        messageFormat.setValue(project.getMessageEvaluateType());
         TextField sourceView = new TextField(getTranslation("projectSettings.sourceViewUrl"));
         sourceView.setValue(project.getSourceViewURL() == null ? "" : project.getSourceViewURL());
         TextField sourceCheckout = new TextField(getTranslation("projectSettings.sourceCheckoutUrl"));
@@ -100,7 +109,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         }
 
         FormLayout form = new FormLayout(name, description, defaultType, status,
-                sourceLocale, sourceView, sourceCheckout);
+                messageFormat, sourceLocale, sourceView, sourceCheckout);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
                 new FormLayout.ResponsiveStep("600px", 2));
         add(form);
@@ -121,50 +130,19 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         }
         add(targetLocales);
 
-        // --- Validations card ---
-        add(new H3(getTranslation("projectSettings.validations")));
-        Paragraph valHint = new Paragraph(getTranslation("projectSettings.validationsHint"));
-        valHint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Bottom.SMALL);
-        add(valHint);
-        FormLayout valForm = new FormLayout();
-        valForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("600px", 2));
-        Map<String, String> validationDefs = validationCatalog();
-        Map<String, ComboBox<String>> validationPickers = new LinkedHashMap<>();
-        Map<String, String> stored = project.getCustomizedValidations() == null
-                ? Map.of() : project.getCustomizedValidations();
-        for (Map.Entry<String, String> entry : validationDefs.entrySet()) {
-            ComboBox<String> picker = new ComboBox<>(entry.getValue());
-            picker.setItems("OFF", "WARN", "ERROR");
-            picker.setClearButtonVisible(true);
-            picker.setHelperText(entry.getKey());
-            String current = stored.get(entry.getKey());
-            if (current != null && !current.isBlank()) picker.setValue(current);
-            valForm.add(picker);
-            validationPickers.put(entry.getKey(), picker);
-        }
-        add(valForm);
-
         Button save = new Button(getTranslation("common.save"), e -> {
             project.setName(name.getValue());
             project.setDescription(description.getValue());
             project.setDefaultProjectType(defaultType.getValue());
             project.setStatus(status.getValue());
+            project.setMessageEvaluateType(messageFormat.getValue() == null
+                    ? MessageEvaluateType.NONE : messageFormat.getValue());
             project.setSourceViewURL(sourceView.getValue());
             project.setSourceCheckoutURL(sourceCheckout.getValue());
             project.setDefaultSourceLocale(sourceLocale.getValue());
             Set<HLocale> picked = new LinkedHashSet<>(targetLocales.getValue());
             project.setCustomizedLocales(picked);
             project.setOverrideLocales(!picked.isEmpty());
-            // Persist per-validation state — strip empties so we inherit defaults.
-            Map<String, String> validations = project.getCustomizedValidations() == null
-                    ? new LinkedHashMap<>() : project.getCustomizedValidations();
-            validations.clear();
-            validationPickers.forEach((key, picker) -> {
-                String v = picker.getValue();
-                if (v != null && !v.isBlank()) validations.put(key, v);
-            });
-            project.setCustomizedValidations(validations);
             projectRepository.save(project);
             Notification.show(getTranslation("common.saved"), 2000, Notification.Position.BOTTOM_START);
         });
@@ -179,22 +157,5 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         String code = l.getLocaleId() == null ? "?" : l.getLocaleId().getId();
         String display = l.getDisplayName();
         return display == null || display.isBlank() ? code : display + " (" + code + ")";
-    }
-
-    /**
-     * Catalog of validations the UI exposes — keys match the storage keys used
-     * by {@code HProject.customizedValidations}, values are human-readable
-     * labels from the legacy validation framework / docs.
-     */
-    private Map<String, String> validationCatalog() {
-        Map<String, String> m = new LinkedHashMap<>();
-        m.put("HTML_XML", getTranslation("projectSettings.validation.htmlXml"));
-        m.put("JAVA_VARIABLES", getTranslation("projectSettings.validation.javaVariables"));
-        m.put("NEW_LINE", getTranslation("projectSettings.validation.newLine"));
-        m.put("PRINTF_VARIABLES", getTranslation("projectSettings.validation.printfVariables"));
-        m.put("PRINTF_XSI_EXTENSION", getTranslation("projectSettings.validation.printfXsi"));
-        m.put("TAB", getTranslation("projectSettings.validation.tab"));
-        m.put("XML_ENTITY", getTranslation("projectSettings.validation.xmlEntity"));
-        return m;
     }
 }

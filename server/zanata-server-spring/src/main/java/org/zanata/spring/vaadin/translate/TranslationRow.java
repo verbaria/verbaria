@@ -44,6 +44,10 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.common.MessageEvaluateType;
+import org.zanata.spring.message.MessageEvaluator;
+import org.zanata.spring.message.MessageEvaluators;
+import org.zanata.spring.message.MessageInfo;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
@@ -57,7 +61,9 @@ import org.zanata.spring.repository.TextFlowTargetReviewCommentRepository;
 import org.zanata.spring.service.EditorPreferencesService;
 import org.zanata.spring.service.ai.AiPolicyService;
 import org.zanata.spring.service.ai.TranslationProviderRegistry;
+import org.zanata.spring.validation.CompositeLanguageValidator;
 import org.zanata.spring.validation.LanguageValidator;
+import org.zanata.spring.validation.MessageFormatValidator;
 import org.zanata.spring.vaadin.ProgressDialogService;
 
 @SpringComponent
@@ -76,6 +82,7 @@ public class TranslationRow extends Div {
     private final AccountRepository accountRepository;
     private final LocaleRepository localeRepository;
     private final LocaleMemberRepository localeMemberRepository;
+    private final MessageEvaluators messageEvaluators;
 
     private RowContext ctx;
     private HTextFlow flow;
@@ -101,8 +108,10 @@ public class TranslationRow extends Div {
                           TextFlowTargetRepository targetRepository,
                           AccountRepository accountRepository,
                           LocaleRepository localeRepository,
-                          LocaleMemberRepository localeMemberRepository) {
+                          LocaleMemberRepository localeMemberRepository,
+                          MessageEvaluators messageEvaluators) {
         this.languageValidator = languageValidator;
+        this.messageEvaluators = messageEvaluators;
         this.taskScheduler = taskScheduler;
         this.translationEditService = translationEditService;
         this.aiRegistry = aiRegistry;
@@ -206,8 +215,16 @@ public class TranslationRow extends Div {
         right.addClassNames(AuraUtility.Flex.ONE, AuraUtility.MinWidth.NONE);
 
         LocaleId rowLocale = isSourceLocale ? ctx.sourceLocale() : ctx.currentLocale();
+        // Natural-language checks (warnings) plus, when the project uses a
+        // message format, a syntax check (errors) — composed into one validator.
+        LanguageValidator validator = languageValidator;
+        MessageEvaluator evaluator = rowMessageEvaluator();
+        if (evaluator != null) {
+            validator = new CompositeLanguageValidator(List.of(
+                    languageValidator, new MessageFormatValidator(evaluator)));
+        }
         TranslationEditor area = new TranslationEditor(
-                languageValidator, taskScheduler, toJavaLocale(rowLocale));
+                validator, taskScheduler, toJavaLocale(rowLocale));
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
         // Consulo raw sub-file: highlight by its extension.
@@ -266,9 +283,12 @@ public class TranslationRow extends Div {
         Button approve = buildApproveButton(stateSpan);
         Button reject = buildRejectButton(stateSpan, historyPanel);
 
+        Button evaluateBtn = buildEvaluateButton(area);
+
         HorizontalLayout actionRow = new HorizontalLayout(
                 save, approve, reject, historyBtn, stateSpan);
         if (aiBtn != null) actionRow.add(aiBtn);
+        if (evaluateBtn != null) actionRow.add(evaluateBtn);
         actionRow.setAlignItems(FlexComponent.Alignment.CENTER);
         actionRow.setSpacing(true);
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
@@ -276,6 +296,96 @@ public class TranslationRow extends Div {
         if (extField != null) right.add(extField);
         right.add(area, actionRow, historyPanel);
         return right;
+    }
+
+    /**
+     * The message evaluator that applies to this row, or {@code null} when it
+     * doesn't: the project isn't configured for message formats, or this is a
+     * consulo raw sub-file (a whole file, not a message string).
+     */
+    private MessageEvaluator rowMessageEvaluator() {
+        if (flow.getConsuloFileExt() != null) {
+            return null;
+        }
+        return messageEvaluators.forType(ctx.messageEvaluateType());
+    }
+
+    private Button buildEvaluateButton(TranslationEditor area) {
+        if (rowMessageEvaluator() == null) {
+            return null;
+        }
+        Button btn = new Button(getTranslation("translate.action.evaluate"));
+        btn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        btn.addClickListener(e -> openEvaluateDialog(area));
+        return btn;
+    }
+
+    /**
+     * Preview a message-format string: parse the current editor value, surface
+     * a syntax error if invalid, otherwise show an input field per argument and
+     * render the formatted result on "Evaluate".
+     */
+    private void openEvaluateDialog(TranslationEditor area) {
+        MessageEvaluator evaluator = rowMessageEvaluator();
+        if (evaluator == null) {
+            return;
+        }
+        String pattern = area.getValue() == null ? "" : area.getValue();
+        MessageInfo info = evaluator.analyze(pattern);
+
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("translate.evaluate.title"));
+        dlg.setWidth("440px");
+        dlg.setCloseOnEsc(true);
+        dlg.setCloseOnOutsideClick(true);
+
+        VerticalLayout body = new VerticalLayout();
+        body.setPadding(false);
+        body.setSpacing(true);
+
+        if (!info.isValid()) {
+            Paragraph err = new Paragraph(getTranslation(
+                    "translate.evaluate.invalid", info.getError()));
+            err.addClassNames(AuraUtility.TextColor.ERROR);
+            body.add(err);
+        } else {
+            List<TextField> fields = new ArrayList<>();
+            for (String label : info.getArgumentLabels()) {
+                TextField f = new TextField(label);
+                f.setWidthFull();
+                fields.add(f);
+                body.add(f);
+            }
+            Span result = new Span();
+            result.addClassNames(AuraUtility.Whitespace.PRE_WRAP,
+                    AuraUtility.FontWeight.SEMIBOLD);
+            Runnable run = () -> {
+                List<String> inputs = new ArrayList<>(fields.size());
+                for (TextField f : fields) {
+                    inputs.add(f.getValue() == null ? "" : f.getValue());
+                }
+                try {
+                    result.getElement().setProperty("innerText",
+                            info.format(inputs));
+                } catch (RuntimeException ex) {
+                    result.getElement().setProperty("innerText", getTranslation(
+                            "translate.evaluate.error", ex.getMessage()));
+                }
+            };
+            Button evalBtn = new Button(getTranslation("translate.evaluate.run"),
+                    e -> run.run());
+            evalBtn.addThemeVariants(ButtonVariant.PRIMARY);
+            run.run(); // initial preview (handles zero-argument messages)
+            Span resultLabel =
+                    new Span(getTranslation("translate.evaluate.result"));
+            resultLabel.addClassNames(AuraUtility.TextColor.SECONDARY);
+            body.add(evalBtn, resultLabel, result);
+        }
+        dlg.add(body);
+        Button close = new Button(getTranslation("common.close"),
+                e -> dlg.close());
+        dlg.getFooter().add(close);
+        dlg.open();
     }
 
     /**
@@ -832,6 +942,7 @@ public class TranslationRow extends Div {
             String projectSlug,
             String versionSlug,
             String currentDocId,
+            MessageEvaluateType messageEvaluateType,
             Set<Long> historyExpanded,
             Set<Long> historyCollapsed) {
     }

@@ -20,21 +20,31 @@ public class TranslationEditor extends AceEditor {
 
     private static final Duration DEBOUNCE = Duration.ofMillis(500);
 
-    private static final String SQUIGGLE_SVG =
-            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' "
-            + "viewBox='0 0 6 3' width='6' height='3'>"
-            + "<path d='M0 2 Q1.5 0 3 2 T6 2' stroke='%23d11' "
-            + "stroke-width='0.8' fill='none'/></svg>";
-
+    // Zigzag (squiggle) underline drawn with two diagonal gradients offset by
+    // half a tile, so they alternate into a /\/\ wave at the bottom of the
+    // marker. Gradients render reliably (unlike a CSS mask here) AND accept an
+    // Aura CSS variable, so the colour follows the theme. Replaces the lib
+    // theme's solid marker fill. Red = syntax errors, orange = warnings.
     private static final String SQUIGGLE_CSS =
-            ".ace_marker-layer .red{"
-            + "background-color:transparent !important;"
-            + "background-image:url(\"" + SQUIGGLE_SVG + "\") !important;"
-            + "background-repeat:repeat-x !important;"
-            + "background-position:bottom !important;"
-            + "background-size:6px 3px !important;"
-            + "position:absolute !important;"
-            + "}";
+            squiggle("red", "var(--aura-red)")          // errors: red
+            + squiggle("orange", "var(--aura-orange)"); // warnings: orange
+
+    private static String squiggle(String markerClass, String c) {
+        // Two corner triangles per tile (bottom-left via 45deg, bottom-right via
+        // -45deg) leave an upward gap in the middle, so the coloured bottom edge
+        // reads as a /\/\ zigzag wave.
+        return ".ace_marker-layer ." + markerClass + "{"
+                + "background-color:transparent !important;"
+                + "background-image:"
+                + "linear-gradient(45deg," + c + " 25%,transparent 25%),"
+                + "linear-gradient(-45deg," + c + " 25%,transparent 25%)"
+                + " !important;"
+                + "background-size:4px 3px !important;"
+                + "background-position:left bottom !important;"
+                + "background-repeat:repeat-x !important;"
+                + "position:absolute !important;"
+                + "}";
+    }
 
     private final LanguageValidator validator;
     private final TaskScheduler scheduler;
@@ -150,20 +160,29 @@ public class TranslationEditor extends AceEditor {
         for (ValidationIssue issue : issues) {
             int[] start = offsetToRowCol(text, issue.offset());
             int[] end = offsetToRowCol(text, issue.offset() + issue.length());
+            // Syntax errors are a red squiggle; warnings an orange one.
+            AceMarkerColor color =
+                    issue.severity() == ValidationIssue.Severity.ERROR
+                            ? AceMarkerColor.red : AceMarkerColor.orange;
             addMarkerAtSelection(start[0], start[1], end[0], end[1],
-                    AceMarkerColor.red, issue.ruleId());
+                    color, issue.ruleId());
         }
     }
 
     private void installSquiggleStyles() {
+        // lit-ace renders ACE into the LIGHT DOM (no shadow root) and the lib
+        // theme's solid ".ace_marker-layer .orange/.red" rules live in a
+        // document-level <style>. So our override must go into document.head
+        // (added after the theme + !important) to win. One shared <style>
+        // covers every editor on the page.
         getElement().executeJs(
-                "if (this.shadowRoot && !this._verbariaSquiggle) {"
-                + "const s = new CSSStyleSheet();"
-                + "s.replaceSync($0);"
-                + "this.shadowRoot.adoptedStyleSheets = "
-                + "[...this.shadowRoot.adoptedStyleSheets, s];"
-                + "this._verbariaSquiggle = true;"
-                + "}", SQUIGGLE_CSS);
+                "let st = document.getElementById('verbaria-squiggle');"
+                + "if (!st) {"
+                + "  st = document.createElement('style');"
+                + "  st.id = 'verbaria-squiggle';"
+                + "  document.head.appendChild(st);"
+                + "}"
+                + "st.textContent = $0;", SQUIGGLE_CSS);
     }
 
     private static int[] offsetToRowCol(String text, int offset) {

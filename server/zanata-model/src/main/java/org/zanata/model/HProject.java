@@ -56,6 +56,7 @@ import org.hibernate.validator.constraints.NotEmpty;
 import org.zanata.annotation.EntityRestrict;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
+import org.zanata.common.MessageEvaluateType;
 import org.zanata.common.ProjectType;
 import org.zanata.model.validator.Url;
 import org.zanata.rest.dto.Project;
@@ -111,9 +112,24 @@ public class HProject extends SlugEntityBase
     private List<WebHook> webHooks = Lists.newArrayList();
     @Enumerated(EnumType.STRING)
     private ProjectType defaultProjectType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_evaluate_type")
+    private MessageEvaluateType messageEvaluateType;
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "default_source_locale_id")
     private HLocale defaultSourceLocale;
+
+    /**
+     * How the editor should parse/evaluate message strings for the "evaluate"
+     * preview (Java / ICU4J MessageFormat). Null means {@code NONE}.
+     */
+    public MessageEvaluateType getMessageEvaluateType() {
+        return messageEvaluateType == null ? MessageEvaluateType.NONE : messageEvaluateType;
+    }
+
+    public void setMessageEvaluateType(final MessageEvaluateType messageEvaluateType) {
+        this.messageEvaluateType = messageEvaluateType;
+    }
 
     public HLocale getDefaultSourceLocale() {
         return defaultSourceLocale;

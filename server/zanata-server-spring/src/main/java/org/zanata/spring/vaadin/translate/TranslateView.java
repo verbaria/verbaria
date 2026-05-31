@@ -66,10 +66,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.common.MessageEvaluateType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.spring.repository.DocumentRepository;
+import org.zanata.spring.repository.ProjectRepository;
 import org.zanata.spring.repository.TextFlowRepository;
 import org.zanata.spring.repository.TextFlowTargetRepository;
 import com.vaadin.flow.component.Key;
@@ -161,6 +163,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          ProgressDialogService progressDialogs,
                          EditorPreferencesService editorPreferences,
                          BreadcrumbsService breadcrumbsService,
+                         ProjectRepository projectRepository,
                          ObjectProvider<TranslationRow> rowFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
@@ -171,11 +174,16 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.progressDialogs = progressDialogs;
         this.editorPreferences = editorPreferences;
         this.breadcrumbsService = breadcrumbsService;
+        this.projectRepository = projectRepository;
         this.rowFactory = rowFactory;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
     }
+
+    private final ProjectRepository projectRepository;
+    /** Project-level message-evaluate setting, resolved per navigation. */
+    private MessageEvaluateType messageEvaluateType = MessageEvaluateType.NONE;
 
     private final TranslationProviderRegistry aiRegistry;
     private final AiPolicyService aiPolicy;
@@ -236,6 +244,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             return;
         }
         currentDocId = doc.getDocId();
+
+        // Project-level message-evaluate setting (Java/ICU4J/printf) drives the
+        // editor's "Evaluate" preview. Read by slug so we don't touch lazy
+        // associations outside a transaction.
+        var project = projectRepository.findBySlug(projectSlug).orElse(null);
+        messageEvaluateType = project == null
+                ? MessageEvaluateType.NONE : project.getMessageEvaluateType();
 
         // No more eager findByDocument — DataProvider pulls pages from DB.
         sourceLocale = doc.getLocale() != null && doc.getLocale().getLocaleId() != null
@@ -870,7 +885,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private TranslationRow.RowContext rowContext() {
         return new TranslationRow.RowContext(
                 prefs, currentLocale, sourceLocale, localeStr,
-                projectSlug, versionSlug, currentDocId,
+                projectSlug, versionSlug, currentDocId, messageEvaluateType,
                 historyExpanded, historyCollapsed);
     }
 
