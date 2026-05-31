@@ -115,6 +115,7 @@ class DocumentImportSourceTargetTest {
         when(documentRepository.findByVersionAndDocId(any(), any(), any()))
                 .thenReturn(Optional.empty());
         when(documentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(documentRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
         when(textFlowTargetRepository.findByTextFlowAndLocale(any(), any()))
                 .thenReturn(Optional.empty());
         when(textFlowTargetRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -124,7 +125,7 @@ class DocumentImportSourceTargetTest {
         res.getTextFlows().add(
                 new TextFlow("greeting.hello", new LocaleId("en-US"), "Add"));
 
-        service.importSource("proj", "ver", "messages", res);
+        service.importSource("proj", "ver", "messages", res, null);
 
         ArgumentCaptor<HTextFlowTarget> cap =
                 ArgumentCaptor.forClass(HTextFlowTarget.class);

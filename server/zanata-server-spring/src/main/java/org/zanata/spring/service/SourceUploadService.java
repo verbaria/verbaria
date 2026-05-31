@@ -90,7 +90,7 @@ public class SourceUploadService {
                             + " (accepted: .properties, .po, .pot, .xlf, .xliff, .yaml, .yml)");
         }
         return documentImportService.importSource(projectSlug, versionSlug,
-                baseDocId, resource);
+                baseDocId, resource, actor);
     }
 
     private static String stripExtension(String fileName) {

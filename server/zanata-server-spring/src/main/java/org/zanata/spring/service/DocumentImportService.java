@@ -81,7 +81,8 @@ public class DocumentImportService {
     public ImportResult importSource(String projectSlug,
                                      String versionSlug,
                                      String docId,
-                                     Resource resource) {
+                                     Resource resource,
+                                     HAccount actor) {
         HProjectIteration iter = iterationRepository
                 .findByProjectAndSlug(projectSlug, versionSlug)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -178,7 +179,14 @@ public class DocumentImportService {
         doc.getTextFlows().clear();
         doc.getTextFlows().addAll(newOrder);
 
-        HDocument savedDoc = documentRepository.save(doc);
+        // saveAndFlush (not save): on a first push every text flow is brand new
+        // and transient. save() routes to em.merge(), which cascade-persists
+        // *copies* of those flows into the returned entity while the originals
+        // in `newOrder` stay transient — so building source-locale targets
+        // against them later trips Hibernate's "references an unsaved transient
+        // instance of HTextFlow". Flushing here forces the cascade INSERTs (and
+        // ID assignment), and we then target the managed flows off `savedDoc`.
+        HDocument savedDoc = documentRepository.saveAndFlush(doc);
 
         // The source language is the project's base / "key-sharing" locale —
         // the only place keys (text flows) are ever defined — and is itself an
@@ -186,8 +194,10 @@ public class DocumentImportService {
         // the source locale so the base shows up and reviews like any locale
         // instead of a perpetual "New". Approved for an admin importer (the
         // authoritative base), Translated otherwise; mirrors the push --approve
-        // / non-admin-downgrade rule.
-        ensureSourceLocaleTargets(srcLocale, newOrder);
+        // / non-admin-downgrade rule. Use the managed flows on savedDoc (not the
+        // possibly-transient newOrder instances) so each target references a
+        // persistent HTextFlow.
+        ensureSourceLocaleTargets(srcLocale, savedDoc.getTextFlows(), actor);
 
         return new ImportResult(savedDoc, created);
     }
@@ -198,9 +208,10 @@ public class DocumentImportService {
      * and Translated otherwise.
      */
     private void ensureSourceLocaleTargets(HLocale srcLocale,
-            List<HTextFlow> flows) {
+            List<HTextFlow> flows, HAccount actor) {
         ContentState state = Roles.isCurrentUserAdmin()
                 ? ContentState.Approved : ContentState.Translated;
+        HPerson author = actor == null ? null : actor.getPerson();
         for (HTextFlow tf : flows) {
             List<String> contents = tf.getContents();
             if (contents == null || contents.isEmpty()
@@ -213,6 +224,12 @@ public class DocumentImportService {
             target.setContents(contents);
             target.setState(state);
             target.setTextFlowRevision(tf.getRevision());
+            // Attribute the source push to the pusher so the editor's History
+            // panel shows an author instead of a blank "by".
+            if (author != null) {
+                target.setTranslator(author);
+                target.setLastModifiedBy(author);
+            }
             textFlowTargetRepository.save(target);
         }
     }

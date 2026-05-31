@@ -55,7 +55,14 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                             var authorities = account.getRoles() == null
                                     ? List.<SimpleGrantedAuthority>of()
                                     : account.getRoles().stream()
-                                            .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getName()))
+                                            // Uppercase to match ZanataUserDetailsService
+                                            // (form login): HAccountRole.name is stored
+                                            // lowercase ("admin"), but Spring's hasRole()
+                                            // and Roles.ADMIN_AUTHORITY expect ROLE_ADMIN.
+                                            // Without this, API-key admins fail every admin
+                                            // check (e.g. push --approve lands as Translated).
+                                            .map(r -> new SimpleGrantedAuthority(
+                                                    "ROLE_" + r.getName().toUpperCase(java.util.Locale.ROOT)))
                                             .toList();
                             var auth = UsernamePasswordAuthenticationToken
                                     .authenticated(account.getUsername(), null, authorities);

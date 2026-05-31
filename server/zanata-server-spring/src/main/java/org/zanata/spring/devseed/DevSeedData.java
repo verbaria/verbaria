@@ -1,45 +1,28 @@
 package org.zanata.spring.devseed;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.zanata.common.ContentState;
 import org.zanata.common.ContentType;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
-import org.zanata.model.HAccount;
-import org.zanata.model.HAccountRole;
-import org.zanata.model.HDocument;
-import org.zanata.model.HLocale;
-import org.zanata.model.HPerson;
-import org.zanata.model.HProject;
-import org.zanata.model.HProjectIteration;
-import org.zanata.model.HTextFlow;
-import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.HApplicationConfiguration;
+import org.zanata.model.*;
 import org.zanata.model.po.HPotEntryData;
-import org.zanata.util.HashUtil;
-import org.zanata.spring.repository.AccountRepository;
-import org.zanata.spring.repository.ApplicationConfigurationRepository;
-import org.zanata.spring.repository.DocumentRepository;
-import org.zanata.spring.repository.LocaleRepository;
-import org.zanata.spring.repository.ProjectIterationRepository;
-import org.zanata.spring.repository.ProjectRepository;
-import org.zanata.spring.repository.RoleRepository;
-import org.zanata.spring.repository.TextFlowRepository;
-import org.zanata.spring.repository.TextFlowTargetRepository;
+import org.zanata.spring.repository.*;
 import org.zanata.spring.security.Roles;
+import org.zanata.util.HashUtil;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Inserts a handful of demo projects on startup so the explore screen has
@@ -105,13 +88,13 @@ public class DevSeedData implements CommandLineRunner {
      * stored the raw property key (e.g. "msg.0") as resId. Hash them and
      * stash the original key in HPotEntryData.context so the editor's
      * Details panel can still show it.
-     *
+     * <p>
      * Uses native SQL because HTextFlow.resId is annotated {@code @NaturalId}
      * which Hibernate treats as immutable on managed entities — JPA updates
      * to the column throw {@code HibernateException: An immutable attribute
      * [resId] within compound natural identifier ... was altered}. Native
      * SQL bypasses that check.
-     *
+     * <p>
      * Targets/history reference the parent HTextFlow by FK to HTextFlow.id,
      * not resId, so renaming the resId is safe.
      */
@@ -119,11 +102,13 @@ public class DevSeedData implements CommandLineRunner {
         // Find rows whose res_id isn't already a 32-char lowercase hex hash.
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery("""
-                SELECT id, res_id
-                FROM htext_flow
-                WHERE res_id !~ '^[0-9a-f]{32}$'
-                """).getResultList();
-        if (rows.isEmpty()) return;
+            SELECT id, res_id
+            FROM htext_flow
+            WHERE res_id !~ '^[0-9a-f]{32}$'
+            """).getResultList();
+        if (rows.isEmpty()) {
+            return;
+        }
 
         int migrated = 0;
         for (Object[] row : rows) {
@@ -133,35 +118,36 @@ public class DevSeedData implements CommandLineRunner {
 
             entityManager.createNativeQuery(
                     "UPDATE htext_flow SET res_id = :h WHERE id = :id")
-                    .setParameter("h", hashed)
-                    .setParameter("id", id)
-                    .executeUpdate();
+                .setParameter("h", hashed)
+                .setParameter("id", id)
+                .executeUpdate();
 
             // Upsert hpot_entry_data.context so the editor still shows the key.
             Object existing = entityManager.createNativeQuery(
                     "SELECT pot_entry_data_id FROM htext_flow WHERE id = :id")
-                    .setParameter("id", id)
-                    .getSingleResult();
+                .setParameter("id", id)
+                .getSingleResult();
             if (existing == null) {
                 Number newId = (Number) entityManager.createNativeQuery(
                         "INSERT INTO hpot_entry_data (context) VALUES (:k) RETURNING id")
-                        .setParameter("k", originalKey)
-                        .getSingleResult();
+                    .setParameter("k", originalKey)
+                    .getSingleResult();
                 entityManager.createNativeQuery(
                         "UPDATE htext_flow SET pot_entry_data_id = :pid WHERE id = :id")
-                        .setParameter("pid", newId.longValue())
-                        .setParameter("id", id)
-                        .executeUpdate();
-            } else {
+                    .setParameter("pid", newId.longValue())
+                    .setParameter("id", id)
+                    .executeUpdate();
+            }
+            else {
                 Long pid = ((Number) existing).longValue();
                 entityManager.createNativeQuery("""
                         UPDATE hpot_entry_data
                         SET context = COALESCE(NULLIF(context, ''), :k)
                         WHERE id = :pid
                         """)
-                        .setParameter("k", originalKey)
-                        .setParameter("pid", pid)
-                        .executeUpdate();
+                    .setParameter("k", originalKey)
+                    .setParameter("pid", pid)
+                    .executeUpdate();
             }
             migrated++;
         }
@@ -181,34 +167,31 @@ public class DevSeedData implements CommandLineRunner {
         HApplicationConfiguration row = new HApplicationConfiguration();
         row.setKey(HApplicationConfiguration.KEY_HOME_CONTENT);
         row.setValue("""
-                # Welcome to Zanata
+            # Welcome to Zanata
 
-                Zanata is a web-based translation management system.
-                Translators work in the browser; developers push source
-                strings and pull translations via the CLI or Maven plugin.
+            Zanata is a web-based translation management system.
+            Translators work in the browser; developers push source
+            strings and pull translations via the CLI or Maven plugin.
 
-                ## Get started
+            ## Get started
 
-                * Browse [projects](/explore) and translation activity
-                * Sign in to start translating
-                * Admins can edit this page from the **Administration → Home page content** screen
+            * Browse [projects](/explore) and translation activity
+            * Sign in to start translating
+            * Admins can edit this page from the **Administration → Home page content** screen
 
-                _This text is stored as Markdown in the `pages.home.content`
-                application-configuration row and rendered through CommonMark + OWASP
-                HTML sanitiser, so anything an admin pastes is safe to display._
-                """);
+            _This text is stored as Markdown in the `pages.home.content`
+            application-configuration row and rendered through CommonMark + OWASP
+            HTML sanitiser, so anything an admin pastes is safe to display._
+            """);
         configRepository.save(row);
         log.info("Seeded default home page Markdown");
     }
 
     private void seedRolesAndAccounts() {
         HAccountRole admin = roleRepository.findByName(Roles.ADMIN).orElseThrow();
-        HAccountRole user  = roleRepository.findByName(Roles.USER).orElseThrow();
-        // Deterministic API keys so the CLI smoke test can authenticate
-        // without UI clicks. Override in production.
-        ensureAccount("admin",   "admin", "Administrator",    "admin@example.com",            Set.of(admin, user), "b6d7044e9ee3b720c81dba7e3ea53d56");
-        ensureAccount("dev",     "dev",   "Dev User",         "dev@example.com",              Set.of(user),        "11111111111111111111111111111111");
-        ensureAccount("vistall", "1234",  "Valery Semenchuk", "vistall.valeriy@gmail.com",    Set.of(admin, user), "22222222222222222222222222222222");
+        HAccountRole user = roleRepository.findByName(Roles.USER).orElseThrow();
+
+        ensureAccount("admin", "admin", "Administrator", "admin@example.com", Set.of(admin, user), "22222222222222222222222222222222");
         log.info("Seeded {} roles + {} accounts", roleRepository.count(), accountRepository.count());
     }
 
@@ -250,39 +233,41 @@ public class DevSeedData implements CommandLineRunner {
     }
 
     private void seedProjects() {
-        if (projectRepository.count() > 0) return;
+        if (projectRepository.count() > 0) {
+            return;
+        }
         saveProject("about-fedora", "About Fedora",
-                "Translations for the About Fedora release notes module.");
+            "Translations for the About Fedora release notes module.");
         saveProject("rhel-installation-guide", "RHEL Installation Guide",
-                "Red Hat Enterprise Linux installation documentation.");
+            "Red Hat Enterprise Linux installation documentation.");
         saveProject("gnome-shell", "GNOME Shell",
-                "Translatable strings for the GNOME desktop shell.");
+            "Translatable strings for the GNOME desktop shell.");
         saveProject("zanata-platform", "Zanata Platform",
-                "Localization platform UI strings (meta!).");
+            "Localization platform UI strings (meta!).");
         log.info("Inserted {} demo projects", projectRepository.count());
     }
 
     private void seedLocales() {
-        saveLocale("en-US", "English (US)",        "English",     true);
-        saveLocale("fr",    "French",              "Français",    true);
-        saveLocale("de",    "German",              "Deutsch",     true);
-        saveLocale("es",    "Spanish",             "Español",     true);
-        saveLocale("it",    "Italian",             "Italiano",    true);
-        saveLocale("pt",    "Portuguese",          "Português",   true);
-        saveLocale("pt-BR", "Brazilian Portuguese","Português (Brasil)", true);
-        saveLocale("ru",    "Russian",             "Русский",     true);
-        saveLocale("uk",    "Ukrainian",           "Українська",  true);
-        saveLocale("pl",    "Polish",              "Polski",      true);
-        saveLocale("nl",    "Dutch",               "Nederlands",  true);
-        saveLocale("ja",    "Japanese",            "日本語",        true);
-        saveLocale("zh-CN", "Simplified Chinese",  "简体中文",      true);
-        saveLocale("zh-TW", "Traditional Chinese", "繁體中文",      true);
-        saveLocale("ko",    "Korean",              "한국어",        true);
+        saveLocale("en-US", "English (US)", "English", true);
+        saveLocale("fr", "French", "Français", true);
+        saveLocale("de", "German", "Deutsch", true);
+        saveLocale("es", "Spanish", "Español", true);
+        saveLocale("it", "Italian", "Italiano", true);
+        saveLocale("pt", "Portuguese", "Português", true);
+        saveLocale("pt-BR", "Brazilian Portuguese", "Português (Brasil)", true);
+        saveLocale("ru", "Russian", "Русский", true);
+        saveLocale("uk", "Ukrainian", "Українська", true);
+        saveLocale("pl", "Polish", "Polski", true);
+        saveLocale("nl", "Dutch", "Nederlands", true);
+        saveLocale("ja", "Japanese", "日本語", true);
+        saveLocale("zh-CN", "Simplified Chinese", "简体中文", true);
+        saveLocale("zh-TW", "Traditional Chinese", "繁體中文", true);
+        saveLocale("ko", "Korean", "한국어", true);
         saveLocale("vi-VN", "Vietnamese (Vietnam)", "Tiếng Việt", true);
-        saveLocale("th",    "Thai",                "ไทย",          true);
-        saveLocale("tr-TR", "Turkish (Turkey)",    "Türkçe",      true);
-        saveLocale("ar",    "Arabic",              "العربية",      true);
-        saveLocale("he",    "Hebrew",              "עברית",        true);
+        saveLocale("th", "Thai", "ไทย", true);
+        saveLocale("tr-TR", "Turkish (Turkey)", "Türkçe", true);
+        saveLocale("ar", "Arabic", "العربية", true);
+        saveLocale("he", "Hebrew", "עברית", true);
         log.info("Inserted {} demo locales", localeRepository.count());
     }
 
@@ -306,7 +291,9 @@ public class DevSeedData implements CommandLineRunner {
     private void saveLocale(String id, String display, String nativeName,
                             boolean enabledByDefault) {
         LocaleId localeId = new LocaleId(id);
-        if (localeRepository.findByLocaleId(localeId).isPresent()) return;
+        if (localeRepository.findByLocaleId(localeId).isPresent()) {
+            return;
+        }
         HLocale l = new HLocale(localeId, enabledByDefault, true);
         l.setDisplayName(display);
         l.setNativeName(nativeName);
@@ -314,19 +301,19 @@ public class DevSeedData implements CommandLineRunner {
     }
 
     private static final List<String> SAMPLE_SOURCES = List.of(
-            "Hello, world!",
-            "Welcome to the project.",
-            "Save changes",
-            "Cancel",
-            "Translation Memory is enabled",
-            "Please enter your name",
-            "An error occurred while saving the file. Please try again.",
-            "Settings"
+        "Hello, world!",
+        "Welcome to the project.",
+        "Save changes",
+        "Cancel",
+        "Translation Memory is enabled",
+        "Please enter your name",
+        "An error occurred while saving the file. Please try again.",
+        "Settings"
     );
 
     private void seedDocuments() {
         HLocale enUs = localeRepository.findByLocaleId(new LocaleId("en-US"))
-                .orElse(null);
+            .orElse(null);
         HLocale fr = localeRepository.findByLocaleId(new LocaleId("fr")).orElse(null);
         HLocale de = localeRepository.findByLocaleId(new LocaleId("de")).orElse(null);
         HLocale ru = localeRepository.findByLocaleId(new LocaleId("ru")).orElse(null);
@@ -342,12 +329,14 @@ public class DevSeedData implements CommandLineRunner {
         for (HProject project : projectRepository.findAll()) {
             for (HProjectIteration iteration : project.getProjectIterations()) {
                 List<HDocument> existing = documentRepository
-                        .findByVersion(project.getSlug(), iteration.getSlug());
-                if (!existing.isEmpty()) continue;
+                    .findByVersion(project.getSlug(), iteration.getSlug());
+                if (!existing.isEmpty()) {
+                    continue;
+                }
 
                 HDocument doc = new HDocument(
-                        "messages", "messages", "",
-                        ContentType.TextPlain, enUs);
+                    "messages", "messages", "",
+                    ContentType.TextPlain, enUs);
                 doc.setProjectIteration(iteration);
                 doc.setRevision(1);
 
@@ -358,7 +347,7 @@ public class DevSeedData implements CommandLineRunner {
                     // human-readable key (msg.N) lives in PotEntryData.context.
                     String originalKey = "msg." + i;
                     HTextFlow tf = new HTextFlow(doc,
-                            HashUtil.generateHash(originalKey), src);
+                        HashUtil.generateHash(originalKey), src);
                     tf.setRevision(1);
                     tf.setPos(i);
                     HPotEntryData entry = new HPotEntryData();
@@ -374,24 +363,24 @@ public class DevSeedData implements CommandLineRunner {
                 flowCount += flows.size();
 
                 List<HTextFlow> persistedFlows = textFlowRepository
-                        .findByDocument(savedDoc.getId());
+                    .findByDocument(savedDoc.getId());
 
                 if (fr != null) {
                     targetCount += seedTargets(persistedFlows, fr,
-                            ContentState.Translated, "FR: ", 5);
+                        ContentState.Translated, "FR: ", 5);
                 }
                 if (de != null) {
                     targetCount += seedTargets(persistedFlows, de,
-                            ContentState.Approved, "DE: ", 3);
+                        ContentState.Approved, "DE: ", 3);
                 }
                 if (ru != null) {
                     targetCount += seedTargets(persistedFlows, ru,
-                            ContentState.NeedReview, "RU: ", 2);
+                        ContentState.NeedReview, "RU: ", 2);
                 }
             }
         }
         log.info("Seeded {} documents with {} text flows and {} translation targets",
-                docCount, flowCount, targetCount);
+            docCount, flowCount, targetCount);
     }
 
     private int seedTargets(List<HTextFlow> flows, HLocale locale,

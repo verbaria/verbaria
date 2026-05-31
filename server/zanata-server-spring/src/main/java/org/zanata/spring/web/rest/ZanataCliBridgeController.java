@@ -99,6 +99,9 @@ import org.zanata.spring.service.DocumentImportService;
 @RequestMapping("/rest")
 public class ZanataCliBridgeController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(ZanataCliBridgeController.class);
+
     /**
      * Standard MIME types plus the legacy zanata-rest-client vendor types
      * (application/vnd.zanata.Version+xml, +json; application/vnd.zanata.project+xml ...).
@@ -574,13 +577,14 @@ public class ZanataCliBridgeController {
                                                  @PathVariable("iter") String iter,
                                                  @PathVariable("docId") String docId,
                                                  @RequestBody Resource body) {
-        if (currentUser() == null) {
+        HAccount actor = currentUser();
+        if (actor == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         String realDocId = decodeDocId(docId);
         try {
             DocumentImportService.ImportResult result =
-                    importService.importSource(slug, iter, realDocId, body);
+                    importService.importSource(slug, iter, realDocId, body, actor);
             Resource out = toResource(result.document());
             return result.created()
                     ? ResponseEntity.status(HttpStatus.CREATED).body(out)
@@ -854,8 +858,15 @@ public class ZanataCliBridgeController {
     // with an id, the CLI polls /async/{id} until Finished. Since our import
     // service is synchronous we just do the import inline and return Finished.
 
+    // NOT @Transactional on purpose: importService.importSource is itself
+    // @Transactional. If this method also opened a transaction, the service
+    // call would join it; a failure inside the service marks that shared
+    // transaction rollback-only, but our catch(Exception) below swallows the
+    // exception and returns a Failed ProcessStatus — then the outer commit
+    // throws UnexpectedRollbackException, masking the real error with a raw
+    // 500. Letting the service own its transaction means a failure rolls back
+    // cleanly and surfaces here with its actual message (matches putSourceDoc).
     @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/resource")
-    @Transactional
     public ResponseEntity<ProcessStatus> asyncPushSource(@PathVariable("slug") String slug,
                                                          @PathVariable("iter") String iter,
                                                          @org.springframework.web.bind.annotation.RequestParam(value = "docId", required = false) String docIdParam,
@@ -868,10 +879,13 @@ public class ZanataCliBridgeController {
         String docId = decodeDocId(docIdParam != null && !docIdParam.isBlank()
                 ? docIdParam : body.getName());
         try {
-            importService.importSource(slug, iter, docId, body);
+            importService.importSource(slug, iter, docId, body, actor);
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
+            // The CLI discards the response body, so log the real cause here —
+            // otherwise an import failure is invisible on both ends.
+            log.error("source push failed for {}/{} doc {}", slug, iter, docId, ex);
             ProcessStatus status = new ProcessStatus();
             status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
             status.setPercentageComplete(0);
@@ -890,8 +904,11 @@ public class ZanataCliBridgeController {
 
     // ---------- 13b. async translation push ----------
 
+    // NOT @Transactional on purpose — see asyncPushSource: the service method
+    // (importTranslations) owns the transaction, so a failure there rolls back
+    // cleanly and the real message reaches our catch instead of being masked
+    // by an UnexpectedRollbackException at this method's commit.
     @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
-    @Transactional
     public ResponseEntity<ProcessStatus> asyncPushTranslations(@PathVariable("slug") String slug,
                                                                @PathVariable("iter") String iter,
                                                                @PathVariable("docId") String docId,
@@ -907,6 +924,9 @@ public class ZanataCliBridgeController {
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
+            // The CLI discards the response body, so log the real cause here.
+            log.error("translation push failed for {}/{} doc {} locale {}",
+                    slug, iter, docId, locale, ex);
             ProcessStatus status = new ProcessStatus();
             status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
             status.setPercentageComplete(0);
