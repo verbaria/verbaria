@@ -18,6 +18,7 @@ import org.zanata.client.config.LocaleMapping;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.StringSet;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -28,7 +29,7 @@ public class YamlStrategy extends AbstractPushStrategy {
     private static final String LOCALIZE_LIB = "LOCALIZE-LIB/";
 
     public YamlStrategy() {
-        super(new StringSet("comment;gettext"), ".yaml");
+        super(new StringSet("comment;gettext;consulo"), ".yaml");
     }
 
     @Override
@@ -55,25 +56,44 @@ public class YamlStrategy extends AbstractPushStrategy {
         LocaleId src = new LocaleId(getOpts().getSourceLang());
         Resource doc = new Resource(docName);
         doc.setLang(src);
-        Map<String, String> entries = collectEntries(sourceDir, docName);
+        Map<String, SrcEntry> entries = collectEntries(sourceDir, docName);
         if (entries.isEmpty()) {
             throw new IOException("No source entries found for docId: " + docName);
         }
-        for (Map.Entry<String, String> e : entries.entrySet()) {
-            doc.getTextFlows().add(new TextFlow(e.getKey(), src, e.getValue()));
+        for (Map.Entry<String, SrcEntry> e : entries.entrySet()) {
+            TextFlow tf = new TextFlow(e.getKey(), src, e.getValue().text);
+            String ext = e.getValue().ext;
+            if (ext != null) {
+                // Raw sub-file: the key already carries the sub-path; we only
+                // need its extension so pull can recreate the exact file. The
+                // extension's presence also marks this entry as a raw file.
+                tf.getExtensions(true).add(new ConsuloSubFile(ext));
+            }
+            doc.getTextFlows().add(tf);
         }
         return doc;
     }
 
+    /** A source string plus, for raw sub-files, its file extension. */
+    private static final class SrcEntry {
+        final String text;
+        /** File extension (without dot, may be empty); null for yaml keys. */
+        final String ext;
+        SrcEntry(String text, String ext) {
+            this.text = text;
+            this.ext = ext;
+        }
+    }
+
     /**
-     * Collect every translatable string belonging to {@code docName} into a
-     * key→text map: top-level YAML keys plus every sub-file under the dir
-     * named {@code docName} (sub-file key = rel path inside that dir,
-     * extension stripped, {@code /} → {@code .}).
+     * Collect every translatable string belonging to {@code docName}: top-level
+     * YAML keys (ext null) plus every sub-file under the dir named
+     * {@code docName} (sub-file key = rel path inside that dir, extension
+     * stripped, {@code /} → {@code .}; ext = the file's extension).
      */
-    private Map<String, String> collectEntries(File sourceDir, String docName)
+    private Map<String, SrcEntry> collectEntries(File sourceDir, String docName)
             throws IOException {
-        Map<String, String> entries = new LinkedHashMap<>();
+        Map<String, SrcEntry> entries = new LinkedHashMap<>();
         for (String rel : getSrcFiles(sourceDir,
                 ImmutableList.copyOf(getOpts().getIncludes()),
                 ImmutableList.copyOf(getOpts().getExcludes()),
@@ -97,17 +117,24 @@ public class YamlStrategy extends AbstractPushStrategy {
                             for (Map.Entry<?, ?> e : top.entrySet()) {
                                 String key = String.valueOf(e.getKey());
                                 String text = textOf(e.getValue());
-                                if (text != null) entries.put(key, text);
+                                if (text != null) {
+                                    entries.put(key, new SrcEntry(text, null));
+                                }
                             }
                         }
                     }
                 }
             } else if (rest.startsWith("/")) {
-                String key = FilenameUtils.removeExtension(rest.substring(1))
+                String relInside = rest.substring(1);
+                String key = FilenameUtils.removeExtension(relInside)
                         .replace('/', '.');
                 String body = Files.readString(file.toPath(),
                         java.nio.charset.StandardCharsets.UTF_8);
-                if (!body.isEmpty()) entries.put(key, body);
+                if (!body.isEmpty()) {
+                    // ext "" when the file has none — still marks it raw.
+                    entries.put(key, new SrcEntry(body,
+                            FilenameUtils.getExtension(relInside)));
+                }
             }
         }
         return entries;

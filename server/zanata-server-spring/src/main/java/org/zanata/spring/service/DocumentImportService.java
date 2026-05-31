@@ -21,6 +21,7 @@ import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.model.po.HPotEntryData;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
@@ -163,6 +164,7 @@ public class DocumentImportService {
             // property key into context, so the editor's Details panel can
             // still surface the human-readable identifier.
             applyPotEntryHeader(tf, incoming);
+            applyConsuloSubFile(tf, incoming);
             newOrder.add(tf);
             pos++;
         }
@@ -317,6 +319,20 @@ public class DocumentImportService {
         }
         if (header.getReferences() != null && !header.getReferences().isEmpty()) {
             data.setReferences(String.join(",", header.getReferences()));
+        }
+    }
+
+    /**
+     * Persist the consulo sub-file extension so source pull can recreate the
+     * exact raw file and the editor can show/change it. Stored even when empty
+     * (an extensionless raw file) so its presence still flags a raw sub-file.
+     */
+    private static void applyConsuloSubFile(HTextFlow tf, TextFlow incoming) {
+        ConsuloSubFile cf = incoming.getExtensions() == null ? null
+                : incoming.getExtensions().findByType(ConsuloSubFile.class);
+        if (cf != null) {
+            tf.setConsuloFileExt(
+                    cf.getExtension() == null ? "" : cf.getExtension());
         }
     }
 

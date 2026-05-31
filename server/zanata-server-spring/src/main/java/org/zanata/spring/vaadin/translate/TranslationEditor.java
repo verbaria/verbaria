@@ -52,6 +52,46 @@ public class TranslationEditor extends AceEditor {
                 ev.getValue() == null ? "" : ev.getValue(), UI.getCurrent()));
     }
 
+    /**
+     * Switch syntax highlighting to suit a file extension (e.g. a consulo raw
+     * sub-file). Unknown/empty extensions fall back to plain text. Safe to call
+     * live when a reviewer changes the extension.
+     */
+    public void setModeForFileExtension(String ext) {
+        setMode(modeForExtension(ext));
+    }
+
+    private static AceMode modeForExtension(String ext) {
+        if (ext == null) {
+            return AceMode.text;
+        }
+        String e = ext.trim().toLowerCase(Locale.ROOT);
+        if (e.startsWith(".")) {
+            e = e.substring(1);
+        }
+        return switch (e) {
+            case "html", "htm", "xhtml" -> AceMode.html;      // consulo colour-scheme files are XML
+            case "xml", "colorpage", "colorscheme", "svg" -> AceMode.xml;
+            case "properties" -> AceMode.properties;
+            case "java" -> AceMode.java;
+            case "yaml", "yml" -> AceMode.yaml;
+            case "json" -> AceMode.json;
+            case "css" -> AceMode.css;
+            case "js", "mjs" -> AceMode.javascript;
+            case "ts" -> AceMode.typescript;
+            case "kt", "kts" -> AceMode.kotlin;
+            case "groovy", "gradle" -> AceMode.groovy;
+            case "scala", "sc" -> AceMode.scala;
+            case "py" -> AceMode.python;
+            case "sh", "bash" -> AceMode.sh;
+            case "sql" -> AceMode.sql;
+            case "md", "markdown" -> AceMode.markdown;
+            case "toml" -> AceMode.toml;
+            case "ini" -> AceMode.ini;
+            default -> AceMode.text;
+        };
+    }
+
     private void configure() {
         setMode(AceMode.text);
         setShowGutter(false);

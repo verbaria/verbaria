@@ -98,6 +98,7 @@ public class HTextFlow extends HTextContainer implements Serializable,
     private Map<Integer, HTextFlowHistory> history;
     private HSimpleComment comment;
     private HPotEntryData potEntryData;
+    private String consuloFileExt;
     private Long wordCount;
     private String contentHash;
     private boolean plural;
@@ -379,6 +380,21 @@ public class HTextFlow extends HTextContainer implements Serializable,
             optional = true)
     public HPotEntryData getPotEntryData() {
         return potEntryData;
+    }
+
+    /**
+     * Consulo source metadata: the file extension (without the dot, possibly
+     * empty) of a raw sub-file entry, so source pull can recreate the exact
+     * file — its sub-path is recovered from the resId/context key. Null for
+     * ordinary key/value entries.
+     */
+    @Column(name = "consulo_file_ext", columnDefinition = "text")
+    public String getConsuloFileExt() {
+        return consuloFileExt;
+    }
+
+    public void setConsuloFileExt(final String consuloFileExt) {
+        this.consuloFileExt = consuloFileExt;
     }
 
     @NotNull

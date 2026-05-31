@@ -44,11 +44,14 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.model.po.HPotEntryData;
 import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.dto.ProjectIteration;
 import org.zanata.rest.dto.VersionInfo;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
+import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TextFlow;
@@ -1154,13 +1157,19 @@ public class ZanataCliBridgeController {
                     tf.getContents() == null ? List.<String>of("") : tf.getContents());
             flowDto.setPlural(tf.isPlural());
             flowDto.setRevision(tf.getRevision());
-            if (tf.getPotEntryData() != null
-                    && tf.getPotEntryData().getContext() != null
-                    && !tf.getPotEntryData().getContext().isEmpty()) {
-                org.zanata.rest.dto.extensions.gettext.PotEntryHeader peh =
-                        new org.zanata.rest.dto.extensions.gettext.PotEntryHeader();
-                peh.setContext(tf.getPotEntryData().getContext());
+            HPotEntryData ped = tf.getPotEntryData();
+            if (ped != null && ped.getContext() != null
+                    && !ped.getContext().isEmpty()) {
+                PotEntryHeader peh = new PotEntryHeader();
+                peh.setContext(ped.getContext());
                 flowDto.getExtensions(true).add(peh);
+            }
+            // Consulo raw sub-file: hand back its extension so source pull
+            // recreates the exact file and the editor can show/change it.
+            // Present (even empty) means the entry is a raw sub-file.
+            if (tf.getConsuloFileExt() != null) {
+                flowDto.getExtensions(true).add(
+                        new ConsuloSubFile(tf.getConsuloFileExt()));
             }
             r.getTextFlows().add(flowDto);
         }

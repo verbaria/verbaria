@@ -58,6 +58,24 @@ public class TranslationEditService {
         textFlowRepository.save(textFlow);
     }
 
+    /**
+     * Change the consulo sub-file extension of a source text flow. Reviewers
+     * may set any extension (it drives editor highlighting and the file pull
+     * recreates). Empty string keeps it a raw file with no extension.
+     */
+    @Transactional
+    public void updateConsuloFileExt(Long textFlowId, String newExt) {
+        HTextFlow textFlow = textFlowRepository.findById(textFlowId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "TextFlow not found: " + textFlowId));
+        String fresh = newExt == null ? "" : newExt.trim();
+        if (fresh.startsWith(".")) {
+            fresh = fresh.substring(1);
+        }
+        textFlow.setConsuloFileExt(fresh);
+        textFlowRepository.save(textFlow);
+    }
+
     @Transactional
     public ContentState changeState(Long textFlowId, LocaleId localeId, ContentState newState) {
         return changeState(textFlowId, localeId, newState, null, null);

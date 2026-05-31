@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -28,6 +29,8 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import org.zanata.spring.vaadin.theme.AuraUtility;
@@ -203,6 +206,10 @@ public class TranslationRow extends Div {
                 languageValidator, taskScheduler, toJavaLocale(rowLocale));
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
+        // Consulo raw sub-file: highlight by its extension.
+        area.setModeForFileExtension(flow.getConsuloFileExt());
+
+        Component extField = buildConsuloExtensionField(area);
 
         if (canEdit && !isSourceLocale) {
             Shortcuts.addShortcutListener(area, () -> area.setValue(source),
@@ -262,8 +269,48 @@ public class TranslationRow extends Div {
         actionRow.setSpacing(true);
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
+        if (extField != null) right.add(extField);
         right.add(area, actionRow, historyPanel);
         return right;
+    }
+
+    /**
+     * For a consulo raw sub-file, an editable "Extension" field. Reviewers may
+     * change it to any value; the change is persisted and immediately re-applies
+     * the editor's syntax highlighting. Returns {@code null} when the flow is
+     * not a consulo sub-file (an ordinary {@code key: text} entry).
+     */
+    private Component buildConsuloExtensionField(TranslationEditor area) {
+        String ext = flow.getConsuloFileExt();
+        if (ext == null) {
+            return null;
+        }
+        TextField field = new TextField(getTranslation("translate.row.extension"));
+        field.setValue(ext);
+        field.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        field.setWidth("10rem");
+        field.setReadOnly(!canReview);
+        if (!canReview) {
+            field.setHelperText(
+                    getTranslation("translate.row.extensionReviewerOnly"));
+        }
+        // Listener added AFTER setValue so the initial value doesn't persist.
+        field.addValueChangeListener(e -> {
+            String val = e.getValue() == null ? "" : e.getValue().trim();
+            if (val.startsWith(".")) val = val.substring(1);
+            try {
+                translationEditService.updateConsuloFileExt(flow.getId(), val);
+                flow.setConsuloFileExt(val);
+                area.setModeForFileExtension(val);
+                Notification.show(getTranslation("translate.row.extensionSaved"),
+                        2000, Notification.Position.BOTTOM_START);
+            } catch (Exception ex) {
+                Notification.show(getTranslation(
+                        "translate.row.extensionSaveFailed", ex.getMessage()),
+                        4000, Notification.Position.MIDDLE);
+            }
+        });
+        return field;
     }
 
     private Button buildSaveButton(TranslationEditor area, Span stateSpan) {
