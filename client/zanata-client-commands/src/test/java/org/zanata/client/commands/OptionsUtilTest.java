@@ -1,6 +1,7 @@
 package org.zanata.client.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
@@ -17,11 +18,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.configuration2.INIConfiguration;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.zanata.client.TemporaryFolderExtension;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -33,16 +33,14 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 
 public class OptionsUtilTest {
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
     private ConfigurableProjectOptions opts;
     private ZanataConfig config;
     @Mock
     private ConsoleInteractor console;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         opts = new ConfigurableProjectOptionsImpl() {
@@ -169,13 +167,11 @@ public class OptionsUtilTest {
 
     @Test
     public void willThrowExceptionIfRuleIsInvalid() {
-        expectedException.expect(IllegalStateException.class);
         String rule = "{filename}/{path}";
         opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(rule)));
 
-        OptionsUtil.checkPotentialMistakesInRules(opts, console);
-
-        verify(console).printfln(Warning, get("invalid.rule"), rule);
+        assertThrows(IllegalStateException.class, () ->
+                OptionsUtil.checkPotentialMistakesInRules(opts, console));
     }
 
     @Test

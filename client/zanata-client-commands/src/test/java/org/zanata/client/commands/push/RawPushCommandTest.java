@@ -2,8 +2,8 @@ package org.zanata.client.commands.push;
 
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.commands.ConsoleInteractor;
@@ -27,7 +27,7 @@ public class RawPushCommandTest {
 
     private RawPushCommand command;
 
-    @Before
+    @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
         when(opts.getProj()).thenReturn("project");

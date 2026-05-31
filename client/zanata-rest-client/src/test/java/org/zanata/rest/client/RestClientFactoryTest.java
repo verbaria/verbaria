@@ -21,8 +21,7 @@
 
 package org.zanata.rest.client;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.VersionInfo;
 import org.zanata.rest.service.StubbingServerRule;
 
@@ -30,7 +29,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RestClientFactoryTest {
 
-    @Rule
     public StubbingServerRule stubbingServerRule = new StubbingServerRule();
 
     @Test

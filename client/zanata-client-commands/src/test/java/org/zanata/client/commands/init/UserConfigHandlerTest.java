@@ -5,12 +5,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mockito;
+import org.zanata.client.TemporaryFolderExtension;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.MockConsoleInteractor;
 
@@ -18,18 +17,17 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.zanata.client.commands.Messages.get;
 
 public class UserConfigHandlerTest {
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
     private InitOptionsImpl opts;
     private UserConfigHandler handler;
     private File userConfig;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         opts = new InitOptionsImpl();
         ensureUserConfigExistsWithOneServer();
@@ -55,25 +53,24 @@ public class UserConfigHandlerTest {
 
     @Test
     public void exitWhenThereIsNoUserConfig() throws Exception {
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage(get("missing.user.config"));
         opts.setUserConfig(new File("/planet/Mars/verbaria.ini"));
 
-        handler.verifyUserConfig();
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> handler.verifyUserConfig());
+        assertThat(e.getMessage()).contains(get("missing.user.config"));
     }
 
     @Test
     public void willExitWhenThereIsNoServerUrlInFile() throws Exception {
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage(get("missing.server.url"));
-
         // wipe contents in the file
         BufferedWriter writer =
                 Files.newWriter(userConfig, Charsets.UTF_8);
         writer.write("[servers]");
         writer.close();
 
-        handler.verifyUserConfig();
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> handler.verifyUserConfig());
+        assertThat(e.getMessage()).contains(get("missing.server.url"));
     }
 
     @Test

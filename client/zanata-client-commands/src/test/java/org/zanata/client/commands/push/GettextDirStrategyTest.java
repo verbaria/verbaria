@@ -25,9 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.TempTransFileRule;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
@@ -39,12 +39,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 
 public class GettextDirStrategyTest {
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempFileRule = new TempTransFileRule();
     private GettextDirStrategy strategy;
     private PushOptionsImpl opts;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         strategy = new GettextDirStrategy();
         opts = new PushOptionsImpl();

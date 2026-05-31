@@ -20,12 +20,13 @@
  */
 package org.zanata.common;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -68,14 +69,14 @@ public class ProjectTypeTest {
         }
     }
 
-    @Test(expected = Exception.class)
-    public void getValueOfEmptyStringThrowsException() throws Exception {
-        getValueOf("");
+    @Test
+    public void getValueOfEmptyStringThrowsException() {
+        assertThrows(Exception.class, () -> getValueOf(""));
     }
 
-    @Test(expected = Exception.class)
-    public void getValueOfUnknownTypeThrowsException() throws Exception {
-        getValueOf("whatever");
+    @Test
+    public void getValueOfUnknownTypeThrowsException() {
+        assertThrows(Exception.class, () -> getValueOf("whatever"));
     }
 
     @Test

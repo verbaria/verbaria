@@ -2,8 +2,8 @@ package org.zanata.client.commands.pull;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -17,7 +17,7 @@ public class GettextPullStrategyTest {
     private GettextPullStrategy strategy;
     private PullOptionsImpl opts;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         opts = new PullOptionsImpl();
         opts.setLocaleMapList(new LocaleList());

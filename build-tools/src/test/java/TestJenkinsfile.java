@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.codehaus.groovy.runtime.MethodClosure;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import com.cloudbees.groovy.cps.impl.CpsCallableInvocation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -23,12 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 // jenkins-pipeline-unit + Groovy 4 CPS incompatibility: BasePipelineTest
 // initialisation throws MissingPropertyException on `.class`. The Jenkinsfile
 // behaviour itself is exercised in CI; disable the local unit harness.
-@Ignore("jenkins-pipeline-unit incompatible with Groovy 4 CPS — see migration notes")
+@Disabled("jenkins-pipeline-unit incompatible with Groovy 4 CPS — see migration notes")
 public class TestJenkinsfile extends BasePipelineTestCPS {
 
     private static final String LIB_PATH = "target/libs";
 
-    @Before
+    @BeforeEach
     @Override
     public void setUp() throws Exception {
         super.setUp();

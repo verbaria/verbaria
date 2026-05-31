@@ -3,11 +3,11 @@ package org.zanata.client;
 import java.io.StringWriter;
 import java.net.URL;
 
-import com.google.common.collect.Lists;
 import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.kohsuke.args4j.spi.SubCommand;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -21,17 +21,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ZanataClientTest {
-    @Rule
-    public ParameterRule<String> cmdNameRule = new ParameterRule<>(
-            Lists.newArrayList("list-remote", "pull", "push", "put-project",
-                    "put-user",
-                    "put-version", "stats"));
-
     private StringWriter out;
     private StringWriter err;
     private ZanataClient client;
 
-    @Before
+    @BeforeEach
     public void before() {
         out = new StringWriter();
         err = new StringWriter();
@@ -87,9 +81,11 @@ public class ZanataClientTest {
      *
      * @throws Exception
      */
-    @Test
-    public void testHelpSubCommand() throws Exception {
-        client.processArgs("help", cmdNameRule.getParameter());
+    @ParameterizedTest
+    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
+            "put-user", "put-version", "stats" })
+    public void testHelpSubCommand(String cmdName) throws Exception {
+        client.processArgs("help", cmdName);
         assertOutputIncludesUsage(out);
         assertThat("Usage should not list subcommands",
                 !outputListsCommands(out));
@@ -100,9 +96,11 @@ public class ZanataClientTest {
      *
      * @throws Exception
      */
-    @Test
-    public void testHelpSubOption() throws Exception {
-        client.processArgs(cmdNameRule.getParameter(), "--help");
+    @ParameterizedTest
+    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
+            "put-user", "put-version", "stats" })
+    public void testHelpSubOption(String cmdName) throws Exception {
+        client.processArgs(cmdName, "--help");
         assertOutputIncludesUsage(out);
         assertThat("Usage should not list subcommands",
                 !outputListsCommands(out));
@@ -149,9 +147,11 @@ public class ZanataClientTest {
      *
      * @throws Exception
      */
-    @Test
-    public void testInvalidSubOption() throws Exception {
-        client.processArgs(cmdNameRule.getParameter(), "--nosuchoption");
+    @ParameterizedTest
+    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
+            "put-user", "put-version", "stats" })
+    public void testInvalidSubOption(String cmdName) throws Exception {
+        client.processArgs(cmdName, "--nosuchoption");
         assertOutputIncludesUsage(err);
         // ideally, we would get the subcommand's help, but args4j doesn't
         // return the subcommand name when something goes wrong:

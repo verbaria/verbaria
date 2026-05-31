@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, Red Hat, Inc. and individual contributors
+ * Copyright 2026, verbaria.org and Red Hat, Inc. and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -18,13 +18,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-
 package org.zanata.client;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Comparator;
 
@@ -32,56 +29,61 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
- * JUnit 5 extension that creates a temporary translation directory per test.
- * Register it with {@code @RegisterExtension} and obtain the directory via
- * {@link #getTransDir()}, then create translation files using a relative path.
- *
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
+ * A small JUnit 5 replacement for JUnit 4's {@code TemporaryFolder} rule,
+ * exposing the same {@code getRoot()/newFile()/newFolder()} API so existing
+ * tests need only swap {@code @Rule} for {@code @RegisterExtension}.
  */
-public class TempTransFileRule
+public class TemporaryFolderExtension
         implements BeforeEachCallback, AfterEachCallback {
-    private File transDir;
+    private File root;
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        transDir = Files.createTempDirectory("zanata-temp-trans").toFile();
+        root = Files.createTempDirectory("junit").toFile();
     }
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
-        if (transDir != null && transDir.exists()) {
-            try (var paths = Files.walk(transDir.toPath())) {
+        if (root != null && root.exists()) {
+            try (var paths = Files.walk(root.toPath())) {
                 paths.sorted(Comparator.reverseOrder())
                         .map(java.nio.file.Path::toFile)
                         .forEach(File::delete);
             }
         }
-        transDir = null;
+        root = null;
     }
 
-    public File createTransFileRelativeToTransDir(String path)
-            throws IOException {
-        File file = new File(transDir, path);
-        File parentFile = file.getParentFile();
-        parentFile.mkdirs();
-        assertThat(parentFile.exists()).isTrue();
-        assertThat(file.createNewFile()).isTrue();
+    public File getRoot() {
+        return root;
+    }
+
+    public File newFile() throws IOException {
+        return File.createTempFile("junit", null, root);
+    }
+
+    public File newFile(String name) throws IOException {
+        File file = new File(root, name);
+        if (!file.createNewFile()) {
+            throw new IOException("a file with the name '" + name
+                    + "' already exists in the test folder");
+        }
         return file;
     }
 
-    public void addContentToFile(File file, Charset charset, String content)
-            throws Exception {
-        BufferedWriter writer =
-                com.google.common.io.Files.newWriter(file, charset);
-        writer.write(content);
-        writer.close();
+    public File newFolder() throws IOException {
+        return Files.createTempDirectory(root.toPath(), "junit").toFile();
     }
 
-    public File getTransDir() {
-        return transDir;
+    public File newFolder(String... names) throws IOException {
+        File folder = root;
+        for (String name : names) {
+            folder = new File(folder, name);
+        }
+        if (!folder.mkdirs() && !folder.isDirectory()) {
+            throw new IOException("could not create folder " + folder);
+        }
+        return folder;
     }
 }

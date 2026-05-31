@@ -1,7 +1,7 @@
 package org.zanata.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static org.zanata.util.OkapiUtil.countWords;
 
@@ -51,7 +51,7 @@ public class OkapiUtilTest {
         int i = 0;
         for (String s : strings) {
             long expected = count[i++];
-            Assert.assertEquals(expected, countWords(s, "en-US"));
+            Assertions.assertEquals(expected, countWords(s, "en-US"));
         }
     }
 

@@ -23,9 +23,6 @@ package org.zanata.rest.service;
 
 import java.net.URI;
 
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -41,7 +38,7 @@ import org.springframework.context.ConfigurableApplicationContext;
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-public class StubbingServerRule implements TestRule {
+public class StubbingServerRule {
     private static ConfigurableApplicationContext context;
     private static URI baseUri;
 
@@ -81,11 +78,6 @@ public class StubbingServerRule implements TestRule {
                 // best-effort
             }
         }));
-    }
-
-    @Override
-    public Statement apply(final Statement base, Description description) {
-        return base;
     }
 
     public URI getServerBaseUri() {

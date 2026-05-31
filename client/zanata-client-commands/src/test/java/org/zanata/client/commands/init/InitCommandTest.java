@@ -1,6 +1,7 @@
 package org.zanata.client.commands.init;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.zanata.client.TestUtils.readFromClasspath;
 import static org.zanata.client.commands.Messages.get;
@@ -10,11 +11,10 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.zanata.client.TemporaryFolderExtension;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
@@ -32,11 +32,8 @@ public class InitCommandTest {
     private static final Logger log =
             LoggerFactory.getLogger(InitCommandTest.class);
 
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
 
     private InitCommand command;
     private InitOptionsImpl opts;
@@ -47,7 +44,7 @@ public class InitCommandTest {
     @Mock
     private ProjectIterationClient projectIterationClient;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         opts = new InitOptionsImpl();
@@ -100,23 +97,22 @@ public class InitCommandTest {
     @Test
     public void willQuitIfServerApiVersionDoesNotSupportInit()
             throws Exception {
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage(Messages
-                .get("server.incompatible"));
-
         when(clientFactory.getServerVersionInfo()).thenReturn(
                 new VersionInfo("3.3.1", "unknown", "unknown"));
         command = new InitCommand(opts, console, clientFactory);
 
-        command.ensureServerVersion();
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> command.ensureServerVersion());
+        assertThat(e.getMessage())
+                .contains(Messages.get("server.incompatible"));
     }
 
     @Test
     public void willQuitIfUsernameAndConfigUnavailable()
             throws Exception {
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage(get("missing.user.config"));
         opts.setUserConfig(new File("/planet/Mars/verbaria.ini"));
-        command.run();
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> command.run());
+        assertThat(e.getMessage()).contains(get("missing.user.config"));
     }
 }

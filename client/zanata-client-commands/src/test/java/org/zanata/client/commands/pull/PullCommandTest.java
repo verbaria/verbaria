@@ -30,8 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.config.LocaleList;
@@ -66,7 +66,7 @@ public class PullCommandTest {
     private LocaleList locales;
     private PullCommand pullCommand;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         opts = new PullOptionsImpl();

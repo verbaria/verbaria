@@ -7,10 +7,10 @@ import java.io.File;
 import java.net.URI;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
+import org.zanata.client.TemporaryFolderExtension;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.commands.ConsoleInteractor;
@@ -25,8 +25,8 @@ import org.zanata.rest.client.RestClientFactory;
 import com.google.common.collect.ImmutableList;
 
 public class SourceConfigPromptTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
     private SourceConfigPrompt prompt;
     private PushOptions opts;
     @Mock
@@ -34,7 +34,7 @@ public class SourceConfigPromptTest {
     @Mock
     private FileResourceClient fileClient;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         opts = new PushOptionsImpl();

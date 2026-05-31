@@ -2,6 +2,7 @@ package org.zanata.adapter.po;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,9 +10,7 @@ import java.util.List;
 
 
 import org.fedorahosted.tennera.jgettext.Message;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -27,9 +26,6 @@ public class PoReader2Test {
             .getLogger(PoReader2Test.class);
 
     private final PoReader2 poReader = new PoReader2();
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     private Resource getTemplate() throws IOException {
         InputSource inputSource = getTestInputSource("pot/RPM.pot");
@@ -76,9 +72,9 @@ public class PoReader2Test {
         InputSource inputSource = getTestInputSource("pot/invalid.pot");
         inputSource.setEncoding("utf8");
 
-        exception.expect(RuntimeException.class);
-        exception.expectMessage("unsupported charset");
-        poReader.extractTemplate(inputSource, LocaleId.EN_US, "doc1");
+        RuntimeException e = assertThrows(RuntimeException.class, () ->
+                poReader.extractTemplate(inputSource, LocaleId.EN_US, "doc1"));
+        assertThat(e.getMessage()).contains("unsupported charset");
     }
 
     @Test
@@ -88,9 +84,9 @@ public class PoReader2Test {
         inputSource.setEncoding("utf8");
         log.debug("extracting target: " + locale);
 
-        exception.expect(RuntimeException.class);
-        exception.expectMessage("unsupported charset");
-        poReader.extractTarget(inputSource);
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> poReader.extractTarget(inputSource));
+        assertThat(e.getMessage()).contains("unsupported charset");
     }
 
     private InputSource getTestInputSource(String resourceName) throws IOException {

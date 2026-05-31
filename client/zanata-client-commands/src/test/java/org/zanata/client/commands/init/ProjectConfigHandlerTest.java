@@ -3,17 +3,17 @@ package org.zanata.client.commands.init;
 import java.io.File;
 import java.util.List;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
+import org.zanata.client.TemporaryFolderExtension;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.MockConsoleInteractor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ProjectConfigHandlerTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
 
     @Test
     public void willBackupExistingProjectConfig() throws Exception {

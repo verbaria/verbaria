@@ -21,9 +21,8 @@
 
 package org.zanata.rest.client;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.zanata.rest.dto.Account;
 import org.zanata.rest.service.StubbingServerRule;
@@ -31,12 +30,11 @@ import org.zanata.rest.service.StubbingServerRule;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AccountClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
     private AccountClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         client = new AccountClient(MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri()));

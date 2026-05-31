@@ -68,12 +68,6 @@
         <version>${deltaspike.version}</version>
         <scope>compile</scope>
       </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-        <scope>test</scope>
-      </dependency>
 
       <!-- snakeyaml 1.x lacks org.yaml.snakeyaml.inspector.TagInspector,
            which Spring Boot 3.x calls at startup.  2.x is the current

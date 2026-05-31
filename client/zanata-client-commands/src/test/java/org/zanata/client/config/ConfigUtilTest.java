@@ -5,10 +5,10 @@ import java.net.URL;
 import org.apache.commons.configuration2.INIConfiguration;
 import org.apache.commons.configuration2.SubnodeConfiguration;
 import org.apache.commons.configuration2.io.FileHandler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.TestUtils;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConfigUtilTest {
     @Test

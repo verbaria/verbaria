@@ -21,21 +21,19 @@
 
 package org.zanata.rest.client;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.service.StubbingServerRule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ProjectsClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
     private ProjectsClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new ProjectsClient(MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri()));

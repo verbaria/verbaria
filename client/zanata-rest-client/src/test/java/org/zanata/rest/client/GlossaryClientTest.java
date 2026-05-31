@@ -24,9 +24,8 @@ package org.zanata.rest.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.service.MockGlossaryResource;
@@ -35,12 +34,11 @@ import org.zanata.rest.service.StubbingServerRule;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 public class GlossaryClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
     private GlossaryClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         client = new GlossaryClient(MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri()));

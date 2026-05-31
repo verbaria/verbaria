@@ -23,13 +23,13 @@ package org.zanata.model;
 import java.util.Date;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 public class HGlossaryEntryTest {
     HGlossaryEntry entry;
 
-    @Before
+    @BeforeEach
     public void setup() {
         entry = new HGlossaryEntry();
         entry.setId(1L);

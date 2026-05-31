@@ -8,8 +8,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.adapter.xliff.XliffCommon.ValidationType;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
@@ -30,7 +30,7 @@ public class XliffWriterTest {
 
     private XliffReader reader;
 
-    @Before
+    @BeforeEach
     public void beforeMethod() {
         GENERATE_DIR.mkdirs();
         reader = new XliffReader();

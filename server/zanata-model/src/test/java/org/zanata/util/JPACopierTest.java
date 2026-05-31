@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;

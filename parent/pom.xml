@@ -764,19 +764,7 @@
         <scope>import</scope>
       </dependency>
 
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-        <scope>test</scope>
-      </dependency>
 
-      <dependency>
-        <groupId>org.junit.vintage</groupId>
-        <artifactId>junit-vintage-engine</artifactId>
-        <version>6.0.3</version>
-        <scope>test</scope>
-      </dependency>
 
       <dependency>
         <groupId>com.sun.xml.fastinfoset</groupId>
@@ -1104,11 +1092,11 @@
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
-    <!-- Make JUnit 4 tests discoverable under the junit-platform Surefire
-         provider that Spock/Groovy modules pull in transitively. -->
+    <!-- JUnit 5 (Jupiter) — available to every module's tests. Version is
+         managed by the spring-boot-dependencies BOM imported above. -->
     <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

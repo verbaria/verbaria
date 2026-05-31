@@ -1,7 +1,7 @@
 package org.zanata.rest.dto.stats.contribution;
 
 import org.hamcrest.core.StringContains;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.DTOUtil;
 

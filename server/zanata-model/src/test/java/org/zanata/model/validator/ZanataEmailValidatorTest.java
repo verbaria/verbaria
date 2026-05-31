@@ -21,8 +21,8 @@
 
 package org.zanata.model.validator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 import jakarta.validation.ConstraintValidatorContext;
@@ -37,7 +37,7 @@ public class ZanataEmailValidatorTest {
     @Mock
     private ConstraintValidatorContext context;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         validator = new ZanataEmailValidator();
     }

@@ -12,13 +12,13 @@ import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class ElementBuilderTest {
 
-    @Before
+    @BeforeEach
     public void before() throws IOException {
         is = getClass().getResourceAsStream("ElementBuilderTest.xml");
     }
@@ -53,7 +53,7 @@ public class ElementBuilderTest {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void buildElementXMLStreamReaderTransformer() throws Exception {
         // Nasty way to ensure that we get a Transformer which supports
         // StAXSource:

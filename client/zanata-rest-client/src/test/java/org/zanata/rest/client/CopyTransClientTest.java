@@ -21,21 +21,19 @@
 
 package org.zanata.rest.client;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.CopyTransStatus;
 import org.zanata.rest.service.StubbingServerRule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CopyTransClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
     private CopyTransClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         client = new CopyTransClient(MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri()));

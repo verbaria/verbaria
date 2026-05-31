@@ -1,6 +1,6 @@
 package org.zanata.model.po;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;

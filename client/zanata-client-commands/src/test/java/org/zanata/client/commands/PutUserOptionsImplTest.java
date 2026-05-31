@@ -3,27 +3,24 @@ package org.zanata.client.commands;
 import java.io.IOException;
 import java.net.URL;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.MockitoAnnotations;
+import org.zanata.client.TemporaryFolderExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.zanata.client.commands.Messages.get;
 
 public class PutUserOptionsImplTest {
 
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
 
     private PutUserOptionsImpl opts;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         opts = new PutUserOptionsImpl();
@@ -40,9 +37,10 @@ public class PutUserOptionsImplTest {
         assertThat(opts.isUserEnabled()).isEqualTo("false");
         opts.setUserEnabled("auto");
         assertThat(opts.isUserEnabled()).isEqualTo("auto");
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage("--user-enabled requires true or false (or auto)");
-        opts.setUserEnabled("invalid");
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> opts.setUserEnabled("invalid"));
+        assertThat(e.getMessage())
+                .contains("--user-enabled requires true or false (or auto)");
     }
 
     @Test

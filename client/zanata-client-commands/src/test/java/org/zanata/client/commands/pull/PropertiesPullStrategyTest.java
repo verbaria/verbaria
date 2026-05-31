@@ -7,15 +7,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.fedorahosted.openprops.Properties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.util.PathUtil;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 public class PropertiesPullStrategyTest {
@@ -27,7 +27,7 @@ public class PropertiesPullStrategyTest {
 
     private Resource doc;
 
-    @Before
+    @BeforeEach
     public void prepare() throws IOException {
         PathUtil.makeDirs(outDir);
         doc = new Resource(null);
@@ -35,7 +35,7 @@ public class PropertiesPullStrategyTest {
         doc.getTextFlows().add(newTextFlow("unicode", "レス"));
     }
 
-    @Before
+    @BeforeEach
     public void beforeMethod() {
         MockitoAnnotations.initMocks(this);
         when(opts.getSrcDir()).thenReturn(outDir);

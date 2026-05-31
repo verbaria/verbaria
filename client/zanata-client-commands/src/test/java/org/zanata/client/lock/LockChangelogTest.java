@@ -19,9 +19,7 @@ package org.zanata.client.lock;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.lock.VerbariaLock.TranslationLock;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -29,7 +27,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(JUnit4.class)
 public class LockChangelogTest {
 
     private static TranslationLock tl(String sig, String... who) {

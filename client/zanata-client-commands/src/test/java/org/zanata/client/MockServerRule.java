@@ -40,7 +40,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -77,7 +78,7 @@ import org.zanata.rest.service.ApiPaths;
  * @author Patrick Huang <a
  *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
  */
-public class MockServerRule extends ExternalResource {
+public class MockServerRule implements BeforeEachCallback {
     // async process statuses
     private String mockProcessId = "MockServerRuleProcess";
     private ProcessStatus finished = new ProcessStatus();
@@ -127,8 +128,7 @@ public class MockServerRule extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
-        super.before();
+    public void beforeEach(ExtensionContext context) {
         pushOpts = new PushOptionsImpl();
         setCommonOpts(pushOpts);
         pushOpts.setCopyTrans(false);

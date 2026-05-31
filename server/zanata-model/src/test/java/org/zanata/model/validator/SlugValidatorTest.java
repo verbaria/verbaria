@@ -22,11 +22,11 @@ package org.zanata.model.validator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
+import java.util.stream.Stream;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -37,20 +37,12 @@ import jakarta.validation.ConstraintValidatorContext;
  * Slugs must start with a number or letter, and only contain letters,
  * numbers, periods, underscores and hyphens
  */
-@RunWith(Parameterized.class)
 public class SlugValidatorTest {
 
-    @Parameterized.Parameter(0)
-    public String slug;
+    private final SlugValidator slugValidator = new SlugValidator();
+    private final ConstraintValidatorContext context = null;
 
-    @Parameterized.Parameter(1)
-    public boolean isAcceptable;
-
-    private SlugValidator slugValidator = new SlugValidator();
-    private ConstraintValidatorContext context = null;
-
-    @Parameterized.Parameters(name = "{index}: slug({0}) is valid: {1}")
-    public static Iterable<Object[]> slugs() {
+    static Stream<Arguments> slugs() {
         Object[][] slugs = {
                 { "slug.test", true },
                 { "slug_test", true },
@@ -92,11 +84,13 @@ public class SlugValidatorTest {
                 { "slug}test", false }
                 */
         };
-        return Arrays.asList(slugs);
+        return Stream.of(slugs)
+                .map(row -> Arguments.of(row[0], row[1]));
     }
 
-    @Test
-    public void validateSlug() throws Exception {
+    @ParameterizedTest(name = "{index}: slug({0}) is valid: {1}")
+    @MethodSource("slugs")
+    public void validateSlug(String slug, boolean isAcceptable) {
         assertThat(slugValidator.isValid(slug, context))
                 .as("Slug is validated correctly")
                 .isEqualTo(isAcceptable);

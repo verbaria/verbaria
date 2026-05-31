@@ -12,11 +12,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import org.fedorahosted.openprops.Properties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
+import org.zanata.client.TemporaryFolderExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -38,8 +38,8 @@ public class UpdateCheckerTest {
     private final DateTimeFormatter dateFormat =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final String currentVersion = "3.0.1";
-    @Rule
-    public TemporaryFolder tempFoler = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFoler = new TemporaryFolderExtension();
     private UpdateChecker checker;
 
     private Connection connection;
@@ -51,7 +51,7 @@ public class UpdateCheckerTest {
     private ArgumentCaptor<Object> outputArgsCaptor;
     private File marker;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         File configFolder = tempFoler.newFolder();
@@ -62,7 +62,7 @@ public class UpdateCheckerTest {
                 currentVersion);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws IOException {
         if (connection != null) {
             connection.close();

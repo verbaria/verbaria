@@ -1,9 +1,7 @@
 package org.zanata.client.commands;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -15,12 +13,11 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 public class PutUserCommandTest {
-
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
 
     private final String username = "jcitizen";
     private final String key = "1234567890";
@@ -37,7 +34,7 @@ public class PutUserCommandTest {
     @Mock
     private PutUserCommand command;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
@@ -112,17 +109,19 @@ public class PutUserCommandTest {
         opts.setUserEmail("test@test.com");
 
         command = new PutUserCommand(opts, restClientFactory);
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage("New user's name and email must be specified");
-        command.run();
+        RuntimeException e1 = assertThrows(RuntimeException.class,
+                () -> command.run());
+        assertThat(e1.getMessage())
+                .contains("New user's name and email must be specified");
 
         opts.setUserName("username");
         opts.setUserEmail(null);
 
         command = new PutUserCommand(opts, restClientFactory);
-        expectException.expect(RuntimeException.class);
-        expectException.expectMessage("New user's name and email must be specified");
-        command.run();
+        RuntimeException e2 = assertThrows(RuntimeException.class,
+                () -> command.run());
+        assertThat(e2.getMessage())
+                .contains("New user's name and email must be specified");
     }
 
     private Account getGenericAccount() {

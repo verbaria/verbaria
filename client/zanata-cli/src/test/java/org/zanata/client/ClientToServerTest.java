@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.InetSocketAddress;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -30,7 +30,7 @@ public class ClientToServerTest {
     @Captor
     private ArgumentCaptor<Throwable> throwableCapture;
 
-    @Before
+    @BeforeEach
     public void before() {
         MockitoAnnotations.initMocks(this);
         StringWriter out = new StringWriter();
@@ -40,7 +40,7 @@ public class ClientToServerTest {
     }
 
     @Test
-    @Ignore("this will talk to live server")
+    @Disabled("this will talk to live server")
     public void testDisableSSLCertOption() {
         String command = "stats";
         String url = "https://translate.engineering.redhat.com/";

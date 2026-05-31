@@ -1,6 +1,6 @@
 package org.zanata.rest.dto;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 

@@ -1,7 +1,7 @@
 package org.zanata.client.commands.push;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -11,8 +11,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 
 import org.fedorahosted.openprops.Properties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.adapter.properties.PropWriter;
@@ -26,7 +26,7 @@ public class PropertiesPushStrategyTest {
     @Mock
     private PushOptions opts;
 
-    @Before
+    @BeforeEach
     public void prepare() throws IOException {
         PathUtil.makeDirs(outDir);
         props = new Properties();
@@ -34,7 +34,7 @@ public class PropertiesPushStrategyTest {
         props.setProperty("unicode", "レス");
     }
 
-    @Before
+    @BeforeEach
     public void beforeMethod() {
         MockitoAnnotations.initMocks(this);
         when(opts.getSourceLang()).thenReturn("en");

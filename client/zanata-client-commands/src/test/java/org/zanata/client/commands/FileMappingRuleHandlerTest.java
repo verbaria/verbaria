@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.EnumMap;
 
 import com.google.common.base.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleMapping;

@@ -3,9 +3,7 @@ package org.zanata.client.commands.push;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.ContentState;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
@@ -19,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Translated for non-admin callers — that guard lives in DocumentImportService
  * and is not exercised here.)
  */
-@RunWith(JUnit4.class)
 public class PushApproveTest {
 
     private static TextFlowTarget target(String resId, ContentState state,

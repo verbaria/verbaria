@@ -24,9 +24,8 @@ package org.zanata.rest.client;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.service.StubbingServerRule;
@@ -35,13 +34,12 @@ import com.google.common.collect.Sets;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class SourceDocResourceClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
 
     private SourceDocResourceClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws URISyntaxException {
         client =
                 new SourceDocResourceClient(

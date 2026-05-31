@@ -31,9 +31,9 @@ import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -51,7 +51,7 @@ import com.google.common.collect.Lists;
 
 public class XliffStrategyTest {
 
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempFileRule = new TempTransFileRule();
     private XliffStrategy strategy;
     private PushOptionsImpl opts;
@@ -65,7 +65,7 @@ public class XliffStrategyTest {
     @Captor
     private ArgumentCaptor<File> fileCapture;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         strategy = new XliffStrategy(reader);

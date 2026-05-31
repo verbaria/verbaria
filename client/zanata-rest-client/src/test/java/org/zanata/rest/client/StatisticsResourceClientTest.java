@@ -23,9 +23,8 @@ package org.zanata.rest.client;
 
 import java.net.URISyntaxException;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
 import org.zanata.rest.dto.stats.contribution.ContributionStatistics;
 import org.zanata.rest.service.StubbingServerRule;
@@ -33,13 +32,12 @@ import org.zanata.rest.service.StubbingServerRule;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class StatisticsResourceClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
 
     private StatisticsResourceClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws URISyntaxException {
         client =
                 new StatisticsResourceClient(

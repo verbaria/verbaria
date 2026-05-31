@@ -1,6 +1,6 @@
 package org.zanata.client.commands.push;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.simpleframework.http.Status;
 import org.simpleframework.http.core.ContainerServer;
@@ -54,7 +54,7 @@ public class PushCommandTest {
 
     private Connection connection;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         initMocks(this);
         if (connection != null) {

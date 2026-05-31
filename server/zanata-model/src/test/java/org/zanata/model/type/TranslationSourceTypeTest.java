@@ -21,10 +21,11 @@
 
 package org.zanata.model.type;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.rest.dto.TranslationSourceType;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Alex Eng <a href="mailto:aeng@redhat.com">aeng@redhat.com</a>
@@ -40,9 +41,10 @@ public class TranslationSourceTypeTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testGetFromAbbrException() {
-        TranslationSourceType.getValueOf("non-exist-abbr");
+        assertThrows(IllegalArgumentException.class,
+                () -> TranslationSourceType.getValueOf("non-exist-abbr"));
     }
 
 }

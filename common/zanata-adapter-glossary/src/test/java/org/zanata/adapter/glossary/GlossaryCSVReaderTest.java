@@ -29,12 +29,13 @@ import java.io.Reader;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.service.ApiPaths;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  *
@@ -43,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  **/
 public class GlossaryCSVReaderTest {
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testNotMatchingSource() throws IOException {
         GlossaryCSVReader reader = new GlossaryCSVReader(LocaleId.DE);
         File sourceFile =
@@ -53,7 +54,8 @@ public class GlossaryCSVReaderTest {
             new InputStreamReader(new FileInputStream(sourceFile), "UTF-8");
         BufferedReader br = new BufferedReader(inputStreamReader);
 
-        reader.extractGlossary(br, ApiPaths.GLOBAL_QUALIFIED_NAME);
+        assertThrows(RuntimeException.class, () ->
+                reader.extractGlossary(br, ApiPaths.GLOBAL_QUALIFIED_NAME));
     }
 
     @Test

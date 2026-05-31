@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.TestUtils;
@@ -40,13 +40,13 @@ public class XliffPushStrategyTest {
 
     private static final String sourceLocale = "en-US";
 
-    @Before
+    @BeforeEach
     public void prepare() {
         locales.add(new LocaleMapping("de"));
         locales.add(new LocaleMapping("fr"));
     }
 
-    @Before
+    @BeforeEach
     public void beforeMethod() {
         MockitoAnnotations.initMocks(this);
         xliffStrategy = new XliffStrategy();
@@ -72,7 +72,7 @@ public class XliffPushStrategyTest {
                         mockPushOption.getDefaultExcludes(),
                         mockPushOption.getCaseSensitive(),
                         mockPushOption.getExcludeLocaleFilenames());
-        Assert.assertEquals(3, localDocNames.size());
+        Assertions.assertEquals(3, localDocNames.size());
     }
 
     @Test
@@ -113,7 +113,7 @@ public class XliffPushStrategyTest {
             xliffStrategy.visitTranslationResources(docName, srcDoc, visitor);
             verify(visitor).visit(eq(loc), isA(TranslationsResource.class));
         }
-        Assert.assertEquals(3, resourceList.size());
+        Assertions.assertEquals(3, resourceList.size());
     }
 
     @Test
@@ -142,7 +142,7 @@ public class XliffPushStrategyTest {
                         mockPushOption.getDefaultExcludes(),
                         mockPushOption.getCaseSensitive(),
                         mockPushOption.getExcludeLocaleFilenames());
-        Assert.assertEquals(matches, localDocNames.size());
+        Assertions.assertEquals(matches, localDocNames.size());
     }
 
     @Test
@@ -162,7 +162,7 @@ public class XliffPushStrategyTest {
                         mockPushOption.getDefaultExcludes(),
                         mockPushOption.getCaseSensitive(),
                         mockPushOption.getExcludeLocaleFilenames());
-        Assert.assertEquals(5, localDocNames.size());
+        Assertions.assertEquals(5, localDocNames.size());
     }
 
     @Test
@@ -202,7 +202,7 @@ public class XliffPushStrategyTest {
             xliffStrategy.visitTranslationResources(docName, srcDoc, visitor);
             verify(visitor).visit(eq(loc), isA(TranslationsResource.class));
         }
-        Assert.assertEquals(0, resourceList.size());
+        Assertions.assertEquals(0, resourceList.size());
     }
 
     @Test
@@ -243,6 +243,6 @@ public class XliffPushStrategyTest {
             xliffStrategy.visitTranslationResources(docName, srcDoc, visitor);
             verify(visitor).visit(eq(loc), isA(TranslationsResource.class));
         }
-        Assert.assertEquals(1, resourceList.size());
+        Assertions.assertEquals(1, resourceList.size());
     }
 }

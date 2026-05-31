@@ -4,8 +4,8 @@ import java.io.File;
 import java.net.URI;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.ConfigurableProjectOptionsImpl;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.MockConsoleInteractor;
@@ -21,7 +21,7 @@ public class TransConfigPromptTest {
     private TransConfigPrompt prompt;
     private ConfigurableProjectOptionsImpl opts;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         opts = new ConfigurableProjectOptionsImpl() {
             @Override

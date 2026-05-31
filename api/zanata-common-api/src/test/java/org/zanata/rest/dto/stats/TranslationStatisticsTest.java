@@ -20,7 +20,7 @@
  */
 package org.zanata.rest.dto.stats;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.common.TransUnitCount;
 import org.zanata.common.TransUnitWords;

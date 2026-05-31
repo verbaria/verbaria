@@ -2,10 +2,11 @@ package org.zanata.util;
 
 import java.io.File;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.util.PathUtil.PathResolutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PathUtilTest {
 
@@ -81,12 +82,13 @@ public class PathUtilTest {
         assertThat(relPath).isEqualTo(expected);
     }
 
-    @Test(expected = PathResolutionException.class)
+    @Test
     public void testGetRelativePathDifferentDriveLetters() {
         String target = "D:\\sources\\recovery\\RecEnv.exe";
         String base =
                 "C:\\Java\\workspace\\AcceptanceTests\\Standard test data\\geo\\";
 
-        PathUtil.getRelativePath(target, base, "\\");
+        assertThrows(PathResolutionException.class,
+                () -> PathUtil.getRelativePath(target, base, "\\"));
     }
 }

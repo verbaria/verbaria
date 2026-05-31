@@ -6,9 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
@@ -29,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * hop is simulated by transforming the pushed {@link Resource} the way the
  * server does. Asserts the externally-changed value ends up back in the file.
  */
-@RunWith(JUnit4.class)
 public class YamlSourceRoundTripTest {
 
     private static final String DOC = "Foo.BarLocalize";

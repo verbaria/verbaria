@@ -2,10 +2,10 @@ package org.zanata.client.integration;
 
 import java.io.File;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
+import org.zanata.client.TemporaryFolderExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.MockServerRule;
@@ -37,15 +37,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class PushPullGettextITCase {
     private static final Logger log = LoggerFactory
             .getLogger(PushPullGettextITCase.class);
-    @Rule
+    @RegisterExtension
     public MockServerRule mockServerRule = new MockServerRule();
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
 
     private TestProjectGenerator testProjectGenerator =
             new TestProjectGenerator();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ConfigurableProjectOptions pullOpts = mockServerRule.getPullOpts();
         pullOpts.getLocaleMapList().add(new LocaleMapping("zh-CN"));

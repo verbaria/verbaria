@@ -29,9 +29,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.TempTransFileRule;
@@ -42,14 +42,14 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 public class RawPullStrategyTest {
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempTransFileRule = new TempTransFileRule();
     private RawPullStrategy strategy;
     private PullOptionsImpl opts;
     @Mock
     private InputStream transFile;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         strategy = new RawPullStrategy();

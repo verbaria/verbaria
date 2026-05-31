@@ -40,9 +40,8 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -63,11 +62,10 @@ public class FileResourceClientTest {
             LoggerFactory.getLogger(FileResourceClientTest.class);
     private FileResourceClient client;
 
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
 
-    @Before
+    @BeforeEach
     public void setUp() throws URISyntaxException {
         RestClientFactory restClientFactory = MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri());

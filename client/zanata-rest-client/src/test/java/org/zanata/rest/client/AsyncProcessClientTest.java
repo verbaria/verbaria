@@ -21,9 +21,8 @@
 
 package org.zanata.rest.client;
 
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.resource.Resource;
@@ -35,12 +34,11 @@ import com.google.common.collect.Sets;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AsyncProcessClientTest {
-    @ClassRule
     public static StubbingServerRule
             stubbingServerRule = new StubbingServerRule();
     private AsyncProcessClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         client = new AsyncProcessClient(MockServerTestUtil
                 .createClientFactory(stubbingServerRule.getServerBaseUri()));

@@ -20,8 +20,8 @@
  */
 package org.zanata.model.validator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -40,7 +40,7 @@ public class UrlValidatorTest {
     private Url canNotEndInSlashUrl;
     private ConstraintValidatorContext context = null;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         validator = new UrlValidator();
         canEndInSlashUrl =

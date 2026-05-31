@@ -28,9 +28,9 @@ import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.TempTransFileRule;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
@@ -39,12 +39,12 @@ import org.zanata.client.config.LocaleMapping;
 import com.google.common.base.Optional;
 
 public class GettextPushStrategyTest {
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempFileRule = new TempTransFileRule();
     private GettextPushStrategy strategy;
     private PushOptionsImpl opts;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         strategy = new GettextPushStrategy();
         opts = new PushOptionsImpl();

@@ -30,9 +30,9 @@ import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -46,7 +46,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 public class RawPushStrategyTest {
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempFileRule = new TempTransFileRule();
     private RawPushStrategy strategy;
     private PushOptionsImpl opts;
@@ -55,7 +55,7 @@ public class RawPushStrategyTest {
     @Mock
     private RawPushStrategy.TranslationFilesVisitor visitor;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         strategy = new RawPushStrategy();

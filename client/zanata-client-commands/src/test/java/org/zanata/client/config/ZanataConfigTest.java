@@ -11,24 +11,24 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.INIConfiguration;
 import org.apache.commons.configuration2.SystemConfiguration;
 import org.apache.commons.configuration2.io.FileHandler;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
+import org.zanata.client.TemporaryFolderExtension;
 
 import com.google.common.collect.Lists;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ZanataConfigTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @RegisterExtension
+    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
     private final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     File zanataProjectJson;
     File zanataUserFile;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         zanataProjectJson = new File(tempFolder.newFolder(),
                 "verbaria.json");

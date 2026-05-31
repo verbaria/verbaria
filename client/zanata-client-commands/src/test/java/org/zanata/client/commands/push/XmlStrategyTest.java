@@ -27,10 +27,10 @@ import java.util.Set;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 
 public class XmlStrategyTest {
-    @Rule
+    @RegisterExtension
     public TempTransFileRule tempFileRule = new TempTransFileRule();
     private XmlStrategy strategy;
     private PushOptionsImpl opts;
@@ -69,7 +69,7 @@ public class XmlStrategyTest {
     @Mock
     private XmlMapper xmlMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         strategy = new XmlStrategy(xmlMapper);
@@ -106,7 +106,7 @@ public class XmlStrategyTest {
                         mockPushOption.getDefaultExcludes(),
                         mockPushOption.getCaseSensitive(),
                         mockPushOption.getExcludeLocaleFilenames());
-        Assert.assertEquals(7, localDocNames.size());
+        Assertions.assertEquals(7, localDocNames.size());
     }
 
     @Test

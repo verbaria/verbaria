@@ -3,7 +3,7 @@ package org.zanata.rest.dto;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.ContentState;
 
 import static org.hamcrest.MatcherAssert.assertThat;

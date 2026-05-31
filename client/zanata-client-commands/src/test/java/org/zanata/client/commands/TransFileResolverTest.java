@@ -3,8 +3,8 @@ package org.zanata.client.commands;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleMapping;
@@ -18,7 +18,7 @@ public class TransFileResolverTest {
     private TransFileResolver resolver;
     private ConfigurableProjectOptions opts;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         opts = new PushOptionsImpl();
         resolver = new TransFileResolver(opts);

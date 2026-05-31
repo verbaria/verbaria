@@ -20,9 +20,10 @@
  */
 package org.zanata.common;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.hasSize;
@@ -43,10 +44,11 @@ public class DocumentTypeTest {
         assertThat(fromSourceExtension("unknown"), hasSize(0));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    @Ignore
+    @Test
+    @Disabled
     public void typeForNonExistentTypeBetterBehaviour() {
-        fromSourceExtension("unknown");
+        assertThrows(IllegalArgumentException.class,
+                () -> fromSourceExtension("unknown"));
     }
 
     @Test
@@ -83,16 +85,18 @@ public class DocumentTypeTest {
                 "vtt", "properties", "xlf", "xml", "ts", "json"));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void getAllExtensionsReadOnlyCannotAdd() {
         Set<String> allExtensions = getAllSourceExtensions();
-        allExtensions.add("newExtension");
+        assertThrows(UnsupportedOperationException.class,
+                () -> allExtensions.add("newExtension"));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void getAllExtensionsReadOnlyCannotClear() {
         Set<String> allExtensions = getAllSourceExtensions();
-        allExtensions.clear();
+        assertThrows(UnsupportedOperationException.class,
+                () -> allExtensions.clear());
     }
 
     @Test

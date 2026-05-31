@@ -1,6 +1,6 @@
 package org.zanata.adapter.glossary;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.GlossaryEntry;
 import org.zanata.rest.service.ApiPaths;

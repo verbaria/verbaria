@@ -10,8 +10,8 @@ import java.util.InvalidPropertiesFormatException;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.common.ContentState;
@@ -27,6 +27,7 @@ import static java.nio.file.Files.createTempFile;
 import static java.nio.file.Files.deleteIfExists;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PropReaderWriterTest {
     private static final Logger log = LoggerFactory
@@ -40,7 +41,7 @@ public class PropReaderWriterTest {
     private String locale = "fr";
     private LocaleId localeId = LocaleId.FR;
 
-    @Before
+    @BeforeEach
     public void resetReader() {
         propReader =
                 new PropReader(PropWriter.CHARSET.Latin1, localeId,
@@ -141,14 +142,14 @@ public class PropReaderWriterTest {
         // TODO also check comments?
     }
 
-    @Test(expected = InvalidPropertiesFormatException.class)
+    @Test
     public void extractTemplateNonTranslatableMismatchException()
             throws Exception {
         Resource srcDoc = new Resource("test");
         InputStream testStream =
                 getResourceAsStream("test_non_trans_mismatch.properties");
-        propReader.extractTemplate(srcDoc, testStream);
-        fail("expected exception");
+        assertThrows(InvalidPropertiesFormatException.class,
+                () -> propReader.extractTemplate(srcDoc, testStream));
     }
 
     @Test
