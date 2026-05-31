@@ -27,7 +27,7 @@ spring:
       hibernate.jpa.compliance.query: false
 
 vaadin:
-  allowed-packages: com.vaadin,com.vaadin.componentfactory,org.vaadin,de.f0rce,org.zanata.spring.vaadin
+  allowed-packages: com.vaadin,com.vaadin.componentfactory,org.vaadin,de.f0rce,org.verbaria.server.ui
 
 management:
   endpoints:
