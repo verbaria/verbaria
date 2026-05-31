@@ -232,8 +232,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             }
         }
         if (doc == null) {
-            throw new NotFoundException(
-                    getTranslation("translate.error.noDocsFound", projectSlug, versionSlug));
+            showEmptyState();
+            return;
         }
         currentDocId = doc.getDocId();
 
@@ -763,6 +763,21 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         long n = textFlowRepository.countForTranslateView(
                 docId, currentLocale, f.q(), f.stateMode());
         return (int) Math.min(Integer.MAX_VALUE, n);
+    }
+
+    /**
+     * Render a friendly "nothing to translate yet" view for a version/locale
+     * that has no documents, rather than failing navigation. The breadcrumb
+     * still works so the user can go back up.
+     */
+    private void showEmptyState() {
+        currentDocId = null;
+        publishBreadcrumb();
+        H2 heading = new H2(projectSlug + "/" + versionSlug + " \u2192 " + localeStr);
+        heading.addClassNames(AuraUtility.Margin.NONE);
+        Paragraph message = new Paragraph(  getTranslation("translate.empty.noDocs", projectSlug, versionSlug));
+        message.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.Margin.Top.MEDIUM);
+        add(heading, message);
     }
 
     private void publishBreadcrumb() {
