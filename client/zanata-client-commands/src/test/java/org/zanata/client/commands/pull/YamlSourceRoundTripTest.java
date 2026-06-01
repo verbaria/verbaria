@@ -1,11 +1,14 @@
 package org.zanata.client.commands.pull;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.common.LocaleId;
@@ -31,9 +34,26 @@ public class YamlSourceRoundTripTest {
 
     private static final String DOC = "Foo.BarLocalize";
 
+    private FileSystem fs;
+
+    @AfterEach
+    void closeFs() throws Exception {
+        if (fs != null) {
+            fs.close();
+        }
+    }
+
+    /** Fresh in-memory working directory; no real folders are created. */
+    private Path inMemoryRoot() throws Exception {
+        fs = Jimfs.newFileSystem(Configuration.unix());
+        Path root = fs.getPath("/work");
+        Files.createDirectories(root);
+        return root;
+    }
+
     @Test
     public void externalEditComesBackOnPull() throws Exception {
-        Path repo = Files.createTempDirectory("roundtrip");
+        Path repo = inMemoryRoot();
         Path srcFile = repo.resolve(
                 "modules/x/src/main/resources/LOCALIZE-LIB/en_US/" + DOC + ".yaml");
         Files.createDirectories(srcFile.getParent());
@@ -45,7 +65,7 @@ public class YamlSourceRoundTripTest {
                 """, StandardCharsets.UTF_8);
 
         // 1) PUSH — real push reader turns the file into a Resource payload.
-        Resource pushed = readSource(repo.toFile());
+        Resource pushed = readSource(repo);
         assertThat(pushed.getTextFlows()).hasSize(2);
 
         // 2) SERVER — store it the way the server does: hash the id, keep the
@@ -58,7 +78,7 @@ public class YamlSourceRoundTripTest {
         // 4) PULL — real pull writer rewrites the on-disk source file.
         PullOptionsImpl pullOpts = new PullOptionsImpl();
         pullOpts.setProjectType("consulo");
-        pullOpts.setSrcDir(repo.toFile());
+        pullOpts.setSrcDir(repo);
         new YamlStrategy(pullOpts).writeSrcFile(onServer);
 
         // 5) ASSERT — the external change is now in the code.
@@ -72,7 +92,7 @@ public class YamlSourceRoundTripTest {
 
     @Test
     public void rawSubFileExternalEditComesBackOnPull() throws Exception {
-        Path repo = Files.createTempDirectory("roundtrip-raw");
+        Path repo = inMemoryRoot();
         // A directory doc whose entries are whole raw files (any extension).
         Path docDir = repo.resolve(
                 "modules/y/src/main/resources/LOCALIZE-LIB/en_US/Foo.SubLocalize");
@@ -83,7 +103,7 @@ public class YamlSourceRoundTripTest {
 
         // 1) PUSH — real reader; the raw file becomes a text flow keyed by its
         //    sub-path, carrying just its extension in the consulo extension.
-        Resource pushed = readSource(repo.toFile(), "Foo.SubLocalize", "**/*");
+        Resource pushed = readSource(repo, "Foo.SubLocalize", "**/*");
         assertThat(pushed.getTextFlows()).hasSize(1);
         TextFlow pushedTf = pushed.getTextFlows().get(0);
         assertThat(pushedTf.getId()).isEqualTo("inspections.MyInspection");
@@ -102,7 +122,7 @@ public class YamlSourceRoundTripTest {
         // 4) PULL — real writer recreates the exact raw file.
         PullOptionsImpl pullOpts = new PullOptionsImpl();
         pullOpts.setProjectType("consulo");
-        pullOpts.setSrcDir(repo.toFile());
+        pullOpts.setSrcDir(repo);
         new YamlStrategy(pullOpts).writeSrcFile(onServer);
 
         // 5) ASSERT — the file is still a .html with the edited body, not yaml.
@@ -111,11 +131,11 @@ public class YamlSourceRoundTripTest {
         assertThat(result).doesNotContain("text:");
     }
 
-    private static Resource readSource(File repo) throws Exception {
+    private static Resource readSource(Path repo) throws Exception {
         return readSource(repo, DOC, "**/*.yaml");
     }
 
-    private static Resource readSource(File repo, String doc, String includes)
+    private static Resource readSource(Path repo, String doc, String includes)
             throws Exception {
         PushOptionsImpl push = new PushOptionsImpl();
         push.setProjectType("consulo");

@@ -72,7 +72,7 @@ public class SourceUploadService {
             try {
                 Files.copy(in, tmp.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 XliffReader reader = new XliffReader();
-                resource = reader.extractTemplate(tmp, LocaleId.EN_US, baseDocId, "CONTENT");
+                resource = reader.extractTemplate(tmp.toPath(), LocaleId.EN_US, baseDocId, "CONTENT");
             } finally {
                 tmp.delete();
             }

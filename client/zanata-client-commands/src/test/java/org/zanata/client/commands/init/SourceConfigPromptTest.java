@@ -8,9 +8,8 @@ import java.net.URI;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.TemporaryFolderExtension;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.client.commands.ConsoleInteractor;
@@ -23,10 +22,14 @@ import org.zanata.common.DocumentType;
 import org.zanata.rest.client.FileResourceClient;
 import org.zanata.rest.client.RestClientFactory;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class SourceConfigPromptTest {
-    @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    // Real temp dir: the interactive prompt resolves the user-typed source path
+    // via Paths.get(...) on the default filesystem, so jimfs can't back this.
+    @TempDir
+    File tempFolder;
     private SourceConfigPrompt prompt;
     private PushOptions opts;
     @Mock
@@ -45,10 +48,17 @@ public class SourceConfigPromptTest {
         when(clientFactory.getFileResourceClient()).thenReturn(fileClient);
     }
 
+
+    private File newFolder(String name) {
+        File folder = new File(tempFolder, name);
+        folder.mkdirs();
+        return folder;
+    }
+
     @Test
     public void testPromptUser() throws Exception {
         // here we use absolute path because we create temp files in there
-        String expectedSrcDir = tempFolder.getRoot().getAbsolutePath() + "/resources";
+        String expectedSrcDir = tempFolder.getAbsolutePath() + "/resources";
         ConsoleInteractor console =
                 MockConsoleInteractor.predefineAnswers(
                         expectedSrcDir, "messages.properties",
@@ -57,7 +67,7 @@ public class SourceConfigPromptTest {
         opts.setProjectVersion("master");
         opts.setProjectType("properties");
         opts.setLocaleMapList(new LocaleList());
-        File folder = tempFolder.newFolder("resources");
+        File folder = newFolder("resources");
 
         assertThat(new File(folder, "messages.properties").createNewFile()).isTrue();
         assertThat(
@@ -68,7 +78,7 @@ public class SourceConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getSrcDir()).isEqualTo(new File(expectedSrcDir));
+        assertThat(opts.getSrcDir()).isEqualTo(Paths.get(expectedSrcDir));
 
         assertThat(prompt.getIncludes()).isEqualTo("messages.properties");
         assertThat(prompt.getExcludes()).isEqualTo("*Excluded.properties");
@@ -81,19 +91,19 @@ public class SourceConfigPromptTest {
         opts.setProj("fake");
         opts.setProjectVersion("1");
         opts.setProjectType("gettext");
-        File expectedDir = tempFolder.newFolder("po");
+        File expectedDir = newFolder("po");
 
         ConsoleInteractor console =
                 MockConsoleInteractor.predefineAnswers(
                         // first round answers ends with n(no)
-                        tempFolder.getRoot().getAbsolutePath(), "", "", "n",
+                        tempFolder.getAbsolutePath(), "", "", "n",
                         // second round answers
                         expectedDir.getAbsolutePath(), "*.*", "a.pot", "y");
         prompt = new SourceConfigPrompt(console, opts);
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getSrcDir()).isEqualTo(expectedDir);
+        assertThat(opts.getSrcDir()).isEqualTo(expectedDir.toPath());
 
         assertThat(prompt.getIncludes()).isEqualTo("*.*");
         assertThat(prompt.getExcludes()).isEqualTo("a.pot");
@@ -106,7 +116,7 @@ public class SourceConfigPromptTest {
         List<FileTypeInfo> docTypeList = ImmutableList.of(DocumentType.PLAIN_TEXT.toFileTypeInfo(), DocumentType.HTML.toFileTypeInfo());
         when(fileClient.fileTypeInfoList()).thenReturn(docTypeList);
         // here we use absolute path because we create temp files in there
-        String expectedSrcDir = tempFolder.getRoot().getAbsolutePath() + "/resources";
+        String expectedSrcDir = tempFolder.getAbsolutePath() + "/resources";
         ConsoleInteractor console =
                 MockConsoleInteractor.predefineAnswers(
                         expectedSrcDir, "messages.md",
@@ -115,7 +125,7 @@ public class SourceConfigPromptTest {
         opts.setProjectVersion("master");
         opts.setProjectType("file");
         opts.setLocaleMapList(new LocaleList());
-        File folder = tempFolder.newFolder("resources");
+        File folder = newFolder("resources");
 
         assertThat(new File(folder, "messages.md").createNewFile()).isTrue();
         assertThat(
@@ -130,7 +140,7 @@ public class SourceConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getSrcDir()).isEqualTo(new File(expectedSrcDir));
+        assertThat(opts.getSrcDir()).isEqualTo(Paths.get(expectedSrcDir));
 
         assertThat(prompt.getIncludes()).isEqualTo("messages.md");
         assertThat(prompt.getExcludes()).isEqualTo("*Excluded.txt");

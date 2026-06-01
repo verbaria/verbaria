@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.io.IOException;
 import java.util.List;
 
@@ -238,7 +238,7 @@ public class PullCommandTest {
                                             String localDocName, String docUri,
                                             boolean createSkeletons,
                                             LocaleMapping locMapping,
-                                            File transFile)
+                                            Path transFile)
                     throws IOException {
                 // pretend we are pulling
                 transClient.getTranslations(docUri,

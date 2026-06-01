@@ -4,12 +4,11 @@ import static java.util.Arrays.asList;
 
 import java.util.Collection;
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -55,8 +54,8 @@ public class XliffReader extends XliffCommon {
     private LocaleId srcLang;
     private ValidationType validationType;
 
-    public Resource extractTemplate(File file, LocaleId sourceLocaleId,
-            String docName, String validationType) throws FileNotFoundException {
+    public Resource extractTemplate(Path file, LocaleId sourceLocaleId,
+            String docName, String validationType) throws IOException {
         Resource document = new Resource(docName);
         document.setContentType(ContentType.TextPlain);
         document.setLang(sourceLocaleId);
@@ -67,8 +66,8 @@ public class XliffReader extends XliffCommon {
         return document;
     }
 
-    public TranslationsResource extractTarget(File file)
-            throws FileNotFoundException {
+    public TranslationsResource extractTarget(Path file)
+            throws IOException {
         TranslationsResource document = new TranslationsResource();
         extractXliff(file, null, document);
         return document;
@@ -108,12 +107,12 @@ public class XliffReader extends XliffCommon {
         }
     }
 
-    private void extractXliff(@Nonnull File file, @Nullable Resource document,
+    private void extractXliff(@Nonnull Path file, @Nullable Resource document,
             @Nullable TranslationsResource transDoc)
-            throws FileNotFoundException {
+            throws IOException {
         assert document != null || transDoc != null;
         if (validationType == ValidationType.XSD) {
-            validateXliffFile(new StreamSource(file));
+            validateXliffFile(new StreamSource(Files.newInputStream(file)));
         }
 
         try {
@@ -121,7 +120,7 @@ public class XliffReader extends XliffCommon {
             xmlif.setProperty(XMLInputFactory.IS_COALESCING, true);
 
             InputSource inputSource =
-                    new InputSource(new FileInputStream(file));
+                    new InputSource(Files.newInputStream(file));
             inputSource.setEncoding("utf8");
             final XMLStreamReader xmlr =
                     xmlif.createXMLStreamReader(inputSource.getByteStream());

@@ -1,8 +1,9 @@
 package org.zanata.adapter.xliff;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +23,6 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.util.PathUtil;
 
 public class XliffWriter extends XliffCommon {
     /**
@@ -179,11 +179,10 @@ public class XliffWriter extends XliffCommon {
      * @param targetDoc
      *            may be null
      */
-    public static void write(File baseDir, Resource doc, String locale,
+    public static void write(Path baseDir, Resource doc, String locale,
             @Nullable TranslationsResource targetDoc, boolean createSkeletons, boolean approvedOnly) {
-        File outFile =
-                new File(baseDir, doc.getName() + "_"
-                        + locale.replace('-', '_') + ".xml");
+        Path outFile = baseDir.resolve(doc.getName() + "_"
+                + locale.replace('-', '_') + ".xml");
         writeFile(outFile, doc, locale, targetDoc, createSkeletons, approvedOnly);
     }
 
@@ -195,17 +194,20 @@ public class XliffWriter extends XliffCommon {
      * @param file
      * @param locale (use hyphen, not underscore)
      */
-    public static void writeFile(File file, Resource doc, String locale,
+    public static void writeFile(Path file, Resource doc, String locale,
             @Nullable TranslationsResource targetDoc, boolean createSkeletons,
             boolean approvedOnly) {
 
         try {
-            PathUtil.makeParents(file);
+            Path parent = file.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
         } catch (IOException e) {
             throw new RuntimeException("Error writing XLIFF file  ", e);
         }
 
-        try (FileOutputStream fileStream = new FileOutputStream(file)) {
+        try (OutputStream fileStream = Files.newOutputStream(file)) {
             XMLOutputFactory output = XMLOutputFactory.newInstance();
             XMLStreamWriter writer =
                     new IndentingXMLStreamWriter(
@@ -236,7 +238,7 @@ public class XliffWriter extends XliffCommon {
      * @param locale
      *            (use hyphen, not underscore)
      */
-    public static void write(File baseDir, Resource doc, String locale) {
+    public static void write(Path baseDir, Resource doc, String locale) {
         write(baseDir, doc, locale, null, true, false);
     }
 

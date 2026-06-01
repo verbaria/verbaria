@@ -28,7 +28,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +38,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.zanata.adapter.xliff.XliffReader;
-import org.zanata.client.TempTransFileRule;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -48,11 +47,12 @@ import org.zanata.rest.dto.resource.TranslationsResource;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import java.nio.file.Path;
 
 public class XliffStrategyTest {
 
     @RegisterExtension
-    public TempTransFileRule tempFileRule = new TempTransFileRule();
+    public InMemoryFs tempFileRule = new InMemoryFs();
     private XliffStrategy strategy;
     private PushOptionsImpl opts;
     @Captor
@@ -63,7 +63,7 @@ public class XliffStrategyTest {
     @Mock
     private XliffReader reader;
     @Captor
-    private ArgumentCaptor<File> fileCapture;
+    private ArgumentCaptor<Path> fileCapture;
 
     @BeforeEach
     public void setUp() throws IOException {
@@ -91,10 +91,10 @@ public class XliffStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_de.xml");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_zh_Hans.xml");
 
@@ -122,10 +122,10 @@ public class XliffStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_de.xml");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_zh_Hans.xml");
 

@@ -29,15 +29,15 @@ import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.TempTransFileRule;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -46,8 +46,10 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 public class RawPushStrategyTest {
-    @RegisterExtension
-    public TempTransFileRule tempFileRule = new TempTransFileRule();
+    // Raw binary push uploads via java.io.File (chunked StreamChunker), so this
+    // strategy can't run on an in-memory filesystem — use a real temp dir.
+    @TempDir
+    Path tmp;
     private RawPushStrategy strategy;
     private PushOptionsImpl opts;
     @Captor
@@ -62,8 +64,15 @@ public class RawPushStrategyTest {
         opts = new PushOptionsImpl();
         opts.setLocaleMapList(new LocaleList());
         strategy.setPushOptions(opts);
-        opts.setTransDir(tempFileRule.getTransDir());
+        opts.setTransDir(tmp);
         opts.setProjectType("file");
+    }
+
+    private File createTransFile(String relativePath) throws IOException {
+        File file = tmp.resolve(relativePath).toFile();
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+        return file;
     }
 
     @Test
@@ -80,11 +89,9 @@ public class RawPushStrategyTest {
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
         File deTransFile =
-                tempFileRule.createTransFileRelativeToTransDir(
-                        "de/src/test.odt");
+                createTransFile("de/src/test.odt");
         File zhTransFile =
-                tempFileRule.createTransFileRelativeToTransDir(
-                        "zh-Hans/src/test.odt");
+                createTransFile("zh-Hans/src/test.odt");
 
         strategy.visitTranslationFiles("src/test.odt", visitor,
             Optional.<String>absent());
@@ -112,10 +119,9 @@ public class RawPushStrategyTest {
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
         File deTransFile =
-                tempFileRule.createTransFileRelativeToTransDir("de/test.odt");
+                createTransFile("de/test.odt");
         File zhTransFile =
-                tempFileRule.createTransFileRelativeToTransDir(
-                        "zh-Hans/test.odt");
+                createTransFile("zh-Hans/test.odt");
 
         opts.setFileMappingRules(Lists.newArrayList(
                 new FileMappingRule("**/*.odt",

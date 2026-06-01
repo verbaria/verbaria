@@ -38,7 +38,7 @@ public class PropertiesPullStrategyTest {
     @BeforeEach
     public void beforeMethod() {
         MockitoAnnotations.initMocks(this);
-        when(opts.getSrcDir()).thenReturn(outDir);
+        when(opts.getSrcDir()).thenReturn(outDir.toPath());
     }
 
     @Test

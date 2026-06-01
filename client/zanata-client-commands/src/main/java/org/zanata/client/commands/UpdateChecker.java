@@ -20,18 +20,20 @@
  */
 package org.zanata.client.commands;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.fedorahosted.openprops.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +42,6 @@ import org.springframework.web.client.RestClient;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 
 import static org.zanata.client.commands.ConsoleInteractorImpl.AnswerValidator;
 import static org.zanata.client.commands.Messages.get;
@@ -70,21 +71,21 @@ public class UpdateChecker {
     private final String sonatypeRestUrl;
     private final ConsoleInteractor console;
     private final String currentVersionNo;
-    private final File updateMarker;
+    private final Path updateMarker;
 
     public UpdateChecker(ConsoleInteractor console) {
         this(OSS_URL, defaultUpdateMarkerFile(), console,
                 getVersionInfo(UpdateChecker.class).getVersionNo());
     }
 
-    private static File defaultUpdateMarkerFile() {
-        return new File(new File(System.getProperty("user.home"), ".config"),
+    private static Path defaultUpdateMarkerFile() {
+        return Paths.get(System.getProperty("user.home"), ".config",
                 "zanata-client-update.properties");
     }
 
     @VisibleForTesting
     protected UpdateChecker(String sonatypeRestUrl,
-            File updateMarker,
+            Path updateMarker,
             ConsoleInteractor console, String currentVersionNo) {
         this.sonatypeRestUrl = sonatypeRestUrl;
         this.console = console;
@@ -95,7 +96,7 @@ public class UpdateChecker {
     public boolean needToCheckUpdates(boolean interactiveMode) {
         LocalDate today = LocalDate.now();
         try {
-            if (!updateMarker.exists()) {
+            if (!Files.exists(updateMarker)) {
                 createUpdateMarkerFile(updateMarker);
                 console.printfln(get("update.marker.created"), updateMarker);
                 console.printfln(get("update.marker.hint"));
@@ -139,11 +140,10 @@ public class UpdateChecker {
         return props.getProperty(NO_ASKING, "false").equalsIgnoreCase("true");
     }
 
-    private static Properties loadFileToProperties(File updateMarker) {
+    private static Properties loadFileToProperties(Path updateMarker) {
         Properties props = new Properties();
-        try (InputStreamReader reader =
-                new InputStreamReader(new FileInputStream(updateMarker),
-                        Charsets.UTF_8)) {
+        try (InputStream in = Files.newInputStream(updateMarker);
+                Reader reader = new InputStreamReader(in, Charsets.UTF_8)) {
             props.load(reader);
         }
         catch (IOException e) {
@@ -152,11 +152,13 @@ public class UpdateChecker {
         return props;
     }
 
-    private static void createUpdateMarkerFile(File updateMarker)
+    private static void createUpdateMarkerFile(Path updateMarker)
             throws IOException {
-        boolean created = updateMarker.createNewFile();
-        Preconditions.checkState(created, get("create.file.failure"),
-                updateMarker);
+        Path parent = updateMarker.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        Files.createFile(updateMarker);
         String today = LocalDate.now().format(DATE_FORMATTER);
         Properties props = new Properties();
         props.setProperty(LAST_CHECKED, today);
@@ -164,8 +166,10 @@ public class UpdateChecker {
         props.setProperty(FREQUENCY, "weekly");
         props.setProperty(NO_ASKING, "true");
         props.setComment(NO_ASKING, get("no.check.update.prompt"));
-        props.store(new BufferedWriter(new FileWriterWithEncoding(updateMarker,
-                Charsets.UTF_8)), null);
+        try (Writer writer = Files.newBufferedWriter(updateMarker,
+                Charsets.UTF_8)) {
+            props.store(writer, null);
+        }
     }
 
     public void checkNewerVersion() {
@@ -182,8 +186,10 @@ public class UpdateChecker {
             Properties props = loadFileToProperties(updateMarker);
             String today = LocalDate.now().format(DATE_FORMATTER);
             props.setProperty(LAST_CHECKED, today);
-            props.store(new BufferedWriter(new FileWriterWithEncoding(
-                    updateMarker, Charsets.UTF_8)), null);
+            try (Writer writer = Files.newBufferedWriter(updateMarker,
+                    Charsets.UTF_8)) {
+                props.store(writer, null);
+            }
         } catch (IOException e) {
             log.warn("failed to load file {}", updateMarker);
         }

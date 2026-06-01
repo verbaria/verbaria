@@ -1,11 +1,12 @@
 package org.zanata.client.commands.init;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.TemporaryFolderExtension;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.MockConsoleInteractor;
 
@@ -13,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ProjectConfigHandlerTest {
     @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    public InMemoryFs tempFolder = new InMemoryFs();
 
     @Test
     public void willBackupExistingProjectConfig() throws Exception {
@@ -21,7 +22,7 @@ public class ProjectConfigHandlerTest {
                 MockConsoleInteractor.predefineAnswers("y");
         InitOptions opts = new InitOptionsImpl();
         ProjectConfigHandler handler = new ProjectConfigHandler(console, opts);
-        File projectConfig = tempFolder.newFile("verbaria.json");
+        Path projectConfig = tempFolder.newFile("verbaria.json");
         opts.setProjectConfig(projectConfig);
 
         handler.handleExistingProjectConfig();
@@ -33,7 +34,8 @@ public class ProjectConfigHandlerTest {
 
         String backupPath =
                 lastMessage.replace("Old project config has been renamed to ", "");
-        assertThat(new File(backupPath).exists()).isTrue();
+        assertThat(Files.exists(tempFolder.getRoot().getFileSystem()
+                .getPath(backupPath))).isTrue();
         assertThat(opts.getProj()).isNull();
         assertThat(opts.getProjectVersion()).isNull();
         assertThat(opts.getProjectType()).isNull();

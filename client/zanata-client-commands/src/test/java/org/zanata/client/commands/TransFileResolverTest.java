@@ -9,9 +9,11 @@ import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleMapping;
 
-import java.io.File;
+
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class TransFileResolverTest {
 
@@ -26,35 +28,35 @@ public class TransFileResolverTest {
 
     @Test
     public void canGetTransFileUsingRule() {
-        opts.setTransDir(new File("."));
+        opts.setTransDir(Paths.get("."));
         opts.setProjectType("podir");
         opts.setFileMappingRules(Lists.newArrayList(
             new FileMappingRule("**/*.pot",
                 "{path}/{locale_with_underscore}.po"),
             new FileMappingRule("**/*.properties",
                 "{path}/{filename}_{locale_with_underscore}.{extension}")));
-        File gettext =
+        Path gettext =
             resolver.resolveTransFile(DocNameWithExt.from(
                     "gcc/po/gcc.pot"), new LocaleMapping("de-DE"), Optional
                 .<String>absent());
 
-        assertThat(gettext.getPath()).isEqualTo("./gcc/po/de_DE.po");
+        assertThat(gettext.toString()).isEqualTo("./gcc/po/de_DE.po");
 
-        File prop = resolver
+        Path prop = resolver
             .resolveTransFile(DocNameWithExt.from(
                             "src/main/resources/messages.properties"),
                     new LocaleMapping("zh"), Optional.<String>absent());
-        assertThat(prop.getPath()).isEqualTo("./src/main/resources/messages_zh.properties");
+        assertThat(prop.toString()).isEqualTo("./src/main/resources/messages_zh.properties");
     }
 
     @Test
     public void canGetTransFileUsingProjectTypeIfNoRuleIsApplicable() {
-        opts.setTransDir(new File("."));
+        opts.setTransDir(Paths.get("."));
         opts.setProjectType("file");
-        File noMatching = resolver
+        Path noMatching = resolver
                 .resolveTransFile(DocNameWithExt.from(
                         "doc/marketing.odt"), new LocaleMapping("ja"), Optional.<String>absent());
-        assertThat(noMatching.getPath()).isEqualTo("./ja/doc/marketing.odt");
+        assertThat(noMatching.toString()).isEqualTo("./ja/doc/marketing.odt");
     }
 
 }

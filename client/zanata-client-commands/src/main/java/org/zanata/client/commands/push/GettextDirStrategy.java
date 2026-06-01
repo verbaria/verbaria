@@ -22,6 +22,8 @@
 package org.zanata.client.commands.push;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -71,9 +73,9 @@ public class GettextDirStrategy extends AbstractGettextPushStrategy {
 
     private boolean hasTranslationFileForLocale(LocaleMapping loc,
             String srcDocName) {
-        File transFile = new TransFileResolver(getOpts()).getTransFile(
+        Path transFile = new TransFileResolver(getOpts()).getTransFile(
                 DocNameWithoutExt.from(srcDocName), loc);
-        return transFile.exists();
+        return Files.exists(transFile);
     }
 
     @Override

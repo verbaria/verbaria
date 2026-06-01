@@ -30,6 +30,7 @@ import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
+import java.nio.file.Paths;
 
 public class YamlStrategy extends AbstractPullStrategy {
 
@@ -103,7 +104,7 @@ public class YamlStrategy extends AbstractPullStrategy {
         // 1) Raw sub-files: rebuild the path from the key + extension and
         //    (re)create the file under the doc dir (even if absent).
         if (!rawBySubPath.isEmpty()) {
-            File docDir = resolveDocDir(index, docName, localeDir);
+            Path docDir = resolveDocDir(index, docName, localeDir);
             if (docDir == null) {
                 log.error("Cannot add {} consulo source file(s) for {}: no "
                         + "LOCALIZE-LIB/{}/ directory found in {}",
@@ -112,10 +113,10 @@ public class YamlStrategy extends AbstractPullStrategy {
                 return;
             }
             for (Map.Entry<String, String> e : rawBySubPath.entrySet()) {
-                File target = new File(docDir, e.getKey());
-                File parent = target.getParentFile();
-                if (parent != null) Files.createDirectories(parent.toPath());
-                Files.writeString(target.toPath(), e.getValue(),
+                Path target = docDir.resolve(e.getKey());
+                Path parent = target.getParent();
+                if (parent != null) Files.createDirectories(parent);
+                Files.writeString(target, e.getValue(),
                         StandardCharsets.UTF_8);
                 log.info("Wrote source file {}", target);
             }
@@ -123,23 +124,23 @@ public class YamlStrategy extends AbstractPullStrategy {
         }
 
         // 2) No consulo extension → route by the existing on-disk shape.
-        File yaml = index.yamlByDoc.get(docKey);
+        Path yaml = index.yamlByDoc.get(docKey);
         if (yaml != null) {
             writeYamlSource(yaml, yamlEntries);
             return;
         }
-        Map<String, File> subFiles = index.subFilesByDoc.get(docKey);
+        Map<String, Path> subFiles = index.subFilesByDoc.get(docKey);
         if (subFiles != null) {
             writeRawSubFilesByKey(docName, rawByKey, subFiles);
             return;
         }
-        File raw = index.rawByDoc.get(docKey);
+        Path raw = index.rawByDoc.get(docKey);
         if (raw != null) {
             // A single raw file (e.g. .html/.properties): the doc is one body.
             String body = rawByKey.containsKey(RAW_CONTENT_KEY)
                     ? rawByKey.get(RAW_CONTENT_KEY)
                     : rawByKey.values().iterator().next();
-            Files.writeString(raw.toPath(), body, StandardCharsets.UTF_8);
+            Files.writeString(raw, body, StandardCharsets.UTF_8);
             log.info("Wrote source file {}", raw);
             return;
         }
@@ -170,18 +171,18 @@ public class YamlStrategy extends AbstractPullStrategy {
      * already indexed if it exists, otherwise (unambiguously) a fresh dir under
      * the single {@code LOCALIZE-LIB/<localeDir>/} root in the tree.
      */
-    private File resolveDocDir(SourceIndex index, String docName,
+    private Path resolveDocDir(SourceIndex index, String docName,
             String localeDir) {
-        File existing = index.docDirByDoc.get(docName.toLowerCase(Locale.ROOT));
+        Path existing = index.docDirByDoc.get(docName.toLowerCase(Locale.ROOT));
         if (existing != null) return existing;
         if (index.localeRoots.size() == 1) {
-            return new File(index.localeRoots.iterator().next(), docName);
+            return index.localeRoots.iterator().next().resolve(docName);
         }
         return null;
     }
 
     /** Rewrite a top-level yaml source as sorted {@code key: {text: value}}. */
-    private void writeYamlSource(File out, Map<String, String> entries)
+    private void writeYamlSource(Path out, Map<String, String> entries)
             throws IOException {
         // Sorted by key so the output order matches the (alphabetical) source.
         Map<String, Map<String, String>> rendered = new TreeMap<>();
@@ -196,7 +197,7 @@ public class YamlStrategy extends AbstractPullStrategy {
         opts.setIndent(4);
         opts.setSplitLines(false);
         try (OutputStreamWriter w = new OutputStreamWriter(
-                new FileOutputStream(out), StandardCharsets.UTF_8)) {
+                Files.newOutputStream(out), StandardCharsets.UTF_8)) {
             new Yaml(opts).dump(rendered, w);
         }
         log.info("Wrote source file {}", out);
@@ -208,16 +209,16 @@ public class YamlStrategy extends AbstractPullStrategy {
      * extension comes from disk). Entries without a match are skipped.
      */
     private void writeRawSubFilesByKey(String docName,
-            Map<String, String> entries, Map<String, File> subFiles)
+            Map<String, String> entries, Map<String, Path> subFiles)
             throws IOException {
         for (Map.Entry<String, String> e : entries.entrySet()) {
-            File target = subFiles.get(e.getKey().toLowerCase(Locale.ROOT));
+            Path target = subFiles.get(e.getKey().toLowerCase(Locale.ROOT));
             if (target == null) {
                 log.warn("No existing sub-file for {} / {}; skipping",
                         docName, e.getKey());
                 continue;
             }
-            Files.writeString(target.toPath(), e.getValue(),
+            Files.writeString(target, e.getValue(),
                     StandardCharsets.UTF_8);
             log.info("Wrote source file {}", target);
         }
@@ -232,11 +233,12 @@ public class YamlStrategy extends AbstractPullStrategy {
     private SourceIndex sourceIndex(String localeDir) throws IOException {
         if (sourceIndex == null) {
             SourceIndex idx = new SourceIndex();
-            File root = getOpts().getSrcDir() == null
-                    ? new File(".") : getOpts().getSrcDir();
+            Path root = getOpts().getSrcDir();
+            if (root == null) root = Paths.get(".");
+            java.nio.file.FileSystem fs = root.getFileSystem();
             String needle = ("/LOCALIZE-LIB/" + localeDir + "/")
                     .toLowerCase(Locale.ROOT);
-            try (Stream<Path> stream = Files.walk(root.toPath())) {
+            try (Stream<Path> stream = Files.walk(root)) {
                 stream.filter(Files::isRegularFile).forEach(path -> {
                     String p = path.toString().replace('\\', '/');
                     String lower = p.toLowerCase(Locale.ROOT);
@@ -245,7 +247,7 @@ public class YamlStrategy extends AbstractPullStrategy {
                     if (at < 0) return;
                     // Original-case LOCALIZE-LIB/<localeDir>/ root path.
                     String localeRootStr = p.substring(0, at + needle.length());
-                    idx.localeRoots.add(new File(localeRootStr));
+                    idx.localeRoots.add(fs.getPath(localeRootStr));
                     String afterLocale = p.substring(at + needle.length());
                     int slash = afterLocale.indexOf('/');
                     if (slash < 0) {
@@ -258,16 +260,16 @@ public class YamlStrategy extends AbstractPullStrategy {
                         String ext = name.substring(dot + 1)
                                 .toLowerCase(Locale.ROOT);
                         if (ext.equals("yaml") || ext.equals("yml")) {
-                            idx.yamlByDoc.putIfAbsent(doc, path.toFile());
+                            idx.yamlByDoc.putIfAbsent(doc, path);
                         } else {
-                            idx.rawByDoc.putIfAbsent(doc, path.toFile());
+                            idx.rawByDoc.putIfAbsent(doc, path);
                         }
                     } else {
                         // Inside a directory doc: <doc>/<sub-path>
                         String docSeg = afterLocale.substring(0, slash);
                         String doc = docSeg.toLowerCase(Locale.ROOT);
                         idx.docDirByDoc.putIfAbsent(doc,
-                                new File(localeRootStr + docSeg));
+                                fs.getPath(localeRootStr + docSeg));
                         String relInside = afterLocale.substring(slash + 1);
                         String subKey = FilenameUtils
                                 .removeExtension(relInside)
@@ -275,7 +277,7 @@ public class YamlStrategy extends AbstractPullStrategy {
                                 .toLowerCase(Locale.ROOT);
                         idx.subFilesByDoc
                                 .computeIfAbsent(doc, k -> new HashMap<>())
-                                .putIfAbsent(subKey, path.toFile());
+                                .putIfAbsent(subKey, path);
                     }
                 });
             }
@@ -286,11 +288,11 @@ public class YamlStrategy extends AbstractPullStrategy {
 
     /** Existing on-disk source layout, keyed by lowercase docName. */
     private static final class SourceIndex {
-        final Map<String, File> yamlByDoc = new HashMap<>();
-        final Map<String, File> rawByDoc = new HashMap<>();
-        final Map<String, Map<String, File>> subFilesByDoc = new HashMap<>();
-        final Map<String, File> docDirByDoc = new HashMap<>();
-        final java.util.Set<File> localeRoots = new java.util.HashSet<>();
+        final Map<String, Path> yamlByDoc = new HashMap<>();
+        final Map<String, Path> rawByDoc = new HashMap<>();
+        final Map<String, Map<String, Path>> subFilesByDoc = new HashMap<>();
+        final Map<String, Path> docDirByDoc = new HashMap<>();
+        final java.util.Set<Path> localeRoots = new java.util.HashSet<>();
     }
 
     @Override
@@ -357,7 +359,7 @@ public class YamlStrategy extends AbstractPullStrategy {
      * {@code <trans-dir>/<locale>/<docId>.yaml} (or .html for raw single-entry).
      */
     private File locateOutputFile(String docName, String locale, boolean raw) {
-        File transDir = getOpts().getTransDir();
+        File transDir = getOpts().getTransDir().toFile();
         File localeRoot = new File(transDir, locale);
         if (!localeRoot.exists()) {
             File alt = new File(transDir, "LOCALIZE-LIB/" + locale);

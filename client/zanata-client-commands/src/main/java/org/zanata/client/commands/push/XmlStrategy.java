@@ -23,6 +23,8 @@ package org.zanata.client.commands.push;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +39,7 @@ import org.zanata.client.config.LocaleMapping;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
 
 /**
  * @author Sean Flanigan <a
@@ -64,7 +67,7 @@ public class XmlStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
@@ -82,24 +85,28 @@ public class XmlStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
+    public Resource loadSrcDoc(Path sourceDir, String docName)
             throws IOException {
         String filename = docNameToFilename(docName);
-        File srcFile = new File(sourceDir, filename);
-        return xmlMapper().readValue(srcFile, Resource.class);
+        try (InputStream in =
+                Files.newInputStream(sourceDir.resolve(filename))) {
+            return xmlMapper().readValue(in, Resource.class);
+        }
     }
 
     @Override
     public void visitTranslationResources(String docName, Resource srcDoc,
             TranslationResourcesVisitor visitor) throws IOException {
         for (LocaleMapping locale : getOpts().getLocaleMapList()) {
-            File transFile = new TransFileResolver(getOpts()).getTransFile(
+            Path transFile = new TransFileResolver(getOpts()).getTransFile(
                     DocNameWithoutExt.from(docName),
                     locale);
-            if (transFile.exists()) {
-                TranslationsResource targetDoc = xmlMapper()
-                        .readValue(transFile, TranslationsResource.class);
-                visitor.visit(locale, targetDoc);
+            if (Files.exists(transFile)) {
+                try (InputStream in = Files.newInputStream(transFile)) {
+                    TranslationsResource targetDoc = xmlMapper()
+                            .readValue(in, TranslationsResource.class);
+                    visitor.visit(locale, targetDoc);
+                }
             } else {
                 // no translation found in 'locale' for current doc
             }

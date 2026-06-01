@@ -23,6 +23,8 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
+import java.io.InputStream;
 
 public class YamlStrategy extends AbstractPushStrategy {
 
@@ -37,13 +39,14 @@ public class YamlStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
         Set<String> docNames = new HashSet<>();
-        for (String rel : getSrcFiles(srcDir, includes, excludes,
-                excludeLocaleFilenames, useDefaultExclude, caseSensitive)) {
+        for (String rel : getSrcFiles(getOpts().getSrcDir(), includes,
+                excludes, excludeLocaleFilenames, useDefaultExclude,
+                caseSensitive)) {
             String id = docIdFromRel(rel);
             if (id != null) docNames.add(id);
         }
@@ -51,12 +54,13 @@ public class YamlStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
+    public Resource loadSrcDoc(Path sourceDir, String docName)
             throws IOException, RuntimeException {
         LocaleId src = new LocaleId(getOpts().getSourceLang());
         Resource doc = new Resource(docName);
         doc.setLang(src);
-        Map<String, SrcEntry> entries = collectEntries(sourceDir, docName);
+        Map<String, SrcEntry> entries =
+                collectEntries(getOpts().getSrcDir(), docName);
         if (entries.isEmpty()) {
             throw new IOException("No source entries found for docId: " + docName);
         }
@@ -91,8 +95,8 @@ public class YamlStrategy extends AbstractPushStrategy {
      * {@code docName} (sub-file key = rel path inside that dir, extension
      * stripped, {@code /} → {@code .}; ext = the file's extension).
      */
-    private Map<String, SrcEntry> collectEntries(File sourceDir, String docName)
-            throws IOException {
+    private Map<String, SrcEntry> collectEntries(Path sourceDir,
+            String docName) throws IOException {
         Map<String, SrcEntry> entries = new LinkedHashMap<>();
         for (String rel : getSrcFiles(sourceDir,
                 ImmutableList.copyOf(getOpts().getIncludes()),
@@ -108,10 +112,10 @@ public class YamlStrategy extends AbstractPushStrategy {
             String afterLocale = tail.substring(slash + 1);
             if (!afterLocale.startsWith(docName)) continue;
             String rest = afterLocale.substring(docName.length());
-            File file = new File(sourceDir, rel);
+            Path file = sourceDir.resolve(rel);
             if (rest.endsWith(".yaml") || rest.endsWith(".yml")) {
                 if (rest.equals(".yaml") || rest.equals(".yml")) {
-                    try (FileInputStream in = new FileInputStream(file)) {
+                    try (InputStream in = Files.newInputStream(file)) {
                         Object root = new Yaml().load(in);
                         if (root instanceof Map<?, ?> top) {
                             for (Map.Entry<?, ?> e : top.entrySet()) {
@@ -128,7 +132,7 @@ public class YamlStrategy extends AbstractPushStrategy {
                 String relInside = rest.substring(1);
                 String key = FilenameUtils.removeExtension(relInside)
                         .replace('/', '.');
-                String body = Files.readString(file.toPath(),
+                String body = Files.readString(file,
                         java.nio.charset.StandardCharsets.UTF_8);
                 if (!body.isEmpty()) {
                     // ext "" when the file has none — still marks it raw.
@@ -200,7 +204,7 @@ public class YamlStrategy extends AbstractPushStrategy {
      */
     private Map<String, String> collectTranslationEntries(String docName, String locale)
             throws IOException {
-        File transDir = getOpts().getTransDir();
+        File transDir = getOpts().getTransDir().toFile();
         File localeRoot = new File(transDir, locale);
         if (!localeRoot.exists()) {
             File alt = new File(transDir, "LOCALIZE-LIB/" + locale);

@@ -53,6 +53,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.OutputStream;
+import java.io.InputStream;
 
 /**
  * @author Patrick Huang <a
@@ -123,7 +128,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
 
         downloadProjectConfig(getOpts().getProj(),
                 getOpts().getProjectVersion(),
-                new File("verbaria.json"));
+                Paths.get("verbaria.json"));
 
         applyConfigFileSilently();
 
@@ -239,7 +244,7 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
      */
     @VisibleForTesting
     protected void downloadProjectConfig(String projectId, String iterationId,
-            File configFileDest) throws IOException {
+            Path configFileDest) throws IOException {
         ProjectIterationClient projectIterationClient = getClientFactory()
                 .getProjectIterationClient(projectId, iterationId);
 
@@ -252,24 +257,28 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
             return;
         }
 
-        boolean created = configFileDest.createNewFile();
-        Preconditions.checkState(created,
+        Preconditions.checkState(
+                !Files.exists(configFileDest),
                 "Can not create %s. Make sure permission is writable.",
                 configFileDest);
 
         log.debug("project config from the server:\n{}", content);
-        FileUtils.write(configFileDest, content, UTF_8);
+        Files.writeString(configFileDest, content, UTF_8);
         getOpts().setProjectConfig(configFileDest);
 
     }
 
     @VisibleForTesting
-    protected void writeToConfig(File srcDir, String includes, String excludes,
-            File transDir, File configFile)
+    protected void writeToConfig(Path srcDir, String includes,
+            String excludes, Path transDir,
+            Path configFile)
             throws Exception {
-        ZanataConfig currentConfig =
-                CONFIG_MAPPER.readValue(configFile, ZanataConfig.class);
-        currentConfig.setSrcDir(srcDir.getPath());
+        ZanataConfig currentConfig;
+        try (InputStream in =
+                Files.newInputStream(configFile)) {
+            currentConfig = CONFIG_MAPPER.readValue(in, ZanataConfig.class);
+        }
+        currentConfig.setSrcDir(srcDir.toString());
         currentConfig.setIncludes(Strings.emptyToNull(includes));
         currentConfig.setExcludes(Strings.emptyToNull(excludes));
         currentConfig.setHooks(null);
@@ -277,8 +286,11 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
                 && currentConfig.getLocales().isEmpty()) {
             currentConfig.setLocales(null);
         }
-        currentConfig.setTransDir(transDir.getPath());
-        CONFIG_MAPPER.writeValue(configFile, currentConfig);
+        currentConfig.setTransDir(transDir.toString());
+        try (OutputStream out =
+                Files.newOutputStream(configFile)) {
+            CONFIG_MAPPER.writeValue(out, currentConfig);
+        }
 
         console.printfln(Confirmation, "Project config created at:%s",
                 getOpts().getProjectConfig());

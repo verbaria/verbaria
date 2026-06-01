@@ -56,7 +56,7 @@ public class PropReaderWriterTest {
 
         propReader.extractTemplate(srcDoc, testStream);
 
-        PropWriter.writeSource(srcDoc, TEST_OUTPUT_DIR, PropWriter.CHARSET.Latin1);
+        PropWriter.writeSource(srcDoc, TEST_OUTPUT_DIR.toPath(), PropWriter.CHARSET.Latin1);
 
         assertInputAndOutputDocContentSame(docName);
     }
@@ -68,7 +68,7 @@ public class PropReaderWriterTest {
         TranslationsResource transDoc = new TranslationsResource();
         propReader.extractTarget(transDoc, targetStream, new Resource());
 
-        PropWriter.writeTranslations(new TranslatedDoc(null, transDoc, localeId), TEST_OUTPUT_DIR,
+        PropWriter.writeTranslations(new TranslatedDoc(null, transDoc, localeId), TEST_OUTPUT_DIR.toPath(),
             "test", locale, PropWriter.CHARSET.Latin1, false, false);
 
         assertInputAndOutputDocContentSame(docName);
@@ -160,7 +160,7 @@ public class PropReaderWriterTest {
         try {
             boolean approvedOnly = false;
             PropWriter.writeTranslationsFile(new TranslatedDoc(srcDoc, doc, localeId),
-                    file.toFile(), PropWriter.CHARSET.UTF8, false, approvedOnly);
+                    file, PropWriter.CHARSET.UTF8, false, approvedOnly);
             assertThat(file).hasContent("hello=bon jour\ngoodbye=au revoir\n");
         } finally {
             deleteIfExists(file);
@@ -175,7 +175,7 @@ public class PropReaderWriterTest {
         try {
             boolean approvedOnly = true;
             PropWriter.writeTranslationsFile(new TranslatedDoc(srcDoc, doc, localeId),
-                    file.toFile(), PropWriter.CHARSET.UTF8, false, approvedOnly);
+                    file, PropWriter.CHARSET.UTF8, false, approvedOnly);
             // hello is only Translated, so it should be left out
             assertThat(file).hasContent("goodbye=au revoir\n");
         } finally {
@@ -191,7 +191,7 @@ public class PropReaderWriterTest {
         try {
             boolean approvedOnly = true;
             PropWriter.writeTranslationsFile(new TranslatedDoc(srcDoc, doc, localeId),
-                    file.toFile(), PropWriter.CHARSET.UTF8, true, approvedOnly);
+                    file, PropWriter.CHARSET.UTF8, true, approvedOnly);
             // hello is only Translated, so it should be a skeleton
             assertThat(file).hasContent("hello=\ngoodbye=au revoir\n");
         } finally {

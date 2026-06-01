@@ -11,6 +11,7 @@ import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 
 /**
  * Base class for mojos which support configuration by the user's verbaria.ini and
@@ -92,13 +93,14 @@ public abstract class ConfigurableProjectMojo<O extends ConfigurableOptions>
     }
 
     @Override
-    public File getProjectConfig() {
-        return projectConfig;
+    public Path getProjectConfig() {
+        return projectConfig == null ? null : projectConfig.toPath();
     }
 
     @Override
-    public void setProjectConfig(File projectConfig) {
-        this.projectConfig = projectConfig;
+    public void setProjectConfig(Path projectConfig) {
+        this.projectConfig = projectConfig == null ? null
+                : projectConfig.toFile();
     }
 
     @Override
@@ -132,13 +134,13 @@ public abstract class ConfigurableProjectMojo<O extends ConfigurableOptions>
     }
 
     @Override
-    public File getSrcDir() {
-        return srcDir;
+    public Path getSrcDir() {
+        return srcDir == null ? null : srcDir.toPath();
     }
 
     @Override
-    public File getTransDir() {
-        return transDir;
+    public Path getTransDir() {
+        return transDir == null ? null : transDir.toPath();
     }
 
     @Override
@@ -152,13 +154,13 @@ public abstract class ConfigurableProjectMojo<O extends ConfigurableOptions>
     }
 
     @Override
-    public void setSrcDir(File srcDir) {
-        this.srcDir = srcDir;
+    public void setSrcDir(Path srcDir) {
+        this.srcDir = srcDir == null ? null : srcDir.toFile();
     }
 
     @Override
-    public void setTransDir(File transDir) {
-        this.transDir = transDir;
+    public void setTransDir(Path transDir) {
+        this.transDir = transDir == null ? null : transDir.toFile();
     }
 
     @Override

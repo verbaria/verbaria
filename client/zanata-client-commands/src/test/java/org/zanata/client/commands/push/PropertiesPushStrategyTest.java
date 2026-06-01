@@ -54,7 +54,7 @@ public class PropertiesPushStrategyTest {
         strat.setPushOptions(opts);
         strat.init();
 
-        Resource doc = strat.loadSrcDoc(outDir, "utf8");
+        Resource doc = strat.loadSrcDoc(outDir.toPath(),"utf8");
         checkResults(doc);
     }
 
@@ -73,7 +73,7 @@ public class PropertiesPushStrategyTest {
         strat.setPushOptions(opts);
         strat.init();
 
-        Resource doc = strat.loadSrcDoc(outDir, "latin1");
+        Resource doc = strat.loadSrcDoc(outDir.toPath(),"latin1");
         checkResults(doc);
     }
 

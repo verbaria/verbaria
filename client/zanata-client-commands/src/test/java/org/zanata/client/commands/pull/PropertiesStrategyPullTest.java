@@ -8,7 +8,8 @@ import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
@@ -34,16 +35,16 @@ public class PropertiesStrategyPullTest {
                 Optional.of("zh-Hans"),
                 opts);
 
-        File deTransFile =
+        Path deTransFile =
             strategy.getTransFileToWrite("src/main/resources/msg", deMapping);
 
-        assertThat(deTransFile).isEqualTo(new File(opts.getTransDir(),
+        assertThat(deTransFile).isEqualTo(Paths.get(
                 "src/main/resources/msg_de.properties"));
 
-        File zhTransFile =
+        Path zhTransFile =
             strategy.getTransFileToWrite("src/main/resources/msg", zhMapping);
         assertThat(zhTransFile).isEqualTo(
-            new File(opts.getTransDir(),
+            Paths.get(
                 "src/main/resources/msg_zh_Hans.properties"));
 
     }
@@ -60,16 +61,16 @@ public class PropertiesStrategyPullTest {
             new FileMappingRule(
                 "{path}/{filename}_{locale_with_underscore}.properties")));
 
-        File deTransFile =
+        Path deTransFile =
             strategy.getTransFileToWrite("src/main/resources/msg", deMapping);
 
-        assertThat(deTransFile).isEqualTo(new File(opts.getTransDir(),
+        assertThat(deTransFile).isEqualTo(Paths.get(
                 "src/main/resources/msg_de.properties"));
 
-        File zhTransFile =
+        Path zhTransFile =
             strategy.getTransFileToWrite("src/main/resources/msg", zhMapping);
         assertThat(zhTransFile).isEqualTo(
-            new File(opts.getTransDir(),
+            Paths.get(
                 "src/main/resources/msg_zh_Hans.properties"));
 
     }

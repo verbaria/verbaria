@@ -20,12 +20,12 @@
  */
 package org.zanata.adapter.po;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -56,7 +56,6 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.util.PathUtil;
 
 import com.google.common.base.Charsets;
 
@@ -130,9 +129,9 @@ public class PoWriter2 {
      * @throws IOException
      */
     @Deprecated
-    public void writePot(File baseDir, Resource doc) throws IOException {
+    public void writePot(Path baseDir, Resource doc) throws IOException {
         // write the POT file to pot/$name.pot
-        File potDir = new File(baseDir, "pot");
+        Path potDir = baseDir.resolve("pot");
         writePotToDir(potDir, doc);
     }
 
@@ -145,9 +144,9 @@ public class PoWriter2 {
      * @throws IOException
      */
     @Deprecated
-    public void writePotToDir(File potDir, Resource doc) throws IOException {
+    public void writePotToDir(Path potDir, Resource doc) throws IOException {
         // write the POT file to $potDir/$name.pot
-        File potFile = new File(potDir, doc.getName() + ".pot");
+        Path potFile = potDir.resolve(doc.getName() + ".pot");
         writePotToFile(potFile, doc);
     }
 
@@ -159,15 +158,22 @@ public class PoWriter2 {
      *            file to be written
      * @throws IOException
      */
-    public void writePotToFile(File potFile, Resource doc) throws IOException {
-        PathUtil.makeParents(potFile);
+    public void writePotToFile(Path potFile, Resource doc) throws IOException {
+        makeParentDirs(potFile);
         Writer fWriter =
-                new OutputStreamWriter(new FileOutputStream(potFile),
+                new OutputStreamWriter(Files.newOutputStream(potFile),
                         Charsets.UTF_8);
         try {
             write(fWriter, "UTF-8", doc, null);
         } finally {
             fWriter.close();
+        }
+    }
+
+    private static void makeParentDirs(Path file) throws IOException {
+        Path parent = file.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
         }
     }
 
@@ -193,11 +199,10 @@ public class PoWriter2 {
      * @throws IOException
      */
     @Deprecated
-    public void writePo(File baseDir, Resource doc, String locale,
+    public void writePo(Path baseDir, Resource doc, String locale,
             TranslationsResource targetDoc) throws IOException {
         // write the PO file to $locale/$name.po
-        File localeDir = new File(baseDir, locale);
-        File poFile = new File(localeDir, doc.getName() + ".po");
+        Path poFile = baseDir.resolve(locale).resolve(doc.getName() + ".po");
         writePoToFile(poFile, doc, targetDoc);
     }
 
@@ -212,9 +217,9 @@ public class PoWriter2 {
      * @param targetDoc
      *            translated document to be written
      */
-    public FileDetails writePoToFile(File poFile, Resource doc,
+    public FileDetails writePoToFile(Path poFile, Resource doc,
             TranslationsResource targetDoc) throws IOException {
-        PathUtil.makeDirs(poFile.getParentFile());
+        makeParentDirs(poFile);
         MessageDigest md5Digest;
         try {
             md5Digest = MessageDigest.getInstance("MD5");
@@ -222,11 +227,11 @@ public class PoWriter2 {
             throw new RuntimeException(e);
         }
         try (Writer fWriter = new OutputStreamWriter(
-                new FileOutputStream(poFile), Charsets.UTF_8)) {
+                Files.newOutputStream(poFile), Charsets.UTF_8)) {
             DigestWriter dWriter = new DigestWriter(fWriter, md5Digest);
             write(dWriter, "UTF-8", doc, targetDoc);
 
-            FileDetails details = new FileDetails(poFile);
+            FileDetails details = new FileDetails(poFile.toFile());
             details.setMd5(new String(Hex.encodeHex(md5Digest.digest())));
             return details;
         }

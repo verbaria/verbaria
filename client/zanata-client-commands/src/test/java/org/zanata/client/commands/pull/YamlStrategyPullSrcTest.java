@@ -1,11 +1,14 @@
 package org.zanata.client.commands.pull;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
@@ -48,7 +51,24 @@ public class YamlStrategyPullSrcTest {
         return doc;
     }
 
-    private static YamlStrategy strategy(File srcDir) {
+    private FileSystem fs;
+
+    @AfterEach
+    void closeFs() throws Exception {
+        if (fs != null) {
+            fs.close();
+        }
+    }
+
+    /** Fresh in-memory working directory; no real folders are created. */
+    private Path inMemoryRoot() throws Exception {
+        fs = Jimfs.newFileSystem(Configuration.unix());
+        Path root = fs.getPath("/work");
+        Files.createDirectories(root);
+        return root;
+    }
+
+    private static YamlStrategy strategy(Path srcDir) {
         PullOptionsImpl opts = new PullOptionsImpl();
         opts.setProjectType("consulo");
         opts.setSrcDir(srcDir);
@@ -57,7 +77,7 @@ public class YamlStrategyPullSrcTest {
 
     @Test
     public void rewritesExistingSourceFileFromServer() throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src");
+        Path tmp = inMemoryRoot();
         Path srcFile = tmp.resolve(
                 "modules/a/src/main/resources/LOCALIZE-LIB/en_US/Foo.BarLocalize.yaml");
         Files.createDirectories(srcFile.getParent());
@@ -69,7 +89,7 @@ public class YamlStrategyPullSrcTest {
         doc.getTextFlows().add(tf("h1", "action.filters.text", "Filters"));
         doc.getTextFlows().add(tf("h2", "build.event.message.at", "At {0}"));
 
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         String written = Files.readString(srcFile, StandardCharsets.UTF_8);
         // key: { text: value } shape, with the server's (edited) value
@@ -87,13 +107,13 @@ public class YamlStrategyPullSrcTest {
 
     @Test
     public void skipsWhenNoExistingSourceFile() throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src-none");
+        Path tmp = inMemoryRoot();
 
         Resource doc = sourceDoc("No.SuchLocalize");
         doc.getTextFlows().add(tf("h1", "some.key", "Value"));
 
         // Must not throw and must not scatter any new files.
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         try (Stream<Path> walk = Files.walk(tmp)) {
             assertThat(walk.anyMatch(p ->
@@ -103,7 +123,7 @@ public class YamlStrategyPullSrcTest {
 
     @Test
     public void rewritesRawSubFilesAsFilesNotYaml() throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src-subfiles");
+        Path tmp = inMemoryRoot();
         // The doc is a DIRECTORY of raw sub-files (e.g. html templates).
         Path docDir = tmp.resolve(
                 "modules/a/src/main/resources/LOCALIZE-LIB/en_US/Foo.BarLocalize");
@@ -118,7 +138,7 @@ public class YamlStrategyPullSrcTest {
         doc.getTextFlows().add(tf("h1", "inspections.MyInspection",
                 "<html>new body</html>"));
 
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         // The raw file must stay a raw file with the new body verbatim ...
         String written = Files.readString(htmlFile, StandardCharsets.UTF_8);
@@ -137,7 +157,7 @@ public class YamlStrategyPullSrcTest {
     @Test
     public void rewritesRawSubFilesByExtensionPreservingPaths()
             throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src-ext");
+        Path tmp = inMemoryRoot();
         Path docDir = tmp.resolve(
                 "modules/a/src/main/resources/LOCALIZE-LIB/en_US/Foo.BarLocalize");
         Files.createDirectories(docDir.resolve("inspections"));
@@ -154,7 +174,7 @@ public class YamlStrategyPullSrcTest {
         doc.getTextFlows().add(tfRaw("h2", "colors.Theme",
                 "colorPage", "theme body"));
 
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         assertThat(Files.readString(html, StandardCharsets.UTF_8))
                 .isEqualTo("<html>new</html>");
@@ -169,7 +189,7 @@ public class YamlStrategyPullSrcTest {
 
     @Test
     public void rewritesSingleRawFileAsRawBody() throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src-raw");
+        Path tmp = inMemoryRoot();
         // The doc is a single raw file (not yaml): keep it raw on the way back.
         Path raw = tmp.resolve(
                 "modules/a/src/main/resources/LOCALIZE-LIB/en_US/Readme.colorPage");
@@ -179,7 +199,7 @@ public class YamlStrategyPullSrcTest {
         Resource doc = sourceDoc("Readme");
         doc.getTextFlows().add(tf("h1", "content", "new raw content"));
 
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         String written = Files.readString(raw, StandardCharsets.UTF_8);
         assertThat(written).isEqualTo("new raw content");
@@ -188,7 +208,7 @@ public class YamlStrategyPullSrcTest {
 
     @Test
     public void ignoresTargetBuildOutputs() throws Exception {
-        Path tmp = Files.createTempDirectory("yaml-src-target");
+        Path tmp = inMemoryRoot();
         // Only a build-output copy exists under target/ — must be ignored.
         Path targetCopy = tmp.resolve(
                 "modules/a/target/classes/LOCALIZE-LIB/en_US/Foo.BarLocalize.yaml");
@@ -199,7 +219,7 @@ public class YamlStrategyPullSrcTest {
         Resource doc = sourceDoc("Foo.BarLocalize");
         doc.getTextFlows().add(tf("h1", "x", "New"));
 
-        strategy(tmp.toFile()).writeSrcFile(doc);
+        strategy(tmp).writeSrcFile(doc);
 
         // The target/ copy must be untouched.
         assertThat(Files.readString(targetCopy, StandardCharsets.UTF_8))

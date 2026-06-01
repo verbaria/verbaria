@@ -77,7 +77,7 @@ public class TranslationUploadService {
             File tmp = File.createTempFile("zanata-trans-", "-" + fileName);
             try {
                 Files.copy(in, tmp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                resource = new XliffReader().extractTarget(tmp);
+                resource = new XliffReader().extractTarget(tmp.toPath());
             } finally {
                 tmp.delete();
             }

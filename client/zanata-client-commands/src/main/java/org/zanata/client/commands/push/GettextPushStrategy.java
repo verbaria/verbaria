@@ -25,7 +25,7 @@ public class GettextPushStrategy extends AbstractGettextPushStrategy {
     List<LocaleMapping> findLocales(String srcDocName) {
         // find all .po basenames in this dir and subdirs
         Collection<File> transFilesOnDisk =
-                listFiles(getOpts().getTransDir(), new String[] { "po" }, true);
+                listFiles(getOpts().getTransDir().toFile(), new String[] { "po" }, true);
 
         final LocaleList localeListInConfig = getOpts().getLocaleMapList();
 
@@ -65,8 +65,10 @@ public class GettextPushStrategy extends AbstractGettextPushStrategy {
 
         @Override
         public File apply(LocaleMapping localeMapping) {
+            // commons-io listFiles works in java.io.File terms, so the
+            // de-dup set below must also be File-based.
             return transFileResolver.getTransFile(docNameWithoutExt,
-                    localeMapping);
+                    localeMapping).toFile();
         }
     }
 }

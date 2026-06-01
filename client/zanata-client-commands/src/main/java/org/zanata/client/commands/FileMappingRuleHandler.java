@@ -23,6 +23,7 @@ package org.zanata.client.commands;
 
 import java.io.File;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.EnumMap;
@@ -83,12 +84,13 @@ public class FileMappingRuleHandler {
             FileSystems.getDefault().getPathMatcher("glob:" + mappingRule.getPattern());
         // this will help when docNameWithExt has just file name i.e.
         // test.odt whereas pattern is defined as **/*.odt
-        File srcFile =
-                new File(opts.getSrcDir(),
-                        docNameWithExt.getFullName());
+        Path srcDir = opts.getSrcDir();
+        Path srcFile = srcDir == null
+                ? Paths.get(docNameWithExt.getFullName())
+                : srcDir.resolve(docNameWithExt.getFullName());
         log.debug("trying to match pattern: {} to file: {}",
-                mappingRule.getPattern(), srcFile.getPath());
-        return matcher.matches(Paths.get(srcFile.getPath()));
+                mappingRule.getPattern(), srcFile);
+        return matcher.matches(srcFile);
     }
 
     /**

@@ -5,18 +5,13 @@ import java.net.URL;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.TemporaryFolderExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.zanata.client.commands.Messages.get;
 
 public class PutUserOptionsImplTest {
-
-    @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
 
     private PutUserOptionsImpl opts;
 

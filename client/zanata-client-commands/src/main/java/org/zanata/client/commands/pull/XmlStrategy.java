@@ -21,8 +21,10 @@
 
 package org.zanata.client.commands.pull;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -31,7 +33,6 @@ import org.zanata.client.dto.LocaleMappedTranslatedDoc;
 import org.zanata.common.io.FileDetails;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
-import org.zanata.util.PathUtil;
 
 /**
  * @author Sean Flanigan <a
@@ -66,19 +67,27 @@ public class XmlStrategy extends AbstractPullStrategy {
     @Override
     public void writeSrcFile(Resource doc) throws IOException {
         String filename = docNameToFilename(doc.getName());
-        File srcFile = new File(getOpts().getSrcDir(), filename);
-        PathUtil.makeParents(srcFile);
-        xmlMapper().writeValue(srcFile, doc);
+        writeXml(getOpts().getSrcDir().resolve(filename), doc);
     }
 
     @Override
     public FileDetails writeTransFile(String docName,
             LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {
-        File transFile = getTransFileToWrite(docName, translatedDoc.getLocale());
-        PathUtil.makeParents(transFile);
-        xmlMapper().writeValue(transFile, translatedDoc.getTranslation());
+        Path transFile =
+                getTransFileToWrite(docName, translatedDoc.getLocale());
+        writeXml(transFile, translatedDoc.getTranslation());
         return null;
+    }
+
+    private void writeXml(Path file, Object value) throws IOException {
+        Path parent = file.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        try (OutputStream out = Files.newOutputStream(file)) {
+            xmlMapper().writeValue(out, value);
+        }
     }
 
     @Override

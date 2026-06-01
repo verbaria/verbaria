@@ -25,13 +25,13 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.TempTransFileRule;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -40,7 +40,7 @@ import com.google.common.base.Optional;
 
 public class GettextPushStrategyTest {
     @RegisterExtension
-    public TempTransFileRule tempFileRule = new TempTransFileRule();
+    public InMemoryFs tempFileRule = new InMemoryFs();
     private GettextPushStrategy strategy;
     private PushOptionsImpl opts;
 
@@ -63,13 +63,11 @@ public class GettextPushStrategyTest {
                         Optional.of("zh-Hans"),
                         opts);
 
-        File deTransFile = strategy.getTransFile(deMapping, "po/message");
-        assertThat(deTransFile).isEqualTo(new File(tempFileRule
-                .getTransDir(), "po/de.po"));
+        Path deTransFile = strategy.getTransFile(deMapping, "po/message");
+        assertThat(deTransFile).isEqualTo(tempFileRule.getTransDir().resolve("po/de.po"));
 
-        File zhTransFile = strategy.getTransFile(zhMapping, "po/message");
-        assertThat(zhTransFile).isEqualTo(new File(tempFileRule
-                .getTransDir(), "po/zh_Hans.po"));
+        Path zhTransFile = strategy.getTransFile(zhMapping, "po/message");
+        assertThat(zhTransFile).isEqualTo(tempFileRule.getTransDir().resolve("po/zh_Hans.po"));
     }
 
     @Test
@@ -83,12 +81,10 @@ public class GettextPushStrategyTest {
                         Optional.of("zh-Hans"),
                         opts);
 
-        File deTransFile = strategy.getTransFile(deMapping, "po/message");
-        assertThat(deTransFile).isEqualTo(new File(tempFileRule
-                .getTransDir(), "po/de.po"));
+        Path deTransFile = strategy.getTransFile(deMapping, "po/message");
+        assertThat(deTransFile).isEqualTo(tempFileRule.getTransDir().resolve("po/de.po"));
 
-        File zhTransFile = strategy.getTransFile(zhMapping, "po/message");
-        assertThat(zhTransFile).isEqualTo(new File(tempFileRule
-                .getTransDir(), "po/zh_Hans.po"));
+        Path zhTransFile = strategy.getTransFile(zhMapping, "po/message");
+        assertThat(zhTransFile).isEqualTo(tempFileRule.getTransDir().resolve("po/zh_Hans.po"));
     }
 }

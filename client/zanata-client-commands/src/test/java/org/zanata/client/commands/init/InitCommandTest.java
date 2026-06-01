@@ -8,13 +8,13 @@ import static org.zanata.client.commands.Messages.get;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.zanata.client.TemporaryFolderExtension;
+import org.zanata.client.InMemoryFs;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
@@ -27,13 +27,15 @@ import org.zanata.rest.dto.VersionInfo;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class InitCommandTest {
     private static final Logger log =
             LoggerFactory.getLogger(InitCommandTest.class);
 
     @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    public InMemoryFs tempFolder = new InMemoryFs();
 
     private InitCommand command;
     private InitOptionsImpl opts;
@@ -63,11 +65,11 @@ public class InitCommandTest {
         when(projectIterationClient.sampleConfiguration()).thenReturn(
                 readFromClasspath("serverresponse/projectConfig.json"));
 
-        File configFileDest = new File(tempFolder.getRoot(), "verbaria.json");
+        Path configFileDest = tempFolder.getRoot().resolve("verbaria.json");
         command.downloadProjectConfig("gcc", "master", configFileDest);
 
-        assertThat(configFileDest.exists()).isTrue();
-        List<String> lines = FileUtils.readLines(configFileDest, Charsets.UTF_8);
+        assertThat(Files.exists(configFileDest)).isTrue();
+        List<String> lines = Files.readAllLines(configFileDest, Charsets.UTF_8);
         String content = Joiner.on("\n").join(lines);
         assertThat(content).contains("\"project\"");
         assertThat(opts.getProjectConfig()).isEqualTo(configFileDest);
@@ -75,14 +77,15 @@ public class InitCommandTest {
 
     @Test
     public void willWriteSrcDirIncludesExcludesToConfigFile() throws Exception {
-        File configFile = new File(tempFolder.getRoot(), "verbaria.json");
-        configFile.createNewFile();
-        FileUtils.write(configFile, readFromClasspath("serverresponse/projectConfig.json"), Charsets.UTF_8);
+        Path configFile = tempFolder.getRoot().resolve("verbaria.json");
+        Files.writeString(configFile,
+                readFromClasspath("serverresponse/projectConfig.json"),
+                Charsets.UTF_8);
 
-        command.writeToConfig(new File("pot"), null, "", new File("po"),
-                configFile);
+        command.writeToConfig(Paths.get("pot"), null, "",
+                Paths.get("po"), configFile);
 
-        List<String> lines = FileUtils.readLines(configFile, Charsets.UTF_8);
+        List<String> lines = Files.readAllLines(configFile, Charsets.UTF_8);
         StringBuilder content = new StringBuilder();
         for (String line : lines) {
             log.debug(line);

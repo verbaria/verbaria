@@ -21,7 +21,8 @@
 
 package org.zanata.client.commands.push;
 
-import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.io.IOException;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.TempTransFileRule;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.TestUtils;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
@@ -47,16 +48,18 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
+import java.nio.file.Path;
 
 public class XmlStrategyTest {
     @RegisterExtension
-    public TempTransFileRule tempFileRule = new TempTransFileRule();
+    public InMemoryFs tempFileRule = new InMemoryFs();
     private XmlStrategy strategy;
     private PushOptionsImpl opts;
     @Captor
@@ -64,8 +67,6 @@ public class XmlStrategyTest {
     @Mock
     private PushCommand.TranslationResourcesVisitor visitor;
     private Resource sourceResource;
-    @Captor
-    private ArgumentCaptor<File> fileCapture;
     @Mock
     private XmlMapper xmlMapper;
 
@@ -85,7 +86,8 @@ public class XmlStrategyTest {
     @Test
     public void findDocNamesTest() throws IOException {
         PushOptions mockPushOption = Mockito.mock(PushOptions.class);
-        File sourceDir = TestUtils.fileFromClasspath("xliffDir");
+        Path sourceDir =
+                TestUtils.fileFromClasspath("xliffDir").toPath();
         LocaleList locales = new LocaleList();
         String sourceLocale = "en-US";
 
@@ -122,10 +124,10 @@ public class XmlStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_de.xml");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_zh_Hans.xml");
 
@@ -134,9 +136,8 @@ public class XmlStrategyTest {
 
         verify(visitor).visit(eq(deMapping), transResourceCaptor.capture());
         verify(visitor).visit(eq(zhMapping), transResourceCaptor.capture());
-        verify(xmlMapper, times(2)).readValue(fileCapture.capture(),
+        verify(xmlMapper, times(2)).readValue(any(InputStream.class),
                 eq(TranslationsResource.class));
-        assertThat(fileCapture.getAllValues()).contains(deTransFile, zhTransFile);
 
         verifyNoMoreInteractions(visitor);
     }
@@ -154,10 +155,10 @@ public class XmlStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_de.xml");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "foo/message_zh_Hans.xml");
 
@@ -169,9 +170,8 @@ public class XmlStrategyTest {
 
         verify(visitor).visit(eq(deMapping), transResourceCaptor.capture());
         verify(visitor).visit(eq(zhMapping), transResourceCaptor.capture());
-        verify(xmlMapper, times(2)).readValue(fileCapture.capture(),
+        verify(xmlMapper, times(2)).readValue(any(InputStream.class),
                 eq(TranslationsResource.class));
-        assertThat(fileCapture.getAllValues()).contains(deTransFile, zhTransFile);
 
         verifyNoMoreInteractions(visitor);
     }

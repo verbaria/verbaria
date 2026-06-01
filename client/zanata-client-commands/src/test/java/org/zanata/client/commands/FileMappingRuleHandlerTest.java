@@ -33,6 +33,8 @@ import org.zanata.client.config.LocaleMapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders;
 import static org.zanata.client.commands.FileMappingRuleHandler.isRuleValid;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class FileMappingRuleHandlerTest {
 
@@ -106,7 +108,7 @@ public class FileMappingRuleHandlerTest {
 
     @Test
     public void canTestApplicable() {
-        opts.setSrcDir(new File("."));
+        opts.setSrcDir(Paths.get("."));
         FileMappingRuleHandler handler = new FileMappingRuleHandler(
                 new FileMappingRule("**/*.odt",
                         "{locale}/{filename}.{extension}"), opts);

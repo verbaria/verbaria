@@ -36,6 +36,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 /**
  * @author Sean Flanigan <a
@@ -342,7 +344,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                             }
                             continue;
                         }
-                        File transFile =
+                        Path transFile =
                                 strat.getTransFileToWrite(localDocName,
                                         locMapping);
 
@@ -409,8 +411,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             return;
         }
         try {
-            File lockFile = new File(getOpts().getCacheDir(),
-                    VerbariaLockReaderWriter.FILE_NAME);
+            Path cfg = getOpts().getProjectConfig();
+            Path lockDir = cfg != null && cfg.getParent() != null
+                    ? cfg.getParent() : Paths.get(".");
+            Path lockFile =
+                    lockDir.resolve(VerbariaLockReaderWriter.FILE_NAME);
             VerbariaLockReaderWriter.write(lock, lockFile);
             log.info("Wrote sync state to {}", lockFile);
         } catch (RuntimeException e) {
@@ -425,7 +430,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
      * to decide which targets count (accepted-only by default).
      */
     private void recordTranslationLock(String localDocName, LocaleId locale,
-            TranslationsResource targetDoc, File transFile) {
+            TranslationsResource targetDoc, Path transFile) {
         if (lock == null || targetDoc == null) {
             return;
         }
@@ -440,7 +445,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     @VisibleForTesting
     protected void pullDocForLocale(PullStrategy strat, Resource doc,
             String localDocName, String docId, boolean createSkeletons,
-            LocaleMapping locMapping, File transFile) throws IOException {
+            LocaleMapping locMapping, Path transFile) throws IOException {
         LocaleId locale = new LocaleId(locMapping.getLocale());
 
         ResponseEntity<TranslationsResource> transResponse;

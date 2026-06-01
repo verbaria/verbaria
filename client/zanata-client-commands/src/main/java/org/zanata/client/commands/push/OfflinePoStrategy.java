@@ -31,6 +31,7 @@ import org.zanata.adapter.po.PoReader2;
 import org.zanata.rest.client.SourceDocResourceClient;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
+import java.nio.file.Path;
 
 /**
  * Similar to {@link GettextDirStrategy} but uses msgctxt to map text flow id.
@@ -62,7 +63,7 @@ public class OfflinePoStrategy extends GettextDirStrategy {
      * parameters are ignored as there is no disk scanning.
      */
     @Override
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
@@ -75,7 +76,7 @@ public class OfflinePoStrategy extends GettextDirStrategy {
     }
 
     @Override
-    public String[] getSrcFiles(File srcDir, ImmutableList<String> includes,
+    public String[] getSrcFiles(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean excludeLocaleFilenames,
             boolean useDefaultExclude, boolean isCaseSensitive) {
         throw new RuntimeException(
@@ -83,7 +84,7 @@ public class OfflinePoStrategy extends GettextDirStrategy {
     }
 
     @Override
-    public String[] getSrcFiles(File srcDir, ImmutableList<String> includes,
+    public String[] getSrcFiles(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, ImmutableList<String> fileExtensions,
             boolean useDefaultExcludes, boolean isCaseSensitive) {
         throw new RuntimeException(
@@ -91,7 +92,7 @@ public class OfflinePoStrategy extends GettextDirStrategy {
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
+    public Resource loadSrcDoc(Path sourceDir, String docName)
             throws IOException {
         throw new RuntimeException(
                 "Source files should never be accessed in a trans-only strategy");

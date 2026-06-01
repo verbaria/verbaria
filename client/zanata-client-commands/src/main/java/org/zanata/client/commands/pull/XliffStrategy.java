@@ -21,7 +21,7 @@
 
 package org.zanata.client.commands.pull;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.io.IOException;
 
 import org.zanata.adapter.xliff.XliffWriter;
@@ -61,7 +61,7 @@ public class XliffStrategy extends AbstractPullStrategy {
     public FileDetails writeTransFile(String docName,
             LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {
-        File transFileToWrite = getTransFileToWrite(docName, translatedDoc.getLocale());
+        Path transFileToWrite = getTransFileToWrite(docName, translatedDoc.getLocale());
         XliffWriter.writeFile(transFileToWrite, translatedDoc.getSource(), translatedDoc.getLocale()
                 .getLocalLocale(), translatedDoc.getTranslation(), getOpts().getCreateSkeletons(),
                 getOpts().getApprovedOnly());

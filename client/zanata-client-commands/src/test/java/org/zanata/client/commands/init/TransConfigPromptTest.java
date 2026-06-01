@@ -16,6 +16,8 @@ import org.zanata.client.config.LocaleMapping;
 import com.google.common.collect.Sets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class TransConfigPromptTest {
     private TransConfigPrompt prompt;
@@ -62,7 +64,7 @@ public class TransConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getTransDir()).isEqualTo(new File("."));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("."));
         List<String> capturedPrompts =
                 MockConsoleInteractor.getCapturedPrompts(console);
         assertThat(capturedPrompts).contains(
@@ -84,7 +86,7 @@ public class TransConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getTransDir()).isEqualTo(new File("."));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("."));
         List<String> capturedPrompts =
                 MockConsoleInteractor.getCapturedPrompts(console);
         assertThat(capturedPrompts).contains(
@@ -106,7 +108,7 @@ public class TransConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getTransDir()).isEqualTo(new File("po"));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("po"));
     }
 
     @Test
@@ -126,7 +128,7 @@ public class TransConfigPromptTest {
 
         prompt = prompt.promptUser();
 
-        assertThat(opts.getTransDir()).isEqualTo(new File("."));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("."));
         List<String> capturedPrompts =
                 MockConsoleInteractor.getCapturedPrompts(console);
         assertThat(capturedPrompts).contains(

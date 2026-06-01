@@ -7,9 +7,8 @@ import java.io.PrintWriter;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
-import org.zanata.client.TemporaryFolderExtension;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.MockConsoleInteractor;
 
@@ -21,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.zanata.client.commands.Messages.get;
 
 public class UserConfigHandlerTest {
-    @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    // Real temp dir: UserConfigHandler parses verbaria.ini via INIConfiguration
+    // (commons-configuration), which requires java.io.File.
+    @TempDir
+    File tempFolder;
     private InitOptionsImpl opts;
     private UserConfigHandler handler;
     private File userConfig;
@@ -38,7 +39,7 @@ public class UserConfigHandlerTest {
     }
 
     private void ensureUserConfigExistsWithOneServer() throws IOException {
-        userConfig = tempFolder.newFile("verbaria.ini");
+        userConfig = new File(tempFolder, "verbaria.ini");
         BufferedWriter writer =
                 Files.newWriter(userConfig, Charsets.UTF_8);
         PrintWriter printWriter = new PrintWriter(writer);

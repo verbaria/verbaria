@@ -8,7 +8,8 @@ import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
@@ -34,16 +35,16 @@ public class XliffStrategyPullTest {
                 Optional.of("zh-Hans"),
                 opts);
 
-        File deTransFile =
+        Path deTransFile =
             strategy.getTransFileToWrite("foo/message", deMapping);
 
         assertThat(deTransFile)
-                .isEqualTo(new File(opts.getTransDir(), "foo/message_de.xml"));
+                .isEqualTo(Paths.get("foo/message_de.xml"));
 
-        File zhTransFile =
+        Path zhTransFile =
             strategy.getTransFileToWrite("foo/message", zhMapping);
         assertThat(zhTransFile).isEqualTo(
-                new File(opts.getTransDir(), "foo/message_zh_Hans.xml"));
+                Paths.get("foo/message_zh_Hans.xml"));
     }
 
     @Test
@@ -57,16 +58,16 @@ public class XliffStrategyPullTest {
         opts.setFileMappingRules(Lists.newArrayList(
             new FileMappingRule("{path}/{filename}_{locale_with_underscore}.{extension}")));
 
-        File deTransFile =
+        Path deTransFile =
             strategy.getTransFileToWrite("foo/message", deMapping);
 
         assertThat(deTransFile)
-                .isEqualTo(new File(opts.getTransDir(), "foo/message_de.xml"));
+                .isEqualTo(Paths.get("foo/message_de.xml"));
 
-        File zhTransFile =
+        Path zhTransFile =
             strategy.getTransFileToWrite("foo/message", zhMapping);
         assertThat(zhTransFile).isEqualTo(
-            new File(opts.getTransDir(), "foo/message_zh_Hans.xml"));
+            Paths.get("foo/message_zh_Hans.xml"));
 
     }
 

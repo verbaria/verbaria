@@ -54,6 +54,9 @@ import static org.zanata.client.commands.StringUtil.indent;
 import static org.zanata.client.commands.ConsoleInteractorImpl.AnswerValidatorImpl.*;
 import static org.zanata.common.ProjectType.File;
 import static org.zanata.client.commands.Messages.get;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.Files;
 
 /**
  * Prompt for src dir.
@@ -100,8 +103,8 @@ class SourceConfigPrompt {
     SourceConfigPrompt promptUser() throws Exception {
         console.printf(Question, get("src.dir.prompt"));
         String localSrcDir = console.expectAnyNotBlankAnswer();
-        File srcDir = new File(localSrcDir);
-        if (!srcDir.exists()) {
+        Path srcDir = Paths.get(localSrcDir);
+        if (!Files.exists(srcDir)) {
             console.printfln(Warning, get("src.dir.not.exist"),
                     localSrcDir);
             return new SourceConfigPrompt(console, opts).promptUser();

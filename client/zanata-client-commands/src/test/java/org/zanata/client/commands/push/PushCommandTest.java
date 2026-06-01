@@ -11,10 +11,16 @@ import static org.zanata.client.TestUtils.fileFromClasspath;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -53,6 +59,16 @@ public class PushCommandTest {
     private CopyTransClient copyTransClient;
 
     private Connection connection;
+    // In-memory working dir so the sync-state lock file never lands in the repo.
+    private FileSystem jimfs;
+
+    @AfterEach
+    public void tearDownFs() throws IOException {
+        if (jimfs != null) {
+            jimfs.close();
+            jimfs = null;
+        }
+    }
 
     @BeforeEach
     public void setUp() throws IOException {
@@ -146,13 +162,18 @@ public class PushCommandTest {
         opts.setProj(projectSlug);
         String versionSlug = "1.0";
         opts.setProjectVersion(versionSlug);
-        opts.setSrcDir(fileFromClasspath("test1/pot"));
+        opts.setSrcDir(fileFromClasspath("test1/pot").toPath());
         if (pushTrans) {
             opts.setPushType("both");
         } else {
             opts.setPushType("source");
         }
-        opts.setTransDir(fileFromClasspath("test1"));
+        opts.setTransDir(fileFromClasspath("test1").toPath());
+        // Write verbaria-lock.json into an in-memory dir, not the module root.
+        jimfs = Jimfs.newFileSystem(Configuration.unix());
+        Path workDir = jimfs.getPath("/work");
+        Files.createDirectories(workDir);
+        opts.setProjectConfig(workDir.resolve("verbaria.json"));
         opts.setProjectType("podir");
         // opts.setNoCopyTrans(false);
         opts.setCopyTrans(true);

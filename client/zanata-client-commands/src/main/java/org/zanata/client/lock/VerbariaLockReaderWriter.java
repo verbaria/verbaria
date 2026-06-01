@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,14 +66,14 @@ public final class VerbariaLockReaderWriter {
         return lock == null ? new VerbariaLock() : lock;
     }
 
-    public static void write(VerbariaLock lock, File file) {
+    public static void write(VerbariaLock lock, Path file) {
         try {
-            File parent = file.getAbsoluteFile().getParentFile();
+            Path parent = file.toAbsolutePath().getParent();
             if (parent != null) {
-                Files.createDirectories(parent.toPath());
+                Files.createDirectories(parent);
             }
             byte[] json = MAPPER.writeValueAsBytes(lock);
-            try (OutputStream os = Files.newOutputStream(file.toPath())) {
+            try (OutputStream os = Files.newOutputStream(file)) {
                 os.write(json);
                 // trailing newline keeps git diffs line-oriented
                 os.write('\n');

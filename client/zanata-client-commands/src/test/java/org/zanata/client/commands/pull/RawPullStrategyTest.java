@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.TempTransFileRule;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleMapping;
 
@@ -43,7 +43,7 @@ import com.google.common.collect.Lists;
 
 public class RawPullStrategyTest {
     @RegisterExtension
-    public TempTransFileRule tempTransFileRule = new TempTransFileRule();
+    public InMemoryFs tempTransFileRule = new InMemoryFs();
     private RawPullStrategy strategy;
     private PullOptionsImpl opts;
     @Mock
@@ -67,7 +67,7 @@ public class RawPullStrategyTest {
             transFile, Optional.<String>absent());
 
         assertThat(
-                new File(tempTransFileRule.getTransDir(), "de/foo/test.odt").exists()).isTrue();
+                Files.exists(tempTransFileRule.getTransDir().resolve("de/foo/test.odt"))).isTrue();
     }
 
     @Test
@@ -80,7 +80,7 @@ public class RawPullStrategyTest {
                 transFile, Optional.<String>absent());
 
         assertThat(
-                new File(tempTransFileRule.getTransDir(), "de/test.odt").exists()).isTrue();
+                Files.exists(tempTransFileRule.getTransDir().resolve("de/test.odt"))).isTrue();
     }
 
 }

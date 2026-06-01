@@ -37,11 +37,11 @@ public class XliffWriterTest {
     }
 
     @Test
-    public void checkTransUnit() throws FileNotFoundException {
+    public void checkTransUnit() throws Exception {
         prepareTemplateDoc();
 
         Resource doc =
-                reader.extractTemplate(GENERATED_FILE, LocaleId.EN_US,
+                reader.extractTemplate(GENERATED_FILE.toPath(), LocaleId.EN_US,
                         GENERATED_DOC_NAME, ValidationType.XSD.toString());
 
         TextFlow firstTextFlow = doc.getTextFlows().get(0);
@@ -56,27 +56,27 @@ public class XliffWriterTest {
     }
 
     @Test
-    public void extractSizeTest() throws FileNotFoundException {
+    public void extractSizeTest() throws Exception {
         prepareTemplateDoc();
 
         Resource doc =
-                reader.extractTemplate(GENERATED_FILE, LocaleId.EN_US,
+                reader.extractTemplate(GENERATED_FILE.toPath(), LocaleId.EN_US,
                         GENERATED_DOC_NAME, ValidationType.XSD.toString());
 
         assertThat(doc.getTextFlows().size()).isEqualTo(7);
     }
 
-    private void prepareTemplateDoc() throws FileNotFoundException {
+    private void prepareTemplateDoc() throws Exception {
         String docName = "StringResource_en_US.xml";
 
         File file = new File(TEST_RESOURCES, docName);
         Resource doc =
-                reader.extractTemplate(file, LocaleId.EN_US, docName,
+                reader.extractTemplate(file.toPath(), LocaleId.EN_US, docName,
                         ValidationType.XSD.toString());
         doc.setName(GENERATED_DOC_NAME);
 
         // this creates generatedFile
-        XliffWriter.write(GENERATE_DIR, doc, "en-US");
+        XliffWriter.write(GENERATE_DIR.toPath(), doc, "en-US");
     }
 
     @Test
@@ -86,7 +86,7 @@ public class XliffWriterTest {
         File xlfFile = new File(GENERATE_DIR, "xliff_writer1.xml");
         xlfFile.delete();
         XliffWriter
-                .writeFile(xlfFile, doc, "zh",
+                .writeFile(xlfFile.toPath(), doc, "zh",
                         translationsResource, true, false);
         assertThat(xlfFile).exists();
         String contents = FileUtils.readFileToString(xlfFile, UTF_8);
@@ -101,7 +101,7 @@ public class XliffWriterTest {
         File xlfFile = new File(GENERATE_DIR, "xliff_writer2.xml");
         xlfFile.delete();
         XliffWriter
-                .writeFile(xlfFile, doc, "zh",
+                .writeFile(xlfFile.toPath(), doc, "zh",
                         translationsResource, true, true);
         assertThat(xlfFile).exists();
         String contents = FileUtils.readFileToString(xlfFile, UTF_8);

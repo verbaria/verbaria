@@ -25,8 +25,9 @@ import static org.apache.commons.io.FilenameUtils.removeExtension;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,6 +43,7 @@ import org.zanata.common.LocaleId;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
 
 public abstract class AbstractGettextPushStrategy extends AbstractPushStrategy {
     private PoReader2 poReader = new PoReader2();
@@ -60,7 +62,7 @@ public abstract class AbstractGettextPushStrategy extends AbstractPushStrategy {
             boolean isInteractive) {
     }
 
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
@@ -107,19 +109,17 @@ public abstract class AbstractGettextPushStrategy extends AbstractPushStrategy {
      */
     abstract Collection<LocaleMapping> findLocales(String srcDocName);
 
-    protected File getTransFile(LocaleMapping locale, String docName) {
-        File transFile = new TransFileResolver(getOpts()).getTransFile(
+    protected Path getTransFile(LocaleMapping locale, String docName) {
+        return new TransFileResolver(getOpts()).getTransFile(
                 DocNameWithoutExt.from(docName), locale);
-        return transFile;
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
+    public Resource loadSrcDoc(Path sourceDir, String docName)
             throws IOException {
-        File srcFile = new File(sourceDir, docName + getFileExtension());
-        try (FileInputStream fileInputStream = new FileInputStream(srcFile);
-                BufferedInputStream bis = new BufferedInputStream(
-                fileInputStream)) {
+        Path srcFile = sourceDir.resolve(docName + getFileExtension());
+        try (InputStream in = Files.newInputStream(srcFile);
+                BufferedInputStream bis = new BufferedInputStream(in)) {
             InputSource potInputSource = new InputSource(bis);
             potInputSource.setEncoding("utf8");
             // load 'srcDoc' from pot/${docID}.pot
@@ -132,10 +132,10 @@ public abstract class AbstractGettextPushStrategy extends AbstractPushStrategy {
     public void visitTranslationResources(String srcDocName, Resource srcDoc,
             TranslationResourcesVisitor callback) throws IOException {
         for (LocaleMapping locale : findLocales(srcDocName)) {
-            File transFile = getTransFile(locale, srcDocName);
-            if (transFile.canRead()) {
+            Path transFile = getTransFile(locale, srcDocName);
+            if (Files.isReadable(transFile)) {
                 try (BufferedInputStream bis = new BufferedInputStream(
-                        new FileInputStream(transFile))) {
+                        Files.newInputStream(transFile))) {
                     InputSource inputSource = new InputSource(bis);
                     inputSource.setEncoding("utf8");
                     TranslationsResource targetDoc =

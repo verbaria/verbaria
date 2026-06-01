@@ -41,6 +41,9 @@ import org.zanata.common.LocaleId;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.InputStream;
 
 /**
  * NB: you must initialise this object with init() after setPushOptions()
@@ -75,7 +78,7 @@ public class PropertiesStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
@@ -92,28 +95,27 @@ public class PropertiesStrategy extends AbstractPushStrategy {
         return localDocNames;
     }
 
-    private Resource loadResource(String docName, File propFile)
+    private Resource loadResource(String docName, Path propFile)
             throws IOException, RuntimeException {
         Resource doc = new Resource(docName);
         // doc.setContentType(contentType);
-        try (FileInputStream in = new FileInputStream(propFile)) {
+        try (InputStream in = Files.newInputStream(propFile)) {
             propReader.extractTemplate(doc, in);
         }
         return doc;
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
+    public Resource loadSrcDoc(Path sourceDir, String docName)
             throws IOException, RuntimeException {
         String filename = docNameToFilename(docName);
-        File propFile = new File(sourceDir, filename);
-        return loadResource(docName, propFile);
+        return loadResource(docName, sourceDir.resolve(filename));
     }
 
     private TranslationsResource loadTranslationsResource(Resource srcDoc,
-            File transFile) throws IOException, RuntimeException {
+            Path transFile) throws IOException, RuntimeException {
         TranslationsResource targetDoc = new TranslationsResource();
-        try (FileInputStream in = new FileInputStream(transFile)) {
+        try (InputStream in = Files.newInputStream(transFile)) {
             propReader.extractTarget(targetDoc, in, srcDoc);
         }
         return targetDoc;
@@ -124,10 +126,10 @@ public class PropertiesStrategy extends AbstractPushStrategy {
             TranslationResourcesVisitor callback) throws IOException,
             RuntimeException {
         for (LocaleMapping locale : getOpts().getLocaleMapList()) {
-            File transFile = new TransFileResolver(getOpts()).getTransFile(
+            Path transFile = new TransFileResolver(getOpts()).getTransFile(
                     DocNameWithoutExt.from(docName),
                     locale);
-            if (transFile.exists()) {
+            if (Files.exists(transFile)) {
                 TranslationsResource targetDoc =
                         loadTranslationsResource(srcDoc, transFile);
                 callback.visit(locale, targetDoc);

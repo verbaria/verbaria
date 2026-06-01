@@ -24,6 +24,7 @@ import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
 
 public class XliffPushStrategyTest {
     @Mock
@@ -35,8 +36,10 @@ public class XliffPushStrategyTest {
     private ImmutableList<String> include;
     private ImmutableList<String> exclude;
 
-    private final File sourceDir = TestUtils.fileFromClasspath("xliffDir");
-    private final File sourceDir2 = TestUtils.fileFromClasspath("xliffDir2");
+    private final Path sourceDir =
+            TestUtils.fileFromClasspath("xliffDir").toPath();
+    private final Path sourceDir2 =
+            TestUtils.fileFromClasspath("xliffDir2").toPath();
 
     private static final String sourceLocale = "en-US";
 

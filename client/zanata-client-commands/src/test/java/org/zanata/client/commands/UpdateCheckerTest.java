@@ -1,8 +1,5 @@
 package org.zanata.client.commands;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
@@ -16,7 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.TemporaryFolderExtension;
+import org.zanata.client.InMemoryFs;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -26,7 +23,8 @@ import org.simpleframework.http.core.ContainerServer;
 import org.simpleframework.transport.connect.Connection;
 import org.simpleframework.transport.connect.SocketConnection;
 import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeastOnce;
@@ -39,7 +37,7 @@ public class UpdateCheckerTest {
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final String currentVersion = "3.0.1";
     @RegisterExtension
-    public TemporaryFolderExtension tempFoler = new TemporaryFolderExtension();
+    public InMemoryFs tempFoler = new InMemoryFs();
     private UpdateChecker checker;
 
     private Connection connection;
@@ -49,14 +47,14 @@ public class UpdateCheckerTest {
     private ArgumentCaptor<String> outputStringCaptor;
     @Captor
     private ArgumentCaptor<Object> outputArgsCaptor;
-    private File marker;
+    private Path marker;
 
     @BeforeEach
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
-        File configFolder = tempFoler.newFolder();
+        Path configFolder = tempFoler.newFolder();
 
-        marker = new File(configFolder, "zanata-client-update");
+        marker = configFolder.resolve("zanata-client-update");
         checker = new UpdateChecker("http://localhost", marker,
                 mockConsole,
                 currentVersion);
@@ -74,9 +72,9 @@ public class UpdateCheckerTest {
         boolean result = checker.needToCheckUpdates(true);
         assertThat(result).isTrue();
 
-        assertThat(marker.exists()).isTrue();
+        assertThat(Files.exists(marker)).isTrue();
         Properties properties = new Properties();
-        properties.load(new FileReader(marker));
+        properties.load(Files.newBufferedReader(marker));
         String today = LocalDate.now().format(dateFormat);
 
         assertThat(properties.getProperty("lastChecked")).isEqualTo(today);
@@ -128,9 +126,9 @@ public class UpdateCheckerTest {
     }
 
     private void writeLinesToMarkerFile(String... lines)
-            throws FileNotFoundException {
+            throws IOException {
         PrintWriter writer =
-                new PrintWriter(Files.newWriter(marker, Charsets.UTF_8));
+                new PrintWriter(Files.newBufferedWriter(marker, Charsets.UTF_8));
         for (String line : lines) {
             writer.println(line);
         }
@@ -166,7 +164,7 @@ public class UpdateCheckerTest {
         assertThat(outputArgsCaptor.getAllValues()).contains("3.3.2");
 
         Properties props = new Properties();
-        props.load(new FileReader(marker));
+        props.load(Files.newBufferedReader(marker));
         assertThat(props.getProperty("lastChecked"))
                 .isEqualTo(LocalDate.now().format(dateFormat));
 

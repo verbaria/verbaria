@@ -1,13 +1,14 @@
 package org.zanata.adapter.properties;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,6 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.zanata.util.PathUtil;
 import com.google.common.annotations.VisibleForTesting;
 
 public class PropWriter {
@@ -53,10 +53,10 @@ public class PropWriter {
      * @param charset {@link CHARSET}
      * @throws IOException
      */
-    public static void writeSource(final Resource doc, final File baseDir,
+    public static void writeSource(final Resource doc, final Path baseDir,
         final CHARSET charset) throws IOException {
-        File baseFile = new File(baseDir, doc.getName() + ".properties");
-        PathUtil.makeDirs(baseFile.getParentFile());
+        Path baseFile = baseDir.resolve(doc.getName() + ".properties");
+        makeParentDirs(baseFile);
 
         log.debug("Creating base file {}", baseFile);
         Properties props = new Properties();
@@ -83,7 +83,7 @@ public class PropWriter {
      * in {@link CHARSET#UTF8} or {@link CHARSET#Latin1} encoding.
      */
     public static void writeTranslationsFile(final TranslatedDoc translatedDoc,
-            final File propertiesFile, final CHARSET charset,
+            final Path propertiesFile, final CHARSET charset,
             boolean createSkeletons, boolean approvedOnly) throws IOException {
 
         Properties targetProp = new Properties();
@@ -117,30 +117,34 @@ public class PropWriter {
      */
     @VisibleForTesting
     static void writeTranslations(final TranslatedDoc translatedDoc,
-            final File baseDir,
+            final Path baseDir,
             String bundleName, String locale, final CHARSET charset,
             boolean createSkeletons, boolean approvedOnly) throws IOException {
-        File langFile =
-            new File(baseDir, bundleName + "_" + locale + ".properties");
-        PathUtil.makeDirs(langFile.getParentFile());
+        Path langFile =
+            baseDir.resolve(bundleName + "_" + locale + ".properties");
+        makeParentDirs(langFile);
         log.debug("Creating target file {}", langFile);
 
         writeTranslationsFile(translatedDoc, langFile, charset, createSkeletons, approvedOnly);
     }
 
-    private static void storeProps(Properties props, File file, CHARSET charset)
+    private static void makeParentDirs(Path file) throws IOException {
+        Path parent = file.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+    }
+
+    private static void storeProps(Properties props, Path file, CHARSET charset)
             throws IOException {
-        BufferedOutputStream out =
-                new BufferedOutputStream(new FileOutputStream(file));
-        try {
+        try (OutputStream out = new BufferedOutputStream(
+                Files.newOutputStream(file))) {
             if (charset.alias.equals(StandardCharsets.UTF_8)) {
                 Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8.displayName());
                 props.store(writer, null);
             } else {
                 props.store(out, null);
             }
-        } finally {
-            out.close();
         }
     }
 

@@ -82,8 +82,8 @@ public class PushPullFileProjectITCase {
                 testProjectGenerator.getProjectBaseDir(ProjectType.File);
         log.debug("testing project is at: {}", baseDir);
         opts.setFileTypes("odt,ods");
-        opts.setSrcDir(new File(baseDir, "src"));
-        opts.setTransDir(baseDir);
+        opts.setSrcDir(new File(baseDir, "src").toPath());
+        opts.setTransDir(baseDir.toPath());
 
         RawPushCommand pushCommand = mockServerRule.createRawPushCommand();
 
@@ -107,8 +107,8 @@ public class PushPullFileProjectITCase {
                 testProjectGenerator.getProjectBaseDir(ProjectType.File);
         log.debug("testing project is at: {}", baseDir);
         opts.setFileTypes("odt,ods");
-        opts.setSrcDir(new File(baseDir, "src"));
-        opts.setTransDir(baseDir);
+        opts.setSrcDir(new File(baseDir, "src").toPath());
+        opts.setTransDir(baseDir.toPath());
         opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(
                 "{locale}/{path}/{filename}.{extension}")));
 
@@ -126,8 +126,8 @@ public class PushPullFileProjectITCase {
         PullOptionsImpl opts = mockServerRule.getPullOpts();
         opts.setPullType("both");
         File pullBaseDir = tempFolder.newFolder("file-pull-test");
-        opts.setSrcDir(pullBaseDir);
-        opts.setTransDir(pullBaseDir);
+        opts.setSrcDir(pullBaseDir.toPath());
+        opts.setTransDir(pullBaseDir.toPath());
         log.debug("pull base dir is: {}", pullBaseDir);
 
         InputStream sourceFileStream =
@@ -156,8 +156,8 @@ public class PushPullFileProjectITCase {
         PullOptionsImpl opts = mockServerRule.getPullOpts();
         opts.setPullType("trans");
         File pullBaseDir = tempFolder.newFolder("file-pull-test");
-        opts.setSrcDir(pullBaseDir);
-        opts.setTransDir(pullBaseDir);
+        opts.setSrcDir(pullBaseDir.toPath());
+        opts.setTransDir(pullBaseDir.toPath());
         log.debug("pull base dir is: {}", pullBaseDir);
         // we define our own rule
         opts.setFileMappingRules(Lists.newArrayList(

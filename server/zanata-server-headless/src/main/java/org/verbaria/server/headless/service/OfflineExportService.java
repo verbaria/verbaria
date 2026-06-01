@@ -216,7 +216,7 @@ public class OfflineExportService {
         File tmp = File.createTempFile("zanata-export-", ".properties");
         try {
             TranslatedDoc td = new TranslatedDoc(source, trans, locale);
-            PropWriter.writeTranslationsFile(td, tmp, charset, true, false);
+            PropWriter.writeTranslationsFile(td, tmp.toPath(), charset, true, false);
             return Files.readAllBytes(tmp.toPath());
         } finally {
             tmp.delete();
@@ -227,7 +227,7 @@ public class OfflineExportService {
                               LocaleId locale) throws IOException {
         File tmp = File.createTempFile("zanata-export-", ".xlf");
         try {
-            XliffWriter.writeFile(tmp, source, locale.getId(), trans, true, false);
+            XliffWriter.writeFile(tmp.toPath(), source, locale.getId(), trans, true, false);
             return Files.readAllBytes(tmp.toPath());
         } finally {
             tmp.delete();

@@ -3,6 +3,8 @@ package org.zanata.client.commands;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +38,7 @@ import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
 import static org.zanata.client.commands.FileMappingRuleHandler.*;
 import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders.allHolders;
 import static org.zanata.client.commands.Messages.get;
+import java.io.InputStream;
 
 public class OptionsUtil {
     private static final Logger log = LoggerFactory
@@ -164,12 +167,15 @@ public class OptionsUtil {
     public static Optional<ZanataConfig> readProjectConfigFile(
             ConfigurableProjectOptions projOpts) throws IOException {
         if (projOpts.getProjectConfig() != null) {
-            File projectConfigFile = projOpts.getProjectConfig();
-            if (projectConfigFile.exists()) {
+            Path projectConfigFile = projOpts.getProjectConfig();
+            if (Files.exists(projectConfigFile)) {
                 log.info("Loading project config from {}",
                         projectConfigFile);
-                return Optional.of(CONFIG_MAPPER.readValue(projectConfigFile,
-                        ZanataConfig.class));
+                try (InputStream in =
+                        Files.newInputStream(projectConfigFile)) {
+                    return Optional.of(
+                            CONFIG_MAPPER.readValue(in, ZanataConfig.class));
+                }
             }
         }
         return Optional.empty();
@@ -288,24 +294,24 @@ public class OptionsUtil {
     protected static void applySrcDirAndTransDirFromProjectConfig(
             ConfigurableProjectOptions opts, ZanataConfig config) {
         // apply srcDir configuration
-        OptionMismatchChecker<File> srcDirChecker =
+        OptionMismatchChecker<Path> srcDirChecker =
                 OptionMismatchChecker.from(opts.getSrcDir(),
-                        config.getSrcDirAsFile(),
+                        config.getSrcDirAsPath(),
                         "Source directory");
 
         if (srcDirChecker.hasValueInConfigOnly()) {
-            opts.setSrcDir(config.getSrcDirAsFile());
+            opts.setSrcDir(config.getSrcDirAsPath());
         }
         srcDirChecker.logHintIfNotDefinedInConfig(
                 String.format("\"srcDir\": \"%s\"", opts.getSrcDir()));
         srcDirChecker.logWarningIfValuesMismatch();
 
         // apply transDir configuration
-        OptionMismatchChecker<File> transDirChecker = OptionMismatchChecker
-                .from(opts.getTransDir(), config.getTransDirAsFile(),
+        OptionMismatchChecker<Path> transDirChecker = OptionMismatchChecker
+                .from(opts.getTransDir(), config.getTransDirAsPath(),
                         "Translation directory");
         if (transDirChecker.hasValueInConfigOnly()) {
-            opts.setTransDir(config.getTransDirAsFile());
+            opts.setTransDir(config.getTransDirAsPath());
         }
         transDirChecker.logHintIfNotDefinedInConfig(String.format(
                 "\"transDir\": \"%s\"", opts.getTransDir()));

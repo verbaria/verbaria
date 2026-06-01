@@ -70,7 +70,7 @@ public abstract class AbstractCommonPushStrategy<O extends PushOptions> {
      * excludes should already contain paths for translation files that are to
      * be excluded.
      */
-    public String[] getSrcFiles(File srcDir, ImmutableList<String> includes,
+    public String[] getSrcFiles(Path baseDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, ImmutableList<String> fileExtensions,
             boolean useDefaultExcludes, boolean isCaseSensitive) {
         if (includes.isEmpty()) {
@@ -97,7 +97,6 @@ public abstract class AbstractCommonPushStrategy<O extends PushOptions> {
         matcher.setPathSeparator("/");
 
         List<String> matches = new ArrayList<>();
-        Path baseDir = srcDir.toPath();
         if (!Files.isDirectory(baseDir)) {
             return new String[0];
         }
@@ -132,7 +131,7 @@ public abstract class AbstractCommonPushStrategy<O extends PushOptions> {
             });
         } catch (IOException e) {
             throw new RuntimeException(
-                    "Failed to scan source directory: " + srcDir, e);
+                    "Failed to scan source directory: " + baseDir, e);
         }
         return matches.toArray(new String[0]);
     }

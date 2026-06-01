@@ -20,7 +20,8 @@
  */
 package org.zanata.client.commands;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
@@ -46,14 +47,14 @@ public abstract class ConfigurableProjectOptionsImpl extends
     // When used as a CLI command, the default path (specified here) is relative
     // to CWD. ConfigurableProjectMojo specifies another default, which is
     // relative to project's basedir.
-    private File projectConfig = new File("verbaria.json");
+    private Path projectConfig = Paths.get("verbaria.json");
 
     private String project;
     private String projectVersion;
     private String projectType;
     private LocaleList locales;
-    private File transDir;
-    private File srcDir;
+    private Path transDir;
+    private Path srcDir;
     private ImmutableList<String> includes = ImmutableList.of();
     private ImmutableList<String> excludes = ImmutableList.of();
     private Splitter splitter = Splitter.on(",").omitEmptyStrings()
@@ -77,10 +78,11 @@ public abstract class ConfigurableProjectOptionsImpl extends
 
     @Override
     @Option(name = "--project-config", metaVar = "FILENAME",
+            handler = PathOptionHandler.class,
             usage = "Project configuration file, eg verbaria.json\n"
                     + "Default is verbaria.json in the current directory.",
             required = false)
-    public void setProjectConfig(File projectConfig) {
+    public void setProjectConfig(Path projectConfig) {
         this.projectConfig = projectConfig;
     }
 
@@ -122,7 +124,7 @@ public abstract class ConfigurableProjectOptionsImpl extends
     }
 
     @Override
-    public File getProjectConfig() {
+    public Path getProjectConfig() {
         return projectConfig;
     }
 
@@ -140,14 +142,15 @@ public abstract class ConfigurableProjectOptionsImpl extends
             aliases = { "-s" },
             name = "--src-dir",
             metaVar = "DIR",
+            handler = PathOptionHandler.class,
             usage = "Base directory for source files (eg \".\", \"pot\", \"src/main/resources\")")
     @Override
-    public void setSrcDir(File srcDir) {
+    public void setSrcDir(Path srcDir) {
         this.srcDir = srcDir;
     }
 
     @Override
-    public File getSrcDir() {
+    public Path getSrcDir() {
         return srcDir;
     }
 
@@ -155,14 +158,15 @@ public abstract class ConfigurableProjectOptionsImpl extends
             aliases = { "-t" },
             name = "--trans-dir",
             metaVar = "DIR",
+            handler = PathOptionHandler.class,
             usage = "Base directory for translated files (eg \".\", \"po\", \"src/main/resources\")")
     @Override
-    public void setTransDir(File transDir) {
+    public void setTransDir(Path transDir) {
         this.transDir = transDir;
     }
 
     @Override
-    public File getTransDir() {
+    public Path getTransDir() {
         return transDir;
     }
 

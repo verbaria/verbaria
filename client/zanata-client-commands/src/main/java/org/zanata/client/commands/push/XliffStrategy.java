@@ -1,8 +1,7 @@
 package org.zanata.client.commands.push;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,6 +18,7 @@ import org.zanata.common.LocaleId;
 import org.zanata.rest.StringSet;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import java.nio.file.Path;
 
 public class XliffStrategy extends AbstractPushStrategy {
     XliffReader reader = new XliffReader();
@@ -35,7 +35,7 @@ public class XliffStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Set<String> findDocNames(File srcDir, ImmutableList<String> includes,
+    public Set<String> findDocNames(Path srcDir, ImmutableList<String> includes,
             ImmutableList<String> excludes, boolean useDefaultExclude,
             boolean caseSensitive, boolean excludeLocaleFilenames)
             throws IOException {
@@ -66,12 +66,12 @@ public class XliffStrategy extends AbstractPushStrategy {
     }
 
     @Override
-    public Resource loadSrcDoc(File sourceDir, String docName)
-            throws FileNotFoundException {
-        File srcFile = null;
+    public Resource loadSrcDoc(Path sourceDir, String docName)
+            throws IOException {
+        Path srcFile = null;
         for (String file : sourceFiles) {
             if (file.startsWith(docName) && file.endsWith(getFileExtension())) {
-                srcFile = new File(sourceDir, file);
+                srcFile = sourceDir.resolve(file);
                 break;
             }
         }
@@ -81,12 +81,12 @@ public class XliffStrategy extends AbstractPushStrategy {
 
     @Override
     public void visitTranslationResources(String docName, Resource srcDoc,
-            TranslationResourcesVisitor visitor) throws FileNotFoundException {
+            TranslationResourcesVisitor visitor) throws IOException {
         for (LocaleMapping locale : getOpts().getLocaleMapList()) {
-            File transFile = new TransFileResolver(getOpts()).getTransFile(
+            Path transFile = new TransFileResolver(getOpts()).getTransFile(
                     DocNameWithoutExt.from(docName),
                     locale);
-            if (transFile.exists()) {
+            if (Files.exists(transFile)) {
                 TranslationsResource targetDoc =
                         reader.extractTarget(transFile);
                 visitor.visit(locale, targetDoc);

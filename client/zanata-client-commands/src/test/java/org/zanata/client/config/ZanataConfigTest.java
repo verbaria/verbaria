@@ -12,17 +12,18 @@ import org.apache.commons.configuration2.INIConfiguration;
 import org.apache.commons.configuration2.SystemConfiguration;
 import org.apache.commons.configuration2.io.FileHandler;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.TemporaryFolderExtension;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.Lists;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ZanataConfigTest {
-    @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    // Real temp dir: this test drives INIConfiguration (commons-configuration)
+    // and jackson, both of which require java.io.File.
+    @TempDir
+    File tempFolder;
     private final ObjectMapper mapper =
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     File zanataProjectJson;
@@ -30,10 +31,8 @@ public class ZanataConfigTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        zanataProjectJson = new File(tempFolder.newFolder(),
-                "verbaria.json");
-        zanataUserFile = new File(tempFolder.newFolder(),
-                "verbaria.ini");
+        zanataProjectJson = new File(tempFolder, "verbaria.json");
+        zanataUserFile = new File(tempFolder, "verbaria.ini");
     }
 
     @Test

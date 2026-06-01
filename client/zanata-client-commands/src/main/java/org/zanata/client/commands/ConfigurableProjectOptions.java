@@ -1,6 +1,6 @@
 package org.zanata.client.commands;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
 
@@ -28,9 +28,10 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
             void setProj(String projectSlug);
 
     @Option(name = "--project-config", metaVar = "FILENAME",
+            handler = PathOptionHandler.class,
             usage = "Project configuration file, eg verbaria.json",
             required = false)
-    public void setProjectConfig(File projectConfig);
+    public void setProjectConfig(Path projectConfig);
 
     public String getProjectVersion();
 
@@ -51,7 +52,7 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
     public
             void setProjectType(String projectType);
 
-    public File getProjectConfig();
+    public Path getProjectConfig();
 
     public LocaleList getLocaleMapList();
 
@@ -62,20 +63,22 @@ public interface ConfigurableProjectOptions extends ConfigurableOptions {
             name = "--src-dir",
             metaVar = "DIR",
             required = true,
+            handler = PathOptionHandler.class,
             usage = "Base directory for source files (eg \".\", \"pot\", \"src/main/resources\")")
-    void setSrcDir(File srcDir);
+    void setSrcDir(Path srcDir);
 
-    File getSrcDir();
+    Path getSrcDir();
 
     @Option(
             aliases = { "-t" },
             name = "--trans-dir",
             metaVar = "DIR",
             required = true,
+            handler = PathOptionHandler.class,
             usage = "Base directory for translated files (eg \".\", \"po\", \"src/main/resources\")")
-    void setTransDir(File transDir);
+    void setTransDir(Path transDir);
 
-    File getTransDir();
+    Path getTransDir();
 
     ImmutableList<String> getIncludes();
 

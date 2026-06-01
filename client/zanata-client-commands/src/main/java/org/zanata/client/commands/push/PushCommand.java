@@ -55,6 +55,9 @@ import com.google.common.base.Throwables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import static com.google.common.collect.Iterables.all;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.Files;
 
 /**
  * @author Sean Flanigan <a
@@ -258,7 +261,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 impl.setPushType("trans");
             }
         }
-        java.io.File srcDir = getOpts().getSrcDir();
+        Path srcDir = getOpts().getSrcDir();
         AbstractPushStrategy strat = getStrategy(getOpts());
         java.util.Set<String> localDocs = strat.findDocNames(
                 srcDir, getOpts().getIncludes(), getOpts().getExcludes(),
@@ -392,13 +395,13 @@ public class PushCommand extends PushPullCommand<PushOptions> {
     @SuppressFBWarnings({"SLF4J_SIGN_ONLY_FORMAT"})
     private void pushCurrentModule() throws IOException, RuntimeException {
         AbstractPushStrategy strat = getStrategy(getOpts());
-        File sourceDir = getOpts().getSrcDir();
+        Path sourceDir = getOpts().getSrcDir();
 
         if (!pushSource() && !pushTrans()) {
             throw new RuntimeException("Invalid option for push type");
         }
 
-        if (!sourceDir.exists() && !strat.isTransOnly()) {
+        if (!Files.exists(sourceDir) && !strat.isTransOnly()) {
             if (getOpts().getEnableModules()) {
                 log.info("source directory '{}' not found; skipping docs push for module {}",
                         sourceDir,
@@ -625,13 +628,20 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 }
             }
 
-            File lockFile = new File(VerbariaLockReaderWriter.FILE_NAME);
+            Path lockFile =
+                    lockDir().resolve(VerbariaLockReaderWriter.FILE_NAME);
             VerbariaLockReaderWriter.write(lock, lockFile);
             log.info("Wrote sync state to {}", lockFile);
         } catch (RuntimeException e) {
             log.warn("Could not write {}: {}",
                     VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
         }
+    }
+
+    private Path lockDir() {
+        Path cfg = getOpts().getProjectConfig();
+        return cfg != null && cfg.getParent() != null
+                ? cfg.getParent() : Paths.get(".");
     }
 
     private void recordTranslationLock(VerbariaLock lock, String localDocName,

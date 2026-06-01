@@ -28,6 +28,7 @@ import java.util.Comparator;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import java.nio.file.Path;
 
 /**
  * A small JUnit 5 replacement for JUnit 4's {@code TemporaryFolder} rule,
@@ -48,7 +49,7 @@ public class TemporaryFolderExtension
         if (root != null && root.exists()) {
             try (var paths = Files.walk(root.toPath())) {
                 paths.sorted(Comparator.reverseOrder())
-                        .map(java.nio.file.Path::toFile)
+                        .map(Path::toFile)
                         .forEach(File::delete);
             }
         }

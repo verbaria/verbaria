@@ -21,7 +21,7 @@
 
 package org.zanata.client.commands.push;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.TempTransFileRule;
+import org.zanata.client.InMemoryFs;
 import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -52,7 +52,7 @@ import static org.zanata.client.TestUtils.createAndAddLocaleMapping;
 public class PropertiesStrategyTest {
 
     @RegisterExtension
-    public TempTransFileRule tempFileRule = new TempTransFileRule();
+    public InMemoryFs tempFileRule = new InMemoryFs();
     private PropertiesStrategy strategy;
     private PushOptionsImpl opts;
     @Captor
@@ -91,12 +91,12 @@ public class PropertiesStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "src/main/resources/test_de.properties");
         tempFileRule.addContentToFile(deTransFile, Charsets.ISO_8859_1,
                 "hello=de");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "src/main/resources/test_zh_Hans.properties");
         tempFileRule.addContentToFile(zhTransFile, Charsets.ISO_8859_1,
@@ -127,12 +127,12 @@ public class PropertiesStrategyTest {
         // no translation
         opts.getLocaleMapList().add(new LocaleMapping("ja"));
 
-        File deTransFile =
+        Path deTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "src/main/resources/test_de.properties");
         tempFileRule.addContentToFile(deTransFile, Charsets.ISO_8859_1,
                 "hello=de");
-        File zhTransFile =
+        Path zhTransFile =
                 tempFileRule.createTransFileRelativeToTransDir(
                         "src/main/resources/test_zh_Hans.properties");
         tempFileRule.addContentToFile(zhTransFile, Charsets.ISO_8859_1,

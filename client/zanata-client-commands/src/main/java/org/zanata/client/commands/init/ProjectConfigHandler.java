@@ -20,12 +20,12 @@
  */
 package org.zanata.client.commands.init;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.commons.io.FileUtils;
 import org.zanata.client.commands.ConsoleInteractor;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -41,7 +41,7 @@ import static org.zanata.client.commands.Messages.get;
 class ProjectConfigHandler {
     private final ConsoleInteractor consoleInteractor;
     private final InitOptions opts;
-    private File backup;
+    private Path backup;
 
     ProjectConfigHandler(ConsoleInteractor consoleInteractor, InitOptions opts) {
         this.consoleInteractor = consoleInteractor;
@@ -56,8 +56,8 @@ class ProjectConfigHandler {
      */
     @VisibleForTesting
     protected void handleExistingProjectConfig() throws IOException {
-        File projectConfig = getOpts().getProjectConfig();
-        if (projectConfig.exists()) {
+        Path projectConfig = getOpts().getProjectConfig();
+        if (Files.exists(projectConfig)) {
             consoleInteractor
                     .printfln(Warning, get("project.config.exists"))
                     .printf(Question, get("continue.yes.no"));
@@ -65,9 +65,9 @@ class ProjectConfigHandler {
             // back up old verbaria.json
             String suffix = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss").format(
                     new Date());
-            backup = new File(projectConfig.getParent(),
-                    projectConfig.getName() + "." + suffix);
-            FileUtils.moveFile(projectConfig, backup);
+            backup = projectConfig.resolveSibling(
+                    projectConfig.getFileName().toString() + "." + suffix);
+            Files.move(projectConfig, backup);
             consoleInteractor
                     .printfln(Confirmation, get("backup.old.project.config"), backup);
 
@@ -98,7 +98,7 @@ class ProjectConfigHandler {
         return backup != null;
     }
 
-    public File getBackup() {
+    public Path getBackup() {
         return backup;
     }
 }

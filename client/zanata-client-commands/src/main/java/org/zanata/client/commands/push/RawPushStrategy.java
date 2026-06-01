@@ -65,7 +65,8 @@ public class RawPushStrategy extends AbstractCommonPushStrategy<PushOptions> {
         for (LocaleMapping localeMapping : getOpts().getLocaleMapList()) {
             File translationFile = new TransFileResolver(getOpts())
                     .resolveTransFile(DocNameWithExt.from(
-                            sourceDocument), localeMapping, translationExtension);
+                            sourceDocument), localeMapping, translationExtension)
+                    .toFile();
 
             if (translationFile.canRead()) {
                 visitor.visit(localeMapping, translationFile);

@@ -63,8 +63,8 @@ public class PushPullGettextITCase {
         File baseDir =
                 testProjectGenerator.getProjectBaseDir(ProjectType.Gettext);
         log.debug("testing project is at: {}", baseDir);
-        opts.setSrcDir(new File(baseDir, "po"));
-        opts.setTransDir(new File(baseDir, "po"));
+        opts.setSrcDir(new File(baseDir, "po").toPath());
+        opts.setTransDir(new File(baseDir, "po").toPath());
 
         PushCommand pushCommand = mockServerRule.createPushCommand();
 
@@ -95,8 +95,8 @@ public class PushPullGettextITCase {
         File baseDir =
                 testProjectGenerator.getProjectBaseDir(ProjectType.Gettext);
         log.debug("testing project is at: {}", baseDir);
-        opts.setSrcDir(new File(baseDir, "po"));
-        opts.setTransDir(new File(baseDir, "po"));
+        opts.setSrcDir(new File(baseDir, "po").toPath());
+        opts.setTransDir(new File(baseDir, "po").toPath());
         opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(
                 "{path}/{locale_with_underscore}.po")));
 
@@ -118,8 +118,8 @@ public class PushPullGettextITCase {
         PullOptionsImpl opts = mockServerRule.getPullOpts();
         opts.setPullType("both");
         File pullBaseDir = tempFolder.newFolder("gettext-pull-test");
-        opts.setSrcDir(pullBaseDir);
-        opts.setTransDir(pullBaseDir);
+        opts.setSrcDir(pullBaseDir.toPath());
+        opts.setTransDir(pullBaseDir.toPath());
 
         Resource resourceOnServer = new Resource("tar");
         resourceOnServer.getTextFlows().add(
@@ -145,8 +145,8 @@ public class PushPullGettextITCase {
         PullOptionsImpl opts = mockServerRule.getPullOpts();
         opts.setPullType("trans");
         File pullBaseDir = tempFolder.newFolder("gettext-pull-test");
-        opts.setSrcDir(pullBaseDir);
-        opts.setTransDir(pullBaseDir);
+        opts.setSrcDir(pullBaseDir.toPath());
+        opts.setTransDir(pullBaseDir.toPath());
         // we define our own rule
         opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(
                 "{filename}_{locale}.po")));

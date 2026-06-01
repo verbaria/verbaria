@@ -67,6 +67,7 @@ import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.service.DocumentImportService;
+import java.io.InputStream;
 
 /**
  * Compatibility REST bridge for the classic Zanata CLI
@@ -891,7 +892,7 @@ public class ZanataCliBridgeController {
         if (actor == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        try (java.io.InputStream in = file.getInputStream()) {
+        try (InputStream in = file.getInputStream()) {
             String fileName = docIdOverride != null && !docIdOverride.isBlank()
                     // If caller forced a docId, append the original extension
                     // so SourceUploadService still dispatches on it.

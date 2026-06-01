@@ -44,6 +44,8 @@ import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 import static org.zanata.client.commands.StringUtil.indent;
 import static org.zanata.client.commands.ConsoleInteractorImpl.AnswerValidatorImpl.*;
 import static org.zanata.client.commands.Messages.get;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 /**
  * Prompt for trans dir,
@@ -84,7 +86,7 @@ class TransConfigPrompt {
     TransConfigPrompt promptUser() throws Exception {
         console.printf(Question, get("trans.dir.prompt"));
         String localTransDir = console.expectAnyNotBlankAnswer();
-        File transDir = new File(localTransDir);
+        Path transDir = Paths.get(localTransDir);
         pullOptions.setTransDir(transDir);
 
         LocaleList localeMapList = pullOptions.getLocaleMapList();
@@ -166,10 +168,10 @@ class TransConfigPrompt {
 
             Optional<String> translationFileExtension =
                     Optional.fromNullable(targetFileExt);
-            File file = transFileResolver.resolveTransFile(
+            Path file = transFileResolver.resolveTransFile(
                     DocNameWithExt.from(srcDoc),
                     localeMapping, translationFileExtension);
-            return file.getPath();
+            return file.toString();
         }
     }
 
@@ -183,9 +185,9 @@ class TransConfigPrompt {
         @Override
         public String getTransFileToWrite(String srcDoc,
                 LocaleMapping localeMapping) {
-            File transFile = transFileResolver.getTransFile(
+            Path transFile = transFileResolver.getTransFile(
                     DocNameWithoutExt.from(srcDoc), localeMapping);
-            return transFile.getPath();
+            return transFile.toString();
         }
     }
 }

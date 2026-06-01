@@ -21,7 +21,7 @@
 
 package org.zanata.client.commands.pull;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.io.IOException;
 
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
@@ -41,7 +41,7 @@ public class GettextDirStrategy extends AbstractGettextPullStrategy {
     public FileDetails writeTransFile(String docName,
             LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {
-        File transFile = getTransFileToWrite(docName, translatedDoc.getLocale());
+        Path transFile = getTransFileToWrite(docName, translatedDoc.getLocale());
         return getPoWriter().writePoToFile(transFile, translatedDoc.getSource(), translatedDoc.getTranslation());
     }
 

@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,7 +23,7 @@ import org.apache.commons.configuration2.INIConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.zanata.client.TemporaryFolderExtension;
+import org.zanata.client.InMemoryFs;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -34,7 +36,7 @@ import com.google.common.collect.Lists;
 
 public class OptionsUtilTest {
     @RegisterExtension
-    public TemporaryFolderExtension tempFolder = new TemporaryFolderExtension();
+    public InMemoryFs tempFolder = new InMemoryFs();
     private ConfigurableProjectOptions opts;
     private ZanataConfig config;
     @Mock
@@ -75,8 +77,8 @@ public class OptionsUtilTest {
         OptionsUtil.applyIncludesAndExcludesFromProjectConfig(opts, config);
 
         // Then:
-        assertThat(opts.getSrcDir()).isEqualTo(new File("a"));
-        assertThat(opts.getTransDir()).isEqualTo(new File("b"));
+        assertThat(opts.getSrcDir()).isEqualTo(Paths.get("a"));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("b"));
         assertThat(opts.getIncludes()).contains("*.properties");
         assertThat(opts.getExcludes()).contains("a.properties");
     }
@@ -85,15 +87,15 @@ public class OptionsUtilTest {
     public void willSetToDefaultValueIfNeitherHasValue() {
         OptionsUtil.applySrcDirAndTransDirFromProjectConfig(opts, config);
 
-        assertThat(opts.getSrcDir()).isEqualTo(new File("."));
-        assertThat(opts.getTransDir()).isEqualTo(new File("."));
+        assertThat(opts.getSrcDir()).isEqualTo(Paths.get("."));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("."));
     }
 
     @Test
     public void optionTakesPrecedenceOverConfig() {
         // Given: options are set in both places
-        opts.setSrcDir(new File("pot"));
-        opts.setTransDir(new File("."));
+        opts.setSrcDir(Paths.get("pot"));
+        opts.setTransDir(Paths.get("."));
         opts.setIncludes("*.properties");
         opts.setExcludes("a.properties,b.properties");
         config.setSrcDir("a");
@@ -106,8 +108,8 @@ public class OptionsUtilTest {
         OptionsUtil.applyIncludesAndExcludesFromProjectConfig(opts, config);
 
         // Then:
-        assertThat(opts.getSrcDir()).isEqualTo(new File("pot"));
-        assertThat(opts.getTransDir()).isEqualTo(new File("."));
+        assertThat(opts.getSrcDir()).isEqualTo(Paths.get("pot"));
+        assertThat(opts.getTransDir()).isEqualTo(Paths.get("."));
         assertThat(opts.getIncludes()).contains("*.properties");
         assertThat(opts.getExcludes()).contains("a.properties", "b.properties");
     }
@@ -211,20 +213,20 @@ public class OptionsUtilTest {
     @Test
     public void readProjectConfigWillReturnEmptyIfProjectConfigDefinedInOptionsDoesNotExist()
             throws IOException {
-        opts.setProjectConfig(new File("does not exist"));
+        opts.setProjectConfig(Paths.get("does not exist"));
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isFalse();
     }
 
     @Test
     public void readProjectConfigCanReadJsonZanataConfig() throws Exception {
-        File configFile = tempFolder.newFile();
+        Path configFile = tempFolder.newFile();
         List<String> configLines = Lists.newArrayList(
                 "{",
                 "  \"url\": \"http://localhost:8080/\",",
                 "  \"project\": \"sample-project\",",
                 "  \"projectVersion\": \"1.1\"",
                 "}");
-        Files.write(configFile.toPath(), configLines, Charsets.UTF_8);
+        Files.write(configFile, configLines, Charsets.UTF_8);
         opts.setProjectConfig(configFile);
 
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isTrue();

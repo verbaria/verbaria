@@ -20,18 +20,17 @@
  */
 package org.zanata.client.commands.pull;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.DocNameWithExt;
 import org.zanata.client.commands.TransFileResolver;
 import org.zanata.client.config.LocaleMapping;
-import org.zanata.util.PathUtil;
 
 import com.google.common.base.Optional;
 
@@ -58,8 +57,7 @@ public class RawPullStrategy {
             throw new RuntimeException("no data for downloaded file "
                     + localDocName);
         }
-        File srcDir = opts.getSrcDir();
-        File file = new File(srcDir, localDocName);
+        Path file = opts.getSrcDir().resolve(localDocName);
         logAndStreamToFile(srcFile, file);
     }
 
@@ -70,7 +68,7 @@ public class RawPullStrategy {
             throw new RuntimeException("no data for downloaded file "
                     + localDocName);
         }
-        File file = new TransFileResolver(opts).resolveTransFile(
+        Path file = new TransFileResolver(opts).resolveTransFile(
             DocNameWithExt.from(localDocName),
             localeMapping, translationFileExtension);
         logAndStreamToFile(transFile, file);
@@ -84,21 +82,24 @@ public class RawPullStrategy {
      * @param file
      * @throws IOException
      */
-    private void logAndStreamToFile(InputStream stream, File file)
+    private void logAndStreamToFile(InputStream stream, Path file)
             throws IOException {
-        if (file.exists()) {
+        if (Files.exists(file)) {
             log.warn("overwriting existing document at [{}]",
-                    file.getAbsolutePath());
+                    file.toAbsolutePath());
         } else {
-            log.info("writing new document to [{}]", file.getAbsolutePath());
+            log.info("writing new document to [{}]", file.toAbsolutePath());
         }
-        PathUtil.makeDirs(file.getParentFile());
+        Path parent = file.toAbsolutePath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
         writeStreamToFile(stream, file);
     }
 
-    private void writeStreamToFile(InputStream stream, File file)
+    private void writeStreamToFile(InputStream stream, Path file)
             throws IOException {
-        try (OutputStream out = new FileOutputStream(file)) {
+        try (OutputStream out = Files.newOutputStream(file)) {
             int read;
             byte[] buffer = new byte[1024];
             while ((read = stream.read(buffer)) != -1) {

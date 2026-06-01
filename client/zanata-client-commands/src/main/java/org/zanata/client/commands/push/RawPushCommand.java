@@ -82,6 +82,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode;
 import static org.zanata.client.commands.StringUtil.multiline;
+import java.nio.file.Path;
+import java.nio.file.Files;
 
 /**
  * Command to send files directly to the server without parsing on the client.
@@ -318,8 +320,8 @@ public class RawPushCommand extends PushPullCommand<PushOptions> {
         }
         // only supporting single module for now
 
-        File sourceDir = getOpts().getSrcDir();
-        if (!sourceDir.exists()) {
+        Path sourceDir = getOpts().getSrcDir();
+        if (!Files.exists(sourceDir)) {
             boolean enableModules = getOpts().getEnableModules();
             // TODO(files) remove warning when modules supported
             if (enableModules) {
@@ -544,12 +546,12 @@ public class RawPushCommand extends PushPullCommand<PushOptions> {
      * @return true if the push was successful
      * @throws IOException
      */
-    private boolean pushSourceDocumentToServer(File sourceDir,
+    private boolean pushSourceDocumentToServer(Path sourceDir,
             String localDocName, String qualifiedDocName, String fileType)
             throws IOException {
         log.info("pushing source document [{}] to server", qualifiedDocName);
 
-        File srcFile = new File(sourceDir, localDocName);
+        File srcFile = sourceDir.resolve(localDocName).toFile();
         pushDocumentToServer(qualifiedDocName, fileType, null /*locale*/, srcFile);
         return true;
     }
