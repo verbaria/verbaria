@@ -887,7 +887,19 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return new TranslationRow.RowContext(
                 prefs, currentLocale, sourceLocale, localeStr,
                 projectSlug, versionSlug, currentDocId, messageEvaluateType,
-                historyExpanded, historyCollapsed);
+                historyExpanded, historyCollapsed, this::refreshRows);
+    }
+
+    /**
+     * Re-fetch the visible rows from the database so a row reflects the new
+     * persisted state after a save/approve/reject (the renderer rebuilds each
+     * row from a fresh RowData snapshot). Without this the action buttons keep
+     * the state they were rendered with until a full page reload.
+     */
+    private void refreshRows() {
+        if (rowsList.getDataProvider() != null) {
+            rowsList.getDataProvider().refreshAll();
+        }
     }
 
     private static boolean isAuthenticated() {

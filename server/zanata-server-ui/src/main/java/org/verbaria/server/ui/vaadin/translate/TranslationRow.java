@@ -475,6 +475,7 @@ public class TranslationRow extends Div {
             }
             savedContent = liveContent;
             refreshActions();
+            ctx.refreshRows().run();
         });
         return save;
     }
@@ -511,6 +512,7 @@ public class TranslationRow extends Div {
             currentState = ns;
             savedContent = liveContent;
             refreshActions();
+            ctx.refreshRows().run();
             Notification.show(getTranslation("translate.row.savedFuzzy"),
                     2000, Notification.Position.BOTTOM_START);
         } catch (Exception ex) {
@@ -579,6 +581,7 @@ public class TranslationRow extends Div {
                 applyStateColor(stateSpan, newState);
                 currentState = newState;
                 refreshActions();
+                ctx.refreshRows().run();
                 Notification.show(getTranslation("translate.approve.success"),
                         2000, Notification.Position.BOTTOM_START);
             } catch (Exception ex) {
@@ -791,6 +794,7 @@ public class TranslationRow extends Div {
                 applyStateColor(stateSpan, newState);
                 currentState = newState;
                 refreshActions();
+                ctx.refreshRows().run();
                 Div fresh = buildHistoryPanel(flow.getId(), null, () -> null);
                 historyPanel.getElement().removeAllChildren();
                 fresh.getChildren().forEach(child -> historyPanel.getElement()
@@ -992,6 +996,7 @@ public class TranslationRow extends Div {
             String currentDocId,
             MessageEvaluateType messageEvaluateType,
             Set<Long> historyExpanded,
-            Set<Long> historyCollapsed) {
+            Set<Long> historyCollapsed,
+            Runnable refreshRows) {
     }
 }
