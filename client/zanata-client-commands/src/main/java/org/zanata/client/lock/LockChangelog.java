@@ -23,6 +23,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.zanata.client.lock.VerbariaLock.DocumentLock;
+import org.zanata.client.lock.VerbariaLock.SourceLock;
 import org.zanata.client.lock.VerbariaLock.TranslationLock;
 
 /**
@@ -81,6 +82,8 @@ public final class LockChangelog {
     private final Map<String, TreeSet<String>> updated = new TreeMap<>();
     private final Map<String, TreeSet<String>> added = new TreeMap<>();
     private final Map<String, TreeSet<String>> removed = new TreeMap<>();
+    /** docIds whose source content changed (independent of translations). */
+    private final TreeSet<String> sourceUpdated = new TreeSet<>();
     private final TreeSet<String> allLocales = new TreeSet<>();
     /** translators of added/updated entries -> Co-authored-by trailers. */
     private final TreeSet<String> coAuthors = new TreeSet<>();
@@ -108,7 +111,8 @@ public final class LockChangelog {
     }
 
     public boolean isEmpty() {
-        return updated.isEmpty() && added.isEmpty() && removed.isEmpty();
+        return updated.isEmpty() && added.isEmpty() && removed.isEmpty()
+                && sourceUpdated.isEmpty();
     }
 
     /** Renders the diff in the requested format ({@code ""} when empty). */
@@ -144,7 +148,22 @@ public final class LockChangelog {
                     record(updated, docId, locale, after);
                 }
             }
+
+            // Source content change: only when both sides carry a signature
+            // (so an upgrade from a sig-less lock isn't reported as a change).
+            SourceLock oldS = source(oldLock, docId);
+            SourceLock newS = source(newLock, docId);
+            if (oldS != null && oldS.getSig() != null
+                    && newS != null && newS.getSig() != null
+                    && !oldS.getSig().equals(newS.getSig())) {
+                sourceUpdated.add(docId);
+            }
         }
+    }
+
+    private static SourceLock source(VerbariaLock lock, String docId) {
+        DocumentLock doc = lock.getDocuments().get(docId);
+        return doc == null ? null : doc.getSource();
     }
 
     private static Map<String, TranslationLock> translations(VerbariaLock lock,
@@ -171,6 +190,7 @@ public final class LockChangelog {
         section(sb, "Updated:", updated);
         section(sb, "Added:", added);
         section(sb, "Removed:", removed);
+        sourceSection(sb, "Source updated:", sourceUpdated);
 
         if (newLock.getServer() != null) {
             sb.append("\nSource: ").append(newLock.getServer());
@@ -204,6 +224,12 @@ public final class LockChangelog {
         mdSection(sb, "### Updated", updated);
         mdSection(sb, "### Added", added);
         mdSection(sb, "### Removed", removed);
+        if (!sourceUpdated.isEmpty()) {
+            sb.append("\n### Source updated\n");
+            for (String docId : sourceUpdated) {
+                sb.append("- `").append(docId).append("`\n");
+            }
+        }
         if (!coAuthors.isEmpty()) {
             sb.append("\n**Contributors:** ")
                     .append(String.join(", ", coAuthors)).append('\n');
@@ -239,6 +265,7 @@ public final class LockChangelog {
         docs.addAll(updated.keySet());
         docs.addAll(added.keySet());
         docs.addAll(removed.keySet());
+        docs.addAll(sourceUpdated);
         String subject = "chore(i18n): sync " + docs.size()
                 + (docs.size() == 1 ? " doc" : " docs");
         if (!allLocales.isEmpty()) {
@@ -265,6 +292,17 @@ public final class LockChangelog {
         for (Map.Entry<String, TreeSet<String>> e : bucket.entrySet()) {
             sb.append("  ").append(padRight(e.getKey(), pad)).append("  ")
                     .append(String.join(", ", e.getValue())).append('\n');
+        }
+    }
+
+    private void sourceSection(StringBuilder sb, String heading,
+            TreeSet<String> docIds) {
+        if (docIds.isEmpty()) {
+            return;
+        }
+        sb.append(heading).append('\n');
+        for (String docId : docIds) {
+            sb.append("  ").append(docId).append('\n');
         }
     }
 

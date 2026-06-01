@@ -16,7 +16,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>5.2.4</version>
+        <version>5.2.5</version>
         <configuration>
           <glossaryFile>fuel_hi.po</glossaryFile>
           <transLang>hi</transLang>

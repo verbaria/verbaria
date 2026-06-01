@@ -133,10 +133,15 @@ public class VerbariaLock {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonPropertyOrder({ "revision" })
+    @JsonPropertyOrder({ "revision", "sig" })
     public static class SourceLock {
         /** server-side document revision ({@code ResourceMeta.revision}). */
         private Integer revision;
+        /**
+         * Hash over the source {@code (resId, contents)} tuples, so a source
+         * edit is detected even when the server-side revision didn't move.
+         */
+        private String sig;
 
         public SourceLock() {
         }
@@ -151,6 +156,14 @@ public class VerbariaLock {
 
         public void setRevision(Integer revision) {
             this.revision = revision;
+        }
+
+        public String getSig() {
+            return sig;
+        }
+
+        public void setSig(String sig) {
+            this.sig = sig;
         }
     }
 

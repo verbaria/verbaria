@@ -24,6 +24,8 @@ import java.util.TreeSet;
 import org.zanata.client.lock.VerbariaLock.TranslationLock;
 import org.zanata.common.ContentState;
 import org.zanata.rest.dto.Person;
+import org.zanata.rest.dto.resource.Resource;
+import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.util.HashUtil;
 
@@ -111,6 +113,34 @@ public final class LockSignature {
         List<String> people =
                 translators.isEmpty() ? null : new ArrayList<>(translators);
         return new TranslationLock(sig, state, included.size(), people);
+    }
+
+    /**
+     * Signature of a source document: a hash over the sorted
+     * {@code (resId, contents)} tuples of its text flows, or {@code null} when
+     * there is nothing to sign. Lets a source edit be detected (and reported in
+     * the changelog) even though the server-side document revision may not move.
+     */
+    public static String sourceSignature(Resource source) {
+        if (source == null || source.getTextFlows() == null
+                || source.getTextFlows().isEmpty()) {
+            return null;
+        }
+        List<TextFlow> flows = new ArrayList<>(source.getTextFlows());
+        flows.sort(Comparator.comparing(TextFlow::getId,
+                Comparator.nullsFirst(Comparator.naturalOrder())));
+        StringBuilder sb = new StringBuilder();
+        for (TextFlow tf : flows) {
+            sb.append(tf.getId()).append(UNIT);
+            List<String> contents = tf.getContents();
+            if (contents != null) {
+                for (String c : contents) {
+                    sb.append(c == null ? "" : c).append(UNIT);
+                }
+            }
+            sb.append(RECORD);
+        }
+        return HashUtil.generateHash(sb.toString());
     }
 
     /** Renders a translator as {@code "Name <email>"}, or {@code null}. */

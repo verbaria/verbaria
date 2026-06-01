@@ -319,10 +319,13 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 if (pullSrc) {
                     writeSrcDoc(strat, doc);
                 }
-                if (doc != null && doc.getRevision() != null) {
-                    // record the server-side source revision as a version handle
-                    lock.document(localDocName)
-                            .setSource(new SourceLock(doc.getRevision()));
+                if (doc != null) {
+                    // Record the source handle: server revision plus a content
+                    // signature, so a source edit shows up in the changelog even
+                    // when the server-side revision didn't move.
+                    SourceLock src = new SourceLock(doc.getRevision());
+                    src.setSig(LockSignature.sourceSignature(doc));
+                    lock.document(localDocName).setSource(src);
                 }
 
                 if (pullTarget) {

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.zanata.client.lock.VerbariaLock.SourceLock;
 import org.zanata.client.lock.VerbariaLock.TranslationLock;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -40,6 +41,50 @@ public class LockChangelogTest {
         lock.setProject("my-proj");
         lock.setProjectVersion("main");
         return lock;
+    }
+
+    private static void src(VerbariaLock lock, String docId, String sig) {
+        SourceLock s = new SourceLock(1);
+        s.setSig(sig);
+        lock.document(docId).setSource(s);
+    }
+
+    @Test
+    public void sourceOnlyChangeIsReported() {
+        VerbariaLock before = lock();
+        src(before, "messages", "S1");
+        VerbariaLock after = lock();
+        src(after, "messages", "S2");
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, not(is("")));
+        assertThat(msg, containsString("Source updated:"));
+        assertThat(msg, containsString("messages"));
+
+        String md = LockChangelog.render(before, after,
+                LockChangelog.Format.MARKDOWN);
+        assertThat(md, containsString("Source updated"));
+        assertThat(md, containsString("messages"));
+    }
+
+    @Test
+    public void identicalSourceSigProducesEmptyMessage() {
+        VerbariaLock before = lock();
+        src(before, "messages", "S1");
+        VerbariaLock after = lock();
+        src(after, "messages", "S1");
+        assertThat(LockChangelog.render(before, after), is(""));
+    }
+
+    @Test
+    public void sourceSigFirstAppearingOnUpgradeIsNotAChange() {
+        // An old lock predates source sigs (sig == null); gaining one on the
+        // next pull must NOT be reported as a source change.
+        VerbariaLock before = lock();
+        before.document("messages").setSource(new SourceLock(1)); // no sig
+        VerbariaLock after = lock();
+        src(after, "messages", "S1");
+        assertThat(LockChangelog.render(before, after), is(""));
     }
 
     @Test
