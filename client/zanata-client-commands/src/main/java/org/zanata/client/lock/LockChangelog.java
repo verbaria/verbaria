@@ -149,8 +149,9 @@ public final class LockChangelog {
                 }
             }
 
-            // Source content change: only when both sides carry a signature
-            // (so an upgrade from a sig-less lock isn't reported as a change).
+            // Source change, by the same content-signature mechanism as
+            // translations. Only when both sides carry a signature, so an
+            // upgrade from a sig-less lock isn't itself reported as a change.
             SourceLock oldS = source(oldLock, docId);
             SourceLock newS = source(newLock, docId);
             if (oldS != null && oldS.getSig() != null
@@ -192,15 +193,9 @@ public final class LockChangelog {
         section(sb, "Removed:", removed);
         sourceSection(sb, "Source updated:", sourceUpdated);
 
-        if (newLock.getServer() != null) {
-            sb.append("\nSource: ").append(newLock.getServer());
-            if (newLock.getProject() != null) {
-                sb.append('/').append(newLock.getProject());
-                if (newLock.getProjectVersion() != null) {
-                    sb.append('@').append(newLock.getProjectVersion());
-                }
-            }
-            sb.append('\n');
+        String source = sourceRef();
+        if (source != null) {
+            sb.append("\nSource: ").append(source).append('\n');
         }
 
         if (!coAuthors.isEmpty()) {
@@ -234,15 +229,28 @@ public final class LockChangelog {
             sb.append("\n**Contributors:** ")
                     .append(String.join(", ", coAuthors)).append('\n');
         }
-        if (newLock.getServer() != null) {
-            sb.append("\n<sub>Source: ").append(newLock.getServer());
-            if (newLock.getProject() != null) {
-                sb.append('/').append(newLock.getProject());
-                if (newLock.getProjectVersion() != null) {
-                    sb.append('@').append(newLock.getProjectVersion());
-                }
+        String source = sourceRef();
+        if (source != null) {
+            sb.append("\n<sub>Source: ").append(source).append("</sub>\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * {@code server/project@version} for the footer, with no double slash when
+     * the server URL already ends in one. {@code null} when no server is known.
+     */
+    private String sourceRef() {
+        if (newLock.getServer() == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(
+                newLock.getServer().replaceAll("/+$", ""));
+        if (newLock.getProject() != null) {
+            sb.append('/').append(newLock.getProject());
+            if (newLock.getProjectVersion() != null) {
+                sb.append('@').append(newLock.getProjectVersion());
             }
-            sb.append("</sub>\n");
         }
         return sb.toString();
     }

@@ -68,6 +68,21 @@ public class LockChangelogTest {
     }
 
     @Test
+    public void serverTrailingSlashDoesNotProduceDoubleSlash() {
+        VerbariaLock before = lock();
+        before.document("a").getTranslations().put("de", tl("A"));
+        VerbariaLock after = lock();
+        after.setServer("https://i.verbaria.org/");
+        after.document("a").getTranslations()
+                .put("de", tl("B", "Alice <alice@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg,
+                containsString("Source: https://i.verbaria.org/my-proj@main"));
+        assertThat(msg, not(containsString("org//")));
+    }
+
+    @Test
     public void identicalSourceSigProducesEmptyMessage() {
         VerbariaLock before = lock();
         src(before, "messages", "S1");
