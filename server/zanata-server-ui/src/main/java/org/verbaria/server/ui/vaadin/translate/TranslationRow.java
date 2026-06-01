@@ -98,6 +98,8 @@ public class TranslationRow extends Div {
     private String savedContent = "";
     /** Current editor text, kept fresh from value-change events. */
     private String liveContent = "";
+    /** The editor component, so save actions can read the blur-synced value. */
+    private TranslationEditor editorArea;
     /** Live persisted state, updated on every save/approve/reject. */
     private ContentState currentState;
     private Button saveButton;
@@ -236,6 +238,7 @@ public class TranslationRow extends Div {
         }
         TranslationEditor area = new TranslationEditor(
                 validator, taskScheduler, toJavaLocale(rowLocale));
+        this.editorArea = area;
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
         // Consulo raw sub-file: highlight by its extension.
@@ -460,6 +463,10 @@ public class TranslationRow extends Div {
             save.setTooltipText(getTranslation("translate.tooltip.signInToEdit"));
         }
         save.addClickListener(e -> {
+            // Clicking blurs the editor, so getValue() is authoritative here —
+            // use it (not the possibly-lagging AceChanged-tracked liveContent)
+            // so an edit isn't dropped by updateSource's no-op-on-unchanged guard.
+            liveContent = editorArea.getValue() == null ? "" : editorArea.getValue();
             if (isSourceLocale) {
                 translationEditService.updateSource(flow.getId(), liveContent);
                 Notification.show(getTranslation("translate.row.savedSource"),
@@ -504,6 +511,7 @@ public class TranslationRow extends Div {
 
     private void saveAsFuzzy(Span stateSpan) {
         try {
+            liveContent = editorArea.getValue() == null ? "" : editorArea.getValue();
             translationEditService.save(flow.getId(), ctx.currentLocale(), liveContent);
             ContentState ns = translationEditService.changeState(
                     flow.getId(), ctx.currentLocale(), ContentState.NeedReview);
