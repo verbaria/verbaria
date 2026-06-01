@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.common.dto.TranslatedDoc;
 import org.zanata.rest.dto.extensions.comment.SimpleComment;
+import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -67,12 +68,13 @@ public class PropWriter {
                     "file format does not support plural forms: resId="
                         + textFlow.getId());
             }
-            props.setProperty(textFlow.getId(), textFlow.getContents().get(0));
+            String key = propertyKey(textFlow);
+            props.setProperty(key, textFlow.getContents().get(0));
             SimpleComment simpleComment =
                 textFlow.getExtensions(true)
                     .findByType(SimpleComment.class);
             if (simpleComment != null && simpleComment.getValue() != null)
-                props.setComment(textFlow.getId(), simpleComment.getValue());
+                props.setComment(key, simpleComment.getValue());
         }
         // props.store(System.out, null);
         storeProps(props, baseFile, charset);
@@ -104,7 +106,7 @@ public class PropWriter {
             }
             for (TextFlow textFlow : srcDoc.getTextFlows()) {
                 TextFlowTarget target = targets.get(textFlow.getId());
-                textFlowTargetToProperty(textFlow.getId(), target, targetProp,
+                textFlowTargetToProperty(propertyKey(textFlow), target, targetProp,
                     createSkeletons, approvedOnly);
             }
         }
@@ -173,12 +175,27 @@ public class PropWriter {
             throw new RuntimeException(
                     "file format does not support plural forms: resId=" + resId);
         }
-        targetProp.setProperty(target.getResId(), contents.get(0));
+        targetProp.setProperty(resId, contents.get(0));
         SimpleComment simpleComment =
                 target.getExtensions(true).findByType(SimpleComment.class);
         if (simpleComment != null && simpleComment.getValue() != null) {
-            targetProp.setComment(target.getResId(), simpleComment.getValue());
+            targetProp.setComment(resId, simpleComment.getValue());
         }
     }
 
+    /**
+     * The property key to write. The server hashes long/duplicate property keys
+     * into the resId and keeps the original key in PotEntryHeader.context; use
+     * that human key when present so pulled files keep readable keys instead of
+     * the 32-char hash. Falls back to the textflow id for standard properties.
+     */
+    private static String propertyKey(TextFlow textFlow) {
+        PotEntryHeader peh =
+                textFlow.getExtensions(true).findByType(PotEntryHeader.class);
+        if (peh != null && peh.getContext() != null
+                && !peh.getContext().isEmpty()) {
+            return peh.getContext();
+        }
+        return textFlow.getId();
+    }
 }

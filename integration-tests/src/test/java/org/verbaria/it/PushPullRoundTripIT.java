@@ -120,6 +120,10 @@ class PushPullRoundTripIT {
             p.load(in);
         }
         assertThat(p).as("pulled %s", Files.readString(src)).hasSize(2);
+        assertThat(p.stringPropertyNames())
+                .as("pulled keys must stay human-readable, not the resId hash: %s",
+                        Files.readString(src))
+                .containsExactlyInAnyOrder("greeting", "bye");
         assertThat(new java.util.HashSet<>(p.values()))
                 .containsExactlyInAnyOrder("Hello", "Goodbye");
     }
@@ -297,6 +301,43 @@ class PushPullRoundTripIT {
         push.setLocaleMapList(frLocales());
         push.setIncludes("messages.properties");
         new PushCommand(push).run();
+    }
+
+    @Test
+    void translationPullKeepsHumanReadableKeys() throws Exception {
+        // Source keys are hashed into the resId on push (original kept in
+        // PotEntryHeader.context); the pulled file must restore the readable
+        // keys, not emit the 32-char hash.
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itkeys", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"),
+                "greeting=Hello\nbye=Goodbye\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\nbye=Au revoir\n");
+        pushBoth("itkeys");
+
+        Files.deleteIfExists(tmp.resolve("messages_fr_FR.properties"));
+        PullOptionsImpl pull = pullOpts("trans", "properties", "itkeys");
+        pull.setLocaleMapList(frLocales());
+        pull.setIncludes("messages.properties");
+        new PullCommand(pull).run();
+
+        Path pulled = tmp.resolve("messages_fr_FR.properties");
+        assertThat(Files.exists(pulled)).isTrue();
+        java.util.Properties p = new java.util.Properties();
+        try (var in = Files.newInputStream(pulled)) {
+            p.load(in);
+        }
+        assertThat(p.stringPropertyNames())
+                .as("pulled translation keys must be human-readable: %s",
+                        Files.readString(pulled))
+                .containsExactlyInAnyOrder("greeting", "bye");
+        assertThat(new java.util.HashSet<>(p.values()))
+                .containsExactlyInAnyOrder("Bonjour", "Au revoir");
     }
 
     @Test

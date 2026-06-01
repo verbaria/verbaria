@@ -51,7 +51,9 @@ public class PropertiesStrategy extends AbstractPullStrategy {
 
     @Override
     public boolean needsDocToWriteTrans() {
-        return false;
+        // The source doc carries the human key in PotEntryHeader.context (the
+        // resId is a hash); without it the pulled file would use hashed keys.
+        return true;
     }
 
     @Override
@@ -65,9 +67,10 @@ public class PropertiesStrategy extends AbstractPullStrategy {
         boolean createSkeletons = getOpts().getCreateSkeletons();
         Path transFileToWrite = getTransFileToWrite(docName, doc.getLocale());
         LocaleId locale = new LocaleId(doc.getLocale().getLocale());
-        TranslatedDoc transDoc = createSkeletons ?
-                new TranslatedDoc(doc.getSource(), doc.getTranslation(), locale) :
-                new TranslatedDoc(null, doc.getTranslation(), locale);
+        // Always keep the source so PropWriter can restore human keys from
+        // PotEntryHeader.context; createSkeletons still controls empty entries.
+        TranslatedDoc transDoc =
+                new TranslatedDoc(doc.getSource(), doc.getTranslation(), locale);
         PropWriter.writeTranslationsFile(transDoc,
                 transFileToWrite, PropWriter.CHARSET.Latin1,
                 createSkeletons, getOpts().getApprovedOnly());
