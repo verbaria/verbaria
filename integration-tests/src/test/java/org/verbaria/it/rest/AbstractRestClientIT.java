@@ -40,6 +40,6 @@ public abstract class AbstractRestClientIT {
     protected RestClientFactory factory() throws Exception {
         return new RestClientFactory(
                 new URI("http://localhost:" + port + "/"), USER, API_KEY,
-                new VersionInfo("5.2.0", "unknown", "unknown"), true, true);
+                new VersionInfo("5.2.1", "unknown", "unknown"), true, true);
     }
 }

@@ -267,7 +267,16 @@ public class DocumentImportService {
                 skipped++;
                 continue;
             }
+            // Source import hashes the resId (see normalizeIncomingId), keeping
+            // the original key in PotEntryHeader.context. Incoming targets carry
+            // the *raw* key (e.g. a property name), so apply the same hashing
+            // before matching — otherwise every translation is skipped and
+            // nothing lands in the DB.
             HTextFlow tf = flowsByResId.get(incoming.getResId());
+            if (tf == null && !looksLikeHexHash(incoming.getResId())) {
+                tf = flowsByResId.get(HashUtil.generateHash(
+                        incoming.getResId().toLowerCase(java.util.Locale.ROOT)));
+            }
             if (tf == null) {
                 skipped++;
                 continue;

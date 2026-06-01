@@ -22,11 +22,14 @@ import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
+import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlow;
+import org.zanata.model.HTextFlowTarget;
 
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
+import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 
 @SpringBootTest(classes = ItApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -46,6 +49,8 @@ class PushPullRoundTripIT {
     DocumentRepository documentRepository;
     @Autowired
     TextFlowRepository textFlowRepository;
+    @Autowired
+    TextFlowTargetRepository textFlowTargetRepository;
 
     private FileSystem jimfs;
     private Path tmp;
@@ -179,6 +184,44 @@ class PushPullRoundTripIT {
         assertThat(Files.exists(sub)).as("sub-file recreated with same extension").isTrue();
         assertThat(Files.readString(sub)).isEqualTo("<b>Hi</b>");
         assertThat(Files.readString(anchor)).contains("greeting").contains("Hello");
+    }
+
+    @Test
+    void propertiesTranslationLandsInDb() throws Exception {
+        // Mirrors the `playground` layout: an en-US source bundle plus a
+        // region-specific translation file.
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("ittrans", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"),
+                "greeting=Hello\nbye=Goodbye\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\nbye=Au revoir\n");
+
+        PushOptionsImpl push = pushOpts("both", "properties", "ittrans");
+        LocaleList locales = new LocaleList();
+        locales.add(new LocaleMapping("fr-FR"));
+        push.setLocaleMapList(locales);
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("ittrans", VERSION, "messages")
+                .orElseThrow();
+        List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
+        assertThat(flows).hasSize(2);
+
+        List<Long> ids = flows.stream().map(HTextFlow::getId).toList();
+        List<HTextFlowTarget> targets = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(ids, new LocaleId("fr-FR"));
+
+        assertThat(targets)
+                .as("fr-FR translations must be persisted after `push --push-type both`")
+                .hasSize(2);
+        assertThat(targets.stream().flatMap(t -> t.getContents().stream()))
+                .containsExactlyInAnyOrder("Bonjour", "Au revoir");
     }
 
     private static LocaleList enUsLocales() {
