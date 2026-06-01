@@ -630,8 +630,11 @@ public class PushCommand extends PushPullCommand<PushOptions> {
 
             Path lockFile =
                     lockDir().resolve(VerbariaLockReaderWriter.FILE_NAME);
-            VerbariaLockReaderWriter.write(lock, lockFile);
-            log.info("Wrote sync state to {}", lockFile);
+            if (VerbariaLockReaderWriter.writeIfChanged(lock, lockFile)) {
+                log.info("Wrote sync state to {}", lockFile);
+            } else {
+                log.info("Sync state unchanged; left {} as-is", lockFile);
+            }
         } catch (RuntimeException e) {
             log.warn("Could not write {}: {}",
                     VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
