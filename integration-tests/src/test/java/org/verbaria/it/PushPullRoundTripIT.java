@@ -101,6 +101,46 @@ class PushPullRoundTripIT {
     }
 
     @Test
+    void gettextSourceRoundTrip() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itgettext", VERSION);
+
+        Path pot = tmp.resolve("messages.pot");
+        Files.writeString(pot, """
+                msgid ""
+                msgstr ""
+                "Content-Type: text/plain; charset=UTF-8\\n"
+
+                msgid "greeting"
+                msgstr ""
+
+                msgid "bye"
+                msgstr ""
+                """);
+
+        new PushCommand(pushOpts("source", "gettext", "itgettext")).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itgettext", VERSION, "messages")
+                .orElseThrow();
+        List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
+        assertThat(flows).hasSize(2);
+        assertThat(flows.stream().map(f -> f.getContents().get(0)))
+                .containsExactlyInAnyOrder("greeting", "bye");
+
+        Files.delete(pot);
+        assertThat(Files.exists(pot)).isFalse();
+
+        new PullCommand(pullOpts("source", "gettext", "itgettext")).run();
+
+        assertThat(Files.exists(pot)).isTrue();
+        String content = Files.readString(pot);
+        assertThat(content).contains("greeting").contains("bye");
+    }
+
+    @Test
     void consuloSubFileRoundTrip() throws Exception {
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
