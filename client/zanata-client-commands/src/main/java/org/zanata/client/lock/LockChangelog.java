@@ -151,7 +151,7 @@ public final class LockChangelog {
 
             // Source change, by the same content-signature mechanism as
             // translations. Only when both sides carry a signature, so an
-            // upgrade from a sig-less lock isn't itself reported as a change.
+            // upgrade from a sig-less baseline isn't itself reported as a change.
             SourceLock oldS = source(oldLock, docId);
             SourceLock newS = source(newLock, docId);
             if (oldS != null && oldS.getSig() != null
@@ -160,6 +160,12 @@ public final class LockChangelog {
                 sourceUpdated.add(docId);
             }
         }
+
+        // A source edit also moves the base-locale target, which is reported as
+        // a normal translation change (with its author). When that's present,
+        // the author-less "Source updated" line for the same doc is redundant.
+        sourceUpdated.removeIf(docId -> updated.containsKey(docId)
+                || added.containsKey(docId) || removed.containsKey(docId));
     }
 
     private static SourceLock source(VerbariaLock lock, String docId) {

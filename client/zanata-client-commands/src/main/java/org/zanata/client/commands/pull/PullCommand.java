@@ -326,6 +326,8 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     SourceLock src = new SourceLock(doc.getRevision());
                     src.setSig(LockSignature.sourceSignature(doc));
                     lock.document(localDocName).setSource(src);
+                    recordSourceLocaleLock(strat, localDocName,
+                            qualifiedDocName, doc.getLang());
                 }
 
                 if (pullTarget) {
@@ -427,6 +429,24 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         } catch (RuntimeException e) {
             log.warn("Could not write {}: {}",
                     VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
+        }
+    }
+
+    private void recordSourceLocaleLock(PullStrategy strat, String localDocName,
+            String docId, LocaleId sourceLocale) {
+        if (lock == null || sourceLocale == null) {
+            return;
+        }
+        try {
+            ResponseEntity<TranslationsResource> resp =
+                    transDocResourceClient.getTranslations(docId, sourceLocale,
+                            strat.getExtensions(), false, null);
+            recordTranslationLock(localDocName, sourceLocale, resp.getBody(),
+                    null);
+        } catch (HttpClientErrorException e) {
+            // No base-locale target/locale available; nothing to record.
+            log.debug("No base-locale ({}) target for {}: {}", sourceLocale,
+                    localDocName, e.getStatusCode());
         }
     }
 

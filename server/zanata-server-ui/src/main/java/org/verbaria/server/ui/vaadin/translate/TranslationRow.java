@@ -468,7 +468,8 @@ public class TranslationRow extends Div {
             // so an edit isn't dropped by updateSource's no-op-on-unchanged guard.
             liveContent = editorArea.getValue() == null ? "" : editorArea.getValue();
             if (isSourceLocale) {
-                translationEditService.updateSource(flow.getId(), liveContent);
+                translationEditService.updateSource(flow.getId(), liveContent,
+                        currentUsername());
                 Notification.show(getTranslation("translate.row.savedSource"),
                         2000, Notification.Position.BOTTOM_START);
             } else {

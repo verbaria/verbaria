@@ -41,6 +41,11 @@ public class TranslationEditService {
 
     @Transactional
     public void updateSource(Long textFlowId, String newSource) {
+        updateSource(textFlowId, newSource, null);
+    }
+
+    @Transactional
+    public void updateSource(Long textFlowId, String newSource, String editorUsername) {
         HTextFlow textFlow = textFlowRepository.findById(textFlowId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "TextFlow not found: " + textFlowId));
@@ -51,17 +56,13 @@ public class TranslationEditService {
         textFlow.setContents(List.of(fresh));
         textFlow.setRevision(textFlow.getRevision() + 1);
         textFlowRepository.save(textFlow);
-        // The source is the project's base localization with its own target;
-        // keep it in sync (editing the base re-opens it for review).
-        syncSourceTarget(textFlow, fresh);
+        HPerson editor = editorUsername == null ? null
+                : accountRepository.findByUsername(editorUsername)
+                        .map(HAccount::getPerson).orElse(null);
+        syncSourceTarget(textFlow, fresh, editor);
     }
 
-    /**
-     * Mirror edited source content into the source locale's target and reset it
-     * to Translated, so the base localization stays consistent and goes back
-     * through review after an edit.
-     */
-    private void syncSourceTarget(HTextFlow textFlow, String content) {
+    private void syncSourceTarget(HTextFlow textFlow, String content, HPerson editor) {
         var doc = textFlow.getDocument();
         if (doc == null) return;
         HLocale srcLocale = doc.getLocale();
@@ -72,6 +73,10 @@ public class TranslationEditService {
         target.setContents(List.of(content));
         target.setState(ContentState.Translated);
         target.setTextFlowRevision(textFlow.getRevision());
+        if (editor != null) {
+            target.setTranslator(editor);
+            target.setLastModifiedBy(editor);
+        }
         targetRepository.save(target);
     }
 

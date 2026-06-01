@@ -200,7 +200,7 @@ public class HDocument extends ModelEntityBase implements DocumentWithId,
         revision++;
     }
 
-        @NotNull
+    @NotNull
     public ContentType getContentType() {
         return contentType;
     }
