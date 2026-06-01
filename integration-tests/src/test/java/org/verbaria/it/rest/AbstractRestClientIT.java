@@ -10,7 +10,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.verbaria.it.ItApplication;
 import org.verbaria.it.ItFixtures;
 import org.zanata.rest.client.RestClientFactory;
-import org.zanata.rest.dto.VersionInfo;
+import org.zanata.util.VersionUtility;
 
 /**
  * Shared harness: each rest-client test runs against the real headless server
@@ -38,8 +38,10 @@ public abstract class AbstractRestClientIT {
     }
 
     protected RestClientFactory factory() throws Exception {
+        // Derive the client API version the same way the real CLI does, from the
+        // zanata-common-api jar manifest, instead of hardcoding it per release.
         return new RestClientFactory(
                 new URI("http://localhost:" + port + "/"), USER, API_KEY,
-                new VersionInfo("5.2.1", "unknown", "unknown"), true, true);
+                VersionUtility.getAPIVersionInfo(), true, true);
     }
 }

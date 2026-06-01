@@ -19,7 +19,6 @@ import org.zanata.model.HPerson;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.model.po.HPotEntryData;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
@@ -32,7 +31,6 @@ import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
-import org.verbaria.server.headless.repository.TextFlowTargetHistoryRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 
 /**
@@ -50,20 +48,17 @@ public class DocumentImportService {
     private final DocumentRepository documentRepository;
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository textFlowTargetRepository;
-    private final TextFlowTargetHistoryRepository historyRepository;
     private final LocaleRepository localeRepository;
 
     public DocumentImportService(ProjectIterationRepository iterationRepository,
                                  DocumentRepository documentRepository,
                                  TextFlowRepository textFlowRepository,
                                  TextFlowTargetRepository textFlowTargetRepository,
-                                 TextFlowTargetHistoryRepository historyRepository,
                                  LocaleRepository localeRepository) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.textFlowTargetRepository = textFlowTargetRepository;
-        this.historyRepository = historyRepository;
         this.localeRepository = localeRepository;
     }
 
@@ -294,18 +289,13 @@ public class DocumentImportService {
                     .orElse(null);
             if (target == null) {
                 target = new HTextFlowTarget(tf, locale);
-            } else {
-                // Snapshot prior state into history if there was meaningful content.
-                List<String> prior = target.getContents();
-                boolean hasPrior = prior != null && prior.stream()
-                        .anyMatch(s -> s != null && !s.isEmpty());
-                if (hasPrior) {
-                    HTextFlowTargetHistory history = new HTextFlowTargetHistory(target);
-                    history.setVersionNum(target.getVersionNum() == null
-                            ? 0 : target.getVersionNum());
-                    historyRepository.save(history);
-                }
             }
+            // History is maintained by HTextFlowTarget's @PreUpdate listener,
+            // which snapshots the prior state under the *old* versionNum exactly
+            // when the row actually changes. Writing a history row here as well
+            // duplicated it — and on an unchanged re-push the version never
+            // advanced, leaving an orphan row that collided with the next edit's
+            // listener write on the (target_id, version_num) unique key.
             target.setContents(contents);
             ContentState state = incoming.getState() == null
                     ? ContentState.Translated : incoming.getState();

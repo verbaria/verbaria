@@ -1,6 +1,7 @@
 package org.verbaria.server.ui.vaadin.translate;
 
 import org.verbaria.server.headless.security.Roles;
+import org.verbaria.server.headless.service.TranslationEditService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,10 +66,14 @@ import org.verbaria.server.headless.validation.CompositeLanguageValidator;
 import org.verbaria.server.headless.validation.LanguageValidator;
 import org.verbaria.server.headless.validation.MessageFormatValidator;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SpringComponent
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class TranslationRow extends Div {
+
+    private static final Logger log = LoggerFactory.getLogger(TranslationRow.class);
 
     private final LanguageValidator languageValidator;
     private final TaskScheduler taskScheduler;
@@ -91,8 +96,13 @@ public class TranslationRow extends Div {
     private String initialContent;
     /** Last persisted editor content; Save is enabled only when it differs. */
     private String savedContent = "";
-    /** Recomputes whether the Save button should be enabled. */
-    private Runnable refreshSaveEnabled;
+    /** Current editor text, kept fresh from value-change events. */
+    private String liveContent = "";
+    /** Live persisted state, updated on every save/approve/reject. */
+    private ContentState currentState;
+    private Button saveButton;
+    private Button approveButton;
+    private Button rejectButton;
     private boolean isSourceLocale;
     private boolean canEdit;
     private boolean canReview;
@@ -131,6 +141,7 @@ public class TranslationRow extends Div {
         this.ctx = ctx;
         this.flow = flow;
         this.initialState = initialState;
+        this.currentState = initialState;
         this.source = source;
         this.initialContent = existing.map(HTextFlowTarget::getContents)
                 .filter(l -> !l.isEmpty())
@@ -229,6 +240,15 @@ public class TranslationRow extends Div {
         area.setReadOnly(!canEdit);
         // Consulo raw sub-file: highlight by its extension.
         area.setModeForFileExtension(flow.getConsuloFileExt());
+        liveContent = isSourceLocale ? source : initialContent;
+        if (liveContent == null) liveContent = "";
+        // Single point that keeps the live text fresh (the AceChanged event
+        // carries it; the editor's getValue() only syncs on blur) and refreshes
+        // every action button from it.
+        area.addAceChangedListener(ev -> {
+            liveContent = ev.getValue() == null ? "" : ev.getValue();
+            refreshActions();
+        });
 
         Component extField = buildConsuloExtensionField(area);
 
@@ -242,12 +262,12 @@ public class TranslationRow extends Div {
         Span stateSpan = new Span(initialState.name());
         applyStateColor(stateSpan, initialState);
 
-        Button save = buildSaveButton(area, stateSpan);
+        Button save = buildSaveButton(stateSpan);
         if (canEdit) {
             Shortcuts.addShortcutListener(area, save::click,
                     Key.ENTER, KeyModifier.CONTROL).listenOn(area);
             if (!isSourceLocale) {
-                Shortcuts.addShortcutListener(area, () -> saveAsFuzzy(area, stateSpan),
+                Shortcuts.addShortcutListener(area, () -> saveAsFuzzy(stateSpan),
                         Key.KEY_S, KeyModifier.CONTROL).listenOn(area)
                         .setBrowserDefaultAllowed(false);
             }
@@ -282,6 +302,7 @@ public class TranslationRow extends Div {
         MenuBar aiBtn = buildAiButton(area);
         Button approve = buildApproveButton(stateSpan);
         Button reject = buildRejectButton(stateSpan, historyPanel);
+        refreshActions();
 
         Button evaluateBtn = buildEvaluateButton(area);
 
@@ -419,6 +440,8 @@ public class TranslationRow extends Div {
                 Notification.show(getTranslation("translate.row.extensionSaved"),
                         2000, Notification.Position.BOTTOM_START);
             } catch (Exception ex) {
+                log.error("Failed to save consulo extension for textFlow {}",
+                        flow.getId(), ex);
                 Notification.show(getTranslation(
                         "translate.row.extensionSaveFailed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
@@ -427,53 +450,72 @@ public class TranslationRow extends Div {
         return field;
     }
 
-    private Button buildSaveButton(TranslationEditor area, Span stateSpan) {
+    private Button buildSaveButton(Span stateSpan) {
         Button save = new Button(getTranslation("translate.row.save"));
         save.addThemeVariants(ButtonVariant.PRIMARY, ButtonVariant.SMALL);
+        this.saveButton = save;
         savedContent = (isSourceLocale ? source : initialContent);
         if (savedContent == null) savedContent = "";
         if (!canEdit) {
             save.setTooltipText(getTranslation("translate.tooltip.signInToEdit"));
         }
-        // Save stays disabled until the editor content actually differs from
-        // what's already saved — no point offering Save on an unchanged row.
-        refreshSaveEnabled = () -> {
-            String cur = area.getValue() == null ? "" : area.getValue();
-            save.setEnabled(canEdit && !cur.equals(savedContent));
-        };
-        refreshSaveEnabled.run();
-        area.addAceChangedListener(ev -> refreshSaveEnabled.run());
         save.addClickListener(e -> {
             if (isSourceLocale) {
-                translationEditService.updateSource(flow.getId(), area.getValue());
+                translationEditService.updateSource(flow.getId(), liveContent);
                 Notification.show(getTranslation("translate.row.savedSource"),
                         2000, Notification.Position.BOTTOM_START);
             } else {
                 ContentState newState = translationEditService.save(
-                        flow.getId(), ctx.currentLocale(), area.getValue());
+                        flow.getId(), ctx.currentLocale(), liveContent);
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
+                currentState = newState;
                 Notification.show(getTranslation("translate.row.saved"),
                         2000, Notification.Position.BOTTOM_START);
             }
-            savedContent = area.getValue() == null ? "" : area.getValue();
-            refreshSaveEnabled.run();
+            savedContent = liveContent;
+            refreshActions();
         });
         return save;
     }
 
-    private void saveAsFuzzy(TranslationEditor area, Span stateSpan) {
+    /**
+     * Single source of truth for action-button enablement, recomputed on every
+     * value change and after every save/approve/reject. Save tracks the live
+     * editor buffer; Approve/Reject act on the persisted translation, so they
+     * key off the saved state only (not pending keystrokes).
+     */
+    private void refreshActions() {
+        boolean dirty = !liveContent.equals(savedContent);
+        boolean hasSaved = savedContent != null && !savedContent.isBlank();
+        if (saveButton != null) {
+            saveButton.setEnabled(canEdit && dirty);
+        }
+        if (approveButton != null) {
+            approveButton.setEnabled(canReview && hasSaved
+                    && currentState != ContentState.Approved);
+        }
+        if (rejectButton != null) {
+            rejectButton.setEnabled(canReview && hasSaved
+                    && currentState != ContentState.Rejected);
+        }
+    }
+
+    private void saveAsFuzzy(Span stateSpan) {
         try {
-            translationEditService.save(flow.getId(), ctx.currentLocale(), area.getValue());
+            translationEditService.save(flow.getId(), ctx.currentLocale(), liveContent);
             ContentState ns = translationEditService.changeState(
                     flow.getId(), ctx.currentLocale(), ContentState.NeedReview);
             stateSpan.setText(ns.name());
             applyStateColor(stateSpan, ns);
-            savedContent = area.getValue() == null ? "" : area.getValue();
-            if (refreshSaveEnabled != null) refreshSaveEnabled.run();
+            currentState = ns;
+            savedContent = liveContent;
+            refreshActions();
             Notification.show(getTranslation("translate.row.savedFuzzy"),
                     2000, Notification.Position.BOTTOM_START);
         } catch (Exception ex) {
+            log.error("Fuzzy save failed for textFlow {} locale {}",
+                    flow.getId(), ctx.currentLocale(), ex);
             Notification.show(getTranslation("translate.row.saveFuzzyFailed", ex.getMessage()),
                     4000, Notification.Position.MIDDLE);
         }
@@ -521,9 +563,7 @@ public class TranslationRow extends Div {
         Button approve = new Button(getTranslation("translate.action.approve"),
                 LineAwesomeIcon.CHECK_SOLID.create());
         approve.addThemeVariants(ButtonVariant.SUCCESS, ButtonVariant.SMALL);
-        // The source locale is reviewable too (its base-localization target);
-        // the button self-disables when there is no saved content to review.
-        approve.setEnabled(canReview && hasSavedContent);
+        this.approveButton = approve;
         if (!canReview) {
             approve.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
                     ctx.localeStr(), getTranslation("translate.row.approveTip.review")));
@@ -537,9 +577,13 @@ public class TranslationRow extends Div {
                         flow.getId(), ctx.currentLocale(), ContentState.Approved);
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
+                currentState = newState;
+                refreshActions();
                 Notification.show(getTranslation("translate.approve.success"),
                         2000, Notification.Position.BOTTOM_START);
             } catch (Exception ex) {
+                log.error("Approve failed for textFlow {} locale {}",
+                        flow.getId(), ctx.currentLocale(), ex);
                 Notification.show(getTranslation("translate.row.approveFailed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
             }
@@ -552,7 +596,7 @@ public class TranslationRow extends Div {
         Button reject = new Button(getTranslation("translate.action.reject"),
                 LineAwesomeIcon.TIMES_SOLID.create());
         reject.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
-        reject.setEnabled(canReview && hasSavedContent);
+        this.rejectButton = reject;
         if (!canReview) {
             reject.setTooltipText(getTranslation("translate.tooltip.joinTeamForReview",
                     ctx.localeStr(), getTranslation("translate.row.rejectTip.review")));
@@ -745,6 +789,8 @@ public class TranslationRow extends Div {
                         text, reviewer);
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
+                currentState = newState;
+                refreshActions();
                 Div fresh = buildHistoryPanel(flow.getId(), null, () -> null);
                 historyPanel.getElement().removeAllChildren();
                 fresh.getChildren().forEach(child -> historyPanel.getElement()
@@ -753,6 +799,8 @@ public class TranslationRow extends Div {
                         2000, Notification.Position.BOTTOM_START);
                 dlg.close();
             } catch (Exception ex) {
+                log.error("Reject failed for textFlow {} locale {}",
+                        flow.getId(), ctx.currentLocale(), ex);
                 Notification.show(getTranslation("translate.row.rejectFailed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
             }

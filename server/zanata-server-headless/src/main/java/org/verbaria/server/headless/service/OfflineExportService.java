@@ -260,7 +260,8 @@ public class OfflineExportService {
                 if (targetOpt.isEmpty()) continue;
                 HTextFlowTarget target = targetOpt.get();
                 ContentState state = target.getState();
-                if (state == null || state == ContentState.New) continue;
+                if (state == null || state == ContentState.New
+                        || state == ContentState.Rejected) continue;
                 String trans = firstContent(target.getContents());
                 if (trans.isEmpty()) continue;
                 out.append("    <tu tuid=\"").append(escape(d.getDocId()))
@@ -317,6 +318,9 @@ public class OfflineExportService {
                     .findByTextFlowAndLocale(tf.getId(), locale);
             if (opt.isEmpty()) continue;
             HTextFlowTarget hTarget = opt.get();
+            // Rejected translations are excluded from every export format so the
+            // rejected text is never written; the file falls back to source.
+            if (hTarget.getState() == ContentState.Rejected) continue;
             String content = firstContent(hTarget.getContents());
             if (content.isEmpty()) continue;
             TextFlowTarget xt = new TextFlowTarget(tf.getResId());

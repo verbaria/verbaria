@@ -24,7 +24,6 @@ import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
-import org.verbaria.server.headless.repository.TextFlowTargetHistoryRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +45,6 @@ class DocumentImportSourceTargetTest {
     private DocumentRepository documentRepository;
     private TextFlowRepository textFlowRepository;
     private TextFlowTargetRepository textFlowTargetRepository;
-    private TextFlowTargetHistoryRepository historyRepository;
     private LocaleRepository localeRepository;
     private DocumentImportService service;
 
@@ -56,10 +54,9 @@ class DocumentImportSourceTargetTest {
         documentRepository = mock(DocumentRepository.class);
         textFlowRepository = mock(TextFlowRepository.class);
         textFlowTargetRepository = mock(TextFlowTargetRepository.class);
-        historyRepository = mock(TextFlowTargetHistoryRepository.class);
         localeRepository = mock(LocaleRepository.class);
         service = new DocumentImportService(iterationRepository, documentRepository,
-                textFlowRepository, textFlowTargetRepository, historyRepository,
+                textFlowRepository, textFlowTargetRepository,
                 localeRepository);
         SecurityContextHolder.clearContext();
     }

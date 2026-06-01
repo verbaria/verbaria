@@ -559,7 +559,10 @@ public class ZanataCliBridgeController {
         TranslationsResource out = new TranslationsResource();
         for (HTextFlow tf : flows) {
             HTextFlowTarget t = targets.get(tf.getId());
-            if (t == null) continue;
+            // A Rejected translation must never be used: the row keeps the
+            // rejected text, but it is withheld from pull so the client falls
+            // back to source. Same rule for every project format.
+            if (t == null || t.getState() == ContentState.Rejected) continue;
             TextFlowTarget dto = new TextFlowTarget(tf.getResId());
             dto.setState(t.getState() == null ? ContentState.New : t.getState());
             dto.setContents(t.getContents() == null ? List.of("") : t.getContents());

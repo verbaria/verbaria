@@ -13,6 +13,7 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.verbaria.server.headless.service.TranslationEditService;
 import org.verbaria.server.headless.service.ai.TranslationProvider;
 import org.verbaria.server.headless.service.ai.TranslationProviderRegistry;
 

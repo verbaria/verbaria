@@ -1,4 +1,4 @@
-package org.verbaria.server.ui.vaadin.translate;
+package org.verbaria.server.headless.service;
 
 import java.util.List;
 
@@ -11,12 +11,10 @@ import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.model.HTextFlowTargetReviewComment;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
-import org.verbaria.server.headless.repository.TextFlowTargetHistoryRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
 
@@ -25,20 +23,17 @@ public class TranslationEditService {
 
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
-    private final TextFlowTargetHistoryRepository historyRepository;
     private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
 
     public TranslationEditService(TextFlowRepository textFlowRepository,
                                   TextFlowTargetRepository targetRepository,
-                                  TextFlowTargetHistoryRepository historyRepository,
                                   TextFlowTargetReviewCommentRepository reviewCommentRepository,
                                   LocaleRepository localeRepository,
                                   AccountRepository accountRepository) {
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
-        this.historyRepository = historyRepository;
         this.reviewCommentRepository = reviewCommentRepository;
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
@@ -132,9 +127,15 @@ public class TranslationEditService {
             throw new IllegalStateException(
                     "Cannot change state of an empty translation");
         }
-        if (target.getState() != null && target.getState() != ContentState.New) {
-            historyRepository.save(new HTextFlowTargetHistory(target));
+        // No-op if the state isn't actually changing: avoids a pointless history
+        // row (and keeps approve/reject idempotent when the row is already in
+        // that state).
+        if (target.getState() == newState) {
+            return target.getState();
         }
+        // History is written by HTextFlowTarget's @PreUpdate listener on the
+        // save below; writing one here too duplicated the (target_id,
+        // version_num) row and crashed the next state change.
         // Attach the review comment BEFORE the state change so the comment's
         // targetVersion matches the version that's being rejected.
         if (comment != null && !comment.isBlank() && reviewerUsername != null) {
@@ -165,12 +166,8 @@ public class TranslationEditService {
                 .findByTextFlowAndLocale(textFlowId, localeId)
                 .orElseGet(() -> new HTextFlowTarget(textFlow, locale));
 
-        if (target.getId() != null && target.getState() != null
-                && target.getState() != ContentState.New) {
-            HTextFlowTargetHistory hist = new HTextFlowTargetHistory(target);
-            historyRepository.save(hist);
-        }
-
+        // History is maintained by HTextFlowTarget's @PreUpdate listener; a
+        // manual write here duplicated the (target_id, version_num) row.
         target.setContents(List.of(newContent == null ? "" : newContent));
         target.setState(ContentState.Translated);
         target.setTextFlowRevision(textFlow.getRevision());

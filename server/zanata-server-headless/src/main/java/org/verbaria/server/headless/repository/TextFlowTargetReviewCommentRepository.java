@@ -15,6 +15,7 @@ public interface TextFlowTargetReviewCommentRepository
 
     @Query("""
             select c from HTextFlowTargetReviewComment c
+            left join fetch c.commenter
             where c.textFlowTarget.locale.localeId = :locale
             order by c.creationDate desc
             """)
@@ -22,6 +23,7 @@ public interface TextFlowTargetReviewCommentRepository
 
     @Query("""
             select c from HTextFlowTargetReviewComment c
+            left join fetch c.commenter
             where c.textFlowTarget.textFlow.id = :textFlowId
               and c.textFlowTarget.locale.localeId = :locale
             order by c.creationDate desc
