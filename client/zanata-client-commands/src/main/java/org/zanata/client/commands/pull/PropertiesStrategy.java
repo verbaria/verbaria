@@ -51,9 +51,7 @@ public class PropertiesStrategy extends AbstractPullStrategy {
 
     @Override
     public boolean needsDocToWriteTrans() {
-        // The source doc carries the human key in PotEntryHeader.context (the
-        // resId is a hash); without it the pulled file would use hashed keys.
-        return true;
+        return false;
     }
 
     @Override
