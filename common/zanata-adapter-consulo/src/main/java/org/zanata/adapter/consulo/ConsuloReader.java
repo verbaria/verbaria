@@ -9,6 +9,7 @@ import java.util.Map;
 import org.yaml.snakeyaml.Yaml;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -51,10 +52,22 @@ public final class ConsuloReader {
             String text = textOf(entry.getValue());
             if (text == null) continue;
             TextFlow tf = new TextFlow(key, LocaleId.EN_US, text);
+            String comment = commentOf(entry.getValue());
+            if (comment != null && !comment.isEmpty()) {
+                tf.getExtensions(true).add(new SimpleComment(comment));
+            }
             flows.add(tf);
         }
         resource.getTextFlows().addAll(flows);
         return resource;
+    }
+
+    private static String commentOf(Object value) {
+        if (value instanceof Map<?, ?> m) {
+            Object c = m.get("comment");
+            return c == null ? null : String.valueOf(c);
+        }
+        return null;
     }
 
     private static String textOf(Object value) {

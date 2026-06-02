@@ -20,6 +20,7 @@ import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 
 @Service
@@ -66,6 +67,20 @@ public class TranslationEditService {
 
     public String sourceComment(HTextFlow flow) {
         return comments.sourceComment(flow);
+    }
+
+    @Transactional
+    public void updateSourceComment(Long textFlowId, String comment) {
+        HTextFlow textFlow = textFlowRepository.findById(textFlowId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "TextFlow not found: " + textFlowId));
+        String fresh = comment == null ? "" : comment.trim();
+        if (fresh.isEmpty()) {
+            extensionStore.remove(textFlow, SimpleComment.ID);
+        } else {
+            extensionStore.put(textFlow, new SimpleComment(fresh));
+        }
+        textFlowRepository.save(textFlow);
     }
 
     @Transactional

@@ -17,6 +17,7 @@ import org.zanata.common.LocaleId;
 import org.zanata.model.*;
 import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.repository.*;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.verbaria.server.headless.security.Roles;
 import org.zanata.util.HashUtil;
@@ -328,6 +329,9 @@ public class DevSeedData implements CommandLineRunner {
                         new PotEntryHeader();
                     header.setContext(originalKey);
                     extensionStore.put(tf, header);
+                    SimpleComment comment = new SimpleComment(
+                        "Demo source comment for " + originalKey);
+                    extensionStore.put(tf, comment);
                     flows.add(tf);
                 }
                 doc.setTextFlows(flows);

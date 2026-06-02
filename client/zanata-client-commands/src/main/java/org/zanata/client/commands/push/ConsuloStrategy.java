@@ -18,6 +18,7 @@ import org.zanata.client.config.LocaleMapping;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.StringSet;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
@@ -73,6 +74,10 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                 // extension's presence also marks this entry as a raw file.
                 tf.getExtensions(true).add(new ConsuloSubFile(ext));
             }
+            String comment = e.getValue().comment;
+            if (comment != null && !comment.isEmpty()) {
+                tf.getExtensions(true).add(new SimpleComment(comment));
+            }
             doc.getTextFlows().add(tf);
         }
         return doc;
@@ -83,9 +88,12 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         final String text;
         /** File extension (without dot, may be empty); null for yaml keys. */
         final String ext;
-        SrcEntry(String text, String ext) {
+        /** Optional translator comment ({@code comment:}); null when absent. */
+        final String comment;
+        SrcEntry(String text, String ext, String comment) {
             this.text = text;
             this.ext = ext;
+            this.comment = comment;
         }
     }
 
@@ -122,7 +130,8 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                                 String key = String.valueOf(e.getKey());
                                 String text = textOf(e.getValue());
                                 if (text != null) {
-                                    entries.put(key, new SrcEntry(text, null));
+                                    entries.put(key, new SrcEntry(text, null,
+                                            commentOf(e.getValue())));
                                 }
                             }
                         }
@@ -137,7 +146,7 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                 if (!body.isEmpty()) {
                     // ext "" when the file has none — still marks it raw.
                     entries.put(key, new SrcEntry(body,
-                            FilenameUtils.getExtension(relInside)));
+                            FilenameUtils.getExtension(relInside), null));
                 }
             }
         }
@@ -170,6 +179,14 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         if (value instanceof Map<?, ?> m) {
             Object t = m.get("text");
             return t == null ? null : String.valueOf(t);
+        }
+        return null;
+    }
+
+    private static String commentOf(Object value) {
+        if (value instanceof Map<?, ?> m) {
+            Object c = m.get("comment");
+            return c == null ? null : String.valueOf(c);
         }
         return null;
     }

@@ -254,6 +254,7 @@ public class TranslationRow extends Div {
         });
 
         Component extField = buildConsuloExtensionField(area);
+        Component commentField = buildSourceCommentField();
 
         if (canEdit && !isSourceLocale) {
             Shortcuts.addShortcutListener(area, () -> area.setValue(source),
@@ -318,6 +319,7 @@ public class TranslationRow extends Div {
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
         if (extField != null) right.add(extField);
+        if (commentField != null) right.add(commentField);
         right.add(area, actionRow, historyPanel);
         return right;
     }
@@ -425,7 +427,7 @@ public class TranslationRow extends Div {
         String ext = translationEditService.consuloExtension(flow);
         TextField field = new TextField(getTranslation("translate.row.extension"));
         field.setValue(ext == null ? "" : ext);
-        field.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+        field.addThemeVariants(TextFieldVariant.SMALL);
         field.setWidth("10rem");
         field.setReadOnly(!canReview);
         if (!canReview) {
@@ -446,6 +448,35 @@ public class TranslationRow extends Div {
                         flow.getId(), ex);
                 Notification.show(getTranslation(
                         "translate.row.extensionSaveFailed", ex.getMessage()),
+                        4000, Notification.Position.MIDDLE);
+            }
+        });
+        return field;
+    }
+
+    private Component buildSourceCommentField() {
+        if (!canReview) {
+            return null;
+        }
+        TextField field = new TextField(
+                getTranslation("translate.row.sourceComment"));
+        String existing = translationEditService.sourceComment(flow);
+        field.setValue(existing == null ? "" : existing);
+        field.addThemeVariants(TextFieldVariant.SMALL);
+        field.setWidth("18rem");
+        field.setClearButtonVisible(true);
+        field.addValueChangeListener(e -> {
+            String val = e.getValue() == null ? "" : e.getValue().trim();
+            try {
+                translationEditService.updateSourceComment(flow.getId(), val);
+                Notification.show(
+                        getTranslation("translate.row.sourceCommentSaved"),
+                        2000, Notification.Position.BOTTOM_START);
+            } catch (Exception ex) {
+                log.error("Failed to save source comment for textFlow {}",
+                        flow.getId(), ex);
+                Notification.show(getTranslation(
+                        "translate.row.sourceCommentSaveFailed", ex.getMessage()),
                         4000, Notification.Position.MIDDLE);
             }
         });

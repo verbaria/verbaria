@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.common.LocaleId;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
@@ -131,6 +132,41 @@ public class ConsuloSourceRoundTripTest {
         assertThat(result).doesNotContain("text:");
     }
 
+    @Test
+    public void commentRoundTripsThroughPushAndPull() throws Exception {
+        Path repo = inMemoryRoot();
+        Path srcFile = repo.resolve(
+                "modules/x/src/main/resources/LOCALIZE-LIB/en_US/" + DOC + ".yaml");
+        Files.createDirectories(srcFile.getParent());
+        Files.writeString(srcFile, """
+                greeting.hello:
+                    text: Hello
+                    comment: Shown on the welcome screen
+                """, StandardCharsets.UTF_8);
+
+        // 1) PUSH — reader extracts text AND comment.
+        Resource pushed = readSource(repo);
+        assertThat(pushed.getTextFlows()).hasSize(1);
+        SimpleComment pushedComment = pushed.getTextFlows().get(0).getExtensions()
+                .findByType(SimpleComment.class);
+        assertThat(pushedComment).isNotNull();
+        assertThat(pushedComment.getValue()).isEqualTo("Shown on the welcome screen");
+
+        // 2) SERVER form keeps the comment (like the generic extension store).
+        Resource onServer = toServerForm(pushed);
+
+        // 3) PULL — writer emits comment: back into the yaml.
+        PullOptionsImpl pullOpts = new PullOptionsImpl();
+        pullOpts.setProjectType("consulo");
+        pullOpts.setSrcDir(repo);
+        new ConsuloStrategy(pullOpts).writeSrcFile(onServer);
+
+        // 4) ASSERT — both text and comment round-tripped.
+        String result = Files.readString(srcFile, StandardCharsets.UTF_8);
+        assertThat(result).contains("text: Hello");
+        assertThat(result).contains("comment: Shown on the welcome screen");
+    }
+
     private static Resource readSource(Path repo) throws Exception {
         return readSource(repo, DOC, "**/*.yaml");
     }
@@ -173,6 +209,12 @@ public class ConsuloSourceRoundTripTest {
             if (pushedCf != null) {
                 sf.getExtensions(true).add(
                         new ConsuloSubFile(pushedCf.getExtension()));
+            }
+            SimpleComment pushedComment = pf.getExtensions() == null ? null
+                    : pf.getExtensions().findByType(SimpleComment.class);
+            if (pushedComment != null) {
+                sf.getExtensions(true).add(
+                        new SimpleComment(pushedComment.getValue()));
             }
             server.getTextFlows().add(sf);
         }

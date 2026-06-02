@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
 import org.zanata.common.io.FileDetails;
 import org.zanata.rest.StringSet;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
@@ -74,6 +75,8 @@ public class ConsuloStrategy extends AbstractPullStrategy {
     public void writeSrcFile(Resource doc) throws IOException {
         String docName = doc.getName();
         Map<String, String> yamlEntries = new LinkedHashMap<>();
+        // key -> translator comment ({@code comment:}), for yaml entries.
+        Map<String, String> yamlComments = new LinkedHashMap<>();
         // recovered rel sub-path (with extension) -> raw body.
         Map<String, String> rawBySubPath = new LinkedHashMap<>();
         // key -> raw body, for the disk-matching fallback (legacy data).
@@ -91,6 +94,10 @@ public class ConsuloStrategy extends AbstractPullStrategy {
             } else {
                 yamlEntries.put(key, value);
                 rawByKey.put(key, value);
+                String comment = commentOf(tf);
+                if (comment != null && !comment.isEmpty()) {
+                    yamlComments.put(key, comment);
+                }
             }
         }
         if (yamlEntries.isEmpty() && rawBySubPath.isEmpty()) return;
@@ -126,7 +133,7 @@ public class ConsuloStrategy extends AbstractPullStrategy {
         // 2) No consulo extension → route by the existing on-disk shape.
         Path yaml = index.yamlByDoc.get(docKey);
         if (yaml != null) {
-            writeYamlSource(yaml, yamlEntries);
+            writeYamlSource(yaml, yamlEntries, yamlComments);
             return;
         }
         Map<String, Path> subFiles = index.subFilesByDoc.get(docKey);
@@ -166,6 +173,13 @@ public class ConsuloStrategy extends AbstractPullStrategy {
         return cf.getExtension() == null ? "" : cf.getExtension();
     }
 
+    private static String commentOf(TextFlow tf) {
+        if (tf.getExtensions() == null) return null;
+        SimpleComment c =
+                tf.getExtensions().findByType(SimpleComment.class);
+        return c == null ? null : c.getValue();
+    }
+
     /**
      * Locate the {@code <doc>/} directory to write raw sub-files into: the one
      * already indexed if it exists, otherwise (unambiguously) a fresh dir under
@@ -182,13 +196,17 @@ public class ConsuloStrategy extends AbstractPullStrategy {
     }
 
     /** Rewrite a top-level yaml source as sorted {@code key: {text: value}}. */
-    private void writeYamlSource(Path out, Map<String, String> entries)
-            throws IOException {
+    private void writeYamlSource(Path out, Map<String, String> entries,
+            Map<String, String> comments) throws IOException {
         // Sorted by key so the output order matches the (alphabetical) source.
         Map<String, Map<String, String>> rendered = new TreeMap<>();
         for (Map.Entry<String, String> e : entries.entrySet()) {
-            Map<String, String> body = new LinkedHashMap<>(1);
+            Map<String, String> body = new LinkedHashMap<>(2);
             body.put("text", e.getValue());
+            String comment = comments.get(e.getKey());
+            if (comment != null && !comment.isEmpty()) {
+                body.put("comment", comment);
+            }
             rendered.put(e.getKey(), body);
         }
         DumperOptions opts = new DumperOptions();
