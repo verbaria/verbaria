@@ -1,10 +1,15 @@
 package org.zanata.rest.dto.extensions.consulo;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.zanata.rest.dto.DTOUtil;
 import org.zanata.rest.dto.extensions.ContentAwareExtension;
+import org.zanata.rest.dto.extensions.ParameterizedExtension;
 import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
 
 /**
@@ -19,16 +24,28 @@ import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
  * extensions. Its presence also flags the entry as a raw file rather than a
  * {@code key: text} yaml value, and surfaces the file type to translators.
  *
+ * Yaml entries are not raw files, so they carry no {@code extension}; instead
+ * such an entry may declare the positional placeholders in its {@code text}
+ * ({@code {0}}, {@code {1}}, ...) via the parallel {@code names} / {@code types}
+ * lists. A single consulo extension row therefore holds either the raw-file
+ * extension or the message parameters — they never coexist.
+ *
  * @see org.zanata.rest.dto.extensions.gettext.TextFlowExtension
  */
 @JsonTypeName(value = "consulo-sub-file")
-public class ConsuloSubFile implements TextFlowExtension, ContentAwareExtension {
+public class ConsuloSubFile
+        implements TextFlowExtension, ContentAwareExtension,
+        ParameterizedExtension {
 
     public static final String ID = "consulo";
     private static final long serialVersionUID = 1L;
 
     /** The source file's extension, without the leading dot (may be empty). */
     private String extension;
+    /** Names of the {@code {0}}, {@code {1}}, ... placeholders in {@code text}. */
+    private List<String> names;
+    /** Value types of those placeholders, index-aligned with {@link #names}. */
+    private List<String> types;
 
     public ConsuloSubFile() {
     }
@@ -47,6 +64,28 @@ public class ConsuloSubFile implements TextFlowExtension, ContentAwareExtension 
     }
 
     @Override
+    @JsonProperty("names")
+    @JsonInclude(Include.NON_EMPTY)
+    public List<String> getParamNames() {
+        return names;
+    }
+
+    public void setNames(List<String> names) {
+        this.names = names;
+    }
+
+    @Override
+    @JsonProperty("types")
+    @JsonInclude(Include.NON_EMPTY)
+    public List<String> getParamTypes() {
+        return types;
+    }
+
+    public void setTypes(List<String> types) {
+        this.types = types;
+    }
+
+    @Override
     @JsonIgnore
     public String getContentType() {
         return extension;
@@ -59,7 +98,7 @@ public class ConsuloSubFile implements TextFlowExtension, ContentAwareExtension 
 
     @Override
     public int hashCode() {
-        return extension == null ? 0 : extension.hashCode();
+        return java.util.Objects.hash(extension, names, types);
     }
 
     @Override
@@ -67,11 +106,11 @@ public class ConsuloSubFile implements TextFlowExtension, ContentAwareExtension 
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof ConsuloSubFile)) {
+        if (!(obj instanceof ConsuloSubFile other)) {
             return false;
         }
-        ConsuloSubFile other = (ConsuloSubFile) obj;
-        return extension == null ? other.extension == null
-                : extension.equals(other.extension);
+        return java.util.Objects.equals(extension, other.extension)
+                && java.util.Objects.equals(names, other.names)
+                && java.util.Objects.equals(types, other.types);
     }
 }

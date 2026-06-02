@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.yaml.snakeyaml.Yaml;
 
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.push.PushCommand;
@@ -148,5 +150,104 @@ class SourceRoundTripIT extends AbstractPushPullIT {
         assertThat(Files.exists(sub)).as("sub-file recreated with same extension").isTrue();
         assertThat(Files.readString(sub)).isEqualTo("<b>Hi</b>");
         assertThat(Files.readString(anchor)).contains("greeting").contains("Hello");
+    }
+
+    @Test
+    void consuloYamlNamesAndTypesRoundTrip() throws Exception {
+        assertParamsRoundTrip("itconsuloparams",
+                List.of("kind", "name", "shortcut", "actionName", "shortcutColor"),
+                List.of("PsiElement", "String", "Shortcut", "String", "Color"));
+    }
+
+    @Test
+    void consuloYamlNamesOnlyRoundTrip() throws Exception {
+        assertParamsRoundTrip("itconsulonames",
+                List.of("kind", "name", "shortcut"), null);
+    }
+
+    @Test
+    void consuloYamlTypesOnlyRoundTrip() throws Exception {
+        assertParamsRoundTrip("itconsulotypes", null,
+                List.of("PsiElement", "String", "Color"));
+    }
+
+    private void assertParamsRoundTrip(String proj, List<String> names,
+            List<String> types) throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject(proj, VERSION);
+
+        Path libEn = tmp.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(libEn);
+        Path yaml = libEn.resolve("messages.yaml");
+        Files.writeString(yaml, paramsYaml(names, types));
+
+        new PushCommand(pushOpts("source", "consulo", proj)).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId(proj, VERSION, "messages").orElseThrow();
+        new TransactionTemplate(txManager).executeWithoutResult(s -> {
+            List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
+            assertThat(flows).hasSize(1);
+            ConsuloSubFile ext = extensionStore
+                    .get(flows.get(0), ConsuloSubFile.class).orElseThrow();
+            assertThat(ext.getExtension()).isNull();
+            if (names == null) {
+                assertThat(ext.getParamNames()).isNullOrEmpty();
+            } else {
+                assertThat(ext.getParamNames()).isEqualTo(names);
+            }
+            if (types == null) {
+                assertThat(ext.getParamTypes()).isNullOrEmpty();
+            } else {
+                assertThat(ext.getParamTypes()).isEqualTo(types);
+            }
+            assertThat(translationEditService.isConsuloFile(flows.get(0))).isFalse();
+        });
+
+        Files.writeString(yaml, """
+                import.popup.hint.text:
+                    text: 'placeholder'
+                """);
+
+        new PullCommand(pullOpts("source", "consulo", proj)).run();
+
+        Object root;
+        try (var in = Files.newInputStream(yaml)) {
+            root = new Yaml().load(in);
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> top = (Map<String, Object>) root;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entry =
+                (Map<String, Object>) top.get("import.popup.hint.text");
+        @SuppressWarnings("unchecked")
+        List<String> gotNames = (List<String>) entry.get("names");
+        @SuppressWarnings("unchecked")
+        List<String> gotTypes = (List<String>) entry.get("types");
+        assertThat(gotNames).isEqualTo(names);
+        assertThat(gotTypes).isEqualTo(types);
+    }
+
+    private static String paramsYaml(List<String> names, List<String> types) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("import.popup.hint.text:\n");
+        sb.append("    text: '<html><body><a href=\"action\">{3} {0}...</a> "
+                + "{1}? <span style=\"color:{4}\">{2}</span></body></html>'\n");
+        appendList(sb, "names", names);
+        appendList(sb, "types", types);
+        return sb.toString();
+    }
+
+    private static void appendList(StringBuilder sb, String field,
+            List<String> values) {
+        if (values == null) {
+            return;
+        }
+        sb.append("    ").append(field).append(":\n");
+        for (String v : values) {
+            sb.append("        - ").append(v).append('\n');
+        }
     }
 }

@@ -66,21 +66,34 @@ public class ConsuloStrategy extends AbstractPushStrategy {
             throw new IOException("No source entries found for docId: " + docName);
         }
         for (Map.Entry<String, SrcEntry> e : entries.entrySet()) {
-            TextFlow tf = new TextFlow(e.getKey(), src, e.getValue().text);
-            String ext = e.getValue().ext;
+            SrcEntry se = e.getValue();
+            TextFlow tf = new TextFlow(e.getKey(), src, se.text);
+            String ext = se.ext;
             if (ext != null) {
                 // Raw sub-file: the key already carries the sub-path; we only
                 // need its extension so pull can recreate the exact file. The
                 // extension's presence also marks this entry as a raw file.
                 tf.getExtensions(true).add(new ConsuloSubFile(ext));
+            } else if (hasParams(se)) {
+                // Yaml entry with positional placeholders: carry the names/types
+                // on the same single consulo extension row (no extension here).
+                ConsuloSubFile params = new ConsuloSubFile();
+                params.setNames(se.names);
+                params.setTypes(se.types);
+                tf.getExtensions(true).add(params);
             }
-            String comment = e.getValue().comment;
+            String comment = se.comment;
             if (comment != null && !comment.isEmpty()) {
                 tf.getExtensions(true).add(new SimpleComment(comment));
             }
             doc.getTextFlows().add(tf);
         }
         return doc;
+    }
+
+    private static boolean hasParams(SrcEntry se) {
+        return (se.names != null && !se.names.isEmpty())
+                || (se.types != null && !se.types.isEmpty());
     }
 
     /** A source string plus, for raw sub-files, its file extension. */
@@ -90,10 +103,20 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         final String ext;
         /** Optional translator comment ({@code comment:}); null when absent. */
         final String comment;
+        /** Placeholder names ({@code names:}); null for raw files / absent. */
+        final java.util.List<String> names;
+        /** Placeholder types ({@code types:}); null for raw files / absent. */
+        final java.util.List<String> types;
         SrcEntry(String text, String ext, String comment) {
+            this(text, ext, comment, null, null);
+        }
+        SrcEntry(String text, String ext, String comment,
+                java.util.List<String> names, java.util.List<String> types) {
             this.text = text;
             this.ext = ext;
             this.comment = comment;
+            this.names = names;
+            this.types = types;
         }
     }
 
@@ -131,7 +154,9 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                                 String text = textOf(e.getValue());
                                 if (text != null) {
                                     entries.put(key, new SrcEntry(text, null,
-                                            commentOf(e.getValue())));
+                                            commentOf(e.getValue()),
+                                            listOf(e.getValue(), "names"),
+                                            listOf(e.getValue(), "types")));
                                 }
                             }
                         }
@@ -187,6 +212,17 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         if (value instanceof Map<?, ?> m) {
             Object c = m.get("comment");
             return c == null ? null : String.valueOf(c);
+        }
+        return null;
+    }
+
+    private static java.util.List<String> listOf(Object value, String field) {
+        if (value instanceof Map<?, ?> m && m.get(field) instanceof java.util.List<?> l) {
+            java.util.List<String> out = new java.util.ArrayList<>(l.size());
+            for (Object o : l) {
+                out.add(o == null ? null : String.valueOf(o));
+            }
+            return out;
         }
         return null;
     }

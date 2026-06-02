@@ -77,6 +77,8 @@ public class ConsuloStrategy extends AbstractPullStrategy {
         Map<String, String> yamlEntries = new LinkedHashMap<>();
         // key -> translator comment ({@code comment:}), for yaml entries.
         Map<String, String> yamlComments = new LinkedHashMap<>();
+        // key -> placeholder params ({@code names:} / {@code types:}).
+        Map<String, ConsuloSubFile> yamlParams = new LinkedHashMap<>();
         // recovered rel sub-path (with extension) -> raw body.
         Map<String, String> rawBySubPath = new LinkedHashMap<>();
         // key -> raw body, for the disk-matching fallback (legacy data).
@@ -97,6 +99,10 @@ public class ConsuloStrategy extends AbstractPullStrategy {
                 String comment = commentOf(tf);
                 if (comment != null && !comment.isEmpty()) {
                     yamlComments.put(key, comment);
+                }
+                ConsuloSubFile params = consuloParams(tf);
+                if (params != null) {
+                    yamlParams.put(key, params);
                 }
             }
         }
@@ -133,7 +139,7 @@ public class ConsuloStrategy extends AbstractPullStrategy {
         // 2) No consulo extension → route by the existing on-disk shape.
         Path yaml = index.yamlByDoc.get(docKey);
         if (yaml != null) {
-            writeYamlSource(yaml, yamlEntries, yamlComments);
+            writeYamlSource(yaml, yamlEntries, yamlComments, yamlParams);
             return;
         }
         Map<String, Path> subFiles = index.subFilesByDoc.get(docKey);
@@ -164,13 +170,25 @@ public class ConsuloStrategy extends AbstractPullStrategy {
     /**
      * The consulo file extension of a text flow, or {@code null} when the flow
      * is not a raw consulo file. The value may be an empty string (a raw file
-     * that genuinely has no extension); only a missing extension yields null.
+     * that genuinely has no extension). A consulo extension that carries only
+     * message parameters has a {@code null} extension and is treated as a plain
+     * yaml entry, not a raw file.
      */
     private static String consuloExt(TextFlow tf) {
         if (tf.getExtensions() == null) return null;
         ConsuloSubFile cf = tf.getExtensions().findByType(ConsuloSubFile.class);
         if (cf == null) return null;
-        return cf.getExtension() == null ? "" : cf.getExtension();
+        return cf.getExtension();
+    }
+
+    /** The consulo extension carrying placeholder params, or {@code null}. */
+    private static ConsuloSubFile consuloParams(TextFlow tf) {
+        if (tf.getExtensions() == null) return null;
+        ConsuloSubFile cf = tf.getExtensions().findByType(ConsuloSubFile.class);
+        if (cf == null) return null;
+        boolean hasNames = cf.getParamNames() != null && !cf.getParamNames().isEmpty();
+        boolean hasTypes = cf.getParamTypes() != null && !cf.getParamTypes().isEmpty();
+        return hasNames || hasTypes ? cf : null;
     }
 
     private static String commentOf(TextFlow tf) {
@@ -197,15 +215,25 @@ public class ConsuloStrategy extends AbstractPullStrategy {
 
     /** Rewrite a top-level yaml source as sorted {@code key: {text: value}}. */
     private void writeYamlSource(Path out, Map<String, String> entries,
-            Map<String, String> comments) throws IOException {
+            Map<String, String> comments,
+            Map<String, ConsuloSubFile> params) throws IOException {
         // Sorted by key so the output order matches the (alphabetical) source.
-        Map<String, Map<String, String>> rendered = new TreeMap<>();
+        Map<String, Map<String, Object>> rendered = new TreeMap<>();
         for (Map.Entry<String, String> e : entries.entrySet()) {
-            Map<String, String> body = new LinkedHashMap<>(2);
+            Map<String, Object> body = new LinkedHashMap<>(4);
             body.put("text", e.getValue());
             String comment = comments.get(e.getKey());
             if (comment != null && !comment.isEmpty()) {
                 body.put("comment", comment);
+            }
+            ConsuloSubFile p = params.get(e.getKey());
+            if (p != null) {
+                if (p.getParamNames() != null && !p.getParamNames().isEmpty()) {
+                    body.put("names", p.getParamNames());
+                }
+                if (p.getParamTypes() != null && !p.getParamTypes().isEmpty()) {
+                    body.put("types", p.getParamTypes());
+                }
             }
             rendered.put(e.getKey(), body);
         }

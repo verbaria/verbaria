@@ -10,6 +10,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.dto.extensions.comment.SimpleComment;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -56,6 +57,15 @@ public final class ConsuloReader {
             if (comment != null && !comment.isEmpty()) {
                 tf.getExtensions(true).add(new SimpleComment(comment));
             }
+            List<String> names = listOf(entry.getValue(), "names");
+            List<String> types = listOf(entry.getValue(), "types");
+            if ((names != null && !names.isEmpty())
+                    || (types != null && !types.isEmpty())) {
+                ConsuloSubFile params = new ConsuloSubFile();
+                params.setNames(names);
+                params.setTypes(types);
+                tf.getExtensions(true).add(params);
+            }
             flows.add(tf);
         }
         resource.getTextFlows().addAll(flows);
@@ -66,6 +76,17 @@ public final class ConsuloReader {
         if (value instanceof Map<?, ?> m) {
             Object c = m.get("comment");
             return c == null ? null : String.valueOf(c);
+        }
+        return null;
+    }
+
+    private static List<String> listOf(Object value, String field) {
+        if (value instanceof Map<?, ?> m && m.get(field) instanceof List<?> l) {
+            List<String> out = new ArrayList<>(l.size());
+            for (Object o : l) {
+                out.add(o == null ? null : String.valueOf(o));
+            }
+            return out;
         }
         return null;
     }

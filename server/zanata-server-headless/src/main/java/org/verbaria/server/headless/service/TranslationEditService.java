@@ -165,7 +165,8 @@ public class TranslationEditService {
     }
 
     public boolean isConsuloFile(HTextFlow flow) {
-        return extensionStore.get(flow, ConsuloSubFile.class).isPresent();
+        return extensionStore.get(flow, ConsuloSubFile.class)
+                .map(c -> c.getExtension() != null).orElse(false);
     }
 
     public String consuloExtension(HTextFlow flow) {
