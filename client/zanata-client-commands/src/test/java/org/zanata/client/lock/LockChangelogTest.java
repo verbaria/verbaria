@@ -78,7 +78,7 @@ public class LockChangelogTest {
 
         String msg = LockChangelog.render(before, after);
         assertThat(msg,
-                containsString("Source: https://i.verbaria.org/my-proj@main"));
+                containsString("Source: https://i.verbaria.org/project/my-proj/version/main"));
         assertThat(msg, not(containsString("org//")));
     }
 
@@ -132,7 +132,7 @@ public class LockChangelogTest {
         assertThat(msg, containsString("Removed:"));
         assertThat(msg, containsString("old"));
         // unchanged locale is not mentioned as a change line
-        assertThat(msg, containsString("Source: translate.verbaria.org/my-proj@main"));
+        assertThat(msg, containsString("Source: translate.verbaria.org/project/my-proj/version/main"));
         // co-authors are de-duplicated and present once each
         assertThat(msg, containsString("Co-authored-by: Alice <alice@x.org>"));
         assertThat(msg, containsString("Co-authored-by: Bob <bob@x.org>"));

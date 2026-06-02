@@ -47,7 +47,7 @@ import org.zanata.client.lock.VerbariaLock.TranslationLock;
  * Added:
  *   client/push        ja
  *
- * Source: translate.verbaria.org/my-proj&#64;main
+ * Source: translate.verbaria.org/project/my-proj/version/main
  *
  * Co-authored-by: Alice &lt;alice&#64;example.org&gt;
  * Co-authored-by: Bob &lt;bob&#64;example.org&gt;
@@ -243,22 +243,22 @@ public final class LockChangelog {
     }
 
     /**
-     * {@code server/project@version} for the footer, with no double slash when
-     * the server URL already ends in one. {@code null} when no server is known.
+     * A navigable project URL for the footer, with no double slash when the
+     * server URL already ends in one. {@code null} when no server is known.
      */
     private String sourceRef() {
         if (newLock.getServer() == null) {
             return null;
         }
-        StringBuilder sb = new StringBuilder(
-                newLock.getServer().replaceAll("/+$", ""));
-        if (newLock.getProject() != null) {
-            sb.append('/').append(newLock.getProject());
-            if (newLock.getProjectVersion() != null) {
-                sb.append('@').append(newLock.getProjectVersion());
-            }
+        String base = newLock.getServer().replaceAll("/+$", "");
+        if (newLock.getProject() == null) {
+            return base;
         }
-        return sb.toString();
+        if (newLock.getProjectVersion() != null) {
+            return base + "/project/" + newLock.getProject()
+                    + "/version/" + newLock.getProjectVersion();
+        }
+        return base + "/project/view/" + newLock.getProject();
     }
 
     private void mdSection(StringBuilder sb, String heading,
