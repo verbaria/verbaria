@@ -1,4 +1,4 @@
-package org.verbaria.server.headless.adapter.yaml;
+package org.zanata.adapter.consulo;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -14,35 +14,8 @@ import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
-/**
- * Parses Consulo-style localization YAMLs:
- *
- * <pre>
- * button.add.class:
- *     text: Add Class
- * are.delete.confirmation.message:
- *     text: Delete {0}?
- * </pre>
- *
- * Each top-level key becomes a {@link TextFlow} whose id is the key
- * (caller is expected to hash it via {@code SourceUploadService.hashTextFlowIds}
- * after extraction so the original key survives in {@code PotEntryHeader.context}).
- *
- * <p>Only the {@code text:} sub-field is read; other sub-fields are
- * preserved on round-trip via the writer when the same TextFlow id is
- * re-emitted but are otherwise ignored. Top-level entries that lack a
- * {@code text} field are skipped (matches the Consulo
- * {@code maven-consulo-plugin:validate-localize} behavior, which only
- * validates {@code text}).</p>
- */
-public final class YamlReader {
+public final class ConsuloReader {
 
-    /**
-     * Reads a translated Consulo localize YAML stream and emits one
-     * {@link TextFlowTarget} per entry, marked as {@link ContentState#Translated}.
-     * Caller is expected to hash the ids the same way as the source upload
-     * path so they line up with the existing TextFlows in the database.
-     */
     public TranslationsResource extractTarget(InputStream in) {
         TranslationsResource res = new TranslationsResource();
         Yaml yaml = new Yaml();
@@ -62,7 +35,6 @@ public final class YamlReader {
         return res;
     }
 
-    /** Reads a Consulo localize YAML stream and emits one TextFlow per entry. */
     public Resource extractTemplate(String docId, InputStream in) {
         Resource resource = new Resource(docId);
         resource.setLang(LocaleId.EN_US);
@@ -85,7 +57,6 @@ public final class YamlReader {
         return resource;
     }
 
-    /** Extract the {@code text:} field from an entry value (or use the value as-is if it's a bare string). */
     private static String textOf(Object value) {
         if (value == null) return null;
         if (value instanceof String s) return s;
@@ -96,7 +67,6 @@ public final class YamlReader {
         return null;
     }
 
-    /** Convenience for callers that already have an ordered map (e.g. from re-parsing on pull). */
     public static Map<String, String> flatten(Map<String, Object> top) {
         Map<String, String> out = new LinkedHashMap<>();
         for (Map.Entry<String, Object> e : top.entrySet()) {

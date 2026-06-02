@@ -32,9 +32,9 @@ import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import java.nio.file.Paths;
 
-public class YamlStrategy extends AbstractPullStrategy {
+public class ConsuloStrategy extends AbstractPullStrategy {
 
-    private static final Logger log = LoggerFactory.getLogger(YamlStrategy.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsuloStrategy.class);
 
     private static final String RAW_CONTENT_KEY = "content";
     private static final String[] EXTS = {".yaml", ".yml", ".html", ".properties", ".java", ".colorPage"};
@@ -42,7 +42,7 @@ public class YamlStrategy extends AbstractPullStrategy {
     /** Lazily-built index of existing on-disk source files, keyed by docName. */
     private SourceIndex sourceIndex;
 
-    protected YamlStrategy(PullOptions opts) {
+    protected ConsuloStrategy(PullOptions opts) {
         super(opts);
     }
 

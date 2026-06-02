@@ -23,7 +23,7 @@ import org.zanata.adapter.xliff.XliffWriter;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
-import org.verbaria.server.headless.adapter.yaml.YamlWriter;
+import org.zanata.adapter.consulo.ConsuloWriter;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.common.dto.TranslatedDoc;
 import org.zanata.model.HDocument;
@@ -194,7 +194,7 @@ public class OfflineExportService {
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-            new YamlWriter().write(w, entries);
+            new ConsuloWriter().write(w, entries);
         }
         return out.toByteArray();
     }

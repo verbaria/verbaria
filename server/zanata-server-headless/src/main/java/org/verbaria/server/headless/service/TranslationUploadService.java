@@ -19,7 +19,7 @@ import org.zanata.common.LocaleId;
 import org.zanata.model.HAccount;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import org.verbaria.server.headless.adapter.yaml.YamlReader;
+import org.zanata.adapter.consulo.ConsuloReader;
 import org.zanata.util.HashUtil;
 
 /**
@@ -82,7 +82,7 @@ public class TranslationUploadService {
                 tmp.delete();
             }
         } else if (lower.endsWith(".yaml") || lower.endsWith(".yml")) {
-            resource = new YamlReader().extractTarget(in);
+            resource = new ConsuloReader().extractTarget(in);
             hashIds = true;
         } else {
             throw new IllegalArgumentException(

@@ -26,11 +26,11 @@ import org.zanata.rest.dto.resource.TranslationsResource;
 import java.nio.file.Path;
 import java.io.InputStream;
 
-public class YamlStrategy extends AbstractPushStrategy {
+public class ConsuloStrategy extends AbstractPushStrategy {
 
     private static final String LOCALIZE_LIB = "LOCALIZE-LIB/";
 
-    public YamlStrategy() {
+    public ConsuloStrategy() {
         super(new StringSet("comment;gettext;consulo"), ".yaml");
     }
 

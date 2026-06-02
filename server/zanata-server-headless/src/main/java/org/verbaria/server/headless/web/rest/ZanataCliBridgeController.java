@@ -926,7 +926,7 @@ public class ZanataCliBridgeController {
     //
     // GET /rest/file/translation/{slug}/{iter}/{locale}/yaml?docId=foo
     // returns the rendered Consulo-style YAML for one document. Used by
-    // the Yaml project-type CLI pull strategy — one file at a time, not
+    // the Consulo project-type CLI pull strategy — one file at a time, not
     // a ZIP, so the CLI can lay them out under LOCALIZE-LIB/<locale>/.
 
     // Distinct URL prefix so Spring's path matcher doesn't compete with

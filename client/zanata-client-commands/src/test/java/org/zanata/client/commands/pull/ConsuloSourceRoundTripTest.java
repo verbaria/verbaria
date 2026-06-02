@@ -25,12 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   push (read en_US source file)  →  server (hash id, key kept in gettext
  *   context)  →  external edit on the server  →  pull (write source back)
  * </pre>
- * Drives the real push reader ({@code push.YamlStrategy.loadSrcDoc}) and the
- * real pull writer ({@code pull.YamlStrategy.writeSrcFile}); only the network
+ * Drives the real push reader ({@code push.ConsuloStrategy.loadSrcDoc}) and the
+ * real pull writer ({@code pull.ConsuloStrategy.writeSrcFile}); only the network
  * hop is simulated by transforming the pushed {@link Resource} the way the
  * server does. Asserts the externally-changed value ends up back in the file.
  */
-public class YamlSourceRoundTripTest {
+public class ConsuloSourceRoundTripTest {
 
     private static final String DOC = "Foo.BarLocalize";
 
@@ -79,7 +79,7 @@ public class YamlSourceRoundTripTest {
         PullOptionsImpl pullOpts = new PullOptionsImpl();
         pullOpts.setProjectType("consulo");
         pullOpts.setSrcDir(repo);
-        new YamlStrategy(pullOpts).writeSrcFile(onServer);
+        new ConsuloStrategy(pullOpts).writeSrcFile(onServer);
 
         // 5) ASSERT — the external change is now in the code.
         String result = Files.readString(srcFile, StandardCharsets.UTF_8);
@@ -123,7 +123,7 @@ public class YamlSourceRoundTripTest {
         PullOptionsImpl pullOpts = new PullOptionsImpl();
         pullOpts.setProjectType("consulo");
         pullOpts.setSrcDir(repo);
-        new YamlStrategy(pullOpts).writeSrcFile(onServer);
+        new ConsuloStrategy(pullOpts).writeSrcFile(onServer);
 
         // 5) ASSERT — the file is still a .html with the edited body, not yaml.
         String result = Files.readString(html, StandardCharsets.UTF_8);
@@ -146,8 +146,8 @@ public class YamlSourceRoundTripTest {
         push.setDefaultExcludes(true);
         push.setCaseSensitive(true);
         push.setLocaleMapList(new org.zanata.client.config.LocaleList());
-        org.zanata.client.commands.push.YamlStrategy strat =
-                new org.zanata.client.commands.push.YamlStrategy();
+        org.zanata.client.commands.push.ConsuloStrategy strat =
+                new org.zanata.client.commands.push.ConsuloStrategy();
         strat.setPushOptions(push);
         strat.init();
         return strat.loadSrcDoc(repo, doc);

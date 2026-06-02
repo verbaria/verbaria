@@ -17,7 +17,7 @@ import org.zanata.model.HAccount;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
-import org.verbaria.server.headless.adapter.yaml.YamlReader;
+import org.zanata.adapter.consulo.ConsuloReader;
 import org.zanata.util.HashUtil;
 
 /**
@@ -82,7 +82,7 @@ public class SourceUploadService {
             // stems (e.g. consulo.ui.ex.UILocalize) are globally unique
             // across the Consulo platform + every plugin, so we can use
             // them as docIds without prefixing.
-            resource = new YamlReader().extractTemplate(baseDocId, in);
+            resource = new ConsuloReader().extractTemplate(baseDocId, in);
             hashTextFlowIds(resource);
         } else {
             throw new IllegalArgumentException(

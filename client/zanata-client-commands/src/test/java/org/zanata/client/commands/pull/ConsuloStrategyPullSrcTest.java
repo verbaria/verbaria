@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * existing {@code LOCALIZE-LIB/en_US/<doc>.yaml} file from the server's
  * (possibly edited) source — the round-trip that {@code writeSrcFile} enables.
  */
-public class YamlStrategyPullSrcTest {
+public class ConsuloStrategyPullSrcTest {
 
     private static TextFlow tf(String id, String key, String content) {
         TextFlow tf = new TextFlow(id, new LocaleId("en-US"), content);
@@ -68,11 +68,11 @@ public class YamlStrategyPullSrcTest {
         return root;
     }
 
-    private static YamlStrategy strategy(Path srcDir) {
+    private static ConsuloStrategy strategy(Path srcDir) {
         PullOptionsImpl opts = new PullOptionsImpl();
         opts.setProjectType("consulo");
         opts.setSrcDir(srcDir);
-        return new YamlStrategy(opts);
+        return new ConsuloStrategy(opts);
     }
 
     @Test

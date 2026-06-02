@@ -76,6 +76,7 @@
     <module>zanata-common-util</module>
     <module>zanata-adapter-po</module>
     <module>zanata-adapter-properties</module>
+    <module>zanata-adapter-consulo</module>
     <module>zanata-adapter-xliff</module>
     <module>zanata-adapter-glossary</module>
   </modules>
