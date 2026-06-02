@@ -326,8 +326,10 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     SourceLock src = new SourceLock(doc.getRevision());
                     src.setSig(LockSignature.sourceSignature(doc));
                     lock.document(localDocName).setSource(src);
-                    recordSourceLocaleLock(strat, localDocName,
-                            qualifiedDocName, doc.getLang());
+                    if (pullTarget) {
+                        recordSourceLocaleLock(strat, localDocName,
+                                qualifiedDocName, doc.getLang());
+                    }
                 }
 
                 if (pullTarget) {
