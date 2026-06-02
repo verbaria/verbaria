@@ -215,7 +215,15 @@ public class TranslationRow extends Div {
 
         HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, bookmarkBtn);
         leftBtns.setSpacing(true);
-        left.add(resId, srcText, leftBtns, detailsPanel);
+        left.add(resId, srcText);
+        // Source comment is per-key (source) metadata: a toggle icon sits in the
+        // action line with details/bookmark and reveals the comment block below.
+        Component commentArea = buildSourceComment(leftBtns);
+        left.add(leftBtns);
+        if (commentArea != null) {
+            left.add(commentArea);
+        }
+        left.add(detailsPanel);
         return left;
     }
 
@@ -254,7 +262,6 @@ public class TranslationRow extends Div {
         });
 
         Component extField = buildConsuloExtensionField(area);
-        Component commentField = buildSourceCommentField();
 
         if (canEdit && !isSourceLocale) {
             Shortcuts.addShortcutListener(area, () -> area.setValue(source),
@@ -319,7 +326,6 @@ public class TranslationRow extends Div {
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
         if (extField != null) right.add(extField);
-        if (commentField != null) right.add(commentField);
         right.add(area, actionRow, historyPanel);
         return right;
     }
@@ -454,19 +460,31 @@ public class TranslationRow extends Div {
         return field;
     }
 
-    private Component buildSourceCommentField() {
+    /**
+     * Builds the source-comment block (shown only when a comment exists) and
+     * adds a toggle icon to {@code leftBtns} that reveals/hides it. The block
+     * saves only when its check (Accept) suffix is clicked — never on edit.
+     * Returns {@code null} for non-reviewers.
+     */
+    private Component buildSourceComment(HorizontalLayout leftBtns) {
         if (!canReview) {
             return null;
         }
-        TextField field = new TextField(
-                getTranslation("translate.row.sourceComment"));
         String existing = translationEditService.sourceComment(flow);
-        field.setValue(existing == null ? "" : existing);
-        field.addThemeVariants(TextFieldVariant.SMALL);
-        field.setWidth("18rem");
-        field.setClearButtonVisible(true);
-        field.addValueChangeListener(e -> {
-            String val = e.getValue() == null ? "" : e.getValue().trim();
+        boolean hasComment = existing != null && !existing.isEmpty();
+
+        TextArea area = new TextArea(getTranslation("translate.row.sourceComment"));
+        area.setValue(existing == null ? "" : existing);
+        area.setWidthFull();
+        area.addClassNames(AuraUtility.Margin.Top.SMALL);
+
+        Button accept = new Button(LineAwesomeIcon.CHECK_SOLID.create());
+        accept.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        String acceptTip = getTranslation("translate.row.sourceCommentAccept");
+        accept.getElement().setAttribute("title", acceptTip);
+        accept.getElement().setAttribute("aria-label", acceptTip);
+        accept.addClickListener(e -> {
+            String val = area.getValue() == null ? "" : area.getValue().trim();
             try {
                 translationEditService.updateSourceComment(flow.getId(), val);
                 Notification.show(
@@ -480,7 +498,23 @@ public class TranslationRow extends Div {
                         4000, Notification.Position.MIDDLE);
             }
         });
-        return field;
+        area.setSuffixComponent(accept);
+        area.setVisible(hasComment);
+
+        Button toggle = new Button(LineAwesomeIcon.COMMENT_SOLID.create());
+        toggle.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        String toggleTip = getTranslation("translate.row.sourceCommentAdd");
+        toggle.getElement().setAttribute("title", toggleTip);
+        toggle.getElement().setAttribute("aria-label", toggleTip);
+        toggle.addClickListener(e -> {
+            area.setVisible(!area.isVisible());
+            if (area.isVisible()) {
+                area.focus();
+            }
+        });
+        leftBtns.add(toggle);
+
+        return area;
     }
 
     private Button buildSaveButton(Span stateSpan) {

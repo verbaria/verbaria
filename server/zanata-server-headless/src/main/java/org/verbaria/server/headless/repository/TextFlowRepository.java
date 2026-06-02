@@ -28,6 +28,19 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
             """)
     List<HTextFlow> findByIds(@Param("ids") Collection<Long> ids);
 
+    /**
+     * Eagerly initialises the lazy {@code extensions} collection for the given
+     * text flows. Call within the same session/request as the page query so the
+     * entities carry their extensions once the grid renders them detached
+     * (a collection can't be join-fetched together with pagination).
+     */
+    @Query("""
+            select distinct tf from HTextFlow tf
+            left join fetch tf.extensions
+            where tf.id in :ids
+            """)
+    List<HTextFlow> findWithExtensions(@Param("ids") Collection<Long> ids);
+
     @Query("""
             select tf.document.id, count(tf)
             from HTextFlow tf

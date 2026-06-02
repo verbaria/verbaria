@@ -2,6 +2,7 @@ package org.verbaria.server.headless.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.ContentState;
@@ -67,6 +68,23 @@ public class TranslationEditService {
 
     public String sourceComment(HTextFlow flow) {
         return comments.sourceComment(flow);
+    }
+
+    /**
+     * One page of text flows for the translate view, with their lazy
+     * {@code extensions} collection initialised in the same session so the grid
+     * can render the (then detached) rows without a LazyInitializationException.
+     */
+    @Transactional(readOnly = true)
+    public List<HTextFlow> pageWithExtensions(Long docId, LocaleId locale,
+            String query, int stateMode, Pageable page) {
+        List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
+                docId, locale, query, stateMode, page);
+        if (!flows.isEmpty()) {
+            textFlowRepository.findWithExtensions(
+                    flows.stream().map(HTextFlow::getId).toList());
+        }
+        return flows;
     }
 
     @Transactional

@@ -759,7 +759,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         int page = query.getOffset() / Math.max(1, query.getLimit());
         PageRequest pr =
                 PageRequest.of(page, query.getLimit());
-        List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
+        // Loads the page AND eagerly initialises each row's extensions in one
+        // transaction, so the grid can render these (detached) rows without a
+        // LazyInitializationException when reading gettext/comment/consulo data.
+        List<HTextFlow> flows = translationEditService.pageWithExtensions(
                 docId, currentLocale, f.q(), f.stateMode(), pr);
         if (flows.isEmpty()) return Stream.empty();
         List<Long> ids = new ArrayList<>(flows.size());
