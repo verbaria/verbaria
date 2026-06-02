@@ -475,7 +475,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 new ArrayList<>(flows.size());
         for (HTextFlow tf : flows) {
             String src = tf.getContents().isEmpty() ? "" : tf.getContents().get(0);
-            String ctx = tf.getPotEntryData() == null ? null : tf.getPotEntryData().getContext();
+            String ctx = translationEditService.gettextContext(tf);
             reqs.add(new TranslationProvider.TranslationRequest(
                     src, sourceLocale, currentLocale, ctx));
         }

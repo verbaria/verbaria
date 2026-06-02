@@ -12,11 +12,15 @@ import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetReviewComment;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
+import org.verbaria.server.headless.extension.comment.CommentExtensions;
+import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 
 @Service
 public class TranslationEditService {
@@ -26,17 +30,42 @@ public class TranslationEditService {
     private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
+    private final TextFlowExtensionStore extensionStore;
+    private final GettextExtensions gettext;
+    private final CommentExtensions comments;
 
     public TranslationEditService(TextFlowRepository textFlowRepository,
                                   TextFlowTargetRepository targetRepository,
                                   TextFlowTargetReviewCommentRepository reviewCommentRepository,
                                   LocaleRepository localeRepository,
-                                  AccountRepository accountRepository) {
+                                  AccountRepository accountRepository,
+                                  TextFlowExtensionStore extensionStore,
+                                  GettextExtensions gettext,
+                                  CommentExtensions comments) {
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.reviewCommentRepository = reviewCommentRepository;
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
+        this.extensionStore = extensionStore;
+        this.gettext = gettext;
+        this.comments = comments;
+    }
+
+    public String gettextContext(HTextFlow flow) {
+        return gettext.context(flow);
+    }
+
+    public String gettextReferences(HTextFlow flow) {
+        return gettext.references(flow);
+    }
+
+    public String gettextFlags(HTextFlow flow) {
+        return gettext.flags(flow);
+    }
+
+    public String sourceComment(HTextFlow flow) {
+        return comments.sourceComment(flow);
     }
 
     @Transactional
@@ -94,8 +123,21 @@ public class TranslationEditService {
         if (fresh.startsWith(".")) {
             fresh = fresh.substring(1);
         }
-        textFlow.setConsuloFileExt(fresh);
+        extensionStore.put(textFlow, new ConsuloSubFile(fresh));
         textFlowRepository.save(textFlow);
+    }
+
+    public String consuloContentType(HTextFlow flow) {
+        return extensionStore.contentType(flow).orElse(null);
+    }
+
+    public boolean isConsuloFile(HTextFlow flow) {
+        return extensionStore.get(flow, ConsuloSubFile.class).isPresent();
+    }
+
+    public String consuloExtension(HTextFlow flow) {
+        return extensionStore.get(flow, ConsuloSubFile.class)
+                .map(ConsuloSubFile::getExtension).orElse(null);
     }
 
     @Transactional

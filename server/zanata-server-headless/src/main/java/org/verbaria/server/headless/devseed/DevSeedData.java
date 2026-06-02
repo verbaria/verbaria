@@ -15,8 +15,9 @@ import org.zanata.common.ContentType;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.model.*;
-import org.zanata.model.po.HPotEntryData;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.repository.*;
+import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.verbaria.server.headless.security.Roles;
 import org.zanata.util.HashUtil;
 
@@ -47,6 +48,7 @@ public class DevSeedData implements CommandLineRunner {
     private final TextFlowTargetRepository textFlowTargetRepository;
     private final ApplicationConfigurationRepository configRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TextFlowExtensionStore extensionStore;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -59,7 +61,8 @@ public class DevSeedData implements CommandLineRunner {
                        TextFlowRepository textFlowRepository,
                        TextFlowTargetRepository textFlowTargetRepository,
                        ApplicationConfigurationRepository configRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       TextFlowExtensionStore extensionStore) {
         this.projectRepository = projectRepository;
         this.localeRepository = localeRepository;
         this.iterationRepository = iterationRepository;
@@ -70,6 +73,7 @@ public class DevSeedData implements CommandLineRunner {
         this.textFlowTargetRepository = textFlowTargetRepository;
         this.configRepository = configRepository;
         this.passwordEncoder = passwordEncoder;
+        this.extensionStore = extensionStore;
     }
 
     @Override
@@ -85,9 +89,7 @@ public class DevSeedData implements CommandLineRunner {
 
     /**
      * One-shot data migration: legacy / previously-seeded HTextFlow rows
-     * stored the raw property key (e.g. "msg.0") as resId. Hash them and
-     * stash the original key in HPotEntryData.context so the editor's
-     * Details panel can still show it.
+     * stored the raw property key (e.g. "msg.0") as resId. Hash them.
      * <p>
      * Uses native SQL because HTextFlow.resId is annotated {@code @NaturalId}
      * which Hibernate treats as immutable on managed entities — JPA updates
@@ -121,34 +123,6 @@ public class DevSeedData implements CommandLineRunner {
                 .setParameter("h", hashed)
                 .setParameter("id", id)
                 .executeUpdate();
-
-            // Upsert hpot_entry_data.context so the editor still shows the key.
-            Object existing = entityManager.createNativeQuery(
-                    "SELECT pot_entry_data_id FROM htext_flow WHERE id = :id")
-                .setParameter("id", id)
-                .getSingleResult();
-            if (existing == null) {
-                Number newId = (Number) entityManager.createNativeQuery(
-                        "INSERT INTO hpot_entry_data (context) VALUES (:k) RETURNING id")
-                    .setParameter("k", originalKey)
-                    .getSingleResult();
-                entityManager.createNativeQuery(
-                        "UPDATE htext_flow SET pot_entry_data_id = :pid WHERE id = :id")
-                    .setParameter("pid", newId.longValue())
-                    .setParameter("id", id)
-                    .executeUpdate();
-            }
-            else {
-                Long pid = ((Number) existing).longValue();
-                entityManager.createNativeQuery("""
-                        UPDATE hpot_entry_data
-                        SET context = COALESCE(NULLIF(context, ''), :k)
-                        WHERE id = :pid
-                        """)
-                    .setParameter("k", originalKey)
-                    .setParameter("pid", pid)
-                    .executeUpdate();
-            }
             migrated++;
         }
         log.info("Migrated {} HTextFlow rows to hashed resIds", migrated);
@@ -344,15 +318,16 @@ public class DevSeedData implements CommandLineRunner {
                 for (int i = 0; i < SAMPLE_SOURCES.size(); i++) {
                     String src = SAMPLE_SOURCES.get(i);
                     // Match production behavior: resId is a hash, original
-                    // human-readable key (msg.N) lives in PotEntryData.context.
+                    // human-readable key (msg.N) lives in the gettext context.
                     String originalKey = "msg." + i;
                     HTextFlow tf = new HTextFlow(doc,
                         HashUtil.generateHash(originalKey), src);
                     tf.setRevision(1);
                     tf.setPos(i);
-                    HPotEntryData entry = new HPotEntryData();
-                    entry.setContext(originalKey);
-                    tf.setPotEntryData(entry);
+                    PotEntryHeader header =
+                        new PotEntryHeader();
+                    header.setContext(originalKey);
+                    extensionStore.put(tf, header);
                     flows.add(tf);
                 }
                 doc.setTextFlows(flows);

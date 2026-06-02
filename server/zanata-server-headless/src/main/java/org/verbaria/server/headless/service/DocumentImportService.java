@@ -19,8 +19,7 @@ import org.zanata.model.HPerson;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.po.HPotEntryData;
-import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
@@ -49,17 +48,20 @@ public class DocumentImportService {
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository textFlowTargetRepository;
     private final LocaleRepository localeRepository;
+    private final TextFlowExtensionStore extensionStore;
 
     public DocumentImportService(ProjectIterationRepository iterationRepository,
                                  DocumentRepository documentRepository,
                                  TextFlowRepository textFlowRepository,
                                  TextFlowTargetRepository textFlowTargetRepository,
-                                 LocaleRepository localeRepository) {
+                                 LocaleRepository localeRepository,
+                                 TextFlowExtensionStore extensionStore) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.textFlowTargetRepository = textFlowTargetRepository;
         this.localeRepository = localeRepository;
+        this.extensionStore = extensionStore;
     }
 
     public record ImportResult(HDocument document, boolean created) {}
@@ -159,8 +161,7 @@ public class DocumentImportService {
             // For .properties uploads SourceUploadService stuffs the original
             // property key into context, so the editor's Details panel can
             // still surface the human-readable identifier.
-            applyPotEntryHeader(tf, incoming);
-            applyConsuloSubFile(tf, incoming);
+            extensionStore.apply(incoming, tf);
             newOrder.add(tf);
             pos++;
         }
@@ -350,42 +351,6 @@ public class DocumentImportService {
             if (!hex) return false;
         }
         return true;
-    }
-
-    private static void applyPotEntryHeader(HTextFlow tf, TextFlow incoming) {
-        PotEntryHeader header = incoming.getExtensions() == null
-                ? null : incoming.getExtensions().findByType(PotEntryHeader.class);
-        if (header == null) {
-            return;
-        }
-        HPotEntryData data = tf.getPotEntryData();
-        if (data == null) {
-            data = new HPotEntryData();
-            tf.setPotEntryData(data);
-        }
-        if (header.getContext() != null && !header.getContext().isEmpty()) {
-            data.setContext(header.getContext());
-        }
-        if (header.getFlags() != null && !header.getFlags().isEmpty()) {
-            data.setFlags(String.join(",", header.getFlags()));
-        }
-        if (header.getReferences() != null && !header.getReferences().isEmpty()) {
-            data.setReferences(String.join(",", header.getReferences()));
-        }
-    }
-
-    /**
-     * Persist the consulo sub-file extension so source pull can recreate the
-     * exact raw file and the editor can show/change it. Stored even when empty
-     * (an extensionless raw file) so its presence still flags a raw sub-file.
-     */
-    private static void applyConsuloSubFile(HTextFlow tf, TextFlow incoming) {
-        ConsuloSubFile cf = incoming.getExtensions() == null ? null
-                : incoming.getExtensions().findByType(ConsuloSubFile.class);
-        if (cf != null) {
-            tf.setConsuloFileExt(
-                    cf.getExtension() == null ? "" : cf.getExtension());
-        }
     }
 
     private HLocale resolveLocale(LocaleId localeId) {

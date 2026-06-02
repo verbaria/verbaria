@@ -34,6 +34,7 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
@@ -53,15 +54,18 @@ public class OfflineExportService {
     private final DocumentRepository documentRepository;
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
+    private final GettextExtensions gettext;
 
     public OfflineExportService(ProjectIterationRepository iterationRepository,
                                 DocumentRepository documentRepository,
                                 TextFlowRepository textFlowRepository,
-                                TextFlowTargetRepository targetRepository) {
+                                TextFlowTargetRepository targetRepository,
+                                GettextExtensions gettext) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.textFlowRepository = textFlowRepository;
+        this.gettext = gettext;
     }
 
     public record Bundle(String filename, String contentType, byte[] bytes) {}
@@ -297,11 +301,10 @@ public class OfflineExportService {
             // Re-attach the original human key (PotEntryData.context) so
             // YAML/PO export can emit something readable instead of the
             // 32-char resId hash.
-            if (tf.getPotEntryData() != null
-                    && tf.getPotEntryData().getContext() != null
-                    && !tf.getPotEntryData().getContext().isEmpty()) {
+            String ctx = gettext.context(tf);
+            if (ctx != null && !ctx.isEmpty()) {
                 PotEntryHeader header = new PotEntryHeader();
-                header.setContext(tf.getPotEntryData().getContext());
+                header.setContext(ctx);
                 xf.getExtensions(true).add(header);
             }
             out.add(xf);

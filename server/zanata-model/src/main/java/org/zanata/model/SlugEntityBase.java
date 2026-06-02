@@ -29,14 +29,16 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import org.hibernate.annotations.NaturalId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zanata.model.validator.Slug;
 import com.google.common.annotations.VisibleForTesting;
 
 @MappedSuperclass
 @Access(AccessType.FIELD)
 public abstract class SlugEntityBase extends ModelEntityBase {
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(SlugEntityBase.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(SlugEntityBase.class);
 
     /**
      * We append this suffix to a deleted slug entity so that its original slug

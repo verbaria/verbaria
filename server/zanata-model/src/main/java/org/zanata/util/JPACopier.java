@@ -16,6 +16,8 @@ import org.apache.commons.beanutils.PropertyUtilsBean;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -24,8 +26,8 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Primitives;
 
 public class JPACopier {
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(JPACopier.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(JPACopier.class);
 
     private static final List<String> COMMON_IGNORED_FIELDS = ImmutableList
             .<String> builder().add("id").add("creationDate").build();

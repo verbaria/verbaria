@@ -44,8 +44,8 @@ import com.google.common.annotations.VisibleForTesting;
 @EntityListeners({ ModelEntityBase.EntityListener.class })
 @MappedSuperclass
 public class ModelEntityBase implements Serializable {
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(ModelEntityBase.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(ModelEntityBase.class);
 
     private static final long serialVersionUID = -6139220551322868743L;
     protected Long id;

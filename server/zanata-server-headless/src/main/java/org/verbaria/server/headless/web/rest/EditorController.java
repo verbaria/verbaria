@@ -32,6 +32,7 @@ import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.model.HTextFlowTargetReviewComment;
+import org.verbaria.server.headless.extension.comment.CommentExtensions;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.GlossaryEntryRepository;
 import org.verbaria.server.headless.repository.GlossaryTermRepository;
@@ -62,6 +63,7 @@ public class EditorController {
     private final LocaleRepository localeRepository;
     private final GlossaryEntryRepository glossaryEntryRepository;
     private final GlossaryTermRepository glossaryTermRepository;
+    private final CommentExtensions comments;
 
     public EditorController(ProjectRepository projectRepository,
                             ProjectIterationRepository iterationRepository,
@@ -72,7 +74,8 @@ public class EditorController {
                             TextFlowTargetReviewCommentRepository reviewCommentRepository,
                             LocaleRepository localeRepository,
                             GlossaryEntryRepository glossaryEntryRepository,
-                            GlossaryTermRepository glossaryTermRepository) {
+                            GlossaryTermRepository glossaryTermRepository,
+                            CommentExtensions comments) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -83,6 +86,7 @@ public class EditorController {
         this.localeRepository = localeRepository;
         this.glossaryEntryRepository = glossaryEntryRepository;
         this.glossaryTermRepository = glossaryTermRepository;
+        this.comments = comments;
     }
 
     @GetMapping("/project/{projectSlug}")
@@ -174,7 +178,8 @@ public class EditorController {
             source.put("id", tf.getResId());
             source.put("msgctxt", "");
             source.put("plural", tf.isPlural());
-            source.put("sourceComment", tf.getComment() == null ? "" : String.valueOf(tf.getComment()));
+            String srcComment = comments.sourceComment(tf);
+            source.put("sourceComment", srcComment == null ? "" : srcComment);
             source.put("sourceFlags", "");
             source.put("sourceReferences", "");
             source.put("wordCount", tf.getWordCount() == null ? 0L : tf.getWordCount());

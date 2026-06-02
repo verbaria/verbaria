@@ -20,6 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.pull.PullOptionsImpl;
@@ -71,6 +75,10 @@ class PushPullRoundTripIT {
     TranslationEditService translationEditService;
     @Autowired
     OfflineExportService offlineExportService;
+    @Autowired
+    TextFlowExtensionStore extensionStore;
+    @Autowired
+    PlatformTransactionManager txManager;
 
     private final ObjectMapper json = new ObjectMapper();
 
@@ -192,15 +200,26 @@ class PushPullRoundTripIT {
         HDocument doc = documentRepository
                 .findByVersionAndDocId("itconsulo", VERSION, "my.Localize")
                 .orElseThrow();
-        List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
-        assertThat(flows).hasSize(2);
-        HTextFlow rawSub = flows.stream()
-                .filter(f -> f.getConsuloFileExt() != null).findFirst().orElseThrow();
-        assertThat(rawSub.getConsuloFileExt()).isEqualTo("html");
-        assertThat(rawSub.getContents().get(0)).isEqualTo("<b>Hi</b>");
-        HTextFlow plain = flows.stream()
-                .filter(f -> f.getConsuloFileExt() == null).findFirst().orElseThrow();
-        assertThat(plain.getContents().get(0)).isEqualTo("Hello");
+        new TransactionTemplate(txManager)
+                .executeWithoutResult(s -> {
+            List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
+            assertThat(flows).hasSize(2);
+            HTextFlow rawSub = flows.stream()
+                    .filter(f -> extensionStore
+                            .get(f, ConsuloSubFile.class)
+                            .isPresent())
+                    .findFirst().orElseThrow();
+            assertThat(extensionStore
+                    .get(rawSub, ConsuloSubFile.class)
+                    .orElseThrow().getExtension()).isEqualTo("html");
+            assertThat(rawSub.getContents().get(0)).isEqualTo("<b>Hi</b>");
+            HTextFlow plain = flows.stream()
+                    .filter(f -> extensionStore
+                            .get(f, ConsuloSubFile.class)
+                            .isEmpty())
+                    .findFirst().orElseThrow();
+            assertThat(plain.getContents().get(0)).isEqualTo("Hello");
+        });
 
         Files.delete(sub);
         assertThat(Files.exists(sub)).isFalse();

@@ -15,6 +15,7 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
@@ -71,17 +72,20 @@ public class CopyTransService {
     private final TextFlowTargetRepository targetRepository;
     private final TextFlowTargetHistoryRepository historyRepository;
     private final LocaleRepository localeRepository;
+    private final GettextExtensions gettext;
 
     public CopyTransService(ProjectIterationRepository iterationRepository,
                             TextFlowRepository textFlowRepository,
                             TextFlowTargetRepository targetRepository,
                             TextFlowTargetHistoryRepository historyRepository,
-                            LocaleRepository localeRepository) {
+                            LocaleRepository localeRepository,
+                            GettextExtensions gettext) {
         this.iterationRepository = iterationRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.historyRepository = historyRepository;
         this.localeRepository = localeRepository;
+        this.gettext = gettext;
     }
 
     /**
@@ -158,10 +162,8 @@ public class CopyTransService {
                     src.getDocument().getProjectIteration().getProject().getId());
             boolean documentMismatch = !Objects.equals(
                     cf.getDocument().getDocId(), src.getDocument().getDocId());
-            String srcCtx = src.getPotEntryData() == null ? null
-                    : src.getPotEntryData().getContext();
-            String candCtx = cf.getPotEntryData() == null ? null
-                    : cf.getPotEntryData().getContext();
+            String srcCtx = gettext.context(src);
+            String candCtx = gettext.context(cf);
             boolean contextMismatch = !Objects.equals(srcCtx, candCtx);
 
             Action[] fired = {

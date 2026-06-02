@@ -14,7 +14,7 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
 
     @Query("""
             select distinct tf from HTextFlow tf
-            left join fetch tf.potEntryData
+            left join fetch tf.extensions
             where tf.document.id = :docId
               and tf.obsolete = false
             order by tf.pos
@@ -45,12 +45,14 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
      */
     @Query("""
             select tf from HTextFlow tf
-            left join fetch tf.potEntryData ped
             where tf.document.id = :docId
               and tf.obsolete = false
               and ( :q = ''
                     or lower(tf.resId) like concat('%', :q, '%')
-                    or (ped is not null and lower(ped.context) like concat('%', :q, '%'))
+                    or exists (
+                          select 1 from HTextFlowExtension e
+                          where e.textFlow = tf
+                            and lower(e.searchText) like concat('%', :q, '%'))
                     or lower(coalesce(tf.content0, '')) like concat('%', :q, '%') )
               and (
                     :stateMode = 0
@@ -79,12 +81,14 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
 
     @Query("""
             select count(tf) from HTextFlow tf
-            left join tf.potEntryData ped
             where tf.document.id = :docId
               and tf.obsolete = false
               and ( :q = ''
                     or lower(tf.resId) like concat('%', :q, '%')
-                    or (ped is not null and lower(ped.context) like concat('%', :q, '%'))
+                    or exists (
+                          select 1 from HTextFlowExtension e
+                          where e.textFlow = tf
+                            and lower(e.searchText) like concat('%', :q, '%'))
                     or lower(coalesce(tf.content0, '')) like concat('%', :q, '%') )
               and (
                     :stateMode = 0
@@ -142,7 +146,7 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
             join fetch ctf.document cdoc
             join fetch cdoc.projectIteration citer
             join fetch citer.project cproj
-            left join fetch ctf.potEntryData
+            left join fetch ctf.extensions
             where t.locale.localeId = :locale
               and (t.state = org.zanata.common.ContentState.Translated
                    or t.state = org.zanata.common.ContentState.Approved)

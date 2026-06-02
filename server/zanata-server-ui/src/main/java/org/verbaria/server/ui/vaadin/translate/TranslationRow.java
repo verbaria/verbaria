@@ -190,10 +190,9 @@ public class TranslationRow extends Div {
                 AuraUtility.Border.RIGHT, AuraUtility.BorderColor.DEFAULT,
                 AuraUtility.Padding.Right.LARGE, AuraUtility.Margin.Right.LARGE, AuraUtility.MinWidth.NONE);
 
-        String displayKey = flow.getPotEntryData() != null
-                && flow.getPotEntryData().getContext() != null
-                && !flow.getPotEntryData().getContext().isEmpty()
-                ? flow.getPotEntryData().getContext()
+        String context = translationEditService.gettextContext(flow);
+        String displayKey = context != null && !context.isEmpty()
+                ? context
                 : flow.getResId();
         Span resId = new Span(displayKey);
         resId.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
@@ -242,7 +241,8 @@ public class TranslationRow extends Div {
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
         // Consulo raw sub-file: highlight by its extension.
-        area.setModeForFileExtension(flow.getConsuloFileExt());
+        area.setModeForFileExtension(
+                translationEditService.consuloContentType(flow));
         liveContent = isSourceLocale ? source : initialContent;
         if (liveContent == null) liveContent = "";
         // Single point that keeps the live text fresh (the AceChanged event
@@ -328,7 +328,7 @@ public class TranslationRow extends Div {
      * consulo raw sub-file (a whole file, not a message string).
      */
     private MessageEvaluator rowMessageEvaluator() {
-        if (flow.getConsuloFileExt() != null) {
+        if (translationEditService.isConsuloFile(flow)) {
             return null;
         }
         return messageEvaluators.forType(ctx.messageEvaluateType());
@@ -419,12 +419,12 @@ public class TranslationRow extends Div {
      * not a consulo sub-file (an ordinary {@code key: text} entry).
      */
     private Component buildConsuloExtensionField(TranslationEditor area) {
-        String ext = flow.getConsuloFileExt();
-        if (ext == null) {
+        if (!translationEditService.isConsuloFile(flow)) {
             return null;
         }
+        String ext = translationEditService.consuloExtension(flow);
         TextField field = new TextField(getTranslation("translate.row.extension"));
-        field.setValue(ext);
+        field.setValue(ext == null ? "" : ext);
         field.addThemeVariants(TextFieldVariant.LUMO_SMALL);
         field.setWidth("10rem");
         field.setReadOnly(!canReview);
@@ -438,7 +438,6 @@ public class TranslationRow extends Div {
             if (val.startsWith(".")) val = val.substring(1);
             try {
                 translationEditService.updateConsuloFileExt(flow.getId(), val);
-                flow.setConsuloFileExt(val);
                 area.setModeForFileExtension(val);
                 Notification.show(getTranslation("translate.row.extensionSaved"),
                         2000, Notification.Position.BOTTOM_START);
@@ -543,8 +542,7 @@ public class TranslationRow extends Div {
         trigger.getElement().setAttribute("title", getTranslation("translate.action.aiPerRow"));
         for (var provider : aiRegistry.available()) {
             trigger.getSubMenu().addItem(provider.displayName(), ev -> {
-                String ctxStr = flow.getPotEntryData() == null ? null
-                        : flow.getPotEntryData().getContext();
+                String ctxStr = translationEditService.gettextContext(flow);
                 String providerName = provider.displayName();
                 progressDialogs.run(getTranslation("ai.translate.bulkRunning", providerName),
                         handle -> {
@@ -626,17 +624,13 @@ public class TranslationRow extends Div {
         List<String> rows = new ArrayList<>();
         rows.add(label(getTranslation("translate.details.resourceId"), flow.getResId()));
         rows.add(label(getTranslation("translate.details.messageContext"),
-                noContent(flow.getPotEntryData() == null ? null
-                        : flow.getPotEntryData().getContext())));
+                noContent(translationEditService.gettextContext(flow))));
         rows.add(label(getTranslation("translate.details.reference"),
-                noContent(flow.getPotEntryData() == null ? null
-                        : flow.getPotEntryData().getReferences())));
+                noContent(translationEditService.gettextReferences(flow))));
         rows.add(label(getTranslation("translate.details.flags"),
-                noContent(flow.getPotEntryData() == null ? null
-                        : flow.getPotEntryData().getFlags())));
+                noContent(translationEditService.gettextFlags(flow))));
         rows.add(label(getTranslation("translate.details.sourceComment"),
-                noContent(flow.getComment() == null ? null
-                        : String.valueOf(flow.getComment()))));
+                noContent(translationEditService.sourceComment(flow))));
         for (String r : rows) {
             Paragraph p = new Paragraph();
             p.getElement().setProperty("innerHTML", r);

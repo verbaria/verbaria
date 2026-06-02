@@ -23,8 +23,10 @@ package org.zanata.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import jakarta.persistence.Cacheable;
@@ -57,9 +59,10 @@ import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.validator.constraints.NotEmpty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zanata.common.HasContents;
 import org.zanata.common.LocaleId;
-import org.zanata.model.po.HPotEntryData;
 import org.zanata.util.HashUtil;
 import org.zanata.util.OkapiUtil;
 import org.zanata.util.StringUtil;
@@ -82,9 +85,9 @@ import io.leangen.graphql.annotations.types.GraphQLType;
         query = "select distinct tf from HTextFlow tf left join fetch tf.targets tft left join fetch tft.history where tf.document = :document and tf.resId in (:resIds) and tf.obsolete = false") })
 @GraphQLType(name = "TextFlow")
 public class HTextFlow extends HTextContainer implements Serializable,
-        ITextFlowHistory, HasSimpleComment, HasContents, ITextFlow {
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(HTextFlow.class);
+        ITextFlowHistory, HasContents, ITextFlow {
+    private static final Logger log =
+            LoggerFactory.getLogger(HTextFlow.class);
     public static final String QUERY_GET_BY_DOC_AND_RES_ID_BATCH =
             "HTextFlow.getByDocumentAndResIdBatch";
     private static final long serialVersionUID = 3023080107971905435L;
@@ -96,9 +99,7 @@ public class HTextFlow extends HTextContainer implements Serializable,
     private boolean obsolete = false;
     private Map<Long, HTextFlowTarget> targets;
     private Map<Integer, HTextFlowHistory> history;
-    private HSimpleComment comment;
-    private HPotEntryData potEntryData;
-    private String consuloFileExt;
+    private Set<HTextFlowExtension> extensions;
     private Long wordCount;
     private String contentHash;
     private boolean plural;
@@ -214,13 +215,6 @@ public class HTextFlow extends HTextContainer implements Serializable,
     @VisibleForTesting
     public void setDocument(HDocument document) {
         this.document = document;
-    }
-
-    @OneToOne(optional = true, fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "comment_id")
-    public HSimpleComment getComment() {
-        return comment;
     }
 
     @Override
@@ -376,25 +370,18 @@ public class HTextFlow extends HTextContainer implements Serializable,
         return ImmutableList.<ITextFlowTarget> copyOf(getTargets().values());
     }
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY,
-            optional = true)
-    public HPotEntryData getPotEntryData() {
-        return potEntryData;
+    @OneToMany(mappedBy = "textFlow", cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    @BatchSize(size = 20)
+    public Set<HTextFlowExtension> getExtensions() {
+        if (extensions == null) {
+            extensions = new HashSet<>();
+        }
+        return extensions;
     }
 
-    /**
-     * Consulo source metadata: the file extension (without the dot, possibly
-     * empty) of a raw sub-file entry, so source pull can recreate the exact
-     * file — its sub-path is recovered from the resId/context key. Null for
-     * ordinary key/value entries.
-     */
-    @Column(name = "consulo_file_ext", columnDefinition = "text")
-    public String getConsuloFileExt() {
-        return consuloFileExt;
-    }
-
-    public void setConsuloFileExt(final String consuloFileExt) {
-        this.consuloFileExt = consuloFileExt;
+    public void setExtensions(Set<HTextFlowExtension> extensions) {
+        this.extensions = extensions;
     }
 
     @NotNull
@@ -498,14 +485,6 @@ public class HTextFlow extends HTextContainer implements Serializable,
         this.history = history;
     }
 
-    public void setComment(final HSimpleComment comment) {
-        this.comment = comment;
-    }
-
-    public void setPotEntryData(final HPotEntryData potEntryData) {
-        this.potEntryData = potEntryData;
-    }
-
     public void setPlural(final boolean plural) {
         this.plural = plural;
     }
@@ -537,8 +516,7 @@ public class HTextFlow extends HTextContainer implements Serializable,
     @Override
     public String toString() {
         return "HTextFlow(revision=" + this.getRevision() + ", resId="
-                + this.getResId() + ", obsolete=" + this.isObsolete()
-                + ", comment=" + this.getComment() + ")";
+                + this.getResId() + ", obsolete=" + this.isObsolete() + ")";
     }
 
     @VisibleForTesting

@@ -44,14 +44,11 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
-import org.zanata.model.po.HPotEntryData;
 import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.Project;
 import org.zanata.rest.dto.ProjectIteration;
 import org.zanata.rest.dto.VersionInfo;
-import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
-import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.ResourceMeta;
 import org.zanata.rest.dto.resource.TextFlow;
@@ -59,6 +56,7 @@ import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 import org.zanata.rest.dto.stats.ContainerTranslationStatistics;
 import org.zanata.rest.dto.stats.TranslationStatistics;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
@@ -66,7 +64,11 @@ import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.verbaria.server.headless.service.DocumentImportService;
+import org.verbaria.server.headless.service.OfflineExportService;
+import org.verbaria.server.headless.service.SourceUploadService;
 import java.io.InputStream;
 
 /**
@@ -100,8 +102,8 @@ import java.io.InputStream;
 @RequestMapping("/rest")
 public class ZanataCliBridgeController {
 
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(ZanataCliBridgeController.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(ZanataCliBridgeController.class);
 
     private final ProjectRepository projectRepository;
     private final ProjectIterationRepository iterationRepository;
@@ -111,8 +113,9 @@ public class ZanataCliBridgeController {
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
     private final DocumentImportService importService;
-    private final org.verbaria.server.headless.service.OfflineExportService offlineExportService;
-    private final org.verbaria.server.headless.service.SourceUploadService sourceUploadService;
+    private final OfflineExportService offlineExportService;
+    private final SourceUploadService sourceUploadService;
+    private final TextFlowExtensionStore extensionStore;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -125,8 +128,9 @@ public class ZanataCliBridgeController {
                                      LocaleRepository localeRepository,
                                      AccountRepository accountRepository,
                                      DocumentImportService importService,
-                                     org.verbaria.server.headless.service.OfflineExportService offlineExportService,
-                                     org.verbaria.server.headless.service.SourceUploadService sourceUploadService) {
+                                     OfflineExportService offlineExportService,
+                                     SourceUploadService sourceUploadService,
+                                     TextFlowExtensionStore extensionStore) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -137,6 +141,7 @@ public class ZanataCliBridgeController {
         this.importService = importService;
         this.offlineExportService = offlineExportService;
         this.sourceUploadService = sourceUploadService;
+        this.extensionStore = extensionStore;
     }
 
     // ---------- 1. version ----------
@@ -823,7 +828,7 @@ public class ZanataCliBridgeController {
                                                             @PathVariable("locale") String locale,
                                                             @PathVariable("fileType") String fileType) {
         try {
-            org.verbaria.server.headless.service.OfflineExportService.Bundle bundle =
+            OfflineExportService.Bundle bundle =
                     offlineExportService.zipForOfflineTranslation(slug, iter, new LocaleId(locale));
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=\"" + bundle.filename() + "\"")
@@ -959,7 +964,7 @@ public class ZanataCliBridgeController {
     public ResponseEntity<byte[]> exportTmx(@PathVariable("slug") String slug,
                                             @PathVariable("iter") String iter,
                                             @org.springframework.web.bind.annotation.RequestParam("locale") String locale) {
-        org.verbaria.server.headless.service.OfflineExportService.Bundle bundle =
+        OfflineExportService.Bundle bundle =
                 offlineExportService.tmx(slug, iter, new LocaleId(locale));
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"" + bundle.filename() + "\"")
@@ -1016,7 +1021,7 @@ public class ZanataCliBridgeController {
         return dto;
     }
 
-    private static Resource toResource(HDocument d) {
+    private Resource toResource(HDocument d) {
         Resource r = new Resource(d.getDocId());
         r.setContentType(d.getContentType() == null
                 ? ContentType.TextPlain : d.getContentType());
@@ -1033,20 +1038,7 @@ public class ZanataCliBridgeController {
                     tf.getContents() == null ? List.<String>of("") : tf.getContents());
             flowDto.setPlural(tf.isPlural());
             flowDto.setRevision(tf.getRevision());
-            HPotEntryData ped = tf.getPotEntryData();
-            if (ped != null && ped.getContext() != null
-                    && !ped.getContext().isEmpty()) {
-                PotEntryHeader peh = new PotEntryHeader();
-                peh.setContext(ped.getContext());
-                flowDto.getExtensions(true).add(peh);
-            }
-            // Consulo raw sub-file: hand back its extension so source pull
-            // recreates the exact file and the editor can show/change it.
-            // Present (even empty) means the entry is a raw sub-file.
-            if (tf.getConsuloFileExt() != null) {
-                flowDto.getExtensions(true).add(
-                        new ConsuloSubFile(tf.getConsuloFileExt()));
-            }
+            extensionStore.emit(tf, flowDto);
             r.getTextFlows().add(flowDto);
         }
         return r;

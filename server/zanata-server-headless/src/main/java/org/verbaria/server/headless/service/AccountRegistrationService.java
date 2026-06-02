@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.regex.Pattern;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,7 +99,7 @@ public class AccountRegistrationService {
      * sees the resend attempt in the WARN log.
      */
     public void resendActivation(String username) {
-        org.slf4j.LoggerFactory.getLogger(AccountRegistrationService.class)
+        LoggerFactory.getLogger(AccountRegistrationService.class)
                 .warn("Resend-activation requested for username={} (SMTP not wired)",
                         username == null ? "" : username);
     }

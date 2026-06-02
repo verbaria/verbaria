@@ -1,8 +1,10 @@
 package org.zanata.rest.dto.extensions.consulo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.zanata.rest.dto.DTOUtil;
+import org.zanata.rest.dto.extensions.ContentAwareExtension;
 import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
 
 /**
@@ -20,7 +22,7 @@ import org.zanata.rest.dto.extensions.gettext.TextFlowExtension;
  * @see org.zanata.rest.dto.extensions.gettext.TextFlowExtension
  */
 @JsonTypeName(value = "consulo-sub-file")
-public class ConsuloSubFile implements TextFlowExtension {
+public class ConsuloSubFile implements TextFlowExtension, ContentAwareExtension {
 
     public static final String ID = "consulo";
     private static final long serialVersionUID = 1L;
@@ -42,6 +44,12 @@ public class ConsuloSubFile implements TextFlowExtension {
 
     public void setExtension(String extension) {
         this.extension = extension;
+    }
+
+    @Override
+    @JsonIgnore
+    public String getContentType() {
+        return extension;
     }
 
     @Override

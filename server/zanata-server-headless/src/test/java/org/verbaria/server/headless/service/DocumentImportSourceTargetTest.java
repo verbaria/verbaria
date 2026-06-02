@@ -20,6 +20,7 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
@@ -46,6 +47,7 @@ class DocumentImportSourceTargetTest {
     private TextFlowRepository textFlowRepository;
     private TextFlowTargetRepository textFlowTargetRepository;
     private LocaleRepository localeRepository;
+    private TextFlowExtensionStore extensionStore;
     private DocumentImportService service;
 
     @BeforeEach
@@ -55,9 +57,11 @@ class DocumentImportSourceTargetTest {
         textFlowRepository = mock(TextFlowRepository.class);
         textFlowTargetRepository = mock(TextFlowTargetRepository.class);
         localeRepository = mock(LocaleRepository.class);
+        extensionStore = mock(
+                TextFlowExtensionStore.class);
         service = new DocumentImportService(iterationRepository, documentRepository,
                 textFlowRepository, textFlowTargetRepository,
-                localeRepository);
+                localeRepository, extensionStore);
         SecurityContextHolder.clearContext();
     }
 
