@@ -254,4 +254,23 @@ public class TranslationEditService {
         targetRepository.save(target);
         return target.getState();
     }
+
+    /**
+     * One-click "still valid": acknowledge that an existing translation is fine
+     * against the changed source by re-stamping it to the current source
+     * revision. Content and state are untouched, so this only clears the
+     * "needs review" warning.
+     */
+    @Transactional
+    public void markReviewed(Long textFlowId, LocaleId localeId) {
+        HTextFlow textFlow = textFlowRepository.findById(textFlowId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "TextFlow not found: " + textFlowId));
+        HTextFlowTarget target = targetRepository
+                .findByTextFlowAndLocale(textFlowId, localeId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No translation to review"));
+        target.setTextFlowRevision(textFlow.getRevision());
+        targetRepository.save(target);
+    }
 }

@@ -50,11 +50,61 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
             """)
     List<Object[]> countPerDocForIteration(@Param("iterId") Long iterId);
 
+    /** Translated/Approved targets whose source moved on since — needs review. */
+    @Query("""
+            select count(t) from HTextFlowTarget t
+            where t.textFlow.document.projectIteration.id = :iterId
+              and t.locale.localeId = :locale
+              and t.textFlow.obsolete = false
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+              and t.textFlowRevision < t.textFlow.revision
+            """)
+    long countNeedsReviewInIteration(@Param("iterId") Long iterId,
+            @Param("locale") org.zanata.common.LocaleId locale);
+
+    @Query("""
+            select t.textFlow.document.id, count(t) from HTextFlowTarget t
+            where t.textFlow.document.projectIteration.id = :iterId
+              and t.locale.localeId = :locale
+              and t.textFlow.obsolete = false
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+              and t.textFlowRevision < t.textFlow.revision
+            group by t.textFlow.document.id
+            """)
+    List<Object[]> countNeedsReviewPerDoc(@Param("iterId") Long iterId,
+            @Param("locale") org.zanata.common.LocaleId locale);
+
+    @Query("""
+            select count(t) from HTextFlowTarget t
+            where t.textFlow.document.id = :docId
+              and t.locale.localeId = :locale
+              and t.textFlow.obsolete = false
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+              and t.textFlowRevision < t.textFlow.revision
+            """)
+    long countNeedsReviewForDoc(@Param("docId") Long docId,
+            @Param("locale") org.zanata.common.LocaleId locale);
+
+    @Query("""
+            select t.locale.localeId, count(t) from HTextFlowTarget t
+            where t.textFlow.document.projectIteration.id = :iterId
+              and t.textFlow.obsolete = false
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+              and t.textFlowRevision < t.textFlow.revision
+            group by t.locale.localeId
+            """)
+    List<Object[]> countNeedsReviewPerLocale(@Param("iterId") Long iterId);
+
     /**
      * Page of textflows for the translate view, filtered server-side by a
      * search term and a tri-state translation-completeness predicate.
      *
-     * @param stateMode 0=any, 1=incomplete only, 2=complete only
+     * @param stateMode 0=any, 1=incomplete only, 2=complete only,
+     *                  3=needs review (translated but the source changed since)
      */
     @Query("""
             select tf from HTextFlow tf
@@ -83,6 +133,14 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
                                 and t.locale.localeId = :locale
                                 and (t.state = org.zanata.common.ContentState.Translated
                                      or t.state = org.zanata.common.ContentState.Approved)) )
+                    or ( :stateMode = 3
+                         and exists (
+                              select 1 from HTextFlowTarget t
+                              where t.textFlow = tf
+                                and t.locale.localeId = :locale
+                                and (t.state = org.zanata.common.ContentState.Translated
+                                     or t.state = org.zanata.common.ContentState.Approved)
+                                and t.textFlowRevision < tf.revision) )
               )
             order by tf.pos
             """)
@@ -119,6 +177,14 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
                                 and t.locale.localeId = :locale
                                 and (t.state = org.zanata.common.ContentState.Translated
                                      or t.state = org.zanata.common.ContentState.Approved)) )
+                    or ( :stateMode = 3
+                         and exists (
+                              select 1 from HTextFlowTarget t
+                              where t.textFlow = tf
+                                and t.locale.localeId = :locale
+                                and (t.state = org.zanata.common.ContentState.Translated
+                                     or t.state = org.zanata.common.ContentState.Approved)
+                                and t.textFlowRevision < tf.revision) )
               )
             """)
     long countForTranslateView(@Param("docId") Long docId,

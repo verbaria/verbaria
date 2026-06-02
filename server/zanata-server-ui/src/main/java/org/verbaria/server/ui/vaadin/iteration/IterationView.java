@@ -63,6 +63,10 @@ import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
+import java.util.HashMap;
+import java.util.Map;
+import org.zanata.common.LocaleId;
+import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.service.CopyTransService;
 import org.verbaria.server.headless.service.MergeTransService;
@@ -87,7 +91,9 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private final ProjectIterationRepository iterationRepository;
     private final DocumentRepository documentRepository;
     private final TextFlowTargetRepository targetRepository;
+    private final TextFlowRepository textFlowRepository;
     private final LocaleRepository localeRepository;
+    private Map<LocaleId, Long> needsReviewByLocale = Map.of();
 
     private String currentProjectSlug;
     private String currentVersionSlug;
@@ -116,11 +122,13 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                          ProjectRepository projectRepository,
                          ProgressDialogService progressDialogs,
                          AccountRepository accountRepository,
-                         BreadcrumbsService breadcrumbsService) {
+                         BreadcrumbsService breadcrumbsService,
+                         TextFlowRepository textFlowRepository) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.localeRepository = localeRepository;
+        this.textFlowRepository = textFlowRepository;
         this.sourceUploadService = sourceUploadService;
         this.translationUploadService = translationUploadService;
         this.copyTransService = copyTransService;
@@ -156,6 +164,11 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         }
 
         this.currentIterationId = iteration.getId();
+        this.needsReviewByLocale = new HashMap<>();
+        for (Object[] r : textFlowRepository
+                .countNeedsReviewPerLocale(iteration.getId())) {
+            needsReviewByLocale.put((LocaleId) r[0], ((Number) r[1]).longValue());
+        }
         IterationStats stats = IterationStats.compute(iteration.getId(),
                 iterationRepository, targetRepository, localeRepository);
         this.enabledLocales = stats.enabledLocales == null
@@ -607,6 +620,14 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             Span tag = new Span(getTranslation("iteration.languages.translated"));
             tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
             right.add(pct, tag);
+            long nr = needsReviewByLocale.getOrDefault(ls.locale.getLocaleId(), 0L);
+            if (nr > 0) {
+                Span review = new Span(
+                        getTranslation("translate.needsReview.badge", nr));
+                review.addClassNames(AuraUtility.FontSize.XSMALL,
+                        AuraUtility.TextColor.ORANGE, AuraUtility.FontWeight.SEMIBOLD);
+                right.add(review);
+            }
         }
 
         // Download / export actions tucked behind a single overflow (⋯) menu

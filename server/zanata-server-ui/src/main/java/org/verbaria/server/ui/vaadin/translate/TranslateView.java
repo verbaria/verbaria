@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -117,8 +120,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     // Labels set lazily in beforeEnter() so getTranslation() resolves with
     // the right UI locale (field initializers run before MainLayout applies
     // the cookie-stored locale).
-    private final Checkbox incompleteOnly = new Checkbox();
-    private final Checkbox completeOnly   = new Checkbox();
+    /** 0=any, 1=incomplete, 2=complete, 3=needs review. */
+    private final RadioButtonGroup<Integer> filterMode = new RadioButtonGroup<>();
+    private Button filterButton;
     /** Virtual list driven by a server-paged CallbackDataProvider. */
     private final VirtualList<RowData> rowsList = new VirtualList<>();
 
@@ -325,7 +329,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         prefsBtn.getElement().setAttribute("aria-label", getTranslation("translate.editorSettings"));
         headingRight.add(prefsBtn);
 
-        headingRow.add(heading, headingRight);
+        HorizontalLayout headingLeft = new HorizontalLayout(heading);
+        headingLeft.setAlignItems(FlexComponent.Alignment.BASELINE);
+        headingLeft.setSpacing(true);
+        Component reviewBadge =
+                buildNeedsReviewHeaderBadge(docIdForProvider, viewingSource);
+        if (reviewBadge != null) {
+            headingLeft.add(reviewBadge);
+        }
+        headingRow.add(headingLeft, headingRight);
         add(headingRow, statsPopover);
 
         add(buildFilterBar());
@@ -530,6 +542,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             handle.update(1, 3, handle.t("translate.docSwitcher.countingTextFlows"));
             Map<Long, Long> totalByDoc = new HashMap<>();
             Map<Long, Long> translatedByDoc = new HashMap<>();
+            Map<Long, Long> needsReviewByDoc = new HashMap<>();
             if (iterId != null) {
                 for (Object[] row : textFlowRepository.countPerDocForIteration(iterId)) {
                     totalByDoc.put(((Number) row[0]).longValue(),
@@ -541,9 +554,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                     translatedByDoc.put(((Number) row[0]).longValue(),
                             ((Number) row[1]).longValue());
                 }
+                if (!viewingSource) {
+                    for (Object[] row : textFlowRepository
+                            .countNeedsReviewPerDoc(iterId, currentLocale)) {
+                        needsReviewByDoc.put(((Number) row[0]).longValue(),
+                                ((Number) row[1]).longValue());
+                    }
+                }
             }
             handle.update(3, 3, handle.t("translate.docSwitcher.rendering"));
-            return new Object[] { allDocs, totalByDoc, translatedByDoc };
+            return new Object[] {
+                    allDocs, totalByDoc, translatedByDoc, needsReviewByDoc };
         }).whenComplete((data, err) -> {
             trigger.setEnabled(true);
             if (err != null) {
@@ -557,8 +578,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             Map<Long, Long> totalByDoc = (Map<Long, Long>) data[1];
             @SuppressWarnings("unchecked")
             Map<Long, Long> translatedByDoc = (Map<Long, Long>) data[2];
+            @SuppressWarnings("unchecked")
+            Map<Long, Long> needsReviewByDoc = (Map<Long, Long>) data[3];
             VerticalLayout body = buildDocPickerBody(
-                    allDocs, totalByDoc, translatedByDoc, viewingSource, pop);
+                    allDocs, totalByDoc, translatedByDoc, needsReviewByDoc,
+                    viewingSource, pop);
             pop.removeAll();
             pop.add(body);
             pop.open();
@@ -600,6 +624,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             List<HDocument> allDocs,
             Map<Long, Long> totalByDoc,
             Map<Long, Long> translatedByDoc,
+            Map<Long, Long> needsReviewByDoc,
             boolean viewingSource,
             Popover pop) {
         TextField search = new TextField();
@@ -641,6 +666,21 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }).setHeader(getTranslation("translate.docPicker.column.translated"))
                 .setWidth("180px").setFlexGrow(0)
                 .setSortable(true).setComparator(Comparator.comparingInt(pctOf));
+
+        ToLongFunction<HDocument> reviewOf =
+                d -> needsReviewByDoc.getOrDefault(d.getId(), 0L);
+        grid.addComponentColumn(d -> {
+            long n = reviewOf.applyAsLong(d);
+            if (n <= 0) {
+                return new Span();
+            }
+            Span pill = new Span(getTranslation("translate.needsReview.badge", n));
+            pill.addClassNames(AuraUtility.TextColor.ORANGE,
+                    AuraUtility.FontWeight.SEMIBOLD);
+            return pill;
+        }).setHeader(getTranslation("translate.docPicker.column.needsReview"))
+                .setWidth("140px").setFlexGrow(0)
+                .setSortable(true).setComparator(Comparator.comparingLong(reviewOf));
 
         ListDataProvider<HDocument> dp =
                 new ListDataProvider<>(allDocs);
@@ -688,37 +728,60 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private Div buildFilterBar() {
         filter.setPlaceholder(getTranslation("translate.filter.placeholder"));
-        incompleteOnly.setLabel(getTranslation("translate.filter.incomplete"));
-        incompleteOnly.getElement().setAttribute("title",
-                getTranslation("translate.filter.incompleteTip"));
-        completeOnly.setLabel(getTranslation("translate.filter.complete"));
-        completeOnly.getElement().setAttribute("title",
-                getTranslation("translate.filter.completeTip"));
         filter.setClearButtonVisible(true);
         filter.setWidthFull();
         filter.setValueChangeMode(ValueChangeMode.LAZY);
         filter.setValueChangeTimeout(250);
-        // Filter/checkbox listeners are installed by installDataProvider(),
-        // which has access to the per-doc provider instance.
-        // Stop the label wrapping when the bar runs out of room.
-        incompleteOnly.addClassNames(AuraUtility.Whitespace.NOWRAP);
-        completeOnly.addClassNames(AuraUtility.Whitespace.NOWRAP);
 
-        HorizontalLayout checks = new HorizontalLayout(incompleteOnly, completeOnly);
-        checks.setAlignItems(FlexComponent.Alignment.CENTER);
-        checks.setSpacing(true);
-        checks.addClassNames(AuraUtility.Flex.SHRINK_NONE, AuraUtility.Whitespace.NOWRAP);
+        // Mutually-exclusive filter modes as radio buttons inside a popover.
+        filterMode.setItems(0, 1, 2, 3);
+        filterMode.setItemLabelGenerator(m -> switch (m) {
+            case 1 -> getTranslation("translate.filter.incomplete");
+            case 2 -> getTranslation("translate.filter.complete");
+            case 3 -> getTranslation("translate.filter.needsReview");
+            default -> getTranslation("translate.filter.all");
+        });
+        filterMode.setValue(0);
+        filterMode.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
 
-        HorizontalLayout bar = new HorizontalLayout(filter, checks);
+        filterButton = new Button(LineAwesomeIcon.FILTER_SOLID.create());
+        filterButton.addThemeVariants(ButtonVariant.SMALL);
+        filterButton.getElement().setAttribute("title",
+                getTranslation("translate.filter.button"));
+        filterButton.getElement().setAttribute("aria-label",
+                getTranslation("translate.filter.button"));
+
+        Popover filterPop = new Popover();
+        filterPop.setTarget(filterButton);
+        filterPop.setPosition(PopoverPosition.BOTTOM);
+        Div optsBox = new Div(filterMode);
+        optsBox.addClassNames(AuraUtility.Padding.SMALL);
+        filterPop.add(optsBox);
+        updateFilterButtonStyle();
+
+        HorizontalLayout bar = new HorizontalLayout(filter, filterButton);
         bar.setWidthFull();
         bar.setAlignItems(FlexComponent.Alignment.CENTER);
         bar.setSpacing(true);
         bar.setFlexGrow(1, filter);
 
-        Div wrap = new Div(bar);
+        Div wrap = new Div(bar, filterPop);
         wrap.addClassNames(AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT, AuraUtility.Padding.Top.SMALL, AuraUtility.Padding.Bottom.MEDIUM);
         wrap.setWidthFull();
         return wrap;
+    }
+
+    /** Highlights the Filter button (filled) when a non-default filter is set. */
+    private void updateFilterButtonStyle() {
+        if (filterButton == null) {
+            return;
+        }
+        Integer mode = filterMode.getValue();
+        if (mode != null && mode != 0) {
+            filterButton.addThemeVariants(ButtonVariant.PRIMARY);
+        } else {
+            filterButton.removeThemeVariants(ButtonVariant.PRIMARY);
+        }
     }
 
     /** Snapshot of UI filter state passed to the DataProvider. */
@@ -726,9 +789,30 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private FilterSpec currentFilterSpec() {
         String q = filter.getValue() == null ? "" : filter.getValue().trim().toLowerCase();
-        int mode = incompleteOnly.getValue() ? 1
-                : (completeOnly.getValue() ? 2 : 0);
-        return new FilterSpec(q, mode);
+        Integer m = filterMode.getValue();
+        return new FilterSpec(q, m == null ? 0 : m);
+    }
+
+    /**
+     * Clickable "N need review" badge for the current doc+locale, applying the
+     * needs-review filter on click. {@code null} when none (or at source locale).
+     */
+    private Component buildNeedsReviewHeaderBadge(Long docId, boolean viewingSource) {
+        if (viewingSource || docId == null) {
+            return null;
+        }
+        long n = textFlowRepository.countNeedsReviewForDoc(docId, currentLocale);
+        if (n <= 0) {
+            return null;
+        }
+        Button badge = new Button(getTranslation("translate.needsReview.badge", n));
+        badge.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        badge.addClassNames(AuraUtility.TextColor.ORANGE,
+                AuraUtility.FontWeight.SEMIBOLD);
+        badge.getElement().setAttribute("title",
+                getTranslation("translate.needsReview.badgeTip"));
+        badge.addClickListener(e -> filterMode.setValue(3));
+        return badge;
     }
 
     /** Wire VirtualList to a server-paged DataProvider — never loads the whole doc into memory. */
@@ -743,13 +827,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         rowsList.setDataProvider(filterable);
         // refresh provider when filter inputs change
         filter.addValueChangeListener(e -> filterable.setFilter(currentFilterSpec()));
-        incompleteOnly.addValueChangeListener(e -> {
-            if (Boolean.TRUE.equals(incompleteOnly.getValue())) completeOnly.setValue(false);
+        filterMode.addValueChangeListener(e -> {
             filterable.setFilter(currentFilterSpec());
-        });
-        completeOnly.addValueChangeListener(e -> {
-            if (Boolean.TRUE.equals(completeOnly.getValue())) incompleteOnly.setValue(false);
-            filterable.setFilter(currentFilterSpec());
+            updateFilterButtonStyle();
         });
     }
 

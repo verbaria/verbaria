@@ -94,6 +94,8 @@ public class TranslationRow extends Div {
     private ContentState initialState;
     private String source;
     private String initialContent;
+    /** Source revision this translation was made against (null if none). */
+    private Integer initialTargetRevision;
     /** Last persisted editor content; Save is enabled only when it differs. */
     private String savedContent = "";
     /** Current editor text, kept fresh from value-change events. */
@@ -149,6 +151,8 @@ public class TranslationRow extends Div {
                 .filter(l -> !l.isEmpty())
                 .map(l -> l.get(0))
                 .orElse("");
+        this.initialTargetRevision = existing
+                .map(HTextFlowTarget::getTextFlowRevision).orElse(null);
         this.isSourceLocale = ctx.sourceLocale() != null
                 && ctx.sourceLocale().getId().equalsIgnoreCase(ctx.localeStr());
         this.canEdit = isAuthenticated();
@@ -316,11 +320,13 @@ public class TranslationRow extends Div {
         refreshActions();
 
         Button evaluateBtn = buildEvaluateButton(area);
+        Component reviewWarn = buildNeedsReviewBadge();
 
         HorizontalLayout actionRow = new HorizontalLayout(
                 save, approve, reject, historyBtn, stateSpan);
         if (aiBtn != null) actionRow.add(aiBtn);
         if (evaluateBtn != null) actionRow.add(evaluateBtn);
+        if (reviewWarn != null) actionRow.add(reviewWarn);
         actionRow.setAlignItems(FlexComponent.Alignment.CENTER);
         actionRow.setSpacing(true);
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
@@ -458,6 +464,60 @@ public class TranslationRow extends Div {
             }
         });
         return field;
+    }
+
+    /** True when this translation predates the current source revision. */
+    private boolean needsReview() {
+        if (isSourceLocale || initialTargetRevision == null
+                || flow.getRevision() == null) {
+            return false;
+        }
+        boolean done = initialState == ContentState.Translated
+                || initialState == ContentState.Approved;
+        return done && initialTargetRevision < flow.getRevision();
+    }
+
+    /**
+     * Warning + one-click Review when the source changed after this translation
+     * was made. Review re-stamps the target to the current source revision
+     * (content/state untouched), clearing the warning. {@code null} when fresh.
+     */
+    private Component buildNeedsReviewBadge() {
+        if (!needsReview()) {
+            return null;
+        }
+        Span warn = new Span(getTranslation("translate.row.needsReview"));
+        warn.getElement().setAttribute("title",
+                getTranslation("translate.row.needsReviewTip"));
+        warn.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.ORANGE);
+
+        HorizontalLayout box = new HorizontalLayout(warn);
+        box.setAlignItems(FlexComponent.Alignment.CENTER);
+        box.setSpacing(true);
+
+        if (canReview) {
+            Button review = new Button(getTranslation("translate.row.review"));
+            review.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+            review.addClickListener(e -> {
+                try {
+                    translationEditService.markReviewed(
+                            flow.getId(), ctx.currentLocale());
+                    initialTargetRevision = flow.getRevision();
+                    box.setVisible(false);
+                    Notification.show(
+                            getTranslation("translate.row.reviewDone"),
+                            2000, Notification.Position.BOTTOM_START);
+                } catch (Exception ex) {
+                    log.error("Failed to mark reviewed for textFlow {}",
+                            flow.getId(), ex);
+                    Notification.show(getTranslation(
+                            "translate.row.reviewFailed", ex.getMessage()),
+                            4000, Notification.Position.MIDDLE);
+                }
+            });
+            box.add(review);
+        }
+        return box;
     }
 
     /**
