@@ -72,6 +72,27 @@ public class ItFixtures {
         accountRepository.save(account);
     }
 
+    /** A plain (non-admin, non-reviewer) account. */
+    @Transactional
+    public void ensureUser(String username, String apiKey) {
+        if (accountRepository.findByUsername(username).isPresent()) {
+            return;
+        }
+        HAccountRole user = roleRepository.findByName(Roles.USER).orElseThrow();
+        HAccount account = new HAccount();
+        account.setUsername(username);
+        account.setPasswordHash("x");
+        account.setEnabled(true);
+        account.setApiKey(apiKey);
+        account.setRoles(new HashSet<>(Set.of(user)));
+        HPerson person = new HPerson();
+        person.setName(username);
+        person.setEmail(username + "@it.local");
+        person.setAccount(account);
+        account.setPerson(person);
+        accountRepository.save(account);
+    }
+
     @Transactional
     public void ensureProject(String slug, String version) {
         HProject project = projectRepository.findBySlug(slug).orElseGet(() -> {

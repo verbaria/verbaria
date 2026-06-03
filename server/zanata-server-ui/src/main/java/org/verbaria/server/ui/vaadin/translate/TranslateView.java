@@ -79,6 +79,7 @@ import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TranslateFilterMode;
+import org.verbaria.server.headless.service.AiTranslationService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -107,6 +108,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
     private final TranslationEditService translationEditService;
+    private final AiTranslationService aiTranslationService;
     private final BreadcrumbsService breadcrumbsService;
     private final ObjectProvider<TranslationRow> rowFactory;
 
@@ -164,6 +166,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          TextFlowRepository textFlowRepository,
                          TextFlowTargetRepository targetRepository,
                          TranslationEditService translationEditService,
+                         AiTranslationService aiTranslationService,
                          TranslationProviderRegistry aiRegistry,
                          AiPolicyService aiPolicy,
                          ProgressDialogService progressDialogs,
@@ -175,6 +178,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.translationEditService = translationEditService;
+        this.aiTranslationService = aiTranslationService;
         this.aiRegistry = aiRegistry;
         this.aiPolicy = aiPolicy;
         this.progressDialogs = progressDialogs;
@@ -476,51 +480,33 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void runBulkAi(HDocument doc, TranslationProvider provider) {
-        List<HTextFlow> flows = textFlowRepository.pageForTranslateView(
-                doc.getId(), currentLocale, "", 1,
-                PageRequest.of(0, 1000));
-        if (flows.isEmpty()) {
-            Notification.show(getTranslation("translate.bulkAi.nothing"),
-                    2000, Notification.Position.BOTTOM_START);
-            return;
-        }
-        List<TranslationProvider.TranslationRequest> reqs =
-                new ArrayList<>(flows.size());
-        for (HTextFlow tf : flows) {
-            String src = tf.getContents().isEmpty() ? "" : tf.getContents().get(0);
-            String ctx = translationEditService.gettextContext(tf);
-            reqs.add(new TranslationProvider.TranslationRequest(
-                    src, sourceLocale, currentLocale, ctx));
-        }
-
-        int total = reqs.size();
+        // Capture the user on the UI thread; the work runs on a background
+        // thread where the security context isn't available.
+        String editor = currentUsername();
+        String providerId = provider.id();
         String providerName = provider.displayName();
         String title = getTranslation("ai.translate.bulkRunning", providerName);
+        Long docId = doc.getId();
         progressDialogs.run(title, handle -> {
-            handle.update(0, total, handle.t("ai.translate.bulkProgress", 0, total));
-            List<String> out = provider.translateBatch(reqs,
-                    (done, t) -> handle.update(done, t,
-                            handle.t("ai.translate.bulkProgress", done, t)));
-            handle.update(total, total, handle.t("ai.translate.bulkSaving"));
-            int saved = 0;
-            for (int i = 0; i < flows.size(); i++) {
-                String translated = out.get(i);
-                if (translated == null || translated.isBlank()) continue;
-                try {
-                    translationEditService.save(flows.get(i).getId(),
-                            currentLocale, translated, currentUsername());
-                    saved++;
-                } catch (Exception ignore) {
-                }
-            }
-            return saved;
-        }).whenComplete((saved, err) -> {
+            handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
+            // The service loads the untranslated flows WITH their extensions
+            // (so reading gettext context can't trip a LazyInitializationException),
+            // translates, saves each, and approves when the editor may review.
+            return aiTranslationService.translateUntranslated(
+                    docId, currentLocale, providerId, editor, 1000);
+        }).whenComplete((res, err) -> {
             if (err != null) {
                 Notification.show(getTranslation("translate.bulkAi.failed", err.getMessage()),
                         5000, Notification.Position.MIDDLE);
                 return;
             }
-            Notification.show(getTranslation("translate.bulkAi.result", saved, total),
+            if (res == null || res.translated() == 0) {
+                Notification.show(getTranslation("translate.bulkAi.nothing"),
+                        2000, Notification.Position.BOTTOM_START);
+                return;
+            }
+            Notification.show(getTranslation("translate.bulkAi.result",
+                    res.translated(), res.translated()),
                     4000, Notification.Position.BOTTOM_START);
             rowsList.getDataProvider().refreshAll();
         });

@@ -1,10 +1,15 @@
 package org.verbaria.server.headless.service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.verbaria.server.headless.repository.TranslateFilterMode;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HAccount;
@@ -85,6 +90,70 @@ public class TranslationEditService {
                     flows.stream().map(HTextFlow::getId).toList());
         }
         return flows;
+    }
+
+    /** Source text, source locale and gettext context for one text flow. */
+    public record AiSource(String source, LocaleId sourceLocale, String context) {}
+
+    /** {@link AiSource} plus the text flow id, for bulk AI translation. */
+    public record AiSourceRow(Long textFlowId, String source,
+            LocaleId sourceLocale, String context) {}
+
+    @Transactional(readOnly = true)
+    public AiSource aiSource(Long textFlowId) {
+        HTextFlow tf = textFlowRepository.findWithExtensions(List.of(textFlowId))
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "TextFlow not found: " + textFlowId));
+        return new AiSource(firstContent(tf),
+                tf.getDocument().getLocale().getLocaleId(), gettextContext(tf));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasTranslation(Long textFlowId, LocaleId locale) {
+        return targetRepository.findByTextFlowAndLocale(textFlowId, locale)
+                .map(t -> hasContent(t.getContents()))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AiSourceRow> aiUntranslatedSources(Long docId, LocaleId locale,
+            int limit) {
+        List<HTextFlow> flows = pageWithExtensions(docId, locale, "",
+                TranslateFilterMode.INCOMPLETE.code(), PageRequest.of(0, limit));
+        if (flows.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> alreadyTranslated = new HashSet<>();
+        for (HTextFlowTarget t : targetRepository.findByTextFlowIdsAndLocale(
+                flows.stream().map(HTextFlow::getId).toList(), locale)) {
+            if (hasContent(t.getContents())) {
+                alreadyTranslated.add(t.getTextFlow().getId());
+            }
+        }
+        List<AiSourceRow> out = new ArrayList<>(flows.size());
+        for (HTextFlow tf : flows) {
+            // Skip anything that already carries a translation (fuzzy/rejected):
+            // bulk AI only fills truly empty slots.
+            if (alreadyTranslated.contains(tf.getId())) {
+                continue;
+            }
+            out.add(new AiSourceRow(tf.getId(), firstContent(tf),
+                    tf.getDocument().getLocale().getLocaleId(),
+                    gettextContext(tf)));
+        }
+        return out;
+    }
+
+    private static boolean hasContent(List<String> contents) {
+        return contents != null && !contents.isEmpty()
+                && contents.get(0) != null && !contents.get(0).isBlank();
+    }
+
+    private static String firstContent(HTextFlow tf) {
+        return tf.getContents() == null || tf.getContents().isEmpty()
+                || tf.getContents().get(0) == null
+                ? "" : tf.getContents().get(0);
     }
 
     @Transactional

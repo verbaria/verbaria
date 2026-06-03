@@ -1,6 +1,7 @@
 package org.verbaria.server.ui.vaadin.translate;
 
 import org.verbaria.server.headless.security.Roles;
+import org.verbaria.server.headless.service.AiTranslationService;
 import org.verbaria.server.headless.service.TranslationEditService;
 
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ public class TranslationRow extends Div {
     private final LanguageValidator languageValidator;
     private final TaskScheduler taskScheduler;
     private final TranslationEditService translationEditService;
+    private final AiTranslationService aiTranslationService;
     private final TranslationProviderRegistry aiRegistry;
     private final AiPolicyService aiPolicy;
     private final ProgressDialogService progressDialogs;
@@ -114,6 +116,7 @@ public class TranslationRow extends Div {
     public TranslationRow(LanguageValidator languageValidator,
                           TaskScheduler taskScheduler,
                           TranslationEditService translationEditService,
+                          AiTranslationService aiTranslationService,
                           TranslationProviderRegistry aiRegistry,
                           AiPolicyService aiPolicy,
                           ProgressDialogService progressDialogs,
@@ -128,6 +131,7 @@ public class TranslationRow extends Div {
         this.messageEvaluators = messageEvaluators;
         this.taskScheduler = taskScheduler;
         this.translationEditService = translationEditService;
+        this.aiTranslationService = aiTranslationService;
         this.aiRegistry = aiRegistry;
         this.aiPolicy = aiPolicy;
         this.progressDialogs = progressDialogs;
@@ -314,7 +318,7 @@ public class TranslationRow extends Div {
             }
         });
 
-        MenuBar aiBtn = buildAiButton(area);
+        MenuBar aiBtn = buildAiButton(area, stateSpan);
         Button approve = buildApproveButton(stateSpan);
         Button reject = buildRejectButton(stateSpan, historyPanel);
         refreshActions();
@@ -658,7 +662,7 @@ public class TranslationRow extends Div {
         }
     }
 
-    private MenuBar buildAiButton(TranslationEditor area) {
+    private MenuBar buildAiButton(TranslationEditor area, Span stateSpan) {
         if (isSourceLocale || !aiPolicy.canCurrentUserUseAi()) {
             return null;
         }
@@ -669,24 +673,46 @@ public class TranslationRow extends Div {
         trigger.getElement().setAttribute("title", getTranslation("translate.action.aiPerRow"));
         for (var provider : aiRegistry.available()) {
             trigger.getSubMenu().addItem(provider.displayName(), ev -> {
-                String ctxStr = translationEditService.gettextContext(flow);
+                String providerId = provider.id();
                 String providerName = provider.displayName();
+                String editor = currentUsername();
                 progressDialogs.run(getTranslation("ai.translate.bulkRunning", providerName),
                         handle -> {
                             handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
-                            return provider.translate(source, ctx.sourceLocale(),
-                                    ctx.currentLocale(), ctxStr);
+                            // The service translates AND persists: it saves the
+                            // result and, for a reviewer/admin, also approves it,
+                            // so there's no second click.
+                            return aiTranslationService.translateOne(
+                                    flow.getId(), ctx.currentLocale(), providerId, editor);
                         })
-                        .whenComplete((out, err) -> {
+                        .whenComplete((res, err) -> {
                             if (err != null) {
                                 Notification.show(getTranslation("ai.translate.failed", err.getMessage()),
                                         5000, Notification.Position.MIDDLE);
                                 return;
                             }
-                            if (out != null && !out.isBlank()) {
-                                area.setValue(out);
-                                Notification.show(getTranslation("ai.translate.filledBy", providerName),
-                                        2000, Notification.Position.BOTTOM_START);
+                            if (res != null && res.content() != null && !res.content().isBlank()) {
+                                area.setValue(res.content());
+                                liveContent = res.content();
+                                if (res.applied()) {
+                                    // Auto-saved (and approved for reviewers).
+                                    savedContent = res.content();
+                                    if (res.state() != null) {
+                                        stateSpan.setText(res.state().name());
+                                        applyStateColor(stateSpan, res.state());
+                                        currentState = res.state();
+                                    }
+                                    refreshActions();
+                                    ctx.refreshRows().run();
+                                    Notification.show(getTranslation("ai.translate.filledBy", providerName),
+                                            2000, Notification.Position.BOTTOM_START);
+                                } else {
+                                    // A translation already existed: only fill the
+                                    // editor; the user must Save/Approve by hand.
+                                    refreshActions();
+                                    Notification.show(getTranslation("ai.translate.suggested", providerName),
+                                            3000, Notification.Position.BOTTOM_START);
+                                }
                             }
                         });
             });
