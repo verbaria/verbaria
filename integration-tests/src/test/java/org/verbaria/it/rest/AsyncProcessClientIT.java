@@ -29,7 +29,7 @@ class AsyncProcessClientIT extends AbstractRestClientIT {
         fixtures.ensureProject("rcasyncsrc", "master");
         ProcessStatus status = factory().getAsyncProcessClient()
                 .startSourceDocCreationOrUpdateWithDocId("rcasyncsrc", "master",
-                        source(), EXT, "message");
+                        source(), EXT, "message", false);
         assertThat(status.getStatusCode()).isNotNull();
     }
 
@@ -38,7 +38,7 @@ class AsyncProcessClientIT extends AbstractRestClientIT {
         fixtures.ensureLocale("de");
         fixtures.ensureProject("rcasynctrans", "master");
         factory().getAsyncProcessClient().startSourceDocCreationOrUpdateWithDocId(
-                "rcasynctrans", "master", source(), EXT, "message");
+                "rcasynctrans", "master", source(), EXT, "message", false);
 
         TranslationsResource tr = new TranslationsResource();
         TextFlowTarget target = new TextFlowTarget("hello");
@@ -48,7 +48,7 @@ class AsyncProcessClientIT extends AbstractRestClientIT {
 
         ProcessStatus status = factory().getAsyncProcessClient()
                 .startTranslatedDocCreationOrUpdateWithDocId("rcasynctrans",
-                        "master", LocaleId.DE, tr, "message", EXT, "auto", false);
+                        "master", LocaleId.DE, tr, "message", EXT, "auto", false, false);
         assertThat(status.getStatusCode()).isNotNull();
     }
 

@@ -782,7 +782,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             ProcessStatus status =
                     asyncProcessClient.startSourceDocCreationOrUpdateWithDocId(
                             getOpts().getProj(), getOpts().getProjectVersion(),
-                            srcDoc, extensions, docId);
+                            srcDoc, extensions, docId, getOpts().isForce());
 
             boolean waitForCompletion = true;
 
@@ -813,7 +813,8 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                                         .startSourceDocCreationOrUpdateWithDocId(
                                                 getOpts().getProj(), getOpts()
                                                         .getProjectVersion(),
-                                                srcDoc, extensions, docId);
+                                                srcDoc, extensions, docId,
+                                                getOpts().isForce());
                         ConsoleUtils
                                 .setProgressFeedbackMessage("Waiting for other clients ...");
                         break;
@@ -907,7 +908,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                                             .getProjectVersion(),
                                     new LocaleId(locale.getLocale()), targetDoc,
                                     docId, extensions, getOpts().getMergeType(),
-                                    getOpts().isMyTrans());
+                                    getOpts().isMyTrans(), getOpts().isForce());
 
             boolean waitForCompletion = true;
 
@@ -943,7 +944,8 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                                                         locale.getLocale()),
                                                 targetDoc, docId, extensions,
                                                 getOpts().getMergeType(),
-                                                getOpts().isMyTrans());
+                                                getOpts().isMyTrans(),
+                                                getOpts().isForce());
                         ConsoleUtils
                                 .setProgressFeedbackMessage("Waiting for other clients ...");
                         break;

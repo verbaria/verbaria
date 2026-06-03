@@ -54,12 +54,13 @@ public class AsyncProcessClient {
     @Deprecated
     public ProcessStatus startSourceDocCreationOrUpdate(String idNoSlash,
             String projectSlug, String iterationSlug, Resource resource,
-            Set<String> extensions, boolean copytrans) {
+            Set<String> extensions, boolean copytrans, boolean force) {
         Object[] extArr = extensions.toArray();
         return rest().put()
                 .uri(uri -> uri.path(BASE + "/r/{docId}")
                         .queryParam("ext", extArr)
                         .queryParam("copyTrans", copytrans)
+                        .queryParam("force", force)
                         .build(projectSlug, iterationSlug, idNoSlash))
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -71,13 +72,14 @@ public class AsyncProcessClient {
 
     public ProcessStatus startSourceDocCreationOrUpdateWithDocId(
             String projectSlug, String iterationSlug, Resource resource,
-            Set<String> extensions, String docId) {
+            Set<String> extensions, String docId, boolean force) {
         Object[] extArr = extensions.toArray();
         try {
             return rest().put()
                     .uri(uri -> uri.path(BASE + "/resource")
                             .queryParam("docId", docId)
                             .queryParam("ext", extArr)
+                            .queryParam("force", force)
                             .build(projectSlug, iterationSlug))
                     .accept(MediaType.APPLICATION_JSON)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +89,7 @@ public class AsyncProcessClient {
         } catch (HttpClientErrorException.NotFound e) {
             String idNoSlash = RestUtil.convertToDocumentURIId(docId);
             return startSourceDocCreationOrUpdate(idNoSlash, projectSlug,
-                    iterationSlug, resource, extensions, false);
+                    iterationSlug, resource, extensions, false, force);
         }
     }
 
@@ -96,7 +98,7 @@ public class AsyncProcessClient {
     public ProcessStatus startTranslatedDocCreationOrUpdate(String idNoSlash,
             String projectSlug, String iterationSlug, LocaleId locale,
             TranslationsResource translatedDoc, Set<String> extensions,
-            String merge, boolean myTrans) {
+            String merge, boolean myTrans, boolean force) {
         Object[] extArr = extensions.toArray();
         return rest().put()
                 .uri(uri -> uri.path(
@@ -104,6 +106,7 @@ public class AsyncProcessClient {
                         .queryParam("ext", extArr)
                         .queryParam("merge", merge)
                         .queryParam("assignCreditToUploader", myTrans)
+                        .queryParam("force", force)
                         .build(projectSlug, iterationSlug, idNoSlash,
                                 locale.toString()))
                 .accept(MediaType.APPLICATION_JSON)
@@ -118,7 +121,7 @@ public class AsyncProcessClient {
             String projectSlug, String iterationSlug, LocaleId locale,
             TranslationsResource translatedDoc, String docId,
             Set<String> extensions, String merge,
-            boolean assignCreditToUploader) {
+            boolean assignCreditToUploader, boolean force) {
         Object[] extArr = extensions.toArray();
         try {
             return rest().put()
@@ -129,6 +132,7 @@ public class AsyncProcessClient {
                             .queryParam("merge", merge)
                             .queryParam("assignCreditToUploader",
                                     assignCreditToUploader)
+                            .queryParam("force", force)
                             .build(projectSlug, iterationSlug,
                                     locale.toString()))
                     .accept(MediaType.APPLICATION_JSON)
@@ -140,7 +144,7 @@ public class AsyncProcessClient {
             String idNoSlash = RestUtil.convertToDocumentURIId(docId);
             return startTranslatedDocCreationOrUpdate(idNoSlash, projectSlug,
                     iterationSlug, locale, translatedDoc, extensions, merge,
-                    assignCreditToUploader);
+                    assignCreditToUploader, force);
         }
     }
 

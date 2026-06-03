@@ -65,6 +65,7 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
     private String validate;
     private boolean myTrans = DEF_MY_TRANS;
     private boolean approve = false;
+    private boolean force = false;
 
     @Override
     public ZanataCommand initCommand() {
@@ -299,5 +300,18 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
                     + "translated. Useful for initial/bulk imports.")
     public void setApprove(boolean approve) {
         this.approve = approve;
+    }
+
+    @Override
+    public boolean isForce() {
+        return force;
+    }
+
+    @Option(name = "--force",
+            usage = "Force-overwrite each pushed text/translation even when it "
+                    + "is unchanged. By default an identical push is a no-op "
+                    + "(no version/author churn); --force fully overrides.")
+    public void setForce(boolean force) {
+        this.force = force;
     }
 }

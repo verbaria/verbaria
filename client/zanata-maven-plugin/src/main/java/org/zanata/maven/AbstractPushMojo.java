@@ -170,9 +170,21 @@ abstract class AbstractPushMojo extends
     @Parameter(property = "zanata.approve", defaultValue = "false")
     private boolean approve = false;
 
+    /**
+     * Force-overwrite each pushed text/translation even when unchanged. By
+     * default an identical push is a no-op (no version/author churn).
+     */
+    @Parameter(property = "zanata.force", defaultValue = "false")
+    private boolean force = false;
+
     @Override
     public boolean getApprove() {
         return approve;
+    }
+
+    @Override
+    public boolean isForce() {
+        return force;
     }
 
     @Override

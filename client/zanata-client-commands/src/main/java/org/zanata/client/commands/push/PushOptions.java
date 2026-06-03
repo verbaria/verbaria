@@ -67,4 +67,11 @@ public interface PushOptions extends PushPullOptions {
      */
     public boolean getApprove();
 
+    /**
+     * Whether to force-overwrite each pushed text/translation even when its
+     * content and state are unchanged. By default an identical push is a no-op
+     * (no version/author churn); {@code --force} fully overrides.
+     */
+    public boolean isForce();
+
 }

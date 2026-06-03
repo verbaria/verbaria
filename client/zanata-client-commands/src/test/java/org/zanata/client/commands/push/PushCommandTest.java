@@ -237,12 +237,12 @@ public class PushCommandTest {
         when(
                 asyncProcessClient.startSourceDocCreationOrUpdateWithDocId(
                         anyString(), anyString(), any(Resource.class),
-                        eq(extensionSet), eq("RPM")))
+                        eq(extensionSet), eq("RPM"), eq(false)))
                 .thenReturn(mockStatus);
         when(
                 asyncProcessClient.startSourceDocCreationOrUpdateWithDocId(
                         anyString(), anyString(), any(Resource.class),
-                        eq(extensionSet), eq("sub/RPM")))
+                        eq(extensionSet), eq("sub/RPM"), eq(false)))
                 .thenReturn(mockStatus);
         when(asyncProcessClient.getProcessStatus(anyString()))
                 .thenReturn(mockStatus);
@@ -269,7 +269,8 @@ public class PushCommandTest {
                                     eq(expectedLocale),
                                     any(TranslationsResource.class),
                                     eq("RPM"),
-                                    eq(extensionSet), eq("auto"), eq(false))).
+                                    eq(extensionSet), eq("auto"), eq(false),
+                                    eq(false))).
                                     thenReturn(mockStatus);
             // when(mockTranslationResources.putTranslations(eq("RPM"),
             // eq(expectedLocale), (TranslationsResource) notNull(),

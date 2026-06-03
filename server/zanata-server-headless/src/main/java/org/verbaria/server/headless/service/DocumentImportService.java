@@ -1,6 +1,7 @@
 package org.verbaria.server.headless.service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,8 @@ public class DocumentImportService {
 
     public record ImportResult(HDocument document, boolean created) {}
 
-    public record TranslationsImportResult(int accepted, int skipped) {}
+    public record TranslationsImportResult(int accepted, int skipped,
+            int unchanged) {}
 
     /**
      * Upsert a source document for the given project iteration. Matches
@@ -80,6 +82,20 @@ public class DocumentImportService {
                                      String docId,
                                      Resource resource,
                                      HAccount actor) {
+        return importSource(projectSlug, versionSlug, docId, resource, actor,
+                false);
+    }
+
+    /**
+     * @param force when true, overwrite the source-locale targets even if the
+     *              pushed content/state is identical (bypasses the value check).
+     */
+    public ImportResult importSource(String projectSlug,
+                                     String versionSlug,
+                                     String docId,
+                                     Resource resource,
+                                     HAccount actor,
+                                     boolean force) {
         HProjectIteration iter = iterationRepository
                 .findByProjectAndSlug(projectSlug, versionSlug)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -193,7 +209,8 @@ public class DocumentImportService {
         // / non-admin-downgrade rule. Use the managed flows on savedDoc (not the
         // possibly-transient newOrder instances) so each target references a
         // persistent HTextFlow.
-        ensureSourceLocaleTargets(srcLocale, savedDoc.getTextFlows(), actor);
+        ensureSourceLocaleTargets(srcLocale, savedDoc.getTextFlows(), actor,
+                force);
 
         return new ImportResult(savedDoc, created);
     }
@@ -204,7 +221,7 @@ public class DocumentImportService {
      * and Translated otherwise.
      */
     private void ensureSourceLocaleTargets(HLocale srcLocale,
-            List<HTextFlow> flows, HAccount actor) {
+            List<HTextFlow> flows, HAccount actor, boolean force) {
         ContentState state = Roles.isCurrentUserAdmin()
                 ? ContentState.Approved : ContentState.Translated;
         HPerson author = actor == null ? null : actor.getPerson();
@@ -216,7 +233,15 @@ public class DocumentImportService {
             }
             HTextFlowTarget target = textFlowTargetRepository
                     .findByTextFlowAndLocale(tf.getId(), srcLocale.getLocaleId())
-                    .orElseGet(() -> new HTextFlowTarget(tf, srcLocale));
+                    .orElse(null);
+            // Unchanged re-push: leave the existing source-locale target alone
+            // so its version/author/lastChanged stay put — unless --force.
+            if (!force && target != null && isUnchanged(target, contents, state)) {
+                continue;
+            }
+            if (target == null) {
+                target = new HTextFlowTarget(tf, srcLocale);
+            }
             target.setContents(contents);
             target.setState(state);
             target.setTextFlowRevision(tf.getRevision());
@@ -225,6 +250,9 @@ public class DocumentImportService {
             if (author != null) {
                 target.setTranslator(author);
                 target.setLastModifiedBy(author);
+            }
+            if (force) {
+                target.setLastChanged(new Date());
             }
             textFlowTargetRepository.save(target);
         }
@@ -242,6 +270,23 @@ public class DocumentImportService {
                                                        String localeId,
                                                        TranslationsResource translations,
                                                        HAccount actingAs) {
+        return importTranslations(projectSlug, versionSlug, docId, localeId,
+                translations, actingAs, false);
+    }
+
+    /**
+     * @param force when true, overwrite each matched target even if the pushed
+     *              content/state is identical (bypasses the value check), fully
+     *              re-stamping version, author and source revision.
+     */
+    @Transactional
+    public TranslationsImportResult importTranslations(String projectSlug,
+                                                       String versionSlug,
+                                                       String docId,
+                                                       String localeId,
+                                                       TranslationsResource translations,
+                                                       HAccount actingAs,
+                                                       boolean force) {
         HDocument doc = documentRepository
                 .findByVersionAndDocId(projectSlug, versionSlug, docId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -256,6 +301,7 @@ public class DocumentImportService {
         HPerson translator = actingAs == null ? null : actingAs.getPerson();
         int accepted = 0;
         int skipped = 0;
+        int unchanged = 0;
         List<TextFlowTarget> targets = translations.getTextFlowTargets() == null
                 ? List.of() : translations.getTextFlowTargets();
         for (TextFlowTarget incoming : targets) {
@@ -285,9 +331,27 @@ public class DocumentImportService {
                 continue;
             }
 
+            ContentState state = incoming.getState() == null
+                    ? ContentState.Translated : incoming.getState();
+            // Review states (approved/rejected) require admin rights; for
+            // everyone else, downgrade an approved push to translated.
+            if ((state == ContentState.Approved
+                    || state == ContentState.Rejected)
+                    && !Roles.isCurrentUserAdmin()) {
+                state = ContentState.Translated;
+            }
+
             HTextFlowTarget target = textFlowTargetRepository
                     .findByTextFlowAndLocale(tf.getId(), locale.getLocaleId())
                     .orElse(null);
+            // A re-push of an identical translation must be a no-op: leave the
+            // row exactly as it was so the version, author and lastChanged don't
+            // churn on every push (which otherwise floods history with
+            // non-edits). --force overrides this and always rewrites.
+            if (!force && target != null && isUnchanged(target, contents, state)) {
+                unchanged++;
+                continue;
+            }
             if (target == null) {
                 target = new HTextFlowTarget(tf, locale);
             }
@@ -298,25 +362,32 @@ public class DocumentImportService {
             // advanced, leaving an orphan row that collided with the next edit's
             // listener write on the (target_id, version_num) unique key.
             target.setContents(contents);
-            ContentState state = incoming.getState() == null
-                    ? ContentState.Translated : incoming.getState();
-            // Review states (approved/rejected) require admin rights; for
-            // everyone else, downgrade an approved push to translated.
-            if ((state == ContentState.Approved
-                    || state == ContentState.Rejected)
-                    && !Roles.isCurrentUserAdmin()) {
-                state = ContentState.Translated;
-            }
             target.setState(state);
             target.setTextFlowRevision(tf.getRevision());
             if (translator != null) {
                 target.setTranslator(translator);
                 target.setLastModifiedBy(translator);
             }
+            // --force may carry identical content, which Hibernate would treat
+            // as no change and never write; touch lastChanged so the override
+            // actually advances the version and re-stamps the author.
+            if (force) {
+                target.setLastChanged(new Date());
+            }
             textFlowTargetRepository.save(target);
             accepted++;
         }
-        return new TranslationsImportResult(accepted, skipped);
+        return new TranslationsImportResult(accepted, skipped, unchanged);
+    }
+
+    /**
+     * Whether the stored target already holds exactly this content and state, so
+     * a push carrying it would only re-stamp the version/author for nothing.
+     */
+    private static boolean isUnchanged(HTextFlowTarget target,
+            List<String> contents, ContentState state) {
+        return target.getState() == state
+                && contents.equals(target.getContents());
     }
 
     /**

@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import org.zanata.client.commands.push.PushCommand;
+import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
@@ -15,6 +17,133 @@ import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 
 class TranslationHistoryIT extends AbstractPushPullIT {
+
+    @Test
+    void rePushingSameTranslationDoesNotBumpVersionOrAuthor() throws Exception {
+        // A re-push that carries an identical translation must be a no-op: the
+        // target's version, author and lastChanged must not churn. Only a real
+        // content change advances the version.
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itnoop", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\n");
+        pushBoth("itnoop");
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itnoop", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId fr = new LocaleId("fr-FR");
+
+        HTextFlowTarget afterFirst = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0);
+        Integer v0 = afterFirst.getVersionNum();
+
+        pushBoth("itnoop");
+
+        HTextFlowTarget afterRepush = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0);
+        assertThat(afterRepush.getVersionNum())
+                .as("an identical re-push must not bump the target version")
+                .isEqualTo(v0);
+
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Salut\n");
+        pushBoth("itnoop");
+
+        HTextFlowTarget afterEdit = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0);
+        assertThat(afterEdit.getContents()).containsExactly("Salut");
+        assertThat(afterEdit.getVersionNum())
+                .as("a real content change must advance the target version")
+                .isGreaterThan(v0);
+    }
+
+    @Test
+    void forceSourcePushOverridesUnchangedSourceTarget() throws Exception {
+        // The same no-op / --force logic governs the source push: the source's
+        // own locale target must not churn on an identical re-push, but --force
+        // rewrites it.
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itforcesrc", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        PushOptionsImpl push = pushOpts("source", "properties", "itforcesrc");
+        push.setIncludes("messages.properties");
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itforcesrc", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId en = new LocaleId("en-US");
+
+        Integer v0 = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), en).get(0).getVersionNum();
+
+        PushOptionsImpl repush = pushOpts("source", "properties", "itforcesrc");
+        repush.setIncludes("messages.properties");
+        new PushCommand(repush).run();
+        assertThat(textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), en).get(0).getVersionNum())
+                .as("a plain source re-push of identical text is a no-op")
+                .isEqualTo(v0);
+
+        PushOptionsImpl force = pushOpts("source", "properties", "itforcesrc");
+        force.setIncludes("messages.properties");
+        force.setForce(true);
+        new PushCommand(force).run();
+        assertThat(textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), en).get(0).getVersionNum())
+                .as("--force must rewrite the source target even if unchanged")
+                .isGreaterThan(v0);
+    }
+
+    @Test
+    void forcePushOverridesUnchangedTranslation() throws Exception {
+        // --force bypasses the value-check no-op: an identical re-push still
+        // advances the version (fully overriding state).
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itforce", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\n");
+        pushBoth("itforce");
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itforce", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId fr = new LocaleId("fr-FR");
+
+        Integer v0 = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0).getVersionNum();
+
+        pushBoth("itforce");
+        assertThat(textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0).getVersionNum())
+                .as("a plain re-push of identical text is a no-op")
+                .isEqualTo(v0);
+
+        PushOptionsImpl force = pushOpts("both", "properties", "itforce");
+        force.setLocaleMapList(frLocales());
+        force.setIncludes("messages.properties");
+        force.setForce(true);
+        new PushCommand(force).run();
+
+        assertThat(textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0).getVersionNum())
+                .as("--force must rewrite even identical text, advancing the version")
+                .isGreaterThan(v0);
+    }
 
     @Test
     void rePushingTranslationsDoesNotDuplicateHistory() throws Exception {

@@ -22,7 +22,7 @@ class TransDocResourceClientIT extends AbstractRestClientIT {
         doc.setLang(LocaleId.EN_US);
         doc.getTextFlows().add(new TextFlow("hello", LocaleId.EN_US, "world"));
         factory().getAsyncProcessClient().startSourceDocCreationOrUpdateWithDocId(
-                "rctrans", "master", doc, ext, "doc");
+                "rctrans", "master", doc, ext, "doc", false);
 
         // No translation exists for the locale, so the server answers 404 —
         // exactly the "no translations in locale X" signal PullCommand relies on.

@@ -434,6 +434,7 @@ public class ZanataCliBridgeController {
     public ResponseEntity<Resource> putSourceDoc(@PathVariable("slug") String slug,
                                                  @PathVariable("iter") String iter,
                                                  @PathVariable("docId") String docId,
+                                                 @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                  @RequestBody Resource body) {
         HAccount actor = currentUser();
         if (actor == null) {
@@ -442,7 +443,7 @@ public class ZanataCliBridgeController {
         String realDocId = decodeDocId(docId);
         try {
             DocumentImportService.ImportResult result =
-                    importService.importSource(slug, iter, realDocId, body, actor);
+                    importService.importSource(slug, iter, realDocId, body, actor, force);
             Resource out = toResource(result.document());
             return result.created()
                     ? ResponseEntity.status(HttpStatus.CREATED).body(out)
@@ -494,8 +495,9 @@ public class ZanataCliBridgeController {
     public ResponseEntity<Resource> putSourceDocByQuery(@PathVariable("slug") String slug,
                                                         @PathVariable("iter") String iter,
                                                         @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                        @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                         @RequestBody Resource body) {
-        return putSourceDoc(slug, iter, docId, body);
+        return putSourceDoc(slug, iter, docId, force, body);
     }
 
     @DeleteMapping("/projects/p/{slug}/iterations/i/{iter}/resource")
@@ -520,8 +522,9 @@ public class ZanataCliBridgeController {
                                                     @PathVariable("iter") String iter,
                                                     @PathVariable("locale") String locale,
                                                     @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                    @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                     @RequestBody TranslationsResource body) {
-        return putTranslations(slug, iter, docId, locale, body);
+        return putTranslations(slug, iter, docId, locale, force, body);
     }
 
     @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/resource/translations/{locale}")
@@ -529,8 +532,9 @@ public class ZanataCliBridgeController {
                                                                       @PathVariable("iter") String iter,
                                                                       @PathVariable("locale") String locale,
                                                                       @org.springframework.web.bind.annotation.RequestParam("docId") String docId,
+                                                                      @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                                       @RequestBody TranslationsResource body) {
-        return asyncPushTranslations(slug, iter, docId, locale, body);
+        return asyncPushTranslations(slug, iter, docId, locale, force, body);
     }
 
     // ---------- 10. get translations ----------
@@ -596,6 +600,7 @@ public class ZanataCliBridgeController {
                                                                 @PathVariable("iter") String iter,
                                                                 @PathVariable("docId") String docId,
                                                                 @PathVariable("locale") String locale,
+                                                                @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                                 @RequestBody TranslationsResource body) {
         HAccount actor = currentUser();
         if (actor == null) {
@@ -604,10 +609,11 @@ public class ZanataCliBridgeController {
         String realDocId = decodeDocId(docId);
         try {
             DocumentImportService.TranslationsImportResult result =
-                    importService.importTranslations(slug, iter, realDocId, locale, body, actor);
+                    importService.importTranslations(slug, iter, realDocId, locale, body, actor, force);
             return ResponseEntity.ok(Map.of(
                     "accepted", result.accepted(),
-                    "skipped", result.skipped()));
+                    "skipped", result.skipped(),
+                    "unchanged", result.unchanged()));
         } catch (IllegalArgumentException | EntityNotFoundException | NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
@@ -731,6 +737,7 @@ public class ZanataCliBridgeController {
     public ResponseEntity<ProcessStatus> asyncPushSource(@PathVariable("slug") String slug,
                                                          @PathVariable("iter") String iter,
                                                          @org.springframework.web.bind.annotation.RequestParam(value = "docId", required = false) String docIdParam,
+                                                         @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                          @RequestBody Resource body) {
         HAccount actor = currentUser();
         if (actor == null) {
@@ -740,7 +747,7 @@ public class ZanataCliBridgeController {
         String docId = decodeDocId(docIdParam != null && !docIdParam.isBlank()
                 ? docIdParam : body.getName());
         try {
-            importService.importSource(slug, iter, docId, body, actor);
+            importService.importSource(slug, iter, docId, body, actor, force);
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
@@ -774,6 +781,7 @@ public class ZanataCliBridgeController {
                                                                @PathVariable("iter") String iter,
                                                                @PathVariable("docId") String docId,
                                                                @PathVariable("locale") String locale,
+                                                               @org.springframework.web.bind.annotation.RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
                                                                @RequestBody TranslationsResource body) {
         HAccount actor = currentUser();
         if (actor == null) {
@@ -781,7 +789,7 @@ public class ZanataCliBridgeController {
         }
         try {
             importService.importTranslations(slug, iter, decodeDocId(docId),
-                    locale, body, actor);
+                    locale, body, actor, force);
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
