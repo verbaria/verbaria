@@ -75,6 +75,10 @@ public class PushCommand extends PushPullCommand<PushOptions> {
     private CopyTransClient copyTransClient;
     private AsyncProcessClient asyncProcessClient;
 
+    private boolean inProjectGlob;
+    private String currentGlobSlug;
+    private VerbariaLock globLock;
+
     public interface TranslationResourcesVisitor {
         void visit(LocaleMapping locale, TranslationsResource targetDoc);
     }
@@ -295,6 +299,13 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         // The dispatcher line above is the explicit intent; skip per-project
         // "are you sure?" prompts inside the loop.
         if (originalInteractive) getOpts().setInteractiveMode(false);
+        globLock = new VerbariaLock();
+        globLock.setServer(getOpts().getUrl() == null ? null
+                : getOpts().getUrl().toString());
+        globLock.setProject(originalProj);
+        globLock.setProjectVersion(getOpts().getProjectVersion());
+        globLock.setGeneratedAt(java.time.Instant.now().toString());
+        inProjectGlob = true;
         try {
             int ok = 0, fail = 0;
             java.util.List<String> failedDocs = new java.util.ArrayList<>();
@@ -303,6 +314,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 java.util.List<String> docs = e.getValue();
                 log.info("--- pushing {} doc(s) → project {} ---", docs.size(), slug);
                 getOpts().setProj(slug);
+                currentGlobSlug = slug;
                 String includes = String.join(",", docs.stream()
                         .map(d -> "**/" + d + ".yaml").toList());
                 getOpts().setIncludes(includes);
@@ -332,10 +344,13 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         unknown.size(), unknown);
             }
         } finally {
+            inProjectGlob = false;
+            currentGlobSlug = null;
             getOpts().setProj(originalProj);
             getOpts().setIncludes(String.join(",", originalIncludes));
             if (originalInteractive) getOpts().setInteractiveMode(true);
         }
+        writeLockFile(globLock);
     }
 
     private String lookupProjectForDoc(String docName) {
@@ -608,12 +623,17 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             return;
         }
         try {
-            VerbariaLock lock = new VerbariaLock();
-            lock.setServer(getOpts().getUrl() == null ? null
-                    : getOpts().getUrl().toString());
-            lock.setProject(getOpts().getProj());
-            lock.setProjectVersion(getOpts().getProjectVersion());
-            lock.setGeneratedAt(java.time.Instant.now().toString());
+            VerbariaLock lock;
+            if (inProjectGlob) {
+                lock = globLock;
+            } else {
+                lock = new VerbariaLock();
+                lock.setServer(getOpts().getUrl() == null ? null
+                        : getOpts().getUrl().toString());
+                lock.setProject(getOpts().getProj());
+                lock.setProjectVersion(getOpts().getProjectVersion());
+                lock.setGeneratedAt(java.time.Instant.now().toString());
+            }
 
             // Source revisions for all docs in a single request.
             Map<String, Integer> revisionByDoc = new HashMap<>();
@@ -627,7 +647,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 String qualified = qualifiedDocName(localDocName);
                 Integer revision = revisionByDoc.get(qualified);
                 if (revision != null) {
-                    lock.document(localDocName)
+                    lock.document(lockDocKey(localDocName))
                             .setSource(new SourceLock(revision));
                 }
                 if (trans && locales != null) {
@@ -638,6 +658,26 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 }
             }
 
+            if (!inProjectGlob) {
+                writeLockFile(lock);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Could not write {}: {}",
+                    VerbariaLockReaderWriter.FILE_NAME, e.getMessage());
+        }
+    }
+
+    /** Lock doc key: project-qualified in multi-project (glob) mode. */
+    private String lockDocKey(String localDocName) {
+        return inProjectGlob ? currentGlobSlug + "/" + localDocName
+                : localDocName;
+    }
+
+    private void writeLockFile(VerbariaLock lock) {
+        if (lock == null || getOpts().isDryRun()) {
+            return;
+        }
+        try {
             Path lockFile =
                     lockDir().resolve(VerbariaLockReaderWriter.FILE_NAME);
             if (VerbariaLockReaderWriter.writeIfChanged(lock, lockFile)) {
@@ -670,7 +710,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             TranslationLock entry = LockSignature.fromTargets(
                     body.getTextFlowTargets(), false);
             if (entry != null) {
-                lock.document(localDocName).getTranslations()
+                lock.document(lockDocKey(localDocName)).getTranslations()
                         .put(locale.getId(), entry);
             }
         } catch (HttpClientErrorException.NotFound e) {

@@ -16,7 +16,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>5.4.3</version>
+        <version>5.4.4</version>
         <configuration>
           <glossaryFile>translate1.csv</glossaryFile>
         </configuration>

@@ -57,6 +57,9 @@ public class PullCommand extends PushPullCommand<PullOptions> {
      */
     private VerbariaLock lock;
 
+    private boolean inProjectGlob;
+    private String currentGlobSlug;
+
     static {
         strategies.put(PROJECT_TYPE_UTF8_PROPERTIES,
                 UTF8PropertiesStrategy.class);
@@ -103,11 +106,19 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         }
         log.info("Multi-project pull: {} projects matched", resolved.size());
         String originalProj = getOpts().getProj();
+        lock = new VerbariaLock();
+        lock.setServer(getOpts().getUrl() == null ? null
+                : getOpts().getUrl().toString());
+        lock.setProject(originalProj);
+        lock.setProjectVersion(getOpts().getProjectVersion());
+        lock.setGeneratedAt(java.time.Instant.now().toString());
+        inProjectGlob = true;
         try {
             int ok = 0, fail = 0;
             for (String slug : resolved) {
                 log.info("--- pulling project: {} ---", slug);
                 getOpts().setProj(slug);
+                currentGlobSlug = slug;
                 try {
                     org.zanata.client.config.LocaleList ll =
                             org.zanata.client.commands.OptionsUtil.fetchLocalesFromServer(
@@ -123,8 +134,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             }
             log.info("Multi-project pull done: {} ok, {} failed", ok, fail);
         } finally {
+            inProjectGlob = false;
+            currentGlobSlug = null;
             getOpts().setProj(originalProj);
         }
+        writeLock();
     }
 
     private static String globToRegex(String glob) {
@@ -294,12 +308,16 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 prepareStatsIfApplicable(pullTarget, locales);
 
         // Start a fresh lock describing this sync; populated below per doc.
-        lock = new VerbariaLock();
-        lock.setServer(getOpts().getUrl() == null ? null
-                : getOpts().getUrl().toString());
-        lock.setProject(getOpts().getProj());
-        lock.setProjectVersion(getOpts().getProjectVersion());
-        lock.setGeneratedAt(java.time.Instant.now().toString());
+        // In multi-project (glob) mode reuse the shared aggregate lock so every
+        // project's docs land in one file instead of overwriting each other.
+        if (!inProjectGlob) {
+            lock = new VerbariaLock();
+            lock.setServer(getOpts().getUrl() == null ? null
+                    : getOpts().getUrl().toString());
+            lock.setProject(getOpts().getProj());
+            lock.setProjectVersion(getOpts().getProjectVersion());
+            lock.setGeneratedAt(java.time.Instant.now().toString());
+        }
 
         // The source/base locale (the shared-keys locale, e.g. en-US) is not a
         // translation: when it appears in the locale list, "pulling" it means
@@ -325,7 +343,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     // when the server-side revision didn't move.
                     SourceLock src = new SourceLock(doc.getRevision());
                     src.setSig(LockSignature.sourceSignature(doc));
-                    lock.document(localDocName).setSource(src);
+                    lock.document(lockDocKey(localDocName)).setSource(src);
                     if (pullTarget) {
                         recordSourceLocaleLock(strat, localDocName,
                                 qualifiedDocName, doc.getLang());
@@ -405,7 +423,15 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     + "(base) locale.", sourceLocaleSynced);
         }
 
-        writeLock();
+        if (!inProjectGlob) {
+            writeLock();
+        }
+    }
+
+    /** Lock doc key: project-qualified in multi-project (glob) mode. */
+    private String lockDocKey(String localDocName) {
+        return inProjectGlob ? currentGlobSlug + "/" + localDocName
+                : localDocName;
     }
 
     /**
@@ -465,7 +491,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         TranslationLock entry = LockSignature.fromTargets(
                 targetDoc.getTextFlowTargets(), getOpts().getIncludeFuzzy());
         if (entry != null) {
-            lock.document(localDocName).getTranslations()
+            lock.document(lockDocKey(localDocName)).getTranslations()
                     .put(locale.getId(), entry);
         }
     }

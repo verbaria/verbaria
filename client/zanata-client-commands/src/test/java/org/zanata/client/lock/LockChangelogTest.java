@@ -83,6 +83,60 @@ public class LockChangelogTest {
     }
 
     @Test
+    public void multiProjectGlobLockDiffsPerQualifiedDoc() {
+        VerbariaLock before = lock();
+        before.setProject("consulo**");
+        before.document("consulo-a/messages").getTranslations()
+                .put("fr", tl("A"));
+        before.document("consulo-b/messages").getTranslations()
+                .put("fr", tl("B"));
+
+        VerbariaLock after = lock();
+        after.setProject("consulo**");
+        after.document("consulo-a/messages").getTranslations()
+                .put("fr", tl("A"));
+        after.document("consulo-b/messages").getTranslations()
+                .put("fr", tl("B2", "Bob <bob@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString("consulo-b/messages"));
+        // consulo-a didn't change, so it appears nowhere (doc nor footer url).
+        assertThat(msg, not(containsString("consulo-a")));
+        // The footer links to the changed project, not the glob pattern.
+        assertThat(msg, containsString(
+                "Source: translate.verbaria.org/project/consulo-b/version/main"));
+        assertThat(msg, not(containsString("project/consulo**")));
+    }
+
+    @Test
+    public void multiProjectGlobLockEmitsUrlPerChangedProject() {
+        VerbariaLock before = lock();
+        before.setProject("consulo**");
+        before.document("consulo-a/messages").getTranslations()
+                .put("fr", tl("A"));
+        before.document("consulo-b/messages").getTranslations()
+                .put("fr", tl("B"));
+
+        VerbariaLock after = lock();
+        after.setProject("consulo**");
+        after.document("consulo-a/messages").getTranslations()
+                .put("fr", tl("A2", "Al <al@x.org>"));
+        after.document("consulo-b/messages").getTranslations()
+                .put("fr", tl("B2", "Bo <bo@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString(
+                "Source: translate.verbaria.org/project/consulo-a/version/main"));
+        assertThat(msg, containsString(
+                "Source: translate.verbaria.org/project/consulo-b/version/main"));
+
+        String md = LockChangelog.render(before, after,
+                LockChangelog.Format.MARKDOWN);
+        assertThat(md, containsString("project/consulo-a/version/main"));
+        assertThat(md, containsString("project/consulo-b/version/main"));
+    }
+
+    @Test
     public void identicalSourceSigProducesEmptyMessage() {
         VerbariaLock before = lock();
         src(before, "messages", "S1");

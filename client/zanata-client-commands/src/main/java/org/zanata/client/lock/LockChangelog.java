@@ -16,6 +16,7 @@
  */
 package org.zanata.client.lock;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -199,9 +200,12 @@ public final class LockChangelog {
         section(sb, "Removed:", removed);
         sourceSection(sb, "Source updated:", sourceUpdated);
 
-        String source = sourceRef();
-        if (source != null) {
-            sb.append("\nSource: ").append(source).append('\n');
+        List<String> sources = sourceRefs();
+        if (!sources.isEmpty()) {
+            sb.append('\n');
+            for (String s : sources) {
+                sb.append("Source: ").append(s).append('\n');
+            }
         }
 
         if (!coAuthors.isEmpty()) {
@@ -235,9 +239,10 @@ public final class LockChangelog {
             sb.append("\n**Contributors:** ")
                     .append(String.join(", ", coAuthors)).append('\n');
         }
-        String source = sourceRef();
-        if (source != null) {
-            sb.append("\n<sub>Source: ").append(source).append("</sub>\n");
+        List<String> sources = sourceRefs();
+        if (!sources.isEmpty()) {
+            sb.append("\n<sub>Source: ")
+                    .append(String.join(", ", sources)).append("</sub>\n");
         }
         return sb.toString();
     }
@@ -246,19 +251,61 @@ public final class LockChangelog {
      * A navigable project URL for the footer, with no double slash when the
      * server URL already ends in one. {@code null} when no server is known.
      */
-    private String sourceRef() {
+    /**
+     * Project page link(s) for the footer. A single-project lock yields one
+     * URL; a multi-project (glob) lock yields one URL per project that actually
+     * changed, derived from the {@code slug/doc} qualified keys. Empty when no
+     * server is known.
+     */
+    private List<String> sourceRefs() {
         if (newLock.getServer() == null) {
-            return null;
+            return List.of();
         }
         String base = newLock.getServer().replaceAll("/+$", "");
-        if (newLock.getProject() == null) {
+        String project = newLock.getProject();
+        if (!isGlob(project)) {
+            return List.of(projectUrl(base, project));
+        }
+        TreeSet<String> slugs = changedProjectSlugs();
+        if (slugs.isEmpty()) {
+            return List.of(base);
+        }
+        List<String> out = new ArrayList<>(slugs.size());
+        for (String slug : slugs) {
+            out.add(projectUrl(base, slug));
+        }
+        return out;
+    }
+
+    private String projectUrl(String base, String project) {
+        if (project == null) {
             return base;
         }
         if (newLock.getProjectVersion() != null) {
-            return base + "/project/" + newLock.getProject()
+            return base + "/project/" + project
                     + "/version/" + newLock.getProjectVersion();
         }
-        return base + "/project/view/" + newLock.getProject();
+        return base + "/project/view/" + project;
+    }
+
+    /** Project slugs (the part before the first {@code /}) of changed docs. */
+    private TreeSet<String> changedProjectSlugs() {
+        TreeSet<String> docs = new TreeSet<>();
+        docs.addAll(updated.keySet());
+        docs.addAll(added.keySet());
+        docs.addAll(removed.keySet());
+        docs.addAll(sourceUpdated);
+        TreeSet<String> slugs = new TreeSet<>();
+        for (String docId : docs) {
+            int slash = docId.indexOf('/');
+            slugs.add(slash > 0 ? docId.substring(0, slash) : docId);
+        }
+        return slugs;
+    }
+
+    private static boolean isGlob(String project) {
+        return project != null
+                && (project.contains("*") || project.contains("?"));
     }
 
     private void mdSection(StringBuilder sb, String heading,
