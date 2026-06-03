@@ -20,6 +20,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 import org.yaml.snakeyaml.DumperOptions.LineBreak;
 import org.yaml.snakeyaml.Yaml;
+import org.zanata.adapter.consulo.ApostropheSafeRepresenter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.dto.LocaleMappedTranslatedDoc;
@@ -237,14 +238,9 @@ public class ConsuloStrategy extends AbstractPullStrategy {
             }
             rendered.put(e.getKey(), body);
         }
-        DumperOptions opts = new DumperOptions();
-        opts.setDefaultFlowStyle(FlowStyle.BLOCK);
-        opts.setLineBreak(LineBreak.UNIX);
-        opts.setIndent(4);
-        opts.setSplitLines(false);
         try (OutputStreamWriter w = new OutputStreamWriter(
                 Files.newOutputStream(out), StandardCharsets.UTF_8)) {
-            new Yaml(opts).dump(rendered, w);
+            blockYaml().dump(rendered, w);
         }
         log.info("Wrote source file {}", out);
     }
@@ -386,16 +382,26 @@ public class ConsuloStrategy extends AbstractPullStrategy {
             }
         }
 
+        try (OutputStreamWriter w = new OutputStreamWriter(
+                new FileOutputStream(out), StandardCharsets.UTF_8)) {
+            blockYaml().dump(rendered, w);
+        }
+        return null;
+    }
+
+    /**
+     * A block-style yaml dumper that keeps any value containing an apostrophe in
+     * double-quoted style. snakeyaml's default single-quoted style escapes each
+     * {@code '} as {@code ''}, which doubles the apostrophes of ICU/MessageFormat
+     * strings; double-quoted style keeps them literal so the source round-trips.
+     */
+    private static Yaml blockYaml() {
         DumperOptions opts = new DumperOptions();
         opts.setDefaultFlowStyle(FlowStyle.BLOCK);
         opts.setLineBreak(LineBreak.UNIX);
         opts.setIndent(4);
         opts.setSplitLines(false);
-        try (OutputStreamWriter w = new OutputStreamWriter(
-                new FileOutputStream(out), StandardCharsets.UTF_8)) {
-            new Yaml(opts).dump(rendered, w);
-        }
-        return null;
+        return new Yaml(new ApostropheSafeRepresenter(opts), opts);
     }
 
     /**

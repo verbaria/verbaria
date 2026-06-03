@@ -153,6 +153,57 @@ class SourceRoundTripIT extends AbstractPushPullIT {
     }
 
     @Test
+    void consuloYamlIcuMessageFormatRoundTrip() throws Exception {
+        String icu = "''''{0}'''' is not compatible with array initializer "
+                + "expressions. Use the full form (new int[] '{' ... '}' "
+                + "instead of just '{' ... '}')";
+
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itconsuloicu", VERSION);
+
+        Path libEn = tmp.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(libEn);
+        Path yaml = libEn.resolve("messages.yaml");
+        Files.writeString(yaml, "icu.key:\n    text: \"" + icu + "\"\n");
+
+        new PushCommand(pushOpts("source", "consulo", "itconsuloicu")).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itconsuloicu", VERSION, "messages")
+                .orElseThrow();
+        List<HTextFlow> flows = textFlowRepository.findByDocument(doc.getId());
+        assertThat(flows).hasSize(1);
+        assertThat(flows.get(0).getContents().get(0))
+                .as("the icu message format must persist verbatim")
+                .isEqualTo(icu);
+
+        Files.writeString(yaml, "icu.key:\n    text: 'placeholder'\n");
+
+        new PullCommand(pullOpts("source", "consulo", "itconsuloicu")).run();
+
+        String raw = Files.readString(yaml);
+        assertThat(raw)
+                .as("icu apostrophes must stay literal in double-quoted style, "
+                        + "not be doubled by single-quoted yaml: %s", raw)
+                .contains("text: \"''''{0}''''")
+                .doesNotContain("''''''''{0}");
+
+        Object root;
+        try (var in = Files.newInputStream(yaml)) {
+            root = new Yaml().load(in);
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> top = (Map<String, Object>) root;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entry = (Map<String, Object>) top.get("icu.key");
+        assertThat((String) entry.get("text"))
+                .as("the icu format survives the pull verbatim")
+                .isEqualTo(icu);
+    }
+
+    @Test
     void consuloYamlNamesAndTypesRoundTrip() throws Exception {
         assertParamsRoundTrip("itconsuloparams",
                 List.of("kind", "name", "shortcut", "actionName", "shortcutColor"),

@@ -28,6 +28,6 @@ public final class ConsuloWriter {
             doc.put(e.getKey(), body);
         }
 
-        new Yaml(opts).dump(doc, out);
+        new Yaml(new ApostropheSafeRepresenter(opts), opts).dump(doc, out);
     }
 }
