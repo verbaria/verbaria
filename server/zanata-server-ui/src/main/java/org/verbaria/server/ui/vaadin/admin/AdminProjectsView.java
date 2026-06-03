@@ -28,7 +28,7 @@ import org.verbaria.server.ui.vaadin.project.ProjectView;
 @RolesAllowed("ADMIN")
 public class AdminProjectsView extends VerticalLayout implements TitleKey {
 
-    @Override public String pageTitleKey() { return "page.myProjects"; }
+    @Override public String pageTitleKey() { return "admin.projects.heading"; }
 
 
     public AdminProjectsView(ProjectRepository projectRepository) {
@@ -36,7 +36,7 @@ public class AdminProjectsView extends VerticalLayout implements TitleKey {
         setPadding(true);
         setSpacing(true);
 
-        HorizontalLayout header = new HorizontalLayout(new H2(getTranslation("page.myProjects")));
+        HorizontalLayout header = new HorizontalLayout(new H2(getTranslation("admin.projects.heading")));
         header.setWidthFull();
         Button create = new Button(getTranslation("projectCreate.title"),
                 e -> getUI().ifPresent(ui -> ui.navigate(ProjectCreateView.class)));
@@ -50,28 +50,16 @@ public class AdminProjectsView extends VerticalLayout implements TitleKey {
                 .setHeader(getTranslation("admin.projects.slugCol")).setAutoWidth(true);
         grid.addColumn(p -> p.getName() == null ? "" : p.getName())
                 .setHeader(getTranslation("admin.projects.nameCol")).setAutoWidth(true);
-        grid.addColumn(p -> p.getDefaultProjectType() == null
-                ? "" : p.getDefaultProjectType().name())
-                .setHeader(getTranslation("admin.projects.typeCol")).setAutoWidth(true);
         grid.addComponentColumn(p -> statusEditor(p, projectRepository))
                 .setHeader(getTranslation("admin.projects.statusCol")).setAutoWidth(true);
         grid.addComponentColumn(p -> {
-            HorizontalLayout actions = new HorizontalLayout();
+            // Status (incl. Obsolete) is set inline via the status column; the
+            // row only needs a Settings shortcut.
             Button settings = new Button(getTranslation("page.settings"),
                     e -> getUI().ifPresent(ui ->
                             ui.navigate("project/view/" + p.getSlug() + "/settings")));
             settings.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-            Button obsolete = new Button(getTranslation("admin.projects.markObsolete"), e -> {
-                p.setStatus(EntityStatus.OBSOLETE);
-                projectRepository.save(p);
-                Notification.show(getTranslation("admin.projects.markedObsolete", p.getSlug()),
-                        2500, Notification.Position.BOTTOM_START);
-                getUI().ifPresent(ui -> ui.getPage().reload());
-            });
-            obsolete.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.SMALL);
-            obsolete.setEnabled(p.getStatus() != EntityStatus.OBSOLETE);
-            actions.add(settings, obsolete);
-            return actions;
+            return settings;
         }).setHeader(getTranslation("admin.projects.actionsCol")).setAutoWidth(true);
         // Server-paged DataProvider so admins managing hundreds of projects
         // don't pay a full-table scan to render this view.

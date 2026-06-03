@@ -24,7 +24,7 @@ public class ProjectStatsCache {
     private final ProjectIterationRepository iterationRepository;
     private final TextFlowTargetRepository targetRepository;
     private final LocaleRepository localeRepository;
-    private final Map<String, Double> cache = new ConcurrentHashMap<>();
+    private final Map<String, Stats> cache = new ConcurrentHashMap<>();
 
     public ProjectStatsCache(ProjectIterationRepository iterationRepository,
             TextFlowTargetRepository targetRepository,
@@ -34,14 +34,26 @@ public class ProjectStatsCache {
         this.localeRepository = localeRepository;
     }
 
-    public double translatedPercent(String projectSlug) {
-        Double cached = cache.get(projectSlug);
+    /** Word totals for a project, so callers can aggregate (e.g. by group). */
+    public record Stats(long translatedWords, long possibleWords) {
+        public double percent() {
+            return possibleWords == 0 ? 0.0
+                    : translatedWords * 100.0 / possibleWords;
+        }
+    }
+
+    public Stats statsFor(String projectSlug) {
+        Stats cached = cache.get(projectSlug);
         if (cached != null) {
             return cached;
         }
-        double computed = compute(projectSlug);
+        Stats computed = compute(projectSlug);
         cache.put(projectSlug, computed);
         return computed;
+    }
+
+    public double translatedPercent(String projectSlug) {
+        return statsFor(projectSlug).percent();
     }
 
     // AFTER_COMMIT so a read racing the change can't re-cache the pre-commit
@@ -52,7 +64,7 @@ public class ProjectStatsCache {
         cache.remove(event.projectSlug());
     }
 
-    private double compute(String projectSlug) {
+    private Stats compute(String projectSlug) {
         long translated = 0;
         long possible = 0;
         for (Long iterId : iterationRepository
@@ -62,6 +74,6 @@ public class ProjectStatsCache {
             translated += s.translatedWords;
             possible += s.totalPossibleWords;
         }
-        return possible == 0 ? 0.0 : translated * 100.0 / possible;
+        return new Stats(translated, possible);
     }
 }

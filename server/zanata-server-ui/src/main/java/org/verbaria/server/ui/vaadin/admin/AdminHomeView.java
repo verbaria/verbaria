@@ -35,7 +35,7 @@ public class AdminHomeView extends VerticalLayout implements TitleKey {
                 link("page.requests", AdminRequestsView.class)));
 
         add(block("admin.section.projects",
-                link("page.myProjects", AdminProjectsView.class),
+                link("admin.projects.heading", AdminProjectsView.class),
                 link("page.groups", AdminGroupsView.class),
                 link("page.homeContent", AdminHomeContentView.class),
                 link("page.reviewCriteria", AdminReviewView.class)));

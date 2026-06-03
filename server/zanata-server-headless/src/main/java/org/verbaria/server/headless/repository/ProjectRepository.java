@@ -1,5 +1,6 @@
 package org.verbaria.server.headless.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -59,4 +60,13 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
             where p.slug = :slug
             """)
     Optional<HProject> findBySlugWithMembers(@Param("slug") String slug);
+
+    /** Slugs of projects the given account maintains (for showing manage links). */
+    @Query("""
+            select distinct p.slug from HProject p
+            join p.members m
+            where m.role = org.zanata.model.ProjectRole.Maintainer
+              and m.person.account.username = :username
+            """)
+    List<String> findMaintainedSlugs(@Param("username") String username);
 }

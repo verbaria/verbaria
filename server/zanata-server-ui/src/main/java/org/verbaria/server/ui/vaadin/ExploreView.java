@@ -1,10 +1,14 @@
 package org.verbaria.server.ui.vaadin;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
@@ -24,9 +28,12 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.model.HProject;
 import org.verbaria.server.headless.repository.ProjectRepository;
+import org.verbaria.server.headless.security.Roles;
 import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import org.verbaria.server.ui.vaadin.project.ProjectView;
 import org.verbaria.server.headless.stats.ProjectStatsCache;
@@ -45,6 +52,9 @@ public class ExploreView extends VerticalLayout implements TitleKey {
     private final ProjectRepository projectRepository;
     private final ProjectStatsCache statsCache;
     private final TreeGrid<Node> grid = new TreeGrid<>();
+    private final Map<String, long[]> groupTotals = new HashMap<>();
+    private final Set<String> manageableSlugs = new HashSet<>();
+    private boolean adminAll;
 
     private String currentQuery = "";
 
@@ -78,6 +88,10 @@ public class ExploreView extends VerticalLayout implements TitleKey {
                 .setFlexGrow(0)
                 .setWidth("110px")
                 .setTextAlign(ColumnTextAlign.END);
+        grid.addColumn(new ComponentRenderer<>(this::settingsCell))
+                .setFlexGrow(0)
+                .setWidth("56px")
+                .setTextAlign(ColumnTextAlign.END);
         grid.setSizeFull();
         grid.addClassName("projects-tree");
         // Whole-row click: a project opens, a group expands/collapses.
@@ -100,6 +114,13 @@ public class ExploreView extends VerticalLayout implements TitleKey {
     }
 
     private void reload() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        adminAll = Roles.isAdmin(auth);
+        manageableSlugs.clear();
+        if (!adminAll && auth != null && auth.isAuthenticated()) {
+            manageableSlugs.addAll(projectRepository.findMaintainedSlugs(auth.getName()));
+        }
+
         List<HProject> projects = projectRepository.search(currentQuery,
                 PageRequest.of(0, MAX_RESULTS,
                         Sort.by(Sort.Order.asc("name"), Sort.Order.asc("slug"))))
@@ -107,6 +128,7 @@ public class ExploreView extends VerticalLayout implements TitleKey {
 
         TreeData<Node> data = new TreeData<>();
         Map<String, Node> groups = new HashMap<>();
+        groupTotals.clear();
         for (HProject p : projects) {
             String label = p.getName() == null || p.getName().isBlank()
                     ? p.getSlug() : p.getName();
@@ -127,7 +149,17 @@ public class ExploreView extends VerticalLayout implements TitleKey {
                 }
                 parent = group;
             }
-            data.addItem(parent, Node.project(p, parts[parts.length - 1]));
+            Node leaf = Node.project(p, parts[parts.length - 1]);
+            data.addItem(parent, leaf);
+
+            // Roll the project's word totals up into each ancestor group so the
+            // group row can show an aggregate (word-weighted) percentage.
+            ProjectStatsCache.Stats st = statsCache.statsFor(p.getSlug());
+            for (Node g = parent; g != null; g = data.getParent(g)) {
+                long[] agg = groupTotals.computeIfAbsent(g.key, k -> new long[2]);
+                agg[0] += st.translatedWords();
+                agg[1] += st.possibleWords();
+            }
         }
 
         grid.setDataProvider(new TreeDataProvider<>(data));
@@ -170,10 +202,16 @@ public class ExploreView extends VerticalLayout implements TitleKey {
     }
 
     private Component percentCell(Node n) {
+        double pct;
         if (n.isGroup()) {
-            return new Span();
+            long[] agg = groupTotals.get(n.key);
+            if (agg == null || agg[1] == 0) {
+                return new Span();
+            }
+            pct = agg[0] * 100.0 / agg[1];
+        } else {
+            pct = statsCache.translatedPercent(n.project.getSlug());
         }
-        double pct = statsCache.translatedPercent(n.project.getSlug());
         Span label = new Span(String.format("%.0f%%", pct));
         label.addClassNames(AuraUtility.FontSize.XSMALL,
                 AuraUtility.TextColor.SECONDARY);
@@ -185,6 +223,23 @@ public class ExploreView extends VerticalLayout implements TitleKey {
         cell.setAlignItems(FlexComponent.Alignment.STRETCH);
         cell.addClassNames(AuraUtility.Gap.Row.XSMALL);
         return cell;
+    }
+
+    private Component settingsCell(Node n) {
+        if (n.isGroup()) {
+            return new Span();
+        }
+        String slug = n.project.getSlug();
+        if (!adminAll && !manageableSlugs.contains(slug)) {
+            return new Span();
+        }
+        Button gear = new Button(LineAwesomeIcon.COG_SOLID.create(), e ->
+                getUI().ifPresent(ui -> ui.navigate("project/view/" + slug + "/settings")));
+        gear.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        gear.getElement().setAttribute("title", getTranslation("page.settings"));
+        gear.getElement().addEventListener("click", e -> {})
+                .addEventData("event.stopPropagation()");
+        return gear;
     }
 
     /** A tree node: either a name-path group (project null) or a project leaf. */

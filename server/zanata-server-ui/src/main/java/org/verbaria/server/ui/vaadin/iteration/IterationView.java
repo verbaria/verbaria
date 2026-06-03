@@ -224,13 +224,12 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
             lock.addClassNames(AuraUtility.TextColor.SECONDARY);
             layout.addComponentAtIndex(1, lock);
         }
-        // Settings link → /project/:slug/version/:vslug/settings
+        // Settings link → the unified project settings (versions live there too).
         Button settingsBtn =
                 new Button(getTranslation("iteration.heading.settings"),
                         LineAwesomeIcon.COG_SOLID.create(),
                         e -> UI.getCurrent().navigate(
-                                "project/" + currentProjectSlug
-                                + "/version/" + currentVersionSlug + "/settings"));
+                                "project/view/" + currentProjectSlug + "/settings"));
         settingsBtn.addThemeVariants(
                 ButtonVariant.TERTIARY);
 

@@ -81,6 +81,17 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
             """)
     Optional<HProjectIteration> findForSettingsById(@Param("id") Long id);
 
+    /** All non-obsolete versions of a project, with customized locales fetched. */
+    @Query("""
+            select distinct i from HProjectIteration i
+            left join fetch i.customizedLocales
+            where i.project.slug = :projectSlug
+              and i.status <> org.zanata.common.EntityStatus.OBSOLETE
+            order by i.slug
+            """)
+    java.util.List<HProjectIteration> findForSettingsByProject(
+            @Param("projectSlug") String projectSlug);
+
     @Query("""
             select count(tf) from HTextFlow tf
             where tf.document.projectIteration.id = :id

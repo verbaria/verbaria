@@ -213,13 +213,26 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         H1 name = new H1(project.getName() == null || project.getName().isBlank()
                 ? slug : project.getName());
         name.addClassNames(AuraUtility.Margin.NONE);
-        HorizontalLayout layout = new HorizontalLayout(name);
-        layout.setAlignItems(FlexComponent.Alignment.CENTER);
-        layout.setSpacing(true);
+        HorizontalLayout left = new HorizontalLayout(name);
+        left.setAlignItems(FlexComponent.Alignment.CENTER);
+        left.setSpacing(true);
         Anchor source = SourceLinks.of(project.getSourceViewURL());
         if (source != null) {
             source.addClassNames(AuraUtility.FontSize.LARGE);
-            layout.addComponentAsFirst(source);
+            left.addComponentAsFirst(source);
+        }
+
+        HorizontalLayout layout = new HorizontalLayout(left);
+        layout.setWidthFull();
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        if (canManageProject(slug)) {
+            Button settings = new Button(getTranslation("page.settings"),
+                    LineAwesomeIcon.COG_SOLID.create(),
+                    e -> getUI().ifPresent(ui ->
+                            ui.navigate("project/view/" + slug + "/settings")));
+            settings.addThemeVariants(ButtonVariant.TERTIARY);
+            layout.add(settings);
         }
         return layout;
     }
