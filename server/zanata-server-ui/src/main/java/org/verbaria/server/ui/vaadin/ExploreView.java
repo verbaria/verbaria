@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -31,6 +32,7 @@ import org.verbaria.server.ui.vaadin.project.ProjectView;
 import org.verbaria.server.headless.stats.ProjectStatsCache;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 import org.verbaria.server.ui.vaadin.theme.ProgressBars;
+import org.verbaria.server.ui.vaadin.theme.SourceLinks;
 
 @AnonymousAllowed
 @Route(value = "explore", layout = MainLayout.class)
@@ -159,6 +161,10 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             desc.addClassNames(AuraUtility.FontSize.SMALL,
                     AuraUtility.TextColor.SECONDARY);
             row.add(desc);
+        }
+        Anchor source = SourceLinks.of(p.getSourceViewURL());
+        if (source != null) {
+            row.addComponentAsFirst(source);
         }
         return row;
     }

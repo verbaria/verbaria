@@ -208,35 +208,42 @@ public class DevSeedData implements CommandLineRunner {
     }
 
     private void seedProjects() {
-        if (projectRepository.count() > 0) {
-            return;
-        }
+        // Upsert by slug (no early-return on a non-empty DB) so edits to this
+        // seed — new projects, names/groups, source URLs — re-apply on restart.
         // Ungrouped projects (no "/" in the name) — shown at the tree top level.
         saveProject("about-fedora", "About Fedora",
-            "Translations for the About Fedora release notes module.");
+            "Translations for the About Fedora release notes module.", null);
         saveProject("rhel-installation-guide", "RHEL Installation Guide",
-            "Red Hat Enterprise Linux installation documentation.");
+            "Red Hat Enterprise Linux installation documentation.", null);
         saveProject("gnome-shell", "GNOME Shell",
-            "Translatable strings for the GNOME desktop shell.");
+            "Translatable strings for the GNOME desktop shell.",
+            "https://gitlab.gnome.org/GNOME/gnome-shell");
         saveProject("zanata-platform", "Zanata Platform",
-            "Localization platform UI strings (meta!).");
+            "Localization platform UI strings (meta!).",
+            "https://github.com/verbaria/verbaria");
 
         // Grouped projects: the slug stays the stable routing/match key, while
         // the "group/leaf" name drives the Projects tree grouping. Here the
         // "consulo" group holds several plugins, with a nested "extensions"
         // sub-group, e.g. consulo/consulo-java and consulo/extensions/markdown.
         saveProject("consulo", "consulo/consulo",
-            "Consulo platform core strings.");
+            "Consulo platform core strings.",
+            "https://github.com/consulo/consulo");
         saveProject("consulo-java", "consulo/consulo-java",
-            "Java language plugin.");
+            "Java language plugin.",
+            "https://github.com/consulo/consulo-java");
         saveProject("consulo-python", "consulo/consulo-python",
-            "Python language plugin.");
+            "Python language plugin.",
+            "https://github.com/consulo/consulo-python");
         saveProject("consulo-csharp", "consulo/consulo-csharp",
-            "C# language plugin.");
+            "C# language plugin.",
+            "https://github.com/consulo/consulo-csharp");
         saveProject("consulo-markdown", "consulo/extensions/markdown",
-            "Markdown extension.");
+            "Markdown extension.",
+            "https://github.com/consulo/consulo-markdown");
         saveProject("consulo-yaml", "consulo/extensions/yaml",
-            "YAML extension.");
+            "YAML extension.",
+            "https://github.com/consulo/consulo-yaml");
 
         log.info("Inserted {} demo projects", projectRepository.count());
     }
@@ -265,21 +272,26 @@ public class DevSeedData implements CommandLineRunner {
         log.info("Inserted {} demo locales", localeRepository.count());
     }
 
-    private void saveProject(String slug, String name, String desc) {
-        HProject p = new HProject();
+    private void saveProject(String slug, String name, String desc,
+                             String sourceViewUrl) {
+        HProject p = projectRepository.findBySlug(slug).orElseGet(HProject::new);
         p.setSlug(slug);
         p.setName(name);
         p.setDescription(desc);
+        if (sourceViewUrl != null) {
+            p.setSourceViewURL(sourceViewUrl);
+        }
         p.setStatus(EntityStatus.ACTIVE);
         HProject saved = projectRepository.save(p);
-        // HProject.projectIterations has no cascade = PERSIST, so the
-        // iteration has to be saved through its own repository.
-        HProjectIteration v = new HProjectIteration();
-        v.setSlug("master");
-        v.setStatus(EntityStatus.ACTIVE);
-        v.setProject(saved);
-        iterationRepository.save(v);
-        saved.setProjectIterations(new java.util.ArrayList<>(List.of(v)));
+        // HProject.projectIterations has no cascade = PERSIST, so the iteration
+        // is saved through its own repository — only when not already present.
+        if (iterationRepository.findByProjectAndSlug(slug, "master").isEmpty()) {
+            HProjectIteration v = new HProjectIteration();
+            v.setSlug("master");
+            v.setStatus(EntityStatus.ACTIVE);
+            v.setProject(saved);
+            iterationRepository.save(v);
+        }
     }
 
     private void saveLocale(String id, String display, String nativeName,

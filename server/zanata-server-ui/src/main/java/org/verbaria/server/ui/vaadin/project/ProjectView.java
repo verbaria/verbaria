@@ -45,6 +45,7 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 import org.verbaria.server.ui.vaadin.theme.ProgressBars;
+import org.verbaria.server.ui.vaadin.theme.SourceLinks;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -215,6 +216,11 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         HorizontalLayout layout = new HorizontalLayout(name);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
         layout.setSpacing(true);
+        Anchor source = SourceLinks.of(project.getSourceViewURL());
+        if (source != null) {
+            source.addClassNames(AuraUtility.FontSize.LARGE);
+            layout.addComponentAsFirst(source);
+        }
         return layout;
     }
 
