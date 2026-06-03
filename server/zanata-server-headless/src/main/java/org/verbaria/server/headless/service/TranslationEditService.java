@@ -237,12 +237,24 @@ public class TranslationEditService {
 
     @Transactional
     public ContentState save(Long textFlowId, LocaleId localeId, String newContent) {
+        return save(textFlowId, localeId, newContent, null);
+    }
+
+    @Transactional
+    public ContentState save(Long textFlowId, LocaleId localeId,
+            String newContent, String editorUsername) {
         HTextFlow textFlow = textFlowRepository.findById(textFlowId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "TextFlow not found: " + textFlowId));
         HLocale locale = localeRepository.findByLocaleId(localeId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Locale not found: " + localeId.getId()));
+        // Resolve the editor up front: doing it after the target is modified
+        // would auto-flush the dirty target mid-method (queries trigger a flush),
+        // firing the history listener prematurely.
+        HPerson editor = editorUsername == null ? null
+                : accountRepository.findByUsername(editorUsername)
+                        .map(HAccount::getPerson).orElse(null);
         HTextFlowTarget target = targetRepository
                 .findByTextFlowAndLocale(textFlowId, localeId)
                 .orElseGet(() -> new HTextFlowTarget(textFlow, locale));
@@ -252,6 +264,14 @@ public class TranslationEditService {
         target.setContents(List.of(newContent == null ? "" : newContent));
         target.setState(ContentState.Translated);
         target.setTextFlowRevision(textFlow.getRevision());
+        // Attribute the edit to the editor so the translation is credited to the
+        // real translator, not to whoever first created the row (e.g. a sync bot
+        // that pushed it). Without this the stale author would surface as the
+        // Co-authored-by in pull-generated commit messages.
+        if (editor != null) {
+            target.setTranslator(editor);
+            target.setLastModifiedBy(editor);
+        }
         targetRepository.save(target);
         return target.getState();
     }

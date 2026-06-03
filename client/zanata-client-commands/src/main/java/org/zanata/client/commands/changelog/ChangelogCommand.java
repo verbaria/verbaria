@@ -56,7 +56,9 @@ public class ChangelogCommand implements ZanataCommand {
 
         LockChangelog.Format format =
                 LockChangelog.Format.parse(opts.getFormat());
-        String output = LockChangelog.render(oldLock, newLock, format);
+        String output = LockChangelog.between(oldLock, newLock)
+                .excludeAuthors(opts.getExcludeAuthors())
+                .render(format);
 
         File outFile = opts.getOutput();
         if (outFile != null) {

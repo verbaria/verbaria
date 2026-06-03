@@ -506,7 +506,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 String translated = out.get(i);
                 if (translated == null || translated.isBlank()) continue;
                 try {
-                    translationEditService.save(flows.get(i).getId(), currentLocale, translated);
+                    translationEditService.save(flows.get(i).getId(),
+                            currentLocale, translated, currentUsername());
                     saved++;
                 } catch (Exception ignore) {
                 }
@@ -989,5 +990,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.isAuthenticated()
                 && !(auth instanceof AnonymousAuthenticationToken);
+    }
+
+    private static String currentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()
+                || auth instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        return auth.getName();
     }
 }

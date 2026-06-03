@@ -17,6 +17,8 @@
 package org.zanata.client.commands.changelog;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.kohsuke.args4j.Option;
 import org.zanata.client.commands.BasicOptionsImpl;
@@ -34,6 +36,7 @@ public class ChangelogOptionsImpl extends BasicOptionsImpl
     private File newLock;
     private String format = "git-commit";
     private File output;
+    private final List<String> excludeAuthors = new ArrayList<>();
 
     @Override
     public File getOldLock() {
@@ -80,6 +83,25 @@ public class ChangelogOptionsImpl extends BasicOptionsImpl
             usage = "Write the output to FILE instead of standard output.")
     public void setOutput(File output) {
         this.output = output;
+    }
+
+    @Override
+    public List<String> getExcludeAuthors() {
+        return excludeAuthors;
+    }
+
+    @Option(name = "--exclude-author", metaVar = "WHO",
+            usage = "Author name or email to drop from Co-authored-by trailers "
+                    + "(comma/space separated, repeatable). Use it to stop a "
+                    + "sync bot from crediting itself.")
+    public void setExcludeAuthors(String who) {
+        if (who != null) {
+            for (String w : who.trim().split("[,\\s]+")) {
+                if (!w.isEmpty()) {
+                    excludeAuthors.add(w);
+                }
+            }
+        }
     }
 
     @Override

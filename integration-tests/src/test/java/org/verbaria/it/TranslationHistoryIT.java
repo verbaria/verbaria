@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
@@ -61,6 +62,43 @@ class TranslationHistoryIT extends AbstractPushPullIT {
         assertThat(afterEdit.getVersionNum())
                 .as("a real content change must advance the target version")
                 .isGreaterThan(v0);
+    }
+
+    @Test
+    void editorSaveCreditsTheEditingUserNotTheOriginalPusher() throws Exception {
+        // A translation first created by a bot push is then edited in the web
+        // editor by a real translator. The editor save must re-attribute the
+        // target to that translator so pull-generated changelogs credit them,
+        // not the bot.
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureAdmin("translator2", "22222222222222222222222222222222");
+        fixtures.ensureProject("itattr", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\n");
+        pushBoth("itattr");
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itattr", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId fr = new LocaleId("fr-FR");
+
+        translationEditService.save(tfId, fr, "Salut", "translator2");
+
+        new TransactionTemplate(txManager).executeWithoutResult(s -> {
+            HTextFlowTarget t = textFlowTargetRepository
+                    .findByTextFlowIdsAndLocale(List.of(tfId), fr).get(0);
+            assertThat(t.getContents()).containsExactly("Salut");
+            assertThat(t.getTranslator()).isNotNull();
+            assertThat(t.getTranslator().getName())
+                    .as("the web edit must be credited to the editor")
+                    .isEqualTo("translator2");
+            assertThat(t.getLastModifiedBy().getName()).isEqualTo("translator2");
+        });
     }
 
     @Test

@@ -598,7 +598,8 @@ public class TranslationRow extends Div {
                         2000, Notification.Position.BOTTOM_START);
             } else {
                 ContentState newState = translationEditService.save(
-                        flow.getId(), ctx.currentLocale(), liveContent);
+                        flow.getId(), ctx.currentLocale(), liveContent,
+                        currentUsername());
                 stateSpan.setText(newState.name());
                 applyStateColor(stateSpan, newState);
                 currentState = newState;
@@ -637,7 +638,8 @@ public class TranslationRow extends Div {
     private void saveAsFuzzy(Span stateSpan) {
         try {
             liveContent = editorArea.getValue() == null ? "" : editorArea.getValue();
-            translationEditService.save(flow.getId(), ctx.currentLocale(), liveContent);
+            translationEditService.save(flow.getId(), ctx.currentLocale(),
+                    liveContent, currentUsername());
             ContentState ns = translationEditService.changeState(
                     flow.getId(), ctx.currentLocale(), ContentState.NeedReview);
             stateSpan.setText(ns.name());

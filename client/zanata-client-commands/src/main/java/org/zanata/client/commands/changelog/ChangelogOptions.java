@@ -17,6 +17,7 @@
 package org.zanata.client.commands.changelog;
 
 import java.io.File;
+import java.util.List;
 
 import org.zanata.client.commands.BasicOptions;
 
@@ -28,4 +29,6 @@ public interface ChangelogOptions extends BasicOptions {
     String getFormat();
 
     File getOutput();
+
+    List<String> getExcludeAuthors();
 }

@@ -17,7 +17,9 @@
 package org.zanata.client.lock;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -88,6 +90,8 @@ public final class LockChangelog {
     private final TreeSet<String> allLocales = new TreeSet<>();
     /** translators of added/updated entries -> Co-authored-by trailers. */
     private final TreeSet<String> coAuthors = new TreeSet<>();
+    /** authors (name/email substrings) to drop from the co-author list. */
+    private final TreeSet<String> excludedAuthors = new TreeSet<>();
     private final VerbariaLock newLock;
 
     private LockChangelog(VerbariaLock oldLock, VerbariaLock newLock) {
@@ -98,6 +102,22 @@ public final class LockChangelog {
     public static LockChangelog between(VerbariaLock oldLock,
             VerbariaLock newLock) {
         return new LockChangelog(oldLock, newLock);
+    }
+
+    /**
+     * Drop these authors (matched as a case-insensitive substring of the
+     * {@code "Name <email>"} entry) from the Co-authored-by trailers. Used to
+     * stop an automation account from crediting itself.
+     */
+    public LockChangelog excludeAuthors(Collection<String> who) {
+        if (who != null) {
+            for (String w : who) {
+                if (w != null && !w.isBlank()) {
+                    excludedAuthors.add(w.trim());
+                }
+            }
+        }
+        return this;
     }
 
     /** Convenience: diff two locks and render the commit message. */
@@ -208,9 +228,10 @@ public final class LockChangelog {
             }
         }
 
-        if (!coAuthors.isEmpty()) {
+        List<String> authors = visibleCoAuthors();
+        if (!authors.isEmpty()) {
             sb.append('\n');
-            for (String who : coAuthors) {
+            for (String who : authors) {
                 sb.append("Co-authored-by: ").append(who).append('\n');
             }
         }
@@ -235,9 +256,10 @@ public final class LockChangelog {
                 sb.append("- `").append(docId).append("`\n");
             }
         }
-        if (!coAuthors.isEmpty()) {
+        List<String> authors = visibleCoAuthors();
+        if (!authors.isEmpty()) {
             sb.append("\n**Contributors:** ")
-                    .append(String.join(", ", coAuthors)).append('\n');
+                    .append(String.join(", ", authors)).append('\n');
         }
         List<String> sources = sourceRefs();
         if (!sources.isEmpty()) {
@@ -375,8 +397,32 @@ public final class LockChangelog {
         return sb.toString();
     }
 
+    /** Co-authors minus any excluded (bot) identities, sorted and stable. */
+    private List<String> visibleCoAuthors() {
+        if (excludedAuthors.isEmpty()) {
+            return new ArrayList<>(coAuthors);
+        }
+        List<String> out = new ArrayList<>();
+        for (String who : coAuthors) {
+            if (!isExcludedAuthor(who)) {
+                out.add(who);
+            }
+        }
+        return out;
+    }
+
+    private boolean isExcludedAuthor(String who) {
+        String lc = who.toLowerCase(Locale.ROOT);
+        for (String ex : excludedAuthors) {
+            if (lc.contains(ex.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The {@code Co-authored-by} identities, for testing/inspection. */
     public List<String> getCoAuthors() {
-        return List.copyOf(coAuthors);
+        return List.copyOf(visibleCoAuthors());
     }
 }

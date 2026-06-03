@@ -137,6 +137,24 @@ public class LockChangelogTest {
     }
 
     @Test
+    public void excludedAuthorIsDroppedFromCoAuthors() {
+        VerbariaLock before = lock();
+        before.document("intro").getTranslations().put("ru", tl("A"));
+        VerbariaLock after = lock();
+        after.document("intro").getTranslations().put("ru",
+                tl("B", "VISTALL <vistall@x.org>",
+                        "verbaria-bot <verbaria-bot@users.noreply.github.com>"));
+
+        String msg = LockChangelog.between(before, after)
+                .excludeAuthors(java.util.List.of(
+                        "verbaria-bot@users.noreply.github.com"))
+                .render(LockChangelog.Format.GIT_COMMIT);
+
+        assertThat(msg, containsString("Co-authored-by: VISTALL <vistall@x.org>"));
+        assertThat(msg, not(containsString("verbaria-bot")));
+    }
+
+    @Test
     public void identicalSourceSigProducesEmptyMessage() {
         VerbariaLock before = lock();
         src(before, "messages", "S1");
