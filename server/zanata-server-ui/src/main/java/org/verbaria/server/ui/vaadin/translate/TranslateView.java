@@ -78,6 +78,7 @@ import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
+import org.verbaria.server.headless.repository.TranslateFilterMode;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -120,8 +121,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     // Labels set lazily in beforeEnter() so getTranslation() resolves with
     // the right UI locale (field initializers run before MainLayout applies
     // the cookie-stored locale).
-    /** 0=any, 1=incomplete, 2=complete, 3=needs review. */
-    private final RadioButtonGroup<Integer> filterMode = new RadioButtonGroup<>();
+    private final RadioButtonGroup<TranslateFilterMode> filterMode =
+            new RadioButtonGroup<>();
     private Button filterButton;
     /** Virtual list driven by a server-paged CallbackDataProvider. */
     private final VirtualList<RowData> rowsList = new VirtualList<>();
@@ -735,14 +736,15 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         filter.setValueChangeTimeout(250);
 
         // Mutually-exclusive filter modes as radio buttons inside a popover.
-        filterMode.setItems(0, 1, 2, 3);
+        filterMode.setItems(TranslateFilterMode.values());
         filterMode.setItemLabelGenerator(m -> switch (m) {
-            case 1 -> getTranslation("translate.filter.incomplete");
-            case 2 -> getTranslation("translate.filter.complete");
-            case 3 -> getTranslation("translate.filter.needsReview");
-            default -> getTranslation("translate.filter.all");
+            case INCOMPLETE -> getTranslation("translate.filter.incomplete");
+            case COMPLETE -> getTranslation("translate.filter.complete");
+            case NEEDS_REVIEW -> getTranslation("translate.filter.needsReview");
+            case NEED_APPROVE -> getTranslation("translate.filter.needApprove");
+            case ALL -> getTranslation("translate.filter.all");
         });
-        filterMode.setValue(0);
+        filterMode.setValue(TranslateFilterMode.ALL);
         filterMode.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
 
         filterButton = new Button(LineAwesomeIcon.FILTER_SOLID.create());
@@ -777,8 +779,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         if (filterButton == null) {
             return;
         }
-        Integer mode = filterMode.getValue();
-        if (mode != null && mode != 0) {
+        TranslateFilterMode mode = filterMode.getValue();
+        if (mode != null && mode != TranslateFilterMode.ALL) {
             filterButton.addThemeVariants(ButtonVariant.PRIMARY);
         } else {
             filterButton.removeThemeVariants(ButtonVariant.PRIMARY);
@@ -786,12 +788,12 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /** Snapshot of UI filter state passed to the DataProvider. */
-    private record FilterSpec(String q, int stateMode) {}
+    private record FilterSpec(String q, TranslateFilterMode mode) {}
 
     private FilterSpec currentFilterSpec() {
         String q = filter.getValue() == null ? "" : filter.getValue().trim().toLowerCase();
-        Integer m = filterMode.getValue();
-        return new FilterSpec(q, m == null ? 0 : m);
+        TranslateFilterMode m = filterMode.getValue();
+        return new FilterSpec(q, m == null ? TranslateFilterMode.ALL : m);
     }
 
     /**
@@ -812,7 +814,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                 AuraUtility.FontWeight.SEMIBOLD);
         badge.getElement().setAttribute("title",
                 getTranslation("translate.needsReview.badgeTip"));
-        badge.addClickListener(e -> filterMode.setValue(3));
+        badge.addClickListener(e -> filterMode.setValue(
+                TranslateFilterMode.NEEDS_REVIEW));
         return badge;
     }
 
@@ -836,7 +839,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private Stream<RowData> fetchPage(Long docId,
             Query<RowData, FilterSpec> query) {
-        FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
+        FilterSpec f = query.getFilter().orElse(new FilterSpec("", TranslateFilterMode.ALL));
         int page = query.getOffset() / Math.max(1, query.getLimit());
         PageRequest pr =
                 PageRequest.of(page, query.getLimit());
@@ -844,7 +847,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // transaction, so the grid can render these (detached) rows without a
         // LazyInitializationException when reading gettext/comment/consulo data.
         List<HTextFlow> flows = translationEditService.pageWithExtensions(
-                docId, currentLocale, f.q(), f.stateMode(), pr);
+                docId, currentLocale, f.q(), f.mode().code(), pr);
         if (flows.isEmpty()) return Stream.empty();
         List<Long> ids = new ArrayList<>(flows.size());
         for (HTextFlow tf : flows) ids.add(tf.getId());
@@ -863,9 +866,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private int countMatching(Long docId,
             Query<RowData, FilterSpec> query) {
-        FilterSpec f = query.getFilter().orElse(new FilterSpec("", 0));
+        FilterSpec f = query.getFilter().orElse(new FilterSpec("", TranslateFilterMode.ALL));
         long n = textFlowRepository.countForTranslateView(
-                docId, currentLocale, f.q(), f.stateMode());
+                docId, currentLocale, f.q(), f.mode().code());
         return (int) Math.min(Integer.MAX_VALUE, n);
     }
 

@@ -104,7 +104,8 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
      * search term and a tri-state translation-completeness predicate.
      *
      * @param stateMode 0=any, 1=incomplete only, 2=complete only,
-     *                  3=needs review (translated but the source changed since)
+     *                  3=needs review (translated but the source changed since),
+     *                  4=need approve (translated but not yet approved)
      */
     @Query("""
             select tf from HTextFlow tf
@@ -141,6 +142,12 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
                                 and (t.state = org.zanata.common.ContentState.Translated
                                      or t.state = org.zanata.common.ContentState.Approved)
                                 and t.textFlowRevision < tf.revision) )
+                    or ( :stateMode = 4
+                         and exists (
+                              select 1 from HTextFlowTarget t
+                              where t.textFlow = tf
+                                and t.locale.localeId = :locale
+                                and t.state = org.zanata.common.ContentState.Translated) )
               )
             order by tf.pos
             """)
@@ -185,6 +192,12 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
                                 and (t.state = org.zanata.common.ContentState.Translated
                                      or t.state = org.zanata.common.ContentState.Approved)
                                 and t.textFlowRevision < tf.revision) )
+                    or ( :stateMode = 4
+                         and exists (
+                              select 1 from HTextFlowTarget t
+                              where t.textFlow = tf
+                                and t.locale.localeId = :locale
+                                and t.state = org.zanata.common.ContentState.Translated) )
               )
             """)
     long countForTranslateView(@Param("docId") Long docId,

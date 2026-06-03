@@ -7,12 +7,50 @@ import java.nio.file.Files;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 
+import org.verbaria.server.headless.repository.TranslateFilterMode;
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
+import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 
 class NeedsReviewIT extends AbstractPushPullIT {
+
+    @Test
+    void needApproveFilterListsTranslatedButNotApproved() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itapprove", VERSION);
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\n");
+        PushOptionsImpl push = pushOpts("both", "properties", "itapprove");
+        push.setLocaleMapList(frLocales());
+        push.setIncludes("messages.properties");
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itapprove", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId fr = new LocaleId("fr-FR");
+        PageRequest page = PageRequest.of(0, 50);
+
+        // An editor save leaves the translation Translated (awaiting approval).
+        translationEditService.save(tfId, fr, "Bonjour");
+        assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "",
+                TranslateFilterMode.NEED_APPROVE.code(), page))
+                .as("a translated-but-not-approved flow needs approval")
+                .hasSize(1);
+
+        translationEditService.changeState(tfId, fr, ContentState.Approved);
+
+        assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "",
+                TranslateFilterMode.NEED_APPROVE.code(), page))
+                .as("once approved it no longer needs approval")
+                .isEmpty();
+    }
 
     @Test
     void sourceEditFlagsTranslationForReviewUntilMarked() throws Exception {
