@@ -25,4 +25,16 @@ public final class ProgressBars {
                 : ProgressBarVariant.LUMO_SUCCESS);
         return bar;
     }
+
+    /**
+     * Text-color class for a translated-percentage label so it matches the
+     * {@link #translated} bar: red below {@link #LOW_THRESHOLD}, green at or
+     * above.
+     */
+    public static String textColorClass(double pct) {
+        double clamped = Math.max(0.0, Math.min(100.0, pct));
+        return clamped < LOW_THRESHOLD
+                ? AuraUtility.TextColor.ERROR
+                : AuraUtility.TextColor.SUCCESS;
+    }
 }

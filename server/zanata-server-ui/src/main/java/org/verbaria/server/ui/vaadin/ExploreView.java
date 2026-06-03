@@ -214,7 +214,7 @@ public class ExploreView extends VerticalLayout implements TitleKey {
         }
         Span label = new Span(String.format("%.0f%%", pct));
         label.addClassNames(AuraUtility.FontSize.XSMALL,
-                AuraUtility.TextColor.SECONDARY);
+                ProgressBars.textColorClass(pct));
         ProgressBar bar = ProgressBars.translated(pct);
         bar.setWidthFull();
         VerticalLayout cell = new VerticalLayout(label, bar);

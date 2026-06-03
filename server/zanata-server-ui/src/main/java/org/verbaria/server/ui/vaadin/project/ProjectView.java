@@ -358,7 +358,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         right.setAlignItems(FlexComponent.Alignment.END);
         Span pct = new Span(String.format("%.2f%%", stats.translatedPct));
         pct.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD,
-                AuraUtility.TextColor.SUCCESS);
+                ProgressBars.textColorClass(stats.translatedPct));
         Span tag = new Span("translated");
         tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
         right.add(pct, tag);

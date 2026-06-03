@@ -436,7 +436,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
                 AuraUtility.TextColor.SUCCESS));
         row.add(statBlock(String.format("%.2f%%", stats.translatedPct),
                 getTranslation("iteration.stats.translated"),
-                AuraUtility.TextColor.SUCCESS));
+                ProgressBars.textColorClass(stats.translatedPct)));
         row.add(statBlock(String.format("%.2f", stats.hoursRemaining),
                 getTranslation("iteration.stats.hoursRemaining"),
                 AuraUtility.TextColor.BODY));
@@ -615,7 +615,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         } else {
             Span pct = new Span(String.format("%.2f%%", ls.translatedPct));
             pct.addClassNames(AuraUtility.FontSize.XLARGE, AuraUtility.FontWeight.BOLD,
-                    AuraUtility.TextColor.SUCCESS, AuraUtility.LineHeight.XSMALL);
+                    ProgressBars.textColorClass(ls.translatedPct), AuraUtility.LineHeight.XSMALL);
             Span tag = new Span(getTranslation("iteration.languages.translated"));
             tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
             right.add(pct, tag);
