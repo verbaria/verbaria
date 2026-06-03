@@ -94,4 +94,12 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
               and tf.obsolete = false
             """)
     long sumSourceWordCount(@Param("id") Long iterId);
+
+    /** Non-obsolete iteration ids of a project, by slug. */
+    @Query("""
+            select i.id from HProjectIteration i
+            where i.project.slug = :slug
+              and i.status <> org.zanata.common.EntityStatus.OBSOLETE
+            """)
+    java.util.List<Long> findIterationIdsByProjectSlug(@Param("slug") String slug);
 }

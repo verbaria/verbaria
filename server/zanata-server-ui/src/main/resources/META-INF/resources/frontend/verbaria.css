@@ -317,3 +317,17 @@ vaadin-side-nav-item::part(content) {
         background: hsl(var(--base-h) 25% 14%) !important;
     }
 }
+
+/* ----- 7. Projects tree grid: row hover affordance ------------------ *
+ *
+ * Vaadin grids don't highlight rows on hover out of the box; the projects
+ * tree navigates on row click, so a hover tint + pointer cursor signals the
+ * affordance. Tinted with the theme accent (NOT a lumo variable) at low
+ * opacity so it reads on both the light and dark glass surfaces.
+ */
+vaadin-grid.projects-tree::part(row) {
+    cursor: pointer;
+}
+vaadin-grid.projects-tree::part(row):hover {
+    background-color: hsl(var(--accent-h) var(--accent-s) 50% / 0.12);
+}

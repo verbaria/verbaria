@@ -211,6 +211,7 @@ public class DevSeedData implements CommandLineRunner {
         if (projectRepository.count() > 0) {
             return;
         }
+        // Ungrouped projects (no "/" in the name) — shown at the tree top level.
         saveProject("about-fedora", "About Fedora",
             "Translations for the About Fedora release notes module.");
         saveProject("rhel-installation-guide", "RHEL Installation Guide",
@@ -219,6 +220,24 @@ public class DevSeedData implements CommandLineRunner {
             "Translatable strings for the GNOME desktop shell.");
         saveProject("zanata-platform", "Zanata Platform",
             "Localization platform UI strings (meta!).");
+
+        // Grouped projects: the slug stays the stable routing/match key, while
+        // the "group/leaf" name drives the Projects tree grouping. Here the
+        // "consulo" group holds several plugins, with a nested "extensions"
+        // sub-group, e.g. consulo/consulo-java and consulo/extensions/markdown.
+        saveProject("consulo", "consulo/consulo",
+            "Consulo platform core strings.");
+        saveProject("consulo-java", "consulo/consulo-java",
+            "Java language plugin.");
+        saveProject("consulo-python", "consulo/consulo-python",
+            "Python language plugin.");
+        saveProject("consulo-csharp", "consulo/consulo-csharp",
+            "C# language plugin.");
+        saveProject("consulo-markdown", "consulo/extensions/markdown",
+            "Markdown extension.");
+        saveProject("consulo-yaml", "consulo/extensions/yaml",
+            "YAML extension.");
+
         log.info("Inserted {} demo projects", projectRepository.count());
     }
 

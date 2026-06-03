@@ -44,6 +44,7 @@ import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
+import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -65,7 +66,7 @@ import org.verbaria.server.ui.vaadin.ExploreView;
 import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
 import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.ui.vaadin.iteration.IterationView;
-import org.verbaria.server.ui.vaadin.stats.IterationStats;
+import org.verbaria.server.headless.stats.IterationStats;
 
 @Route(value = "project/view/:slug", layout = MainLayout.class)
 @AnonymousAllowed
@@ -262,13 +263,8 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         }
         right.add(new Span("Sort"), sort);
         header.add(title, right);
+        header.addClassNames(AuraUtility.Margin.Bottom.MEDIUM);
         panel.add(header);
-
-        Span counter = new Span("v " + iterations.size());
-        counter.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY,
-                AuraUtility.Display.BLOCK,
-                AuraUtility.Margin.Top.SMALL, AuraUtility.Margin.Bottom.MEDIUM);
-        panel.add(counter);
 
         Div listContainer = new Div();
         listContainer.setWidthFull();
@@ -351,8 +347,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         row.add(left, right);
         card.add(row);
 
-        ProgressBar bar = new ProgressBar(0.0, 1.0, stats.translatedPct / 100.0);
-        bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
+        ProgressBar bar = ProgressBars.translated(stats.translatedPct);
         bar.addClassNames(AuraUtility.Margin.Top.SMALL);
         card.add(bar);
 

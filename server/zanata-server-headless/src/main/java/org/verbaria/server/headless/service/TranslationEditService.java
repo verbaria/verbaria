@@ -23,6 +23,8 @@ import org.verbaria.server.headless.extension.comment.CommentExtensions;
 import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import org.verbaria.server.headless.event.ProjectStatsChangedEvent;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
@@ -40,6 +42,7 @@ public class TranslationEditService {
     private final TextFlowExtensionStore extensionStore;
     private final GettextExtensions gettext;
     private final CommentExtensions comments;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TranslationEditService(TextFlowRepository textFlowRepository,
                                   TextFlowTargetRepository targetRepository,
@@ -48,7 +51,8 @@ public class TranslationEditService {
                                   AccountRepository accountRepository,
                                   TextFlowExtensionStore extensionStore,
                                   GettextExtensions gettext,
-                                  CommentExtensions comments) {
+                                  CommentExtensions comments,
+                                  ApplicationEventPublisher eventPublisher) {
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.reviewCommentRepository = reviewCommentRepository;
@@ -57,6 +61,18 @@ public class TranslationEditService {
         this.extensionStore = extensionStore;
         this.gettext = gettext;
         this.comments = comments;
+        this.eventPublisher = eventPublisher;
+    }
+
+    /** Notify caches that a project's stats changed, resolved from a flow. */
+    private void publishStatsChanged(HTextFlow textFlow) {
+        if (textFlow == null || textFlow.getDocument() == null
+                || textFlow.getDocument().getProjectIteration() == null
+                || textFlow.getDocument().getProjectIteration().getProject() == null) {
+            return;
+        }
+        eventPublisher.publishEvent(new ProjectStatsChangedEvent(textFlow
+                .getDocument().getProjectIteration().getProject().getSlug()));
     }
 
     public String gettextContext(HTextFlow flow) {
@@ -191,6 +207,7 @@ public class TranslationEditService {
                 : accountRepository.findByUsername(editorUsername)
                         .map(HAccount::getPerson).orElse(null);
         syncSourceTarget(textFlow, fresh, editor);
+        publishStatsChanged(textFlow);
     }
 
     private void syncSourceTarget(HTextFlow textFlow, String content, HPerson editor) {
@@ -301,6 +318,7 @@ public class TranslationEditService {
         target.setState(newState);
         target.setTextFlowRevision(textFlow.getRevision());
         targetRepository.save(target);
+        publishStatsChanged(textFlow);
         return target.getState();
     }
 
@@ -342,6 +360,7 @@ public class TranslationEditService {
             target.setLastModifiedBy(editor);
         }
         targetRepository.save(target);
+        publishStatsChanged(textFlow);
         return target.getState();
     }
 

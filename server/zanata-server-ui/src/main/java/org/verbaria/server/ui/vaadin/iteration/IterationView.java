@@ -52,6 +52,7 @@ import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
+import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -78,7 +79,7 @@ import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
 import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
 import org.verbaria.server.ui.vaadin.project.ProjectView;
-import org.verbaria.server.ui.vaadin.stats.IterationStats;
+import org.verbaria.server.headless.stats.IterationStats;
 
 @Route(value = "project/:projectSlug/version/:versionSlug", layout = MainLayout.class)
 @RouteAlias(value = "iteration/view/:projectSlug/:versionSlug", layout = MainLayout.class)
@@ -180,9 +181,8 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         publishBreadcrumb(projectSlug, versionSlug);
         add(buildHeading(iteration));
         add(buildStatsRow(stats));
-        ProgressBar bar = new ProgressBar(0.0, 1.0, stats.translatedPct / 100.0);
+        ProgressBar bar = ProgressBars.translated(stats.translatedPct);
         bar.setWidthFull();
-        bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
         add(bar);
         Paragraph total = new Paragraph(
                 getTranslation("iteration.totalSourceWords", String.format("%,d", stats.totalSourceWords)));
@@ -679,9 +679,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         card.add(row);
 
         if (!isSource) {
-            ProgressBar bar = new ProgressBar(0.0, 1.0,
-                    Math.max(0.0, Math.min(1.0, ls.translatedPct / 100.0)));
-            bar.getStyle().set("--vaadin-color-primary", "var(--aura-green)");
+            ProgressBar bar = ProgressBars.translated(ls.translatedPct);
             bar.addClassNames(AuraUtility.Margin.Top.SMALL);
             card.add(bar);
         }

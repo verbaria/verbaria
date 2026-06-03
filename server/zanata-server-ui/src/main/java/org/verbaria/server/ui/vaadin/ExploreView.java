@@ -1,39 +1,36 @@
 package org.verbaria.server.ui.vaadin;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
-import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.treegrid.TreeGrid;
+import com.vaadin.flow.data.provider.hierarchy.TreeData;
+import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
-import org.verbaria.server.ui.vaadin.i18n.TitleKey;
-import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 
-import java.util.List;
-import java.util.function.Function;
-
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.zanata.model.HIterationGroup;
-import org.zanata.model.HLocale;
-import org.zanata.model.HPerson;
-import org.zanata.model.HProject;
-import org.verbaria.server.headless.repository.IterationGroupRepository;
-import org.verbaria.server.headless.repository.LocaleRepository;
-import org.verbaria.server.headless.repository.PersonRepository;
+import org.springframework.data.domain.Sort;
 import org.vaadin.lineawesome.LineAwesomeIcon;
+import org.zanata.model.HProject;
 import org.verbaria.server.headless.repository.ProjectRepository;
+import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import org.verbaria.server.ui.vaadin.project.ProjectView;
+import org.verbaria.server.headless.stats.ProjectStatsCache;
+import org.verbaria.server.ui.vaadin.theme.AuraUtility;
+import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 
 @AnonymousAllowed
 @Route(value = "explore", layout = MainLayout.class)
@@ -41,36 +38,27 @@ public class ExploreView extends VerticalLayout implements TitleKey {
 
     @Override public String pageTitleKey() { return "page.explore"; }
 
-
-    private static final int PAGE_SIZE = 10;
+    private static final int MAX_RESULTS = 2000;
 
     private final ProjectRepository projectRepository;
-    private final LocaleRepository localeRepository;
-    private final PersonRepository personRepository;
-    private final IterationGroupRepository groupRepository;
-
-    private final Section<HProject> projectsSection;
-    private final Section<HIterationGroup> groupsSection;
+    private final ProjectStatsCache statsCache;
+    private final TreeGrid<Node> grid = new TreeGrid<>();
 
     private String currentQuery = "";
 
     public ExploreView(ProjectRepository projectRepository,
-                       LocaleRepository localeRepository,
-                       PersonRepository personRepository,
-                       IterationGroupRepository groupRepository) {
+                       ProjectStatsCache statsCache) {
         this.projectRepository = projectRepository;
-        this.localeRepository = localeRepository;
-        this.personRepository = personRepository;
-        this.groupRepository = groupRepository;
+        this.statsCache = statsCache;
 
         setSizeFull();
         setPadding(true);
-        setAlignItems(FlexComponent.Alignment.CENTER);
+        setSpacing(true);
 
         TextField search = new TextField();
-        search.setPlaceholder(getTranslation("explore.searchPlaceholder",
-                getTranslation("brand.name")));
-        search.setWidth("520px");
+        search.setPlaceholder(getTranslation("explore.searchPlaceholder"));
+        search.setWidthFull();
+        search.setMaxWidth("520px");
         search.setClearButtonVisible(true);
         search.setValueChangeMode(ValueChangeMode.LAZY);
         search.setValueChangeTimeout(300);
@@ -79,152 +67,152 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             currentQuery = e.getValue() == null ? "" : e.getValue().trim();
             reload();
         });
+        add(search);
 
-        HorizontalLayout searchBar = new HorizontalLayout(search);
-        searchBar.setAlignItems(FlexComponent.Alignment.CENTER);
-        searchBar.setSpacing(true);
-        searchBar.setWidth("520px");
-        add(searchBar);
-
-        Div sections = new Div();
-        sections.setWidth("760px");
-        sections.getStyle().set("max-width", "100%");
-
-        projectsSection = new Section<>(getTranslation("explore.section.projects"), LineAwesomeIcon.FOLDER,
-                p -> projectRow(p));
-        groupsSection = new Section<>(getTranslation("explore.section.groups"), LineAwesomeIcon.FOLDER,
-                g -> groupRow(g));
-
-        sections.add(projectsSection, groupsSection);
-        add(sections);
+        grid.addComponentHierarchyColumn(this::nodeCell)
+                .setHeader(getTranslation("explore.section.projects"));
+        grid.addColumn(new ComponentRenderer<>(this::percentCell))
+                .setHeader(getTranslation("explore.col.translated"))
+                .setFlexGrow(0)
+                .setWidth("110px")
+                .setTextAlign(ColumnTextAlign.END);
+        grid.setSizeFull();
+        grid.addClassName("projects-tree");
+        // Whole-row click: a project opens, a group expands/collapses.
+        grid.addSelectionListener(e -> e.getFirstSelectedItem().ifPresent(n -> {
+            if (n.isGroup()) {
+                if (grid.isExpanded(n)) {
+                    grid.collapse(n);
+                } else {
+                    grid.expand(n);
+                }
+                grid.deselect(n);
+            } else {
+                getUI().ifPresent(ui -> ui.navigate(ProjectView.class,
+                        new RouteParameters("slug", n.project.getSlug())));
+            }
+        }));
+        addAndExpand(grid);
 
         reload();
     }
 
     private void reload() {
-        projectsSection.load(p -> projectRepository.search(currentQuery, p));
-        groupsSection.load(p -> groupRepository.search(currentQuery, p));
-    }
+        List<HProject> projects = projectRepository.search(currentQuery,
+                PageRequest.of(0, MAX_RESULTS,
+                        Sort.by(Sort.Order.asc("name"), Sort.Order.asc("slug"))))
+                .getContent();
 
-    private Component projectRow(HProject p) {
-        RouterLink title = new RouterLink(p.getSlug(), ProjectView.class,
-                new com.vaadin.flow.router.RouteParameters("slug", p.getSlug()));
-        title.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
-        Span desc = new Span(p.getName() == null ? "" : getTranslation("explore.projectPrefix", p.getName()));
-        desc.addClassNames(AuraUtility.FontStyle.ITALIC, AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-        Div d = new Div(title, desc);
-        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
-        return d;
-    }
-
-    private Component groupRow(HIterationGroup g) {
-        Anchor title = new Anchor("/version-group/version_group/" + g.getSlug(),
-                g.getName() == null ? g.getSlug() : g.getName());
-        title.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
-        Span desc = new Span(g.getDescription() == null ? "" : g.getDescription());
-        desc.addClassNames(AuraUtility.FontStyle.ITALIC, AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-        Div d = new Div(title, desc);
-        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
-        return d;
-    }
-
-    private Component personRow(HPerson p) {
-        Span name = new Span(p.getName() == null ? getTranslation("explore.unnamed") : p.getName());
-        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
-        Span email = new Span(p.getEmail() == null ? "" : p.getEmail());
-        email.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-        Div d = new Div(name, email);
-        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
-        return d;
-    }
-
-    private Component languageRow(HLocale l) {
-        Span name = new Span(l.getDisplayName() == null
-                ? l.getLocaleId().getId() : l.getDisplayName());
-        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.Display.BLOCK);
-        Span code = new Span(l.getLocaleId() == null ? "" : l.getLocaleId().getId());
-        code.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-        Div d = new Div(name, code);
-        d.addClassNames(AuraUtility.Padding.Vertical.SMALL);
-        return d;
-    }
-
-    private static class Section<T> extends Div {
-        private final String title;
-        private final LineAwesomeIcon icon;
-        private final Function<T, Component> renderer;
-        private final HorizontalLayout header = new HorizontalLayout();
-        private final Span countSpan = new Span("0");
-        private final Span pageInfo = new Span("");
-        private final Button prev = new Button(LineAwesomeIcon.ANGLE_LEFT_SOLID.create());
-        private final Button next = new Button(LineAwesomeIcon.ANGLE_RIGHT_SOLID.create());
-        private final Div list = new Div();
-        private int currentPage = 0;
-        private int totalPages = 0;
-        private java.util.function.Function<PageRequest, Page<T>> loader;
-
-        Section(String title, LineAwesomeIcon icon, Function<T, Component> renderer) {
-            this.title = title;
-            this.icon = icon;
-            this.renderer = renderer;
-
-            addClassNames(AuraUtility.Margin.Top.LARGE);
-
-            var ico = icon.create();
-            ico.addClassNames(AuraUtility.TextColor.SECONDARY);
-            H4 heading = new H4(title);
-            heading.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.SMALL,
-                    AuraUtility.TextColor.SECONDARY);
-            heading.getStyle().set("letter-spacing", "0.1em");
-
-            countSpan.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-
-            prev.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-            next.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-            prev.addClickListener(e -> { if (currentPage > 0) { currentPage--; reloadPage(); } });
-            next.addClickListener(e -> { if (currentPage + 1 < totalPages) { currentPage++; reloadPage(); } });
-
-            pageInfo.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
-
-            HorizontalLayout left = new HorizontalLayout(ico, heading, countSpan);
-            left.setAlignItems(FlexComponent.Alignment.CENTER);
-            left.setSpacing(true);
-            HorizontalLayout right = new HorizontalLayout(prev, pageInfo, next);
-            right.setAlignItems(FlexComponent.Alignment.CENTER);
-            right.setSpacing(false);
-
-            header.setWidthFull();
-            header.setAlignItems(FlexComponent.Alignment.CENTER);
-            header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-            header.add(left, right);
-            header.addClassNames(AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT,
-                    AuraUtility.Padding.Bottom.SMALL);
-
-            add(header, list);
-        }
-
-        void load(java.util.function.Function<PageRequest, Page<T>> loader) {
-            this.loader = loader;
-            this.currentPage = 0;
-            reloadPage();
-        }
-
-        private void reloadPage() {
-            Page<T> page = loader.apply(PageRequest.of(currentPage, PAGE_SIZE));
-            totalPages = Math.max(1, page.getTotalPages());
-            countSpan.setText(String.valueOf(page.getTotalElements()));
-            pageInfo.setText(getTranslation("explore.pageInfo", (currentPage + 1), totalPages));
-            prev.setEnabled(currentPage > 0);
-            next.setEnabled(currentPage + 1 < totalPages);
-            list.removeAll();
-            List<T> items = page.getContent();
-            if (items.isEmpty()) {
-                Paragraph empty = new Paragraph(getTranslation("explore.noResults"));
-                empty.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL);
-                list.add(empty);
-            } else {
-                items.forEach(item -> list.add(renderer.apply(item)));
+        TreeData<Node> data = new TreeData<>();
+        Map<String, Node> groups = new HashMap<>();
+        for (HProject p : projects) {
+            String label = p.getName() == null || p.getName().isBlank()
+                    ? p.getSlug() : p.getName();
+            String[] parts = label.split("/");
+            Node parent = null;
+            StringBuilder path = new StringBuilder();
+            for (int i = 0; i < parts.length - 1; i++) {
+                if (path.length() > 0) {
+                    path.append('/');
+                }
+                path.append(parts[i]);
+                String key = path.toString();
+                Node group = groups.get(key);
+                if (group == null) {
+                    group = Node.group(parts[i], key);
+                    groups.put(key, group);
+                    data.addItem(parent, group);
+                }
+                parent = group;
             }
+            data.addItem(parent, Node.project(p, parts[parts.length - 1]));
+        }
+
+        grid.setDataProvider(new TreeDataProvider<>(data));
+        grid.expandRecursively(data.getRootItems(), Integer.MAX_VALUE);
+    }
+
+    private Component nodeCell(Node n) {
+        if (n.isGroup()) {
+            Span label = new Span(n.label);
+            label.addClassNames(AuraUtility.FontWeight.SEMIBOLD,
+                    AuraUtility.TextColor.SECONDARY);
+            var icon = LineAwesomeIcon.FOLDER.create();
+            icon.addClassNames(AuraUtility.TextColor.SECONDARY);
+            HorizontalLayout row = new HorizontalLayout(icon, label);
+            row.setSpacing(true);
+            row.setPadding(false);
+            row.setAlignItems(FlexComponent.Alignment.CENTER);
+            return row;
+        }
+        HProject p = n.project;
+        // Plain text (no link styling) — the row navigates on selection. Kept on
+        // a single line like the group rows so the heights match.
+        Span name = new Span(n.label);
+        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD);
+        HorizontalLayout row = new HorizontalLayout(name);
+        row.setSpacing(true);
+        row.setPadding(false);
+        row.setAlignItems(FlexComponent.Alignment.BASELINE);
+        if (p.getDescription() != null && !p.getDescription().isBlank()) {
+            Span desc = new Span(p.getDescription());
+            desc.addClassNames(AuraUtility.FontSize.SMALL,
+                    AuraUtility.TextColor.SECONDARY);
+            row.add(desc);
+        }
+        return row;
+    }
+
+    private Component percentCell(Node n) {
+        if (n.isGroup()) {
+            return new Span();
+        }
+        double pct = statsCache.translatedPercent(n.project.getSlug());
+        Span label = new Span(String.format("%.0f%%", pct));
+        label.addClassNames(AuraUtility.FontSize.XSMALL,
+                AuraUtility.TextColor.SECONDARY);
+        ProgressBar bar = ProgressBars.translated(pct);
+        bar.setWidthFull();
+        VerticalLayout cell = new VerticalLayout(label, bar);
+        cell.setPadding(false);
+        cell.setSpacing(false);
+        cell.setAlignItems(FlexComponent.Alignment.STRETCH);
+        cell.addClassNames(AuraUtility.Gap.Row.XSMALL);
+        return cell;
+    }
+
+    /** A tree node: either a name-path group (project null) or a project leaf. */
+    private static final class Node {
+        final HProject project;
+        final String label;
+        final String key;
+
+        private Node(HProject project, String label, String key) {
+            this.project = project;
+            this.label = label;
+            this.key = key;
+        }
+
+        static Node group(String label, String path) {
+            return new Node(null, label, "g:" + path);
+        }
+
+        static Node project(HProject project, String label) {
+            return new Node(project, label, "p:" + project.getSlug());
+        }
+
+        boolean isGroup() {
+            return project == null;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof Node other && key.equals(other.key);
+        }
+
+        @Override
+        public int hashCode() {
+            return key.hashCode();
         }
     }
 }

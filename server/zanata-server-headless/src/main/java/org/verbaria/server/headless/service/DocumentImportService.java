@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.verbaria.server.headless.event.ProjectStatsChangedEvent;
 import org.zanata.common.ContentState;
 import org.verbaria.server.headless.security.Roles;
 import org.zanata.common.ContentType;
@@ -50,19 +52,22 @@ public class DocumentImportService {
     private final TextFlowTargetRepository textFlowTargetRepository;
     private final LocaleRepository localeRepository;
     private final TextFlowExtensionStore extensionStore;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DocumentImportService(ProjectIterationRepository iterationRepository,
                                  DocumentRepository documentRepository,
                                  TextFlowRepository textFlowRepository,
                                  TextFlowTargetRepository textFlowTargetRepository,
                                  LocaleRepository localeRepository,
-                                 TextFlowExtensionStore extensionStore) {
+                                 TextFlowExtensionStore extensionStore,
+                                 ApplicationEventPublisher eventPublisher) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.textFlowTargetRepository = textFlowTargetRepository;
         this.localeRepository = localeRepository;
         this.extensionStore = extensionStore;
+        this.eventPublisher = eventPublisher;
     }
 
     public record ImportResult(HDocument document, boolean created) {}
@@ -212,6 +217,7 @@ public class DocumentImportService {
         ensureSourceLocaleTargets(srcLocale, savedDoc.getTextFlows(), actor,
                 force);
 
+        eventPublisher.publishEvent(new ProjectStatsChangedEvent(projectSlug));
         return new ImportResult(savedDoc, created);
     }
 
@@ -377,6 +383,7 @@ public class DocumentImportService {
             textFlowTargetRepository.save(target);
             accepted++;
         }
+        eventPublisher.publishEvent(new ProjectStatsChangedEvent(projectSlug));
         return new TranslationsImportResult(accepted, skipped, unchanged);
     }
 

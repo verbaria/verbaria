@@ -1,4 +1,4 @@
-package org.verbaria.server.ui.vaadin.stats;
+package org.verbaria.server.headless.stats;
 
 import java.util.ArrayList;
 import java.util.Collections;
