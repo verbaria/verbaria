@@ -297,6 +297,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         if (originalInteractive) getOpts().setInteractiveMode(false);
         try {
             int ok = 0, fail = 0;
+            java.util.List<String> failedDocs = new java.util.ArrayList<>();
             for (var e : byProject.entrySet()) {
                 String slug = e.getKey();
                 java.util.List<String> docs = e.getValue();
@@ -315,12 +316,21 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                     pushCurrentModule();
                     ok++;
                 } catch (Exception ex) {
-                    log.warn("push failed for {}: {}", slug, ex.getMessage());
+                    log.warn("push failed for {} ({} doc(s): {}): {}",
+                            slug, docs.size(), docs, ex.getMessage());
+                    failedDocs.addAll(docs);
                     fail++;
                 }
             }
             log.info("Multi-project trans push done: {} ok, {} failed, {} unmatched",
                     ok, fail, unknown.size());
+            if (!failedDocs.isEmpty()) {
+                log.warn("Failed docs ({}): {}", failedDocs.size(), failedDocs);
+            }
+            if (!unknown.isEmpty()) {
+                log.warn("Unmatched docs with no project on the server ({}): {}",
+                        unknown.size(), unknown);
+            }
         } finally {
             getOpts().setProj(originalProj);
             getOpts().setIncludes(String.join(",", originalIncludes));
