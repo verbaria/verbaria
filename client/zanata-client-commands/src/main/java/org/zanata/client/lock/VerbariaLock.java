@@ -37,7 +37,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "lockVersion", "server", "project", "projectVersion",
-        "generatedAt", "documents" })
+        "sourceLocale", "generatedAt", "documents" })
 public class VerbariaLock {
 
     public static final int CURRENT_VERSION = 1;
@@ -46,6 +46,7 @@ public class VerbariaLock {
     private String server;
     private String project;
     private String projectVersion;
+    private String sourceLocale;
     private String generatedAt;
     /** keyed by docId; TreeMap keeps the JSON output stable for clean diffs. */
     private Map<String, DocumentLock> documents = new TreeMap<>();
@@ -80,6 +81,14 @@ public class VerbariaLock {
 
     public void setProjectVersion(String projectVersion) {
         this.projectVersion = projectVersion;
+    }
+
+    public String getSourceLocale() {
+        return sourceLocale;
+    }
+
+    public void setSourceLocale(String sourceLocale) {
+        this.sourceLocale = sourceLocale;
     }
 
     public String getGeneratedAt() {

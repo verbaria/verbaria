@@ -149,6 +149,9 @@ public final class LockChangelog {
         docIds.addAll(oldLock.getDocuments().keySet());
         docIds.addAll(newLock.getDocuments().keySet());
 
+        String sourceLocale = newLock.getSourceLocale() != null
+                ? newLock.getSourceLocale() : oldLock.getSourceLocale();
+
         for (String docId : docIds) {
             Map<String, TranslationLock> oldT = translations(oldLock, docId);
             Map<String, TranslationLock> newT = translations(newLock, docId);
@@ -158,12 +161,17 @@ public final class LockChangelog {
             locales.addAll(newT.keySet());
 
             for (String locale : locales) {
+                boolean isSource = locale.equals(sourceLocale);
                 TranslationLock before = oldT.get(locale);
                 TranslationLock after = newT.get(locale);
                 if (before == null && after != null) {
-                    record(added, docId, locale, after);
+                    if (!isSource) {
+                        record(added, docId, locale, after);
+                    }
                 } else if (before != null && after == null) {
-                    record(removed, docId, locale, null);
+                    if (!isSource) {
+                        record(removed, docId, locale, null);
+                    }
                 } else if (before != null
                         && !Objects.equals(before.getSig(), after.getSig())) {
                     record(updated, docId, locale, after);

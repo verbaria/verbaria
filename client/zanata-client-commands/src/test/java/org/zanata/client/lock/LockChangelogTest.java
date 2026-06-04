@@ -213,6 +213,48 @@ public class LockChangelogTest {
     }
 
     @Test
+    public void sourceLocaleFirstAppearanceIsNotAddedTranslation() {
+        VerbariaLock before = lock();
+        VerbariaLock after = lock();
+        after.setSourceLocale("en-US");
+        after.document("messages").getTranslations()
+                .put("en-US", tl("S1", "Alice <alice@x.org>"));
+        assertThat(LockChangelog.render(before, after), is(""));
+    }
+
+    @Test
+    public void sourceLocaleEditIsReportedAsUpdatedWithAuthor() {
+        VerbariaLock before = lock();
+        before.setSourceLocale("en-US");
+        before.document("messages").getTranslations().put("en-US", tl("S1"));
+        VerbariaLock after = lock();
+        after.setSourceLocale("en-US");
+        after.document("messages").getTranslations()
+                .put("en-US", tl("S2", "Alice <alice@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString("Updated:"));
+        assertThat(msg, containsString("messages"));
+        assertThat(msg, containsString("en-US"));
+        assertThat(msg, containsString("Co-authored-by: Alice <alice@x.org>"));
+    }
+
+    @Test
+    public void newTranslationLocaleStillReportedAsAddedAlongsideSource() {
+        VerbariaLock before = lock();
+        VerbariaLock after = lock();
+        after.setSourceLocale("en-US");
+        after.document("messages").getTranslations().put("en-US", tl("S1"));
+        after.document("messages").getTranslations()
+                .put("ru", tl("R1", "Bob <bob@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString("Added:"));
+        assertThat(msg, containsString("ru"));
+        assertThat(msg, not(containsString("en-US")));
+    }
+
+    @Test
     public void markdownFormatRendersChangelog() {
         VerbariaLock before = lock();
         before.document("intro").getTranslations().put("de", tl("A"));
