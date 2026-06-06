@@ -118,7 +118,6 @@ public class DocumentImportService {
             doc.setContentType(resource.getContentType() == null
                     ? ContentType.TextPlain : resource.getContentType());
             doc.setLocale(srcLocale);
-            doc.incrementRevision();
             created = false;
         } else {
             doc = new HDocument(
@@ -145,6 +144,9 @@ public class DocumentImportService {
         List<TextFlow> incomingFlows = resource.getTextFlows() == null
                 ? List.of() : resource.getTextFlows();
 
+        int nextRevision = created ? doc.getRevision() : doc.getRevision() + 1;
+        boolean sourceChanged = false;
+
         List<HTextFlow> newOrder = new ArrayList<>(incomingFlows.size());
         int pos = 0;
         for (TextFlow incoming : incomingFlows) {
@@ -162,8 +164,9 @@ public class DocumentImportService {
                 tf.setPlural(incoming.isPlural());
                 tf.setContents(incoming.getContents() == null
                         ? List.of("") : incoming.getContents());
-                tf.setRevision(doc.getRevision());
+                tf.setRevision(nextRevision);
                 doc.getAllTextFlows().put(incoming.getId(), tf);
+                sourceChanged = true;
             } else {
                 List<String> oldContents = tf.getContents();
                 List<String> newContents = incoming.getContents() == null
@@ -175,7 +178,8 @@ public class DocumentImportService {
                 tf.setPlural(incoming.isPlural());
                 tf.setContents(newContents);
                 if (contentChanged || pluralChanged) {
-                    tf.setRevision(doc.getRevision());
+                    tf.setRevision(nextRevision);
+                    sourceChanged = true;
                 }
             }
             // Persist gettext-style metadata (context, references, flags).
@@ -189,7 +193,14 @@ public class DocumentImportService {
 
         // Mark any leftover flows as obsolete.
         for (HTextFlow stale : byResId.values()) {
-            stale.setObsolete(true);
+            if (!stale.isObsolete()) {
+                stale.setObsolete(true);
+                sourceChanged = true;
+            }
+        }
+
+        if (!created && (sourceChanged || force)) {
+            doc.setRevision(nextRevision);
         }
 
         // Replace the live textFlows list (only the non-obsolete flows in the new order).

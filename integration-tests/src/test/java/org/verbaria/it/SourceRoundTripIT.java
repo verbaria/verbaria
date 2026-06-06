@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.push.PushCommand;
+import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlow;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
@@ -150,6 +151,71 @@ class SourceRoundTripIT extends AbstractPushPullIT {
         assertThat(Files.exists(sub)).as("sub-file recreated with same extension").isTrue();
         assertThat(Files.readString(sub)).isEqualTo("<b>Hi</b>");
         assertThat(Files.readString(anchor)).contains("greeting").contains("Hello");
+    }
+
+    @Test
+    void consuloRepushIsIdempotent() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itrepush", VERSION);
+
+        Path libEn = tmp.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(libEn);
+        Path yaml = libEn.resolve("messages.yaml");
+        Files.writeString(yaml,
+                "greeting:\n    text: Hello\nbye:\n    text: Goodbye\n");
+
+        new PushCommand(pushOpts("source", "consulo", "itrepush")).run();
+        new PullCommand(pullOpts("source", "consulo", "itrepush")).run();
+
+        Map<String, String> dbBefore = dbSnapshot("messages");
+        assertThat(dbBefore).hasSize(3);
+        String fileBefore = Files.readString(yaml);
+
+        new PushCommand(pushOpts("source", "consulo", "itrepush")).run();
+
+        assertThat(dbSnapshot("messages"))
+                .as("a second push of unchanged source must not change any DB "
+                        + "row: document/text-flow revision, content, target "
+                        + "state, author or timestamps")
+                .isEqualTo(dbBefore);
+
+        new PullCommand(pullOpts("source", "consulo", "itrepush")).run();
+        assertThat(Files.readString(yaml))
+                .as("a second push of unchanged source must not change the "
+                        + "pulled files")
+                .isEqualTo(fileBefore);
+    }
+
+    private Map<String, String> dbSnapshot(String docId) {
+        return new TransactionTemplate(txManager).execute(s -> {
+            HDocument doc = documentRepository
+                    .findByVersionAndDocId("itrepush", VERSION, docId)
+                    .orElseThrow();
+            LocaleId en = new LocaleId("en-US");
+            Map<String, String> snap = new java.util.HashMap<>();
+            snap.put("#doc", "rev=" + doc.getRevision());
+            for (HTextFlow f : textFlowRepository.findByDocument(doc.getId())) {
+                String tgt = textFlowTargetRepository
+                        .findByTextFlowAndLocale(f.getId(), en)
+                        .map(t -> "state=" + t.getState()
+                                + " tfRev=" + t.getTextFlowRevision()
+                                + " contents=" + t.getContents()
+                                + " translator=" + personName(t.getTranslator())
+                                + " modBy=" + personName(t.getLastModifiedBy())
+                                + " changed=" + t.getLastChanged())
+                        .orElse("<none>");
+                snap.put(f.getResId(), "rev=" + f.getRevision()
+                        + " obsolete=" + f.isObsolete()
+                        + " contents=" + f.getContents() + " | " + tgt);
+            }
+            return snap;
+        });
+    }
+
+    private static String personName(org.zanata.model.HPerson p) {
+        return p == null ? "null" : p.getName();
     }
 
     @Test
