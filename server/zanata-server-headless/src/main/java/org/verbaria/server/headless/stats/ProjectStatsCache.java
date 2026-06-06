@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import org.verbaria.server.headless.event.ProjectStatsChangedEvent;
+import org.verbaria.server.headless.event.ContentChangedEvent;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
@@ -14,7 +14,7 @@ import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 /**
  * Caches the (word-based) translated percentage per project so the Projects
  * overview doesn't recompute {@link IterationStats} for every project on every
- * load. Entries are dropped when a {@link ProjectStatsChangedEvent} fires for
+ * load. Entries are dropped when a {@link ContentChangedEvent} fires for
  * the project (translation/source change), so the figure stays fresh without a
  * time-based TTL.
  */
@@ -60,8 +60,10 @@ public class ProjectStatsCache {
     // value; fallbackExecution keeps it working if ever published outside a tx.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT,
             fallbackExecution = true)
-    public void onChanged(ProjectStatsChangedEvent event) {
-        cache.remove(event.projectSlug());
+    public void onChanged(ContentChangedEvent event) {
+        if (event.projectSlug() != null) {
+            cache.remove(event.projectSlug());
+        }
     }
 
     private Stats compute(String projectSlug) {

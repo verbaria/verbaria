@@ -10,7 +10,8 @@ import java.util.Optional;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.verbaria.server.headless.event.ProjectStatsChangedEvent;
+import org.verbaria.server.headless.event.ContentChangedEvent;
+import org.zanata.common.ActivityType;
 import org.zanata.common.ContentState;
 import org.verbaria.server.headless.security.Roles;
 import org.zanata.common.ContentType;
@@ -228,7 +229,12 @@ public class DocumentImportService {
         ensureSourceLocaleTargets(srcLocale, savedDoc.getTextFlows(), actor,
                 force);
 
-        eventPublisher.publishEvent(new ProjectStatsChangedEvent(projectSlug));
+        if (created || sourceChanged) {
+            eventPublisher.publishEvent(new ContentChangedEvent(projectSlug,
+                    actor == null ? null : actor.getUsername(), iter, savedDoc,
+                    actor == null ? null : ActivityType.UPLOAD_SOURCE_DOCUMENT,
+                    0));
+        }
         return new ImportResult(savedDoc, created);
     }
 
@@ -394,7 +400,13 @@ public class DocumentImportService {
             textFlowTargetRepository.save(target);
             accepted++;
         }
-        eventPublisher.publishEvent(new ProjectStatsChangedEvent(projectSlug));
+        if (accepted > 0) {
+            eventPublisher.publishEvent(new ContentChangedEvent(projectSlug,
+                    actingAs == null ? null : actingAs.getUsername(),
+                    doc.getProjectIteration(), doc,
+                    actingAs == null ? null
+                            : ActivityType.UPLOAD_TRANSLATION_DOCUMENT, 0));
+        }
         return new TranslationsImportResult(accepted, skipped, unchanged);
     }
 

@@ -10,21 +10,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.verbaria.server.headless.repository.TranslateFilterMode;
+import org.zanata.common.ActivityType;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
+import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetReviewComment;
+import org.zanata.model.IsEntityWithType;
 import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.extension.comment.CommentExtensions;
 import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.springframework.context.ApplicationEventPublisher;
-import org.verbaria.server.headless.event.ProjectStatsChangedEvent;
+import org.verbaria.server.headless.event.ContentChangedEvent;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
@@ -64,15 +67,23 @@ public class TranslationEditService {
         this.eventPublisher = eventPublisher;
     }
 
-    /** Notify caches that a project's stats changed, resolved from a flow. */
     private void publishStatsChanged(HTextFlow textFlow) {
-        if (textFlow == null || textFlow.getDocument() == null
-                || textFlow.getDocument().getProjectIteration() == null
-                || textFlow.getDocument().getProjectIteration().getProject() == null) {
+        publishChanged(textFlow, null, null, null, 0);
+    }
+
+    private void publishChanged(HTextFlow textFlow, String actorUsername,
+            IsEntityWithType target, ActivityType activityType, int wordCount) {
+        if (textFlow == null || textFlow.getDocument() == null) {
             return;
         }
-        eventPublisher.publishEvent(new ProjectStatsChangedEvent(textFlow
-                .getDocument().getProjectIteration().getProject().getSlug()));
+        HProjectIteration iteration =
+                textFlow.getDocument().getProjectIteration();
+        if (iteration == null || iteration.getProject() == null) {
+            return;
+        }
+        eventPublisher.publishEvent(new ContentChangedEvent(
+                iteration.getProject().getSlug(), actorUsername, iteration,
+                target, activityType, wordCount));
     }
 
     public String gettextContext(HTextFlow flow) {
@@ -206,15 +217,17 @@ public class TranslationEditService {
         HPerson editor = editorUsername == null ? null
                 : accountRepository.findByUsername(editorUsername)
                         .map(HAccount::getPerson).orElse(null);
-        syncSourceTarget(textFlow, fresh, editor);
-        publishStatsChanged(textFlow);
+        HTextFlowTarget srcTarget = syncSourceTarget(textFlow, fresh, editor);
+        publishChanged(textFlow, editorUsername, srcTarget,
+                ActivityType.UPDATE_TRANSLATION, wordCount(textFlow));
     }
 
-    private void syncSourceTarget(HTextFlow textFlow, String content, HPerson editor) {
+    private HTextFlowTarget syncSourceTarget(HTextFlow textFlow, String content,
+            HPerson editor) {
         var doc = textFlow.getDocument();
-        if (doc == null) return;
+        if (doc == null) return null;
         HLocale srcLocale = doc.getLocale();
-        if (srcLocale == null || srcLocale.getLocaleId() == null) return;
+        if (srcLocale == null || srcLocale.getLocaleId() == null) return null;
         HTextFlowTarget target = targetRepository
                 .findByTextFlowAndLocale(textFlow.getId(), srcLocale.getLocaleId())
                 .orElseGet(() -> new HTextFlowTarget(textFlow, srcLocale));
@@ -226,6 +239,7 @@ public class TranslationEditService {
             target.setLastModifiedBy(editor);
         }
         targetRepository.save(target);
+        return target;
     }
 
     /**
@@ -305,20 +319,23 @@ public class TranslationEditService {
         // version_num) row and crashed the next state change.
         // Attach the review comment BEFORE the state change so the comment's
         // targetVersion matches the version that's being rejected.
-        if (comment != null && !comment.isBlank() && reviewerUsername != null) {
-            HPerson reviewer = accountRepository.findByUsername(reviewerUsername)
-                    .map(HAccount::getPerson)
-                    .orElse(null);
-            if (reviewer != null) {
-                HTextFlowTargetReviewComment rc = new HTextFlowTargetReviewComment(
-                        target, comment.trim(), reviewer, null);
-                reviewCommentRepository.save(rc);
-            }
+        HPerson reviewer = reviewerUsername == null ? null
+                : accountRepository.findByUsername(reviewerUsername)
+                        .map(HAccount::getPerson).orElse(null);
+        if (comment != null && !comment.isBlank() && reviewer != null) {
+            HTextFlowTargetReviewComment rc = new HTextFlowTargetReviewComment(
+                    target, comment.trim(), reviewer, null);
+            reviewCommentRepository.save(rc);
         }
         target.setState(newState);
         target.setTextFlowRevision(textFlow.getRevision());
         targetRepository.save(target);
-        publishStatsChanged(textFlow);
+        boolean review = reviewerUsername != null
+                && (newState == ContentState.Approved
+                        || newState == ContentState.Rejected);
+        publishChanged(textFlow, review ? reviewerUsername : null, target,
+                review ? ActivityType.REVIEWED_TRANSLATION : null,
+                wordCount(textFlow));
         return target.getState();
     }
 
@@ -360,8 +377,14 @@ public class TranslationEditService {
             target.setLastModifiedBy(editor);
         }
         targetRepository.save(target);
-        publishStatsChanged(textFlow);
+        publishChanged(textFlow, editorUsername, target,
+                ActivityType.UPDATE_TRANSLATION, wordCount(textFlow));
         return target.getState();
+    }
+
+    private static int wordCount(HTextFlow textFlow) {
+        return textFlow.getWordCount() == null ? 0
+                : textFlow.getWordCount().intValue();
     }
 
     /**
