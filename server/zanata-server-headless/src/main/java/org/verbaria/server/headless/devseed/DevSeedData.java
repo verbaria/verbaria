@@ -22,6 +22,7 @@ import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.verbaria.server.headless.security.Roles;
 import org.zanata.util.HashUtil;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -245,6 +246,10 @@ public class DevSeedData implements CommandLineRunner {
             "YAML extension.",
             "https://github.com/consulo/consulo-yaml");
 
+        saveProject("perf-1k", "perf/1k strings",
+            "Performance test project: one document with 1000 source strings.",
+            null);
+
         log.info("Inserted {} demo projects", projectRepository.count());
     }
 
@@ -289,7 +294,7 @@ public class DevSeedData implements CommandLineRunner {
             HProjectIteration v = new HProjectIteration();
             v.setSlug("master");
             v.setStatus(EntityStatus.ACTIVE);
-            v.setProject(saved);
+            saved.addIteration(v);
             iterationRepository.save(v);
         }
     }
@@ -316,6 +321,18 @@ public class DevSeedData implements CommandLineRunner {
         "An error occurred while saving the file. Please try again.",
         "Settings"
     );
+
+    private List<String> sourcesFor(String slug) {
+        if (!"perf-1k".equals(slug)) {
+            return SAMPLE_SOURCES;
+        }
+        List<String> out = new ArrayList<>(1000);
+        for (int i = 0; i < 1000; i++) {
+            out.add(SAMPLE_SOURCES.get(i % SAMPLE_SOURCES.size())
+                + " #" + (i + 1));
+        }
+        return out;
+    }
 
     private void seedDocuments() {
         HLocale enUs = localeRepository.findByLocaleId(new LocaleId("en-US"))
@@ -346,9 +363,10 @@ public class DevSeedData implements CommandLineRunner {
                 doc.setProjectIteration(iteration);
                 doc.setRevision(1);
 
-                List<HTextFlow> flows = new java.util.ArrayList<>();
-                for (int i = 0; i < SAMPLE_SOURCES.size(); i++) {
-                    String src = SAMPLE_SOURCES.get(i);
+                List<String> sources = sourcesFor(project.getSlug());
+                List<HTextFlow> flows = new ArrayList<>();
+                for (int i = 0; i < sources.size(); i++) {
+                    String src = sources.get(i);
                     // Match production behavior: resId is a hash, original
                     // human-readable key (msg.N) lives in the gettext context.
                     String originalKey = "msg." + i;
@@ -375,17 +393,18 @@ public class DevSeedData implements CommandLineRunner {
                 List<HTextFlow> persistedFlows = textFlowRepository
                     .findByDocument(savedDoc.getId());
 
+                boolean big = persistedFlows.size() >= 1000;
                 if (fr != null) {
                     targetCount += seedTargets(persistedFlows, fr,
-                        ContentState.Translated, "FR: ", 5);
+                        ContentState.Translated, "FR: ", big ? 600 : 5);
                 }
                 if (de != null) {
                     targetCount += seedTargets(persistedFlows, de,
-                        ContentState.Approved, "DE: ", 3);
+                        ContentState.Approved, "DE: ", big ? 400 : 3);
                 }
                 if (ru != null) {
                     targetCount += seedTargets(persistedFlows, ru,
-                        ContentState.NeedReview, "RU: ", 2);
+                        ContentState.NeedReview, "RU: ", big ? 300 : 2);
                 }
             }
         }

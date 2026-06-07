@@ -27,11 +27,11 @@ import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.component.popover.PopoverPosition;
-import com.vaadin.flow.component.virtuallist.VirtualList;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.ConfigurableFilterDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
@@ -74,6 +74,7 @@ import org.zanata.common.MessageEvaluateType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.rest.dto.TranslationSourceType;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
@@ -126,8 +127,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final RadioButtonGroup<TranslateFilterMode> filterMode =
             new RadioButtonGroup<>();
     private Button filterButton;
-    /** Virtual list driven by a server-paged CallbackDataProvider. */
-    private final VirtualList<RowData> rowsList = new VirtualList<>();
+    /** Grid (summary columns + expandable editor details) driven by a
+     * server-paged CallbackDataProvider. */
+    private final Grid<RowData> rowsGrid = new Grid<>();
 
     /**
      * Snapshot of everything the row renderer needs. Equality/hashCode are
@@ -347,17 +349,31 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         add(buildFilterBar());
 
-        // VirtualList renders only the rows currently in the viewport.
-        // For documents with hundreds of text-flows (e.g. Consulo
-        // *Localize.yaml files often have 300+) eager DOM construction
-        // pegged the browser; the virtual list keeps it responsive.
-        rowsList.setWidthFull();
-        rowsList.setHeight("calc(100vh - 220px)");  // fills below the filter bar
-        rowsList.getStyle().set("max-width", "100%");
-        rowsList.setRenderer(new ComponentRenderer<Component, RowData>(d ->
-                rowFactory.getObject().populate(rowContext(), d.flow(),
-                        d.existing(), d.state(), d.source())));
-        add(rowsList);
+        // Grid shows a compact summary per text-flow and renders the full
+        // editor only in an expandable details row, so documents with hundreds
+        // of text-flows (e.g. Consulo *Localize.yaml, 300+) stay responsive.
+        rowsGrid.setWidthFull();
+        rowsGrid.setHeight("calc(100vh - 220px)");  // fills below the filter bar
+        rowsGrid.getStyle().set("max-width", "100%");
+        rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        rowsGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER,
+                GridVariant.LUMO_WRAP_CELL_CONTENT);
+        rowsGrid.addColumn(new ComponentRenderer<>(this::sourceCell))
+                .setHeader(getTranslation("translate.col.source")).setFlexGrow(3);
+        rowsGrid.addColumn(new ComponentRenderer<>(this::translationCell))
+                .setHeader(getTranslation("translate.col.translation"))
+                .setFlexGrow(3);
+        rowsGrid.addColumn(new ComponentRenderer<>(this::stateCell))
+                .setHeader(getTranslation("translate.col.state"))
+                .setAutoWidth(true).setFlexGrow(0);
+        rowsGrid.addColumn(new ComponentRenderer<>(this::aiCell))
+                .setHeader("").setAutoWidth(true).setFlexGrow(0);
+        rowsGrid.setItemDetailsRenderer(
+                new ComponentRenderer<Component, RowData>(d ->
+                        rowFactory.getObject().populate(rowContext(), d.flow(),
+                                d.existing(), d.state(), d.source(), true)));
+        rowsGrid.setDetailsVisibleOnClick(true);
+        add(rowsGrid);
 
         installDataProvider(docIdForProvider);
 
@@ -412,8 +428,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                     Boolean.TRUE.equals(autoHistory.getValue()));
             editorPreferences.save(next);
             prefs = next;
-            if (rowsList.getDataProvider() != null) {
-                rowsList.getDataProvider().refreshAll();
+            if (rowsGrid.getDataProvider() != null) {
+                rowsGrid.getDataProvider().refreshAll();
             }
             Notification.show(getTranslation(signedIn
                             ? "editor.settings.savedSignedIn"
@@ -508,7 +524,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             Notification.show(getTranslation("translate.bulkAi.result",
                     res.translated(), res.translated()),
                     4000, Notification.Position.BOTTOM_START);
-            rowsList.getDataProvider().refreshAll();
+            rowsGrid.getDataProvider().refreshAll();
         });
     }
 
@@ -814,7 +830,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         ConfigurableFilterDataProvider<RowData, Void, FilterSpec>
                 filterable = provider.withConfigurableFilter();
         filterable.setFilter(currentFilterSpec());
-        rowsList.setDataProvider(filterable);
+        rowsGrid.setItems(filterable);
         // refresh provider when filter inputs change
         filter.addValueChangeListener(e -> filterable.setFilter(currentFilterSpec()));
         filterMode.addValueChangeListener(e -> {
@@ -956,6 +972,50 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return row;
     }
 
+    private Component sourceCell(RowData d) {
+        Div box = new Div();
+        String context = translationEditService.gettextContext(d.flow());
+        String key = context != null && !context.isEmpty()
+                ? context : d.flow().getResId();
+        Span k = new Span(key);
+        k.addClassNames(AuraUtility.FontSize.XSMALL,
+                AuraUtility.TextColor.SECONDARY, AuraUtility.Display.BLOCK);
+        Span s = new Span(d.source() == null ? "" : d.source());
+        s.addClassNames(AuraUtility.Whitespace.PRE_WRAP);
+        box.add(k, s);
+        return box;
+    }
+
+    private Component translationCell(RowData d) {
+        String t = d.existing().map(HTextFlowTarget::getContents)
+                .filter(l -> !l.isEmpty()).map(l -> l.get(0)).orElse("");
+        Span s = new Span(t);
+        s.addClassNames(AuraUtility.Whitespace.PRE_WRAP);
+        return s;
+    }
+
+    private Component stateCell(RowData d) {
+        ContentState state = d.state() == null ? ContentState.New : d.state();
+        Span s = new Span(state.name());
+        TranslationRow.applyStateColor(s, state);
+        s.addClassNames(AuraUtility.FontSize.XSMALL);
+        return s;
+    }
+
+    private Component aiCell(RowData d) {
+        boolean ai = d.existing()
+                .map(HTextFlowTarget::getSourceType)
+                .map(st -> st == TranslationSourceType.MACHINE_TRANS)
+                .orElse(false);
+        if (!ai) {
+            return new Span();
+        }
+        Span s = new Span("AI");
+        s.addClassNames(AuraUtility.FontSize.XSMALL,
+                AuraUtility.TextColor.SECONDARY, AuraUtility.FontWeight.SEMIBOLD);
+        return s;
+    }
+
     private TranslationRow.RowContext rowContext() {
         return new TranslationRow.RowContext(
                 prefs, currentLocale, sourceLocale, localeStr,
@@ -970,8 +1030,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      * the state they were rendered with until a full page reload.
      */
     private void refreshRows() {
-        if (rowsList.getDataProvider() != null) {
-            rowsList.getDataProvider().refreshAll();
+        if (rowsGrid.getDataProvider() != null) {
+            rowsGrid.getDataProvider().refreshAll();
         }
     }
 

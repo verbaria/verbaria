@@ -113,6 +113,7 @@ public class TranslationRow extends Div {
     private boolean isSourceLocale;
     private boolean canEdit;
     private boolean canReview;
+    private boolean detailsMode;
 
     public TranslationRow(LanguageValidator languageValidator,
                           TaskScheduler taskScheduler,
@@ -146,8 +147,10 @@ public class TranslationRow extends Div {
 
     public TranslationRow populate(RowContext ctx, HTextFlow flow,
                                    Optional<HTextFlowTarget> existing,
-                                   ContentState initialState, String source) {
+                                   ContentState initialState, String source,
+                                   boolean detailsMode) {
         this.ctx = ctx;
+        this.detailsMode = detailsMode;
         this.flow = flow;
         this.initialState = initialState;
         this.currentState = initialState;
@@ -168,12 +171,17 @@ public class TranslationRow extends Div {
 
     private void build() {
         boolean compact = ctx.prefs().compactRows();
-        addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT,
-                AuraUtility.BorderRadius.MEDIUM,
-                compact ? AuraUtility.Padding.SMALL : AuraUtility.Padding.MEDIUM,
-                compact ? AuraUtility.Margin.Bottom.SMALL : AuraUtility.Margin.Bottom.MEDIUM,
-                AuraUtility.BoxSizing.BORDER,
-                AuraUtility.Overflow.HIDDEN);
+        if (detailsMode) {
+            addClassNames(AuraUtility.Padding.SMALL,
+                    AuraUtility.BoxSizing.BORDER, AuraUtility.Overflow.HIDDEN);
+        } else {
+            addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.DEFAULT,
+                    AuraUtility.BorderRadius.MEDIUM,
+                    compact ? AuraUtility.Padding.SMALL : AuraUtility.Padding.MEDIUM,
+                    compact ? AuraUtility.Margin.Bottom.SMALL : AuraUtility.Margin.Bottom.MEDIUM,
+                    AuraUtility.BoxSizing.BORDER,
+                    AuraUtility.Overflow.HIDDEN);
+        }
         setWidthFull();
 
         HorizontalLayout row = new HorizontalLayout();
@@ -224,7 +232,9 @@ public class TranslationRow extends Div {
 
         HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, bookmarkBtn);
         leftBtns.setSpacing(true);
-        left.add(resId, srcText);
+        if (!detailsMode) {
+            left.add(resId, srcText);
+        }
         // Source comment is per-key (source) metadata: a toggle icon sits in the
         // action line with details/bookmark and reveals the comment block below.
         Component commentArea = buildSourceComment(leftBtns);
