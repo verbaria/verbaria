@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,9 +20,10 @@ import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.select.Select;
 
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
@@ -39,9 +41,6 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import org.verbaria.server.ui.vaadin.i18n.TitleKey;
-import com.vaadin.flow.router.RouteParam;
-import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 import org.verbaria.server.ui.vaadin.theme.ProgressBars;
@@ -50,6 +49,7 @@ import org.verbaria.server.ui.vaadin.theme.SourceLinks;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
 
+import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
@@ -65,15 +65,19 @@ import org.verbaria.server.headless.service.ProjectMembershipService;
 import org.verbaria.server.ui.vaadin.BreadcrumbsService;
 import org.verbaria.server.ui.vaadin.ExploreView;
 import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
+import org.verbaria.server.ui.vaadin.HasToolbarActions;
 import org.verbaria.server.ui.vaadin.MainLayout;
-import org.verbaria.server.ui.vaadin.iteration.IterationView;
 import org.verbaria.server.headless.stats.IterationStats;
 
 @Route(value = "project/view/:slug", layout = MainLayout.class)
 @AnonymousAllowed
-public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs, HasToolbarActions {
 
     @Override public String pageTitleKey() { return "page.project"; }
+
+    @Override public Component toolbarActions() { return toolbarActions; }
+
+    private Component toolbarActions;
 
 
     private final ProjectRepository projectRepository;
@@ -86,6 +90,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     private final BreadcrumbsService breadcrumbsService;
 
     private String currentSlug;
+    private String currentVersionSlug;
 
     public ProjectView(ProjectRepository projectRepository,
                        ProjectIterationRepository iterationRepository,
@@ -133,17 +138,26 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
                 .orElse(project);
 
         publishBreadcrumb(slug);
+
+        List<HProjectIteration> iterations = new ArrayList<>(project.getProjectIterations());
+        iterations.sort(Comparator
+                .comparing((HProjectIteration i) -> i.getStatus() == EntityStatus.READONLY ? 0 : 1)
+                .thenComparing(HProjectIteration::getSlug, Comparator.reverseOrder()));
+
+        ComboBox<HProjectIteration> versionBox = new ComboBox<>();
+        versionBox.setItems(iterations);
+        versionBox.setItemLabelGenerator(HProjectIteration::getSlug);
+        versionBox.setWidth("150px");
+        versionBox.setAllowCustomValue(false);
+        versionBox.setPlaceholder(getTranslation("project.version"));
+
+        this.toolbarActions = buildToolbarActions(slug, versionBox);
         add(buildHeading(project, slug));
         if (project.getDescription() != null && !project.getDescription().isBlank()) {
             Paragraph desc = new Paragraph(project.getDescription());
             desc.addClassNames(AuraUtility.Margin.Top.NONE, AuraUtility.FontStyle.ITALIC);
             add(desc);
         }
-
-        List<HProjectIteration> iterations = new ArrayList<>(project.getProjectIterations());
-        iterations.sort(Comparator
-                .comparing((HProjectIteration i) -> i.getStatus() == EntityStatus.READONLY ? 0 : 1)
-                .thenComparing(HProjectIteration::getSlug, Comparator.reverseOrder()));
 
         // Person → roles aggregation for the People panel.
         Map<HPerson, EnumSet<ProjectRole>> rolesByPerson =
@@ -158,15 +172,32 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
                 p -> p.getName() == null ? "" : p.getName(),
                 String.CASE_INSENSITIVE_ORDER));
 
+        Grid<IterationStats.LocaleStats> languages = buildLanguageGrid(slug);
+        if (iterations.isEmpty()) {
+            versionBox.setEnabled(false);
+        } else {
+            HProjectIteration initial = iterations.stream()
+                    .filter(it -> "master".equals(it.getSlug()))
+                    .findFirst().orElse(iterations.get(0));
+            versionBox.setValue(initial);
+            renderLanguages(languages, initial);
+            versionBox.addValueChangeListener(e -> {
+                if (e.getValue() != null) {
+                    renderLanguages(languages, e.getValue());
+                }
+            });
+        }
+
         TabSheet tabs = new TabSheet();
-        tabs.setWidthFull();
-        tabs.add(tabWithBadge(getTranslation("project.tab.versions"), iterations.size()),
-                buildVersionsPanel(slug, iterations));
+        tabs.setSizeFull();
+        tabs.addClassNames("fill-tabsheet", AuraUtility.MinHeight.NONE);
+        tabs.add(new Tab(getTranslation("project.tab.languages")),
+                wrapLanguagesPanel(slug, languages));
         tabs.add(tabWithBadge(getTranslation("project.tab.people"), people.size()),
                 buildPeoplePanel(people, rolesByPerson));
         tabs.add(new Tab(getTranslation("project.tab.glossary")), buildGlossaryPanel(slug));
         tabs.add(new Tab(getTranslation("project.tab.about")), buildAboutPanel(project));
-        add(tabs);
+        addAndExpand(tabs);
     }
 
     /**
@@ -202,9 +233,9 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     private void publishBreadcrumb(String slug) {
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                // "Projects" links to the explore index; the project's own
+                // "Projects" links to the projects index; the project's own
                 // slug is the current-page leaf.
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 BreadcrumbsService.Crumb.here(slug)
         );
     }
@@ -221,20 +252,85 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
             source.addClassNames(AuraUtility.FontSize.LARGE);
             left.addComponentAsFirst(source);
         }
+        return left;
+    }
 
-        HorizontalLayout layout = new HorizontalLayout(left);
-        layout.setWidthFull();
-        layout.setAlignItems(FlexComponent.Alignment.CENTER);
-        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+    private Component buildToolbarActions(String slug,
+                                          ComboBox<HProjectIteration> versionBox) {
+        HorizontalLayout right = new HorizontalLayout(versionBox);
+        right.setAlignItems(FlexComponent.Alignment.CENTER);
+        right.setSpacing(true);
         if (canManageProject(slug)) {
-            Button settings = new Button(getTranslation("page.settings"),
-                    LineAwesomeIcon.COG_SOLID.create(),
+            Button settings = new Button(LineAwesomeIcon.COG_SOLID.create(),
                     e -> getUI().ifPresent(ui ->
                             ui.navigate("project/view/" + slug + "/settings")));
-            settings.addThemeVariants(ButtonVariant.TERTIARY);
-            layout.add(settings);
+            settings.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+            settings.getElement().setAttribute("title", getTranslation("page.settings"));
+            settings.getElement().setAttribute("aria-label", getTranslation("page.settings"));
+            right.add(settings);
         }
-        return layout;
+        return right;
+    }
+
+    private void openAddLanguageDialog(String slug) {
+        HProject project = projectRepository.findBySlugWithLocales(slug).orElse(null);
+        if (project == null) {
+            return;
+        }
+        Set<HLocale> current = project.getCustomizedLocales() == null
+                ? Set.of() : project.getCustomizedLocales();
+        List<HLocale> available = localeRepository.findAll().stream()
+                .filter(l -> !current.contains(l))
+                .sorted(Comparator.comparing(ProjectView::localeLabel,
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        ComboBox<HLocale> picker = new ComboBox<>();
+        picker.setItems(available);
+        picker.setItemLabelGenerator(ProjectView::localeLabel);
+        picker.setWidthFull();
+        picker.setPlaceholder(getTranslation("project.addLanguage"));
+
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("project.addLanguage"));
+        dlg.add(picker);
+        Button add = new Button(getTranslation("common.add"), e -> {
+            HLocale picked = picker.getValue();
+            if (picked == null) {
+                picker.setInvalid(true);
+                return;
+            }
+            addLanguage(slug, picked);
+            dlg.close();
+            UI.getCurrent().getPage().reload();
+        });
+        add.addThemeVariants(ButtonVariant.PRIMARY);
+        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
+        dlg.getFooter().add(cancel, add);
+        dlg.open();
+    }
+
+    private void addLanguage(String slug, HLocale locale) {
+        projectRepository.findBySlugWithLocales(slug).ifPresent(project -> {
+            Set<HLocale> set = new LinkedHashSet<>();
+            if (project.getCustomizedLocales() != null) {
+                set.addAll(project.getCustomizedLocales());
+            }
+            set.add(locale);
+            project.setCustomizedLocales(set);
+            project.setOverrideLocales(true);
+            projectRepository.save(project);
+        });
+    }
+
+    private static String localeLabel(HLocale l) {
+        if (l == null) {
+            return "";
+        }
+        String code = l.getLocaleId() == null ? "?" : l.getLocaleId().getId();
+        String display = l.getDisplayName();
+        return display == null || display.isBlank() ? code
+                : display + " (" + code + ")";
     }
 
     private Tab tabWithBadge(String label, int count) {
@@ -248,136 +344,92 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return new Tab(new Span(label), badge);
     }
 
-    private Div buildVersionsPanel(String projectSlug, List<HProjectIteration> iterations) {
-        Div panel = new Div();
-        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
-                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
-                AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
-
-        Select<String> sort = new Select<>();
-        sort.setItems("Slug (Z-A)", "Slug (A-Z)", "Status", "Translated % (desc)", "Approved % (desc)");
-        sort.setValue("Slug (Z-A)");
-        sort.setWidth("220px");
-
-        HorizontalLayout header = new HorizontalLayout();
-        header.setWidthFull();
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        H3 title = new H3("Versions");
-        title.addClassNames(AuraUtility.Margin.NONE);
-
-        HorizontalLayout right = new HorizontalLayout();
-        right.setAlignItems(FlexComponent.Alignment.CENTER);
-        right.setSpacing(true);
-        if (canManageProject(projectSlug)) {
-            Button addVersion =
-                    new Button("New version",
-                            LineAwesomeIcon.PLUS_SOLID.create(),
-                            e -> getUI().ifPresent(ui -> ui.navigate(
-                                    "project/" + projectSlug + "/add-version")));
-            addVersion.addThemeVariants(
-                    ButtonVariant.PRIMARY,
-                    ButtonVariant.SMALL);
-            right.add(addVersion);
+    private Component wrapLanguagesPanel(String slug,
+            Grid<IterationStats.LocaleStats> grid) {
+        if (!canManageProject(slug)) {
+            return grid;
         }
-        right.add(new Span("Sort"), sort);
-        header.add(title, right);
-        header.addClassNames(AuraUtility.Margin.Bottom.MEDIUM);
-        panel.add(header);
+        VerticalLayout panel = new VerticalLayout();
+        panel.setSizeFull();
+        panel.setPadding(false);
+        panel.setSpacing(false);
+        panel.addClassNames(AuraUtility.MinHeight.NONE);
 
-        Div listContainer = new Div();
-        listContainer.setWidthFull();
-        panel.add(listContainer);
-        renderVersionList(listContainer, projectSlug, iterations, sort.getValue());
-        sort.addValueChangeListener(e ->
-                renderVersionList(listContainer, projectSlug, iterations, e.getValue()));
+        Button addLang = new Button(getTranslation("project.addLanguage"),
+                LineAwesomeIcon.PLUS_SOLID.create(),
+                e -> openAddLanguageDialog(slug));
+        addLang.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        HorizontalLayout bar = new HorizontalLayout(addLang);
+        bar.setWidthFull();
+        bar.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        bar.addClassNames(AuraUtility.Padding.SMALL);
+
+        panel.add(bar);
+        panel.addAndExpand(grid);
         return panel;
     }
 
-    private void renderVersionList(Div container, String projectSlug,
-                                   List<HProjectIteration> iterations, String sortBy) {
-        container.removeAll();
-        Comparator<HProjectIteration> cmp = switch (sortBy == null ? "" : sortBy) {
-            case "Slug (A-Z)" -> Comparator
-                    .comparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
-            case "Status" -> Comparator
-                    .comparing((HProjectIteration i) -> i.getStatus() == null
-                            ? "" : i.getStatus().name())
-                    .thenComparing(HProjectIteration::getSlug, String.CASE_INSENSITIVE_ORDER);
-            case "Translated % (desc)" -> Comparator
-                    .comparingDouble((HProjectIteration i) -> -IterationStats
-                            .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
-                            .translatedPct);
-            case "Approved % (desc)" -> Comparator
-                    .comparingDouble((HProjectIteration i) -> -IterationStats
-                            .compute(i.getId(), iterationRepository, targetRepository, localeRepository)
-                            .approvedPct);
-            default -> Comparator
-                    .comparing(HProjectIteration::getSlug, Comparator.reverseOrder());
-        };
-        iterations.stream().sorted(cmp)
-                .forEach(it -> container.add(buildVersionRow(projectSlug, it)));
+    private Grid<IterationStats.LocaleStats> buildLanguageGrid(String projectSlug) {
+        Grid<IterationStats.LocaleStats> grid = new Grid<>();
+        grid.setSizeFull();
+        grid.setSelectionMode(Grid.SelectionMode.NONE);
+        grid.addClassNames(AuraUtility.MinHeight.NONE);
+        grid.addThemeVariants(GridVariant.NO_BORDER, GridVariant.ROW_STRIPES);
+        grid.addColumn(new ComponentRenderer<>(this::languageNameCell))
+                .setHeader(getTranslation("project.tab.languages")).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(this::languagePctCell))
+                .setHeader(getTranslation("iteration.stats.translated"))
+                .setFlexGrow(1);
+        grid.addItemClickListener(e -> {
+            String localeIdStr = localeIdOf(e.getItem());
+            if (!localeIdStr.isBlank() && currentVersionSlug != null) {
+                getUI().ifPresent(ui -> ui.navigate("translate/" + projectSlug
+                        + "/" + currentVersionSlug + "/" + localeIdStr));
+            }
+        });
+        return grid;
     }
 
-    private Div buildVersionRow(String projectSlug, HProjectIteration iter) {
+    private void renderLanguages(Grid<IterationStats.LocaleStats> grid,
+                                 HProjectIteration iter) {
+        this.currentVersionSlug = iter.getSlug();
         IterationStats stats = IterationStats.compute(iter.getId(),
                 iterationRepository, targetRepository, localeRepository);
-
-        RouterLink link = new RouterLink("", IterationView.class,
-                new RouteParameters(
-                        new RouteParam("projectSlug", projectSlug),
-                        new RouteParam("versionSlug", iter.getSlug())));
-        link.addClassNames(AuraUtility.TextDecoration.NONE, AuraUtility.Display.BLOCK);
-        link.getStyle().set("color", "inherit");
-
-        Div card = new Div();
-        card.addClassNames(AuraUtility.Padding.SMALL, AuraUtility.Border.BOTTOM,
-                AuraUtility.BorderColor.SECONDARY, AuraUtility.BoxSizing.BORDER, AuraUtility.Width.FULL);
-
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setAlignItems(FlexComponent.Alignment.CENTER);
-        row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-
-        HorizontalLayout left = new HorizontalLayout();
-        left.setSpacing(true);
-        left.setAlignItems(FlexComponent.Alignment.CENTER);
-        Span slugSpan = new Span(iter.getSlug());
-        slugSpan.addClassNames(AuraUtility.FontWeight.BOLD, AuraUtility.FontSize.MEDIUM);
-        left.add(slugSpan);
-        if (iter.getStatus() == EntityStatus.READONLY) {
-            var lock = LineAwesomeIcon.LOCK_SOLID.create();
-            lock.setSize("0.9em");
-            lock.addClassNames(AuraUtility.TextColor.SECONDARY);
-            left.add(lock);
-        }
-
-        VerticalLayout right = new VerticalLayout();
-        right.setPadding(false);
-        right.setSpacing(false);
-        right.setAlignItems(FlexComponent.Alignment.END);
-        Span pct = new Span(String.format("%.2f%%", stats.translatedPct));
-        pct.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD,
-                ProgressBars.textColorClass(stats.translatedPct));
-        Span tag = new Span("translated");
-        tag.addClassNames(AuraUtility.FontSize.XSMALL, AuraUtility.TextColor.SECONDARY);
-        right.add(pct, tag);
-
-        row.add(left, right);
-        card.add(row);
-
-        ProgressBar bar = ProgressBars.translated(stats.translatedPct);
-        bar.addClassNames(AuraUtility.Margin.Top.SMALL);
-        card.add(bar);
-
-        link.getElement().appendChild(card.getElement());
-        return wrap(link);
+        grid.setItems(stats.perLocale.stream()
+                .sorted(Comparator.comparing(ProjectView::localeIdOf,
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList());
     }
 
-    private Div wrap(RouterLink link) {
-        Div wrap = new Div(link);
-        wrap.addClassNames(AuraUtility.Width.FULL);
-        return wrap;
+    private Component languageNameCell(IterationStats.LocaleStats ls) {
+        String localeIdStr = localeIdOf(ls);
+        String display = ls.locale.getDisplayName();
+        if (display == null || display.isBlank()) {
+            display = localeIdStr;
+        }
+        Span name = new Span(localeIdStr.isBlank() ? display
+                : display + " (" + localeIdStr + ")");
+        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD,
+                AuraUtility.Cursor.POINTER);
+        return name;
+    }
+
+    private Component languagePctCell(IterationStats.LocaleStats ls) {
+        VerticalLayout cell = new VerticalLayout();
+        cell.setPadding(false);
+        cell.setSpacing(false);
+        Span pct = new Span(String.format("%.0f%%", ls.translatedPct));
+        pct.addClassNames(AuraUtility.FontSize.SMALL,
+                ProgressBars.textColorClass(ls.translatedPct));
+        ProgressBar bar = ProgressBars.translated(ls.translatedPct);
+        bar.setWidthFull();
+        cell.add(pct, bar);
+        return cell;
+    }
+
+    private static String localeIdOf(IterationStats.LocaleStats ls) {
+        return ls.locale.getLocaleId() == null ? ""
+                : ls.locale.getLocaleId().getId();
     }
 
     private Div buildPeoplePanel(List<HPerson> people,

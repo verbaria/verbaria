@@ -44,4 +44,31 @@ public class HomeContentService {
         row.setValue(value);
         repository.save(row);
     }
+
+    /**
+     * Whether the public home page at {@code /} is enabled. When disabled the
+     * root route redirects to the projects view. Defaults to enabled when no
+     * row exists.
+     */
+    @Transactional(readOnly = true)
+    public boolean isHomeEnabled() {
+        return repository.findByKey(HApplicationConfiguration.KEY_HOME_ENABLED)
+                .map(HApplicationConfiguration::getValue)
+                .map(v -> !"false".equalsIgnoreCase(v.trim()))
+                .orElse(true);
+    }
+
+    /** Enable or disable the public home page. */
+    @Transactional
+    public void setHomeEnabled(boolean enabled) {
+        HApplicationConfiguration row = repository
+                .findByKey(HApplicationConfiguration.KEY_HOME_ENABLED)
+                .orElseGet(() -> {
+                    HApplicationConfiguration fresh = new HApplicationConfiguration();
+                    fresh.setKey(HApplicationConfiguration.KEY_HOME_ENABLED);
+                    return fresh;
+                });
+        row.setValue(Boolean.toString(enabled));
+        repository.save(row);
+    }
 }

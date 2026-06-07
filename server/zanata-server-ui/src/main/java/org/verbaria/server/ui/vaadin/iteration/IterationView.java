@@ -201,7 +201,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
     private void publishBreadcrumb(String projectSlug, String versionSlug) {
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 // Project slug links back to the project overview so the user
                 // can hop sideways between versions; the current version slug
                 // is the "here" leaf.

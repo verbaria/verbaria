@@ -329,7 +329,6 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         cardStyle(panel);
         panel.add(new H3(getTranslation("profile.quickLinks")));
         VerticalLayout list = new VerticalLayout(
-                link(getTranslation("profile.quickLink.dashboard"), "/dashboard"),
                 link(getTranslation("profile.quickLink.accountApi"), "/dashboard/settings"),
                 link(getTranslation("profile.quickLink.browseLanguages"), "/languages"));
         list.setPadding(false);

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -36,17 +37,19 @@ public class LanguagesView extends VerticalLayout implements TitleKey {
         setPadding(true);
         setSpacing(true);
 
-        add(new H2(getTranslation("languages.title")));
-
+        H2 title = new H2(getTranslation("languages.title"));
+        HorizontalLayout header = new HorizontalLayout(title);
+        header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         // Adding a language is an admin action; the read-only list stays public.
         if (Roles.isCurrentUserAdmin()) {
             Button add = new Button(getTranslation("languages.add"),
                     e -> openAddDialog());
-            add.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            HorizontalLayout toolbar = new HorizontalLayout(add);
-            toolbar.setWidthFull();
-            add(toolbar);
+            add.addThemeVariants(ButtonVariant.PRIMARY);
+            header.add(add);
         }
+        add(header);
 
         grid.addColumn(l -> l.getLocaleId() == null ? "" : l.getLocaleId().getId())
                 .setHeader(getTranslation("languages.colLocale")).setSortable(true).setAutoWidth(true);

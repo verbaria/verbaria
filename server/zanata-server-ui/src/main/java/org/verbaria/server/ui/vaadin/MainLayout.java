@@ -3,6 +3,7 @@ package org.verbaria.server.ui.vaadin;
 import org.verbaria.server.headless.security.Roles;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -11,7 +12,6 @@ import com.vaadin.flow.component.breadcrumbs.BreadcrumbsItem;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -19,7 +19,6 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -27,18 +26,19 @@ import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.component.HasElement;
-import com.vaadin.flow.component.sidenav.SideNav;
-import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.HighlightActions;
+import com.vaadin.flow.router.HighlightConditions;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -49,42 +49,52 @@ import org.verbaria.server.ui.vaadin.i18n.LocaleSelector;
 import org.verbaria.server.ui.vaadin.i18n.ThemeSelector;
 import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import org.verbaria.server.headless.service.ContactAdminService;
+import org.verbaria.server.headless.service.HomeContentService;
 import org.verbaria.server.ui.vaadin.admin.AdminHomeView;
-import org.verbaria.server.ui.vaadin.dashboard.DashboardHomeView;
+import org.verbaria.server.ui.vaadin.group.GroupsView;
+import org.verbaria.server.ui.vaadin.profile.ProfileView;
 
 /**
- * App shell. Layout:
+ * App shell. Two stacked glass clouds inside the content area (the drawer is
+ * unused — navigation is horizontal):
  * <pre>
- *  ┌─────────────────────────────────────────────────────────────────┐
- *  │ ☰  &lt;breadcrumbs&gt;                       🌗  🌐 ▾   Sign in / out  │   ← navbar
- *  ├─────────────────────────────────────────────────────────────────┤
- *  │ logo                                                             │
- *  │ ─── Home                                                         │
- *  │ ─── Explore                                       view content   │   ← body
- *  │ ─── …                                                            │
- *  │                                                                  │
- *  │ ─────────── user · contact ─────────                             │   ← drawer
- *  └─────────────────────────────────────────────────────────────────┘
+ *  ┌── toolbar cloud ────────────────────────────────────────────────────┐
+ *  │ Verbaria  Home Projects Groups …   [ search ]   🛡 🌗 🌐▾  Sign in   │
+ *  └─────────────────────────────────────────────────────────────────────┘
+ *  ┌── content cloud ────────────────────────────────────────────────────┐
+ *  │ Home › Projects › … ▸ leaf                       [ view actions ]    │ ← crumb + actions row
+ *  │                                                                     │
+ *  │                         routed view content                         │
+ *  └─────────────────────────────────────────────────────────────────────┘
  * </pre>
  *
- * <p>The navbar is the global toolbar — it holds the breadcrumbs (left, set
- * by each view through {@link BreadcrumbsService}) and the global controls
- * (right): theme toggle, locale picker, sign-in popover or user menu.</p>
+ * <p>The toolbar cloud holds the brand, the horizontal primary nav, an
+ * optional per-view search field ({@link HasToolbarSearch}), and the global
+ * controls cluster: admin shortcut (icon, admins only), theme toggle, locale
+ * picker, and sign-in popover / user menu (which also hosts Profile).</p>
+ *
+ * <p>The content cloud opens with a row that pairs the per-view breadcrumbs
+ * (left, set through {@link BreadcrumbsService}) with optional per-view
+ * actions (right, {@link HasToolbarActions}) — e.g. the editor's doc switcher,
+ * stats, filter and settings. The routed view fills the rest.</p>
  */
 @AnonymousAllowed
 public class MainLayout extends AppLayout
-        implements com.vaadin.flow.router.BeforeEnterObserver, AfterNavigationObserver {
+        implements BeforeEnterObserver, AfterNavigationObserver {
 
     private final ContactAdminService contactAdminService;
     private final LocaleSelector localeSelector;
     private final ThemeSelector themeSelector;
     private final LoginDialogService loginDialogService;
     private final BreadcrumbsService breadcrumbsService;
+    private final HomeContentService homeContentService;
 
     // Live placeholder in the toolbar — re-populated on every navigation by
     // {@link #afterNavigation}. Owning it as a field avoids querying the
     // DOM each time.
     private final Span breadcrumbsSlot = new Span();
+    private final Span searchSlot = new Span();
+    private final Span actionsSlot = new Span();
 
     /**
      * Wrapper for the routed view. AppLayout's {@code content} slot holds
@@ -94,18 +104,22 @@ public class MainLayout extends AppLayout
      * extends the full height to its left.
      */
     private VerticalLayout contentWrapper;
+    private VerticalLayout contentCard;
+    private Div crumbBar;
     private HasElement currentRoutedContent;
 
     public MainLayout(ContactAdminService contactAdminService,
                       LocaleSelector localeSelector,
                       ThemeSelector themeSelector,
                       LoginDialogService loginDialogService,
-                      BreadcrumbsService breadcrumbsService) {
+                      BreadcrumbsService breadcrumbsService,
+                      HomeContentService homeContentService) {
         this.contactAdminService = contactAdminService;
         this.localeSelector = localeSelector;
         this.themeSelector = themeSelector;
         this.loginDialogService = loginDialogService;
         this.breadcrumbsService = breadcrumbsService;
+        this.homeContentService = homeContentService;
         // Apply the persisted-locale cookie BEFORE children render. Reading
         // the cookie doesn't need the session, only the inbound HttpServletRequest
         // — which is available here because MainLayout is instantiated during
@@ -115,19 +129,33 @@ public class MainLayout extends AppLayout
         if (cookieLocale != null && ui != null && !cookieLocale.equals(ui.getLocale())) {
             ui.setLocale(cookieLocale);
         }
-        setPrimarySection(Section.DRAWER);
-        addDrawerContent();
-        // Build the in-content toolbar once. {@link #showRouterLayoutContent}
-        // re-uses it across navigations, swapping the routed view underneath.
+        setPrimarySection(Section.NAVBAR);
+        setDrawerOpened(false);
         contentWrapper = new VerticalLayout();
         contentWrapper.setSizeFull();
         contentWrapper.setPadding(false);
         contentWrapper.setSpacing(false);
-        // Clip overflow at the wrapper — the toolbar is fixed-height and the
-        // routed view is flex:1 with min-height:0 (set in showRouterLayoutContent),
-        // so a scrolling view contains its own overflow inside the wrapper.
-        contentWrapper.addClassNames(AuraUtility.Overflow.HIDDEN);
-        contentWrapper.add(buildToolbar());
+        contentWrapper.addClassNames("app-shell-content", AuraUtility.Overflow.HIDDEN);
+
+        Component toolbar = buildToolbar();
+        toolbar.getElement().getClassList().add("glass-surface");
+        contentWrapper.add(toolbar);
+
+        contentCard = new VerticalLayout();
+        contentCard.setPadding(false);
+        contentCard.setSpacing(false);
+        contentCard.addClassNames("glass-surface", "app-content-card",
+                AuraUtility.Overflow.HIDDEN);
+        breadcrumbsSlot.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.MinWidth.NONE);
+        crumbBar = new Div(breadcrumbsSlot, actionsSlot);
+        crumbBar.setWidthFull();
+        crumbBar.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER,
+                AuraUtility.Gap.MEDIUM, AuraUtility.Padding.Horizontal.MEDIUM,
+                AuraUtility.Padding.Vertical.XSMALL, AuraUtility.BoxSizing.BORDER);
+        actionsSlot.addClassNames(AuraUtility.Flex.SHRINK_NONE);
+        contentCard.add(crumbBar);
+        contentWrapper.add(contentCard);
+
         setContent(contentWrapper);
     }
 
@@ -157,7 +185,7 @@ public class MainLayout extends AppLayout
             el.getClassList().add(AuraUtility.Flex.AUTO);
             el.getClassList().add(AuraUtility.MinHeight.NONE);
             el.getClassList().add(AuraUtility.MinWidth.NONE);
-            contentWrapper.getElement().appendChild(el);
+            contentCard.getElement().appendChild(el);
         }
     }
 
@@ -168,7 +196,7 @@ public class MainLayout extends AppLayout
      * renders, so no setLocale needed here.
      */
     @Override
-    public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
+    public void beforeEnter(BeforeEnterEvent event) {
         var qp = event.getLocation().getQueryParameters().getSingleParameter("lang");
         if (qp.isEmpty()) return;
         Locale picked = Locale.forLanguageTag(qp.get());
@@ -199,7 +227,29 @@ public class MainLayout extends AppLayout
             breadcrumbsService.clear();
             publishDefaultBreadcrumb(event);
         }
+        renderToolbarActions();
         renderBreadcrumbs();
+        renderToolbarSearch();
+    }
+
+    private void renderToolbarActions() {
+        actionsSlot.removeAll();
+        if (currentRoutedContent instanceof HasToolbarActions a) {
+            Component c = a.toolbarActions();
+            if (c != null) {
+                actionsSlot.add(c);
+            }
+        }
+    }
+
+    private void renderToolbarSearch() {
+        searchSlot.removeAll();
+        if (currentRoutedContent instanceof HasToolbarSearch s) {
+            Component c = s.toolbarSearch();
+            if (c != null) {
+                searchSlot.add(c);
+            }
+        }
     }
 
     /**
@@ -217,8 +267,8 @@ public class MainLayout extends AppLayout
         String homeLabel = getTranslation("translate.breadcrumb.home");
         String pageLabel = getTranslation(titled.pageTitleKey());
         if (path == null || path.isEmpty() || "/".equals(path)) {
-            // On the home page itself: a single "Home" leaf crumb.
-            breadcrumbsService.set(BreadcrumbsService.Crumb.here(homeLabel));
+            // Home page: no breadcrumb.
+            breadcrumbsService.clear();
         } else if (path.startsWith("admin/") && !path.equals("admin/home")) {
             // Admin sub-pages get an intermediate "Administration" crumb that
             // links back to the admin landing page.
@@ -229,6 +279,10 @@ public class MainLayout extends AppLayout
                             "/admin/home"),
                     BreadcrumbsService.Crumb.here(pageLabel)
             );
+        } else if (!path.contains("/")) {
+            // Top-level nav page (Projects, Groups, …): the horizontal nav
+            // already shows where you are, so no breadcrumb.
+            breadcrumbsService.clear();
         } else {
             breadcrumbsService.set(
                     BreadcrumbsService.Crumb.of(homeLabel, "/"),
@@ -240,6 +294,10 @@ public class MainLayout extends AppLayout
     private void renderBreadcrumbs() {
         breadcrumbsSlot.removeAll();
         List<BreadcrumbsService.Crumb> crumbs = breadcrumbsService.current();
+        boolean hasActions = actionsSlot.getElement().getChildCount() > 0;
+        if (crumbBar != null) {
+            crumbBar.setVisible(!crumbs.isEmpty() || hasActions);
+        }
         if (crumbs.isEmpty()) return;
         Breadcrumbs widget = new Breadcrumbs();
         for (BreadcrumbsService.Crumb c : crumbs) {
@@ -262,79 +320,80 @@ public class MainLayout extends AppLayout
      * right (theme toggle, locale picker, sign-in / user menu).
      */
     private Component buildToolbar() {
-        DrawerToggle drawerToggle = new DrawerToggle();
-        drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-        drawerToggle.setAriaLabel(getTranslation("nav.toggleMenu"));
+        Span logo = new Span(getTranslation("brand.name"));
+        logo.addClassNames(AuraUtility.FontSize.LARGE, AuraUtility.FontWeight.BOLD,
+                AuraUtility.LineHeight.NONE);
+        logo.getStyle().set("letter-spacing", "-0.02em");
+        logo.getStyle().set("color",
+                "var(--aura-green-text, var(--vaadin-input-field-label-color))");
+        Anchor brand = new Anchor("/", logo);
+        brand.addClassNames(AuraUtility.TextDecoration.NONE, AuraUtility.Display.FLEX,
+                AuraUtility.AlignItems.CENTER);
+        brand.getStyle().set("flex", "0 0 auto");
 
-        breadcrumbsSlot.addClassName("crumbs");
+        HorizontalLayout left = new HorizontalLayout(brand, buildHorizontalNav());
+        left.setAlignItems(FlexComponent.Alignment.CENTER);
+        left.setSpacing(true);
+        left.addClassNames(AuraUtility.MinWidth.NONE);
 
-        Div controls = new Div(buildThemeButton(), buildLocalePicker(),
-                buildAuthControl());
+        searchSlot.addClassName("toolbar-search");
+
+        Div controls = new Div();
         controls.addClassName("controls");
+        if (Roles.isCurrentUserAdmin()) {
+            controls.add(buildAdminButton());
+        }
+        controls.add(buildThemeButton(), buildLocalePicker(), buildAuthControl());
 
-        Div row = new Div(drawerToggle, breadcrumbsSlot, controls);
+        Div row = new Div(left, searchSlot, controls);
         row.addClassName("zanata-toolbar");
         return row;
     }
 
-    private void addDrawerContent() {
-        // No toggle inside the drawer header — the toolbar holds the single
-        // drawer toggle (opens AND closes). Drops the CSS hack that used to
-        // hide the in-toolbar "reopen" toggle while the drawer was open.
-        //
-        // Brand mark is text, not an SVG — one bundle key controls the
-        // wordmark, the theme controls the colour, and we don't ship a
-        // separate asset to keep in sync with rebrands.
-        Span logo = new Span(getTranslation("brand.name"));
-        logo.addClassNames(AuraUtility.FontSize.XLARGE, AuraUtility.FontWeight.BOLD);
-        logo.getStyle().set("letter-spacing", "-0.02em");
-        logo.getStyle().set("color",
-                "var(--aura-green-text, var(--vaadin-input-field-label-color))");
-        logo.addClassNames(AuraUtility.LineHeight.NONE);
-        Anchor home = new Anchor("/", logo);
-        home.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER, AuraUtility.JustifyContent.CENTER, AuraUtility.TextDecoration.NONE, AuraUtility.Flex.AUTO, AuraUtility.MinWidth.NONE);
+    /** Horizontal primary navigation (Home, Projects, Groups, …) in the navbar. */
+    private Component buildHorizontalNav() {
+        HorizontalLayout nav = new HorizontalLayout();
+        nav.setSpacing(true);
+        nav.setAlignItems(FlexComponent.Alignment.CENTER);
+        nav.addClassNames(AuraUtility.MinWidth.NONE);
+        if (homeContentService.isHomeEnabled()) {
+            nav.add(navLink(getTranslation("nav.home"), HomeView.class));
+        }
+        nav.add(navLink(getTranslation("nav.explore"), ExploreView.class));
+        nav.add(navLink(getTranslation("nav.groups"), GroupsView.class));
+        nav.add(navLink(getTranslation("nav.languages"), LanguagesView.class));
+        nav.add(navLink(getTranslation("nav.glossary"), GlossaryView.class));
+        return nav;
+    }
 
-        Div header = new Div(home);
-        header.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER, AuraUtility.JustifyContent.CENTER);
-        header.getStyle().set("padding", "0.35rem 0.5rem");
-        header.addClassNames(AuraUtility.BoxSizing.BORDER);
-        header.setWidthFull();
-
-        // Hairline divider between brand and nav. Built from utility classes;
-        // the custom `--view-divider-color` is wired in through the standard
-        // `--aura-utility-border-color` extension point (set by Border.TOP's
-        // CSS rule), so the verbaria.css theme override still wins. The Hr's
-        // default browser border is stripped with Border.NONE first.
-        Hr divider = new Hr();
-        divider.addClassNames(
-                AuraUtility.Border.NONE,
-                AuraUtility.Border.TOP,
-                AuraUtility.Margin.Top.SMALL,
-                AuraUtility.Margin.Horizontal.SMALL,
-                AuraUtility.Margin.Bottom.MEDIUM);
-        divider.getStyle().set("--aura-utility-border-color",
-                "var(--view-divider-color, var(--vaadin-border-color))");
-
-        SideNav nav = createSideNav();
-        nav.addClassNames(AuraUtility.Padding.Horizontal.SMALL);
-        Scroller scroller = new Scroller(nav);
-        scroller.setSizeFull();
-
-        // No drawer footer — sign-in / locale / theme / contact / sign-out
-        // all moved into the navbar's user menu. The old border-top divider
-        // (left over from where the sign-in link used to live) is gone too.
-        FlexLayout drawer = new FlexLayout(header, divider, scroller);
-        drawer.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
-        drawer.setSizeFull();
-        scroller.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.MinHeight.NONE);
-
-        addToDrawer(drawer);
+    private RouterLink navLink(String label,
+            Class<? extends Component> view) {
+        RouterLink link = new RouterLink(label, view);
+        link.addClassNames("nav-link", AuraUtility.TextDecoration.NONE,
+                AuraUtility.FontWeight.MEDIUM);
+        link.getStyle().set("white-space", "nowrap");
+        link.setHighlightCondition(HighlightConditions.sameLocation());
+        link.setHighlightAction(HighlightActions.toggleAttribute("highlight"));
+        return link;
     }
 
 
     // ------------------------------------------------------------------
     // Navbar controls (right cluster)
     // ------------------------------------------------------------------
+
+    /**
+     * Admin shortcut — an icon-only button next to the theme switcher, shown
+     * only to admins. Replaces the old text "Admin" entry in the primary nav.
+     */
+    private Component buildAdminButton() {
+        Button admin = new Button(LineAwesomeIcon.USER_SHIELD_SOLID.create(),
+                e -> UI.getCurrent().navigate(AdminHomeView.class));
+        admin.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+        admin.getElement().setAttribute("title", getTranslation("nav.admin"));
+        admin.getElement().setAttribute("aria-label", getTranslation("nav.admin"));
+        return admin;
+    }
 
     /**
      * Theme toggle. Three modes (light / dark / follow system) shown as a
@@ -350,9 +409,9 @@ public class MainLayout extends AppLayout
         trigger.getElement().setAttribute("aria-label", getTranslation("theme.label"));
         trigger.getElement().setAttribute("title", getTranslation("theme.label"));
 
-        java.util.List<MenuItem> choices = new java.util.ArrayList<>();
+        List<MenuItem> choices = new ArrayList<>();
         for (ThemeSelector.Mode target : ThemeSelector.Mode.values()) {
-            String key = "theme." + target.name().toLowerCase(java.util.Locale.ROOT);
+            String key = "theme." + target.name().toLowerCase(Locale.ROOT);
             MenuItem item = trigger.getSubMenu().addItem(getTranslation(key));
             item.setCheckable(true);
             item.setChecked(target == mode);
@@ -451,6 +510,8 @@ public class MainLayout extends AppLayout
         label.setAlignItems(FlexComponent.Alignment.CENTER);
         label.addClassNames(AuraUtility.Gap.SMALL);
         MenuItem trigger = bar.addItem(label);
+        trigger.getSubMenu().addItem(getTranslation("nav.profile"),
+                e -> UI.getCurrent().navigate(ProfileView.class));
         trigger.getSubMenu().addItem(getTranslation("auth.contactAdmin"),
                 e -> openContactAdminDialog());
         // Sign-out hits the Spring Security logout endpoint via a full
@@ -509,23 +570,6 @@ public class MainLayout extends AppLayout
         dlg.add(intro, subject, body);
         dlg.getFooter().add(cancel, send);
         dlg.open();
-    }
-
-    private SideNav createSideNav() {
-        SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem(getTranslation("nav.home"),      org.verbaria.server.ui.vaadin.HomeView.class, LineAwesomeIcon.HOME_SOLID.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.explore"),   ExploreView.class,       LineAwesomeIcon.SEARCH_SOLID.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.groups"),    org.verbaria.server.ui.vaadin.group.GroupsView.class, LineAwesomeIcon.LAYER_GROUP_SOLID.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.languages"), LanguagesView.class,     LineAwesomeIcon.GLOBE_SOLID.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.glossary"),  GlossaryView.class,      LineAwesomeIcon.BOOK_SOLID.create()));
-        if (isAuthenticated()) {
-            nav.addItem(new SideNavItem(getTranslation("nav.dashboard"), DashboardHomeView.class, LineAwesomeIcon.TACHOMETER_ALT_SOLID.create()));
-            nav.addItem(new SideNavItem(getTranslation("nav.profile"),   org.verbaria.server.ui.vaadin.profile.ProfileView.class, LineAwesomeIcon.USER_SOLID.create()));
-        }
-        if (Roles.isCurrentUserAdmin()) {
-            nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminHomeView.class, LineAwesomeIcon.COG_SOLID.create()));
-        }
-        return nav;
     }
 
     private static boolean isAuthenticated() {

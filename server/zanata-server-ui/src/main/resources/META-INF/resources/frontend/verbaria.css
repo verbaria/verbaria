@@ -38,7 +38,7 @@
     --view-box-shadow: 0 1px 1px 0 hsl(var(--base-h) 30% 20% / .08),
                        0 8px 24px -12px hsl(var(--base-h) 40% 20% / .18);
     --view-radius: 16px;
-    --view-inset: 0.75vmax;
+    --view-inset: 0.375vmax;
 
     /* Fixed drawer width. Vaadin 25.2 dropped the
      * `--_vaadin-app-layout-drawer-offset-size` the content used to read to
@@ -245,6 +245,47 @@ vaadin-app-layout:not([drawer-opened]) > :not([slot]) {
     width: calc(100% - var(--view-inset)) !important;
 }
 
+/* The shell content slot itself paints nothing — its two children (the
+ * toolbar cloud and the content cloud) are the glass cards, stacked with a
+ * gap so the top menu reads as its own floating surface. */
+vaadin-app-layout > .app-shell-content {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--view-inset) !important;
+    padding: 0 !important;
+}
+.app-shell-content > .zanata-toolbar {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+.app-shell-content > .app-content-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Let a tabsheet's selected-tab content (e.g. the project Languages grid)
+ * fill its panel edge-to-edge instead of sitting inside the default padding.
+ * Bound the content part as a flex column so a grid inside scrolls internally
+ * instead of growing the whole page (single scroll, not double). */
+vaadin-tabsheet.fill-tabsheet {
+    min-height: 0;
+}
+vaadin-tabsheet.fill-tabsheet::part(content) {
+    padding: 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
 vaadin-side-nav-item::part(content) {
     border-radius: 10px !important;
     margin: 1px 4px !important;
@@ -266,6 +307,9 @@ vaadin-side-nav-item::part(content) {
     width: 100%;
     box-sizing: border-box;
     z-index: 1;
+    /* Constant height so swapping the per-view search field in/out doesn't
+     * make the toolbar jump. */
+    min-height: 2.75rem;
 }
 .zanata-toolbar .crumbs {
     flex: 1 1 auto;
@@ -277,6 +321,32 @@ vaadin-side-nav-item::part(content) {
     align-items: center;
     gap: 0.25rem;
     flex: 0 0 auto;
+}
+.zanata-toolbar .toolbar-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+.zanata-toolbar .toolbar-search > * {
+    width: 100%;
+    max-width: 420px;
+}
+/* Horizontal primary nav links in the toolbar. The active route gets the
+ * `highlight` attribute (RouterLink) — bold + accent + pill background. */
+.zanata-toolbar .nav-link {
+    color: inherit;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    transition: background-color 100ms ease-out;
+}
+.zanata-toolbar .nav-link:hover {
+    background-color: hsl(var(--accent-h) var(--accent-s) 50% / 0.10);
+}
+.zanata-toolbar .nav-link[highlight] {
+    color: var(--aura-green-text, var(--vaadin-input-field-label-color));
+    font-weight: 700;
+    background-color: hsl(var(--accent-h) var(--accent-s) 50% / 0.14);
 }
 
 /* Opt-in helper for any panel that wants the same glass treatment. */

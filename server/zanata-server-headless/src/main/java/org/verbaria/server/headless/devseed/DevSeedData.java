@@ -151,7 +151,7 @@ public class DevSeedData implements CommandLineRunner {
 
             ## Get started
 
-            * Browse [projects](/explore) and translation activity
+            * Browse [projects](/projects) and translation activity
             * Sign in to start translating
             * Admins can edit this page from the **Administration → Home page content** screen
 

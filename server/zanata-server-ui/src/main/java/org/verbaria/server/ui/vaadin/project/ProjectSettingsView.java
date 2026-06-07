@@ -82,7 +82,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
 
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 BreadcrumbsService.Crumb.of(slug, "/project/view/" + slug),
                 BreadcrumbsService.Crumb.here(getTranslation("page.settings")));
         add(new H2(project.getName() == null ? slug : project.getName()));

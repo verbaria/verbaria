@@ -41,7 +41,7 @@ public class ProjectCreateView extends VerticalLayout implements TitleKey, HasBr
 
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 BreadcrumbsService.Crumb.here(getTranslation("projectCreate.title")));
         add(new H2(getTranslation("projectCreate.title")));
 
@@ -97,7 +97,7 @@ public class ProjectCreateView extends VerticalLayout implements TitleKey, HasBr
         });
         create.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button(getTranslation("common.cancel"),
-                e -> getUI().ifPresent(ui -> ui.navigate("explore")));
+                e -> getUI().ifPresent(ui -> ui.navigate("projects")));
         add(new HorizontalLayout(create, cancel));
     }
 }

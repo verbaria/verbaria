@@ -10,6 +10,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -17,6 +18,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.hierarchy.TreeData;
 import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
@@ -42,10 +44,15 @@ import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 import org.verbaria.server.ui.vaadin.theme.SourceLinks;
 
 @AnonymousAllowed
-@Route(value = "explore", layout = MainLayout.class)
-public class ExploreView extends VerticalLayout implements TitleKey {
+@Route(value = "projects", layout = MainLayout.class)
+public class ExploreView extends VerticalLayout
+        implements TitleKey, HasToolbarSearch {
 
     @Override public String pageTitleKey() { return "page.explore"; }
+
+    @Override public Component toolbarSearch() {
+        return search;
+    }
 
     private static final int MAX_RESULTS = 2000;
 
@@ -54,6 +61,7 @@ public class ExploreView extends VerticalLayout implements TitleKey {
     private final TreeGrid<Node> grid = new TreeGrid<>();
     private final Map<String, long[]> groupTotals = new HashMap<>();
     private final Set<String> manageableSlugs = new HashSet<>();
+    private final TextField search = new TextField();
     private boolean adminAll;
 
     private String currentQuery = "";
@@ -64,14 +72,13 @@ public class ExploreView extends VerticalLayout implements TitleKey {
         this.statsCache = statsCache;
 
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
 
-        TextField search = new TextField();
         search.setPlaceholder(getTranslation("explore.searchPlaceholder"));
         search.setWidthFull();
-        search.setMaxWidth("520px");
         search.setClearButtonVisible(true);
+        search.addThemeVariants(TextFieldVariant.SMALL);
         search.setValueChangeMode(ValueChangeMode.LAZY);
         search.setValueChangeTimeout(300);
         search.setPrefixComponent(LineAwesomeIcon.SEARCH_SOLID.create());
@@ -79,7 +86,6 @@ public class ExploreView extends VerticalLayout implements TitleKey {
             currentQuery = e.getValue() == null ? "" : e.getValue().trim();
             reload();
         });
-        add(search);
 
         grid.addComponentHierarchyColumn(this::nodeCell)
                 .setHeader(getTranslation("explore.section.projects"));
@@ -93,6 +99,7 @@ public class ExploreView extends VerticalLayout implements TitleKey {
                 .setWidth("56px")
                 .setTextAlign(ColumnTextAlign.END);
         grid.setSizeFull();
+        grid.addThemeVariants(GridVariant.NO_BORDER);
         grid.addClassName("projects-tree");
         // Whole-row click: a project opens, a group expands/collapses.
         grid.addSelectionListener(e -> e.getFirstSelectedItem().ifPresent(n -> {

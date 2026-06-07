@@ -51,6 +51,12 @@ public class HomeView extends VerticalLayout implements BeforeEnterObserver, Tit
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        // When an admin has disabled the home page, the root route is just a
+        // redirect to the projects view.
+        if (!homeContentService.isHomeEnabled()) {
+            event.forwardTo(ExploreView.class);
+            return;
+        }
         removeAll();
 
         String markdown = homeContentService.getMarkdown();

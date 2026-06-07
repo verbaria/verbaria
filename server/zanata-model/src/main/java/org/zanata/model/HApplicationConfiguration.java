@@ -43,6 +43,7 @@ public class HApplicationConfiguration extends ModelEntityBase {
     // org.zanata.spring.settings.ServerSetting (key + type + default). This
     // entity is the generic key/value store; only non-settings keys live here.
     public static final String KEY_HOME_CONTENT = "pages.home.content";
+    public static final String KEY_HOME_ENABLED = "pages.home.enabled";
 
     private static final long serialVersionUID = 8652817113098817448L;
 

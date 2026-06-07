@@ -51,6 +51,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import org.springframework.beans.factory.ObjectProvider;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -89,6 +90,8 @@ import org.verbaria.server.headless.service.ai.AiPolicyService;
 import org.verbaria.server.ui.vaadin.BreadcrumbsService;
 import org.verbaria.server.ui.vaadin.ExploreView;
 import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
+import org.verbaria.server.ui.vaadin.HasToolbarActions;
+import org.verbaria.server.ui.vaadin.HasToolbarSearch;
 import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
 import org.verbaria.server.ui.vaadin.iteration.IterationView;
@@ -96,9 +99,15 @@ import org.verbaria.server.ui.vaadin.project.ProjectView;
 
 @Route(value = "translate/:projectSlug/:versionSlug/:localeId", layout = MainLayout.class)
 @AnonymousAllowed
-public class TranslateView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs {
+public class TranslateView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs, HasToolbarSearch, HasToolbarActions {
 
     @Override public String pageTitleKey() { return "page.translate"; }
+
+    @Override public Component toolbarSearch() { return filter; }
+
+    @Override public Component toolbarActions() { return toolbarActions; }
+
+    private Component toolbarActions;
 
 
 
@@ -271,13 +280,6 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         publishBreadcrumb();
 
-        HorizontalLayout headingRow = new HorizontalLayout();
-        headingRow.setWidthFull();
-        headingRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        headingRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        H2 heading = new H2(currentDocId + " \u2192 " + localeStr);
-        heading.addClassNames(AuraUtility.Margin.NONE);
-
         // Doc switcher — renders immediately as just a button. The expensive
         // findByVersion + per-doc count queries are deferred until the user
         // clicks it, and surfaced via ProgressDialogService so the wait has
@@ -319,6 +321,11 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         HorizontalLayout headingRight = new HorizontalLayout();
         headingRight.setAlignItems(FlexComponent.Alignment.CENTER);
         headingRight.setSpacing(true);
+        Component reviewBadge =
+                buildNeedsReviewHeaderBadge(docIdForProvider, viewingSource);
+        if (reviewBadge != null) {
+            headingRight.add(reviewBadge);
+        }
         if (docSwitcher != null) {
             headingRight.add(docSwitcher);
         }
@@ -329,6 +336,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         }
         headingRight.add(statsBtn);
 
+        Popover filterPop = setupFilter();
+        headingRight.add(filterButton);
+
         Button prefsBtn = new Button(LineAwesomeIcon.COG_SOLID.create(),
                 e -> openEditorSettings());
         prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
@@ -336,28 +346,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         prefsBtn.getElement().setAttribute("aria-label", getTranslation("translate.editorSettings"));
         headingRight.add(prefsBtn);
 
-        HorizontalLayout headingLeft = new HorizontalLayout(heading);
-        headingLeft.setAlignItems(FlexComponent.Alignment.BASELINE);
-        headingLeft.setSpacing(true);
-        Component reviewBadge =
-                buildNeedsReviewHeaderBadge(docIdForProvider, viewingSource);
-        if (reviewBadge != null) {
-            headingLeft.add(reviewBadge);
-        }
-        headingRow.add(headingLeft, headingRight);
-        add(headingRow, statsPopover);
-
-        add(buildFilterBar());
+        this.toolbarActions = headingRight;
+        add(statsPopover, filterPop);
 
         // Grid shows a compact summary per text-flow and renders the full
         // editor only in an expandable details row, so documents with hundreds
         // of text-flows (e.g. Consulo *Localize.yaml, 300+) stay responsive.
-        rowsGrid.setWidthFull();
-        rowsGrid.setHeight("calc(100vh - 220px)");  // fills below the filter bar
+        rowsGrid.setSizeFull();
         rowsGrid.getStyle().set("max-width", "100%");
+        rowsGrid.addClassNames(AuraUtility.MinHeight.NONE);
         rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
-        rowsGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER,
-                GridVariant.LUMO_WRAP_CELL_CONTENT);
+        rowsGrid.addThemeVariants(GridVariant.NO_BORDER,
+                GridVariant.WRAP_CELL_CONTENT);
         rowsGrid.addColumn(new ComponentRenderer<>(this::sourceCell))
                 .setHeader(getTranslation("translate.col.source")).setFlexGrow(3);
         rowsGrid.addColumn(new ComponentRenderer<>(this::translationCell))
@@ -373,7 +373,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                         rowFactory.getObject().populate(rowContext(), d.flow(),
                                 d.existing(), d.state(), d.source(), true)));
         rowsGrid.setDetailsVisibleOnClick(true);
-        add(rowsGrid);
+        addAndExpand(rowsGrid);
 
         installDataProvider(docIdForProvider);
 
@@ -730,12 +730,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         return body;
     }
 
-    private Div buildFilterBar() {
+    private Popover setupFilter() {
         filter.setPlaceholder(getTranslation("translate.filter.placeholder"));
         filter.setClearButtonVisible(true);
         filter.setWidthFull();
+        filter.addThemeVariants(TextFieldVariant.SMALL);
         filter.setValueChangeMode(ValueChangeMode.LAZY);
         filter.setValueChangeTimeout(250);
+        filter.setPrefixComponent(LineAwesomeIcon.SEARCH_SOLID.create());
 
         // Mutually-exclusive filter modes as radio buttons inside a popover.
         filterMode.setItems(TranslateFilterMode.values());
@@ -750,7 +752,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         filterMode.addThemeVariants(RadioGroupVariant.LUMO_VERTICAL);
 
         filterButton = new Button(LineAwesomeIcon.FILTER_SOLID.create());
-        filterButton.addThemeVariants(ButtonVariant.SMALL);
+        filterButton.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         filterButton.getElement().setAttribute("title",
                 getTranslation("translate.filter.button"));
         filterButton.getElement().setAttribute("aria-label",
@@ -763,17 +765,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         optsBox.addClassNames(AuraUtility.Padding.SMALL);
         filterPop.add(optsBox);
         updateFilterButtonStyle();
-
-        HorizontalLayout bar = new HorizontalLayout(filter, filterButton);
-        bar.setWidthFull();
-        bar.setAlignItems(FlexComponent.Alignment.CENTER);
-        bar.setSpacing(true);
-        bar.setFlexGrow(1, filter);
-
-        Div wrap = new Div(bar, filterPop);
-        wrap.addClassNames(AuraUtility.Border.BOTTOM, AuraUtility.BorderColor.DEFAULT, AuraUtility.Padding.Top.SMALL, AuraUtility.Padding.Bottom.MEDIUM);
-        wrap.setWidthFull();
-        return wrap;
+        return filterPop;
     }
 
     /** Highlights the Filter button (filled) when a non-default filter is set. */
@@ -881,6 +873,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
      */
     private void showEmptyState() {
         currentDocId = null;
+        toolbarActions = null;
         publishBreadcrumb();
         H2 heading = new H2(projectSlug + "/" + versionSlug + " \u2192 " + localeStr);
         heading.addClassNames(AuraUtility.Margin.NONE);
@@ -890,13 +883,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void publishBreadcrumb() {
+        String leaf = (currentDocId != null && !currentDocId.isBlank()
+                ? currentDocId : versionSlug) + " \u2192 " + localeStr;
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 BreadcrumbsService.Crumb.of(projectSlug, "/project/view/" + projectSlug),
-                BreadcrumbsService.Crumb.of(versionSlug,
-                        "/project/" + projectSlug + "/version/" + versionSlug),
-                BreadcrumbsService.Crumb.here(localeStr)
+                BreadcrumbsService.Crumb.here(leaf)
         );
     }
 

@@ -4,6 +4,7 @@ import jakarta.annotation.security.RolesAllowed;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -52,6 +53,19 @@ public class AdminHomeContentView extends VerticalLayout implements TitleKey {
         hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL,
                 AuraUtility.Margin.NONE);
         add(title, hint);
+
+        Checkbox homeEnabled =
+                new Checkbox(getTranslation("adminHomeContent.enableHome"));
+        homeEnabled.setValue(homeContentService.isHomeEnabled());
+        homeEnabled.setHelperText(getTranslation("adminHomeContent.enableHomeHint"));
+        homeEnabled.addValueChangeListener(e -> {
+            homeContentService.setHomeEnabled(Boolean.TRUE.equals(e.getValue()));
+            Notification.show(getTranslation(Boolean.TRUE.equals(e.getValue())
+                            ? "adminHomeContent.homeEnabled"
+                            : "adminHomeContent.homeDisabled"),
+                    2500, Notification.Position.BOTTOM_START);
+        });
+        add(homeEnabled);
 
         AceEditor editor = new AceEditor();
         editor.setMode(AceMode.markdown);

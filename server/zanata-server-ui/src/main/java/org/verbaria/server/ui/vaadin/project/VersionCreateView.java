@@ -61,7 +61,7 @@ public class VersionCreateView extends VerticalLayout implements BeforeEnterObse
 
         breadcrumbsService.set(
                 BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.home"), "/"),
-                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/explore"),
+                BreadcrumbsService.Crumb.of(getTranslation("translate.breadcrumb.projects"), "/projects"),
                 BreadcrumbsService.Crumb.of(slug, "/project/view/" + slug),
                 BreadcrumbsService.Crumb.here(getTranslation("versionCreate.crumb")));
 
