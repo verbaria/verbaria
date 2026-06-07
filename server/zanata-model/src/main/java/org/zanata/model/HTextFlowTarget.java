@@ -431,18 +431,9 @@ public class HTextFlowTarget extends ModelEntityBase
 
         @PreUpdate
         private void preUpdate(HTextFlowTarget tft) {
-            // insert history if this has changed from its initial state
-            if (tft.initialState != null && tft.initialState.hasChanged(tft)) {
-                if (tft.initialState.getSourceType() == null) {
-                    tft.initialState
-                            .setSourceType(TranslationSourceType.UNKNOWN);
-                }
-                tft.initialState.setAutomatedEntry(
-                        tft.initialState.getSourceType().isAutomatedEntry());
-                tft.getHistory().put(tft.oldVersionNum, tft.initialState);
-                if (!tft.isRevisionCommentSet()) {
-                    tft.setRevisionComment(null);
-                }
+            if (tft.initialState != null && tft.initialState.hasChanged(tft)
+                    && !tft.isRevisionCommentSet()) {
+                tft.setRevisionComment(null);
             }
             setAutomatedEntry(tft);
         }

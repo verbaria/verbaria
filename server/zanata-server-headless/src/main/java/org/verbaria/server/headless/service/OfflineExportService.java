@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
@@ -30,6 +31,7 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -321,14 +323,21 @@ public class OfflineExportService {
                     .findByTextFlowAndLocale(tf.getId(), locale);
             if (opt.isEmpty()) continue;
             HTextFlowTarget hTarget = opt.get();
-            // Rejected translations are excluded from every export format so the
-            // rejected text is never written; the file falls back to source.
-            if (hTarget.getState() == ContentState.Rejected) continue;
-            String content = firstContent(hTarget.getContents());
+            String content;
+            ContentState state;
+            if (hTarget.getState() == ContentState.Rejected) {
+                HTextFlowTargetHistory good = lastGoodVersion(hTarget);
+                if (good == null) continue;
+                content = firstContent(good.getContents());
+                state = good.getState();
+            } else {
+                content = firstContent(hTarget.getContents());
+                state = hTarget.getState() == null ? ContentState.New : hTarget.getState();
+            }
             if (content.isEmpty()) continue;
             TextFlowTarget xt = new TextFlowTarget(tf.getResId());
-            xt.setState(hTarget.getState() == null ? ContentState.New : hTarget.getState());
-            xt.setContents(java.util.List.of(content));
+            xt.setState(state);
+            xt.setContents(List.of(content));
             xt.setRevision(hTarget.getVersionNum() == null ? 0 : hTarget.getVersionNum());
             xt.setTextFlowRevision(tf.getRevision());
             tr.getTextFlowTargets().add(xt);
@@ -340,6 +349,20 @@ public class OfflineExportService {
         if (list == null || list.isEmpty()) return "";
         String c = list.get(0);
         return c == null ? "" : c;
+    }
+
+    public static HTextFlowTargetHistory lastGoodVersion(HTextFlowTarget rejected) {
+        String rejectedText = firstContent(rejected.getContents());
+        return rejected.getHistory().values().stream()
+                .filter(h -> h.getState() == ContentState.Approved
+                        || h.getState() == ContentState.Translated)
+                .filter(h -> {
+                    String c = firstContent(h.getContents());
+                    return !c.isEmpty() && !c.equals(rejectedText);
+                })
+                .max(Comparator.comparingInt(
+                        h -> h.getVersionNum() == null ? 0 : h.getVersionNum()))
+                .orElse(null);
     }
 
     private static String escape(String s) {

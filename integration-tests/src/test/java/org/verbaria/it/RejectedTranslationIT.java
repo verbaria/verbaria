@@ -2,6 +2,7 @@ package org.verbaria.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -82,5 +83,37 @@ class RejectedTranslationIT extends AbstractPushPullIT {
                 .as("rejected translation must not appear in exported %s",
                         bundle.filename())
                 .doesNotContain("Bonjour");
+    }
+
+    @Test
+    void rejectingAnEditExportsThePreviousGoodValue() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itrejprev", VERSION);
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=value1\n");
+        pushBoth("itrejprev");
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itrejprev", VERSION, "messages").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        LocaleId fr = new LocaleId("fr-FR");
+
+        translationEditService.save(tfId, fr, "value 1");
+        translationEditService.changeState(tfId, fr, ContentState.Rejected);
+
+        OfflineExportService.Bundle bundle = offlineExportService
+                .singleTranslatedDoc("itrejprev", VERSION, "messages", fr)
+                .orElseThrow();
+        String exported = new String(bundle.bytes(), StandardCharsets.UTF_8);
+        assertThat(exported)
+                .as("after rejecting the edit, export should keep the last good value1 (%s)",
+                        bundle.filename())
+                .contains("value1")
+                .doesNotContain("value 1");
     }
 }

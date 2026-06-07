@@ -44,6 +44,7 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.ProcessStatus;
 import org.zanata.rest.dto.Project;
@@ -568,19 +569,28 @@ public class ZanataCliBridgeController {
         TranslationsResource out = new TranslationsResource();
         for (HTextFlow tf : flows) {
             HTextFlowTarget t = targets.get(tf.getId());
-            // A Rejected translation must never be used: the row keeps the
-            // rejected text, but it is withheld from pull so the client falls
-            // back to source. Same rule for every project format.
-            if (t == null || t.getState() == ContentState.Rejected) continue;
+            if (t == null) continue;
+            // A rejected value is never pulled. If the rejection replaced an
+            // earlier good value, that value is restored; otherwise the client
+            // falls back to source. Same rule for every project format.
+            HTextFlowTargetHistory good = null;
+            if (t.getState() == ContentState.Rejected) {
+                good = OfflineExportService.lastGoodVersion(t);
+                if (good == null) continue;
+            }
+            List<String> contents = good != null ? good.getContents() : t.getContents();
+            ContentState state = good != null ? good.getState()
+                    : (t.getState() == null ? ContentState.New : t.getState());
             TextFlowTarget dto = new TextFlowTarget(tf.getResId());
-            dto.setState(t.getState() == null ? ContentState.New : t.getState());
-            dto.setContents(t.getContents() == null ? List.of("") : t.getContents());
+            dto.setState(state);
+            dto.setContents(contents == null ? List.of("") : contents);
             dto.setRevision(t.getVersionNum());
             dto.setTextFlowRevision(t.getTextFlowRevision());
             // expose who translated so clients can attribute changes (e.g.
             // Co-authored-by trailers in verbaria-lock.json-driven commit messages)
-            HPerson author = t.getTranslator() != null ? t.getTranslator()
-                    : t.getLastModifiedBy();
+            HPerson author = good != null
+                    ? (good.getTranslator() != null ? good.getTranslator() : good.getLastModifiedBy())
+                    : (t.getTranslator() != null ? t.getTranslator() : t.getLastModifiedBy());
             if (author != null) {
                 dto.setTranslator(new Person(author.getEmail(), author.getName()));
             }

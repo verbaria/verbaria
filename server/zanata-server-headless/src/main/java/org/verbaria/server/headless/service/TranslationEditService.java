@@ -3,6 +3,7 @@ package org.verbaria.server.headless.service;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,7 @@ import org.zanata.model.HPerson;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
+import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.model.HTextFlowTargetReviewComment;
 import org.zanata.model.IsEntityWithType;
 import org.verbaria.server.headless.extension.TextFlowExtensionStore;
@@ -30,6 +32,7 @@ import org.verbaria.server.headless.repository.LocaleRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.verbaria.server.headless.event.ContentChangedEvent;
 import org.verbaria.server.headless.repository.TextFlowRepository;
+import org.verbaria.server.headless.repository.TextFlowTargetHistoryRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetReviewCommentRepository;
 import org.zanata.rest.dto.extensions.comment.SimpleComment;
@@ -41,6 +44,7 @@ public class TranslationEditService {
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
     private final TextFlowTargetReviewCommentRepository reviewCommentRepository;
+    private final TextFlowTargetHistoryRepository historyRepository;
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
     private final TextFlowExtensionStore extensionStore;
@@ -51,6 +55,7 @@ public class TranslationEditService {
     public TranslationEditService(TextFlowRepository textFlowRepository,
                                   TextFlowTargetRepository targetRepository,
                                   TextFlowTargetReviewCommentRepository reviewCommentRepository,
+                                  TextFlowTargetHistoryRepository historyRepository,
                                   LocaleRepository localeRepository,
                                   AccountRepository accountRepository,
                                   TextFlowExtensionStore extensionStore,
@@ -60,6 +65,7 @@ public class TranslationEditService {
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
         this.reviewCommentRepository = reviewCommentRepository;
+        this.historyRepository = historyRepository;
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
         this.extensionStore = extensionStore;
@@ -85,6 +91,27 @@ public class TranslationEditService {
         eventPublisher.publishEvent(new ContentChangedEvent(
                 iteration.getProject().getSlug(), actorUsername, iteration,
                 target, activityType, wordCount));
+    }
+
+    private void recordHistory(HTextFlowTarget target,
+            List<String> newContents, ContentState newState) {
+        if (target.getId() == null || target.getVersionNum() == null) {
+            return;
+        }
+        if (Objects.equals(target.getContents(), newContents)
+                && target.getState() == newState) {
+            return;
+        }
+        Integer version = target.getVersionNum();
+        boolean exists = historyRepository
+                .findByTextFlowAndLocale(target.getTextFlow().getId(),
+                        target.getLocale().getLocaleId())
+                .stream()
+                .anyMatch(h -> Objects.equals(h.getVersionNum(), version));
+        if (exists) {
+            return;
+        }
+        historyRepository.save(new HTextFlowTargetHistory(target));
     }
 
     public String gettextContext(HTextFlow flow) {
@@ -315,9 +342,6 @@ public class TranslationEditService {
         if (target.getState() == newState) {
             return target.getState();
         }
-        // History is written by HTextFlowTarget's @PreUpdate listener on the
-        // save below; writing one here too duplicated the (target_id,
-        // version_num) row and crashed the next state change.
         // Attach the review comment BEFORE the state change so the comment's
         // targetVersion matches the version that's being rejected.
         HPerson reviewer = reviewerUsername == null ? null
@@ -328,6 +352,7 @@ public class TranslationEditService {
                     target, comment.trim(), reviewer, null);
             reviewCommentRepository.save(rc);
         }
+        recordHistory(target, target.getContents(), newState);
         target.setState(newState);
         target.setTextFlowRevision(textFlow.getRevision());
         targetRepository.save(target);
@@ -371,8 +396,8 @@ public class TranslationEditService {
                 .findByTextFlowAndLocale(textFlowId, localeId)
                 .orElseGet(() -> new HTextFlowTarget(textFlow, locale));
 
-        // History is maintained by HTextFlowTarget's @PreUpdate listener; a
-        // manual write here duplicated the (target_id, version_num) row.
+        recordHistory(target, List.of(newContent == null ? "" : newContent),
+                ContentState.Translated);
         target.setContents(List.of(newContent == null ? "" : newContent));
         target.setState(ContentState.Translated);
         target.setTextFlowRevision(textFlow.getRevision());
