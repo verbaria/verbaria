@@ -2,6 +2,7 @@ package org.verbaria.server.headless.message;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,8 +31,9 @@ public class PrintfMessageEvaluator implements MessageEvaluator {
     }
 
     @Override
-    public MessageInfo analyze(String pattern) {
+    public MessageInfo analyze(String pattern, Locale locale) {
         final String p = pattern == null ? "" : pattern;
+        final Locale loc = locale == null ? Locale.ROOT : locale;
         StringBuilder javaPattern = new StringBuilder();
         // 1-based argument position -> its conversion char. Sequential specs
         // get the next position; explicit %N$ specs use that position. Every
@@ -76,7 +78,7 @@ public class PrintfMessageEvaluator implements MessageEvaluator {
                 args[pos - 1] = coerce(conv, in);
             }
             try {
-                return String.format(fmt, args);
+                return String.format(loc, fmt, args);
             } catch (RuntimeException e) {
                 throw new IllegalArgumentException(e.getMessage(), e);
             }

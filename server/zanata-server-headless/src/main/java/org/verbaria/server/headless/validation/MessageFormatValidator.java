@@ -26,7 +26,7 @@ public class MessageFormatValidator implements LanguageValidator {
         if (text == null || text.isEmpty()) {
             return List.of();
         }
-        MessageInfo info = evaluator.analyze(text);
+        MessageInfo info = evaluator.analyze(text, locale);
         if (info.isValid()) {
             return List.of();
         }

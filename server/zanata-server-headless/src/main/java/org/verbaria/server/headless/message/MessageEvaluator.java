@@ -1,5 +1,7 @@
 package org.verbaria.server.headless.message;
 
+import java.util.Locale;
+
 import org.zanata.common.MessageEvaluateType;
 
 /**
@@ -17,7 +19,10 @@ public interface MessageEvaluator {
 
     /**
      * Parse {@code pattern} and return its argument info plus a renderer.
-     * Never throws — an unparseable pattern yields {@link MessageInfo#invalid}.
+     * {@code locale} is the target translation locale, used for locale-sensitive
+     * number/date formatting (e.g. {@code {0,number}}, {@code %f}); a null locale
+     * falls back to {@link Locale#ROOT}. Never throws — an unparseable pattern
+     * yields {@link MessageInfo#invalid}.
      */
-    MessageInfo analyze(String pattern);
+    MessageInfo analyze(String pattern, Locale locale);
 }

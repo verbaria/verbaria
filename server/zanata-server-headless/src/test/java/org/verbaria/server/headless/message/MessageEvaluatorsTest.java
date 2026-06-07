@@ -1,6 +1,7 @@
 package org.verbaria.server.headless.message;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 import org.zanata.common.MessageEvaluateType;
@@ -23,7 +24,7 @@ class MessageEvaluatorsTest {
     private MessageInfo analyze(MessageEvaluateType type, String pattern) {
         MessageEvaluator e = registry.forType(type);
         assertThat(e).as("evaluator for " + type).isNotNull();
-        return e.analyze(pattern);
+        return e.analyze(pattern, Locale.ENGLISH);
     }
 
     // --- registry ----------------------------------------------------------
@@ -61,6 +62,16 @@ class MessageEvaluatorsTest {
                 "{0,number,integer} items");
         assertThat(info.getArgumentCount()).isEqualTo(1);
         assertThat(info.format(List.of("5"))).isEqualTo("5 items");
+    }
+
+    @Test
+    void javaNumberFormatUsesTargetLocale() {
+        MessageEvaluator e =
+                registry.forType(MessageEvaluateType.JAVA_MESSAGE_FORMAT);
+        assertThat(e.analyze("{0,number}", Locale.US).format(List.of("1234.5")))
+                .isEqualTo("1,234.5");
+        assertThat(e.analyze("{0,number}", Locale.GERMANY).format(List.of("1234.5")))
+                .isEqualTo("1.234,5");
     }
 
     @Test
@@ -104,6 +115,16 @@ class MessageEvaluatorsTest {
     }
 
     @Test
+    void icuPluralAndNumberUseGermanLocale() {
+        MessageEvaluator e =
+                registry.forType(MessageEvaluateType.ICU4J_MESSAGE_FORMAT);
+        MessageInfo info = e.analyze(
+                "{0, plural, one {# Datei} other {# Dateien}}", Locale.GERMANY);
+        assertThat(info.format(List.of("1"))).isEqualTo("1 Datei");
+        assertThat(info.format(List.of("1234"))).isEqualTo("1.234 Dateien");
+    }
+
+    @Test
     void icuSyntaxErrorIsReported() {
         MessageInfo info = analyze(MessageEvaluateType.ICU4J_MESSAGE_FORMAT,
                 "{0, plural, one {x}");  // unterminated
@@ -143,5 +164,14 @@ class MessageEvaluatorsTest {
         MessageInfo info = analyze(MessageEvaluateType.C_PRINTF, "%.0f%%");
         assertThat(info.getArgumentCount()).isEqualTo(1);
         assertThat(info.format(List.of("5"))).isEqualTo("5%");
+    }
+
+    @Test
+    void printfFloatUsesTargetLocale() {
+        MessageEvaluator e = registry.forType(MessageEvaluateType.C_PRINTF);
+        assertThat(e.analyze("%.1f", Locale.US).format(List.of("1.5")))
+                .isEqualTo("1.5");
+        assertThat(e.analyze("%.1f", Locale.GERMANY).format(List.of("1.5")))
+                .isEqualTo("1,5");
     }
 }

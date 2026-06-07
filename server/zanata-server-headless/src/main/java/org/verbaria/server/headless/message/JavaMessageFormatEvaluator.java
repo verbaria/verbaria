@@ -7,6 +7,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Component;
 import org.zanata.common.MessageEvaluateType;
@@ -26,11 +27,12 @@ public class JavaMessageFormatEvaluator implements MessageEvaluator {
     }
 
     @Override
-    public MessageInfo analyze(String pattern) {
+    public MessageInfo analyze(String pattern, Locale locale) {
         final String p = pattern == null ? "" : pattern;
+        final Locale loc = locale == null ? Locale.ROOT : locale;
         final Format[] formats;
         try {
-            formats = new MessageFormat(p).getFormatsByArgumentIndex();
+            formats = new MessageFormat(p, loc).getFormatsByArgumentIndex();
         } catch (IllegalArgumentException e) {
             return MessageInfo.invalid(e.getMessage());
         }
@@ -39,7 +41,7 @@ public class JavaMessageFormatEvaluator implements MessageEvaluator {
             labels.add("{" + i + "} (" + kind(formats[i]) + ")");
         }
         return MessageInfo.valid(labels, inputs -> {
-            MessageFormat fmt = new MessageFormat(p);
+            MessageFormat fmt = new MessageFormat(p, loc);
             Format[] fs = fmt.getFormatsByArgumentIndex();
             Object[] args = new Object[fs.length];
             for (int i = 0; i < fs.length; i++) {

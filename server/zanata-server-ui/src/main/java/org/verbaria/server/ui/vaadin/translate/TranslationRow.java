@@ -384,7 +384,7 @@ public class TranslationRow extends Div {
             return;
         }
         String pattern = area.getValue() == null ? "" : area.getValue();
-        MessageInfo info = evaluator.analyze(pattern);
+        MessageInfo info = evaluator.analyze(pattern, toJavaLocale(ctx.currentLocale()));
 
         Dialog dlg = new Dialog();
         dlg.setHeaderTitle(getTranslation("translate.evaluate.title"));

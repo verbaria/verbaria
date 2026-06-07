@@ -3,6 +3,7 @@ package org.verbaria.server.headless.message;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
@@ -26,11 +27,12 @@ public class Icu4jMessageFormatEvaluator implements MessageEvaluator {
     }
 
     @Override
-    public MessageInfo analyze(String pattern) {
+    public MessageInfo analyze(String pattern, Locale locale) {
         final String p = pattern == null ? "" : pattern;
+        final Locale loc = locale == null ? Locale.ROOT : locale;
         final MessageFormat parsed;
         try {
-            parsed = new MessageFormat(p);
+            parsed = new MessageFormat(p, loc);
         } catch (IllegalArgumentException e) {
             return MessageInfo.invalid(e.getMessage());
         }
