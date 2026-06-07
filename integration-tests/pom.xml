@@ -11,7 +11,7 @@
     <parent>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-server-base</artifactId>
-        <version>5.4.8</version>
+        <version>5.4.9-SNAPSHOT</version>
         <relativePath>../server/zanata-server-base/pom.xml</relativePath>
     </parent>
 

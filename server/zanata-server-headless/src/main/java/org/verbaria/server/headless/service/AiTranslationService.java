@@ -8,6 +8,7 @@ import org.verbaria.server.headless.service.ai.TranslationProvider;
 import org.verbaria.server.headless.service.ai.TranslationProviderRegistry;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.rest.dto.TranslationSourceType;
 
 /**
  * Runs an AI translation and persists the result. The translation is saved
@@ -58,7 +59,7 @@ public class AiTranslationService {
             return new OneResult(out, null, false);
         }
         ContentState state = editService.save(textFlowId, locale, out,
-                editorUsername);
+                editorUsername, TranslationSourceType.MACHINE_TRANS);
         if (reviewPermission.canReview(editorUsername, locale)) {
             state = editService.changeState(textFlowId, locale,
                     ContentState.Approved);
@@ -90,7 +91,8 @@ public class AiTranslationService {
                 continue;
             }
             Long id = rows.get(i).textFlowId();
-            editService.save(id, locale, out, editorUsername);
+            editService.save(id, locale, out, editorUsername,
+                    TranslationSourceType.MACHINE_TRANS);
             translated++;
             if (review) {
                 editService.changeState(id, locale, ContentState.Approved);

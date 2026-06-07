@@ -13,6 +13,7 @@ import org.verbaria.server.headless.repository.TranslateFilterMode;
 import org.zanata.common.ActivityType;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
+import org.zanata.rest.dto.TranslationSourceType;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
@@ -341,12 +342,19 @@ public class TranslationEditService {
 
     @Transactional
     public ContentState save(Long textFlowId, LocaleId localeId, String newContent) {
-        return save(textFlowId, localeId, newContent, null);
+        return save(textFlowId, localeId, newContent, null, null);
     }
 
     @Transactional
     public ContentState save(Long textFlowId, LocaleId localeId,
             String newContent, String editorUsername) {
+        return save(textFlowId, localeId, newContent, editorUsername, null);
+    }
+
+    @Transactional
+    public ContentState save(Long textFlowId, LocaleId localeId,
+            String newContent, String editorUsername,
+            TranslationSourceType sourceType) {
         HTextFlow textFlow = textFlowRepository.findById(textFlowId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "TextFlow not found: " + textFlowId));
@@ -368,6 +376,7 @@ public class TranslationEditService {
         target.setContents(List.of(newContent == null ? "" : newContent));
         target.setState(ContentState.Translated);
         target.setTextFlowRevision(textFlow.getRevision());
+        target.setSourceType(sourceType);
         // Attribute the edit to the editor so the translation is credited to the
         // real translator, not to whoever first created the row (e.g. a sync bot
         // that pushed it). Without this the stale author would surface as the

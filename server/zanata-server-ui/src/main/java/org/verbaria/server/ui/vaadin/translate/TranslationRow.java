@@ -53,6 +53,7 @@ import org.verbaria.server.headless.message.MessageInfo;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.zanata.rest.dto.TranslationSourceType;
 import org.zanata.model.HTextFlowTargetReviewComment;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleMemberRepository;
@@ -703,7 +704,6 @@ public class TranslationRow extends Div {
                                         currentState = res.state();
                                     }
                                     refreshActions();
-                                    ctx.refreshRows().run();
                                     Notification.show(getTranslation("ai.translate.filledBy", providerName),
                                             2000, Notification.Position.BOTTOM_START);
                                 } else {
@@ -842,6 +842,7 @@ public class TranslationRow extends Div {
                     h.getState() == null ? "" : h.getState().name(),
                     h.getLastModifiedBy() == null ? "" : h.getLastModifiedBy().getName(),
                     h.getLastChanged() == null ? "" : h.getLastChanged().toString(),
+                    sourceLabel(h.getSourceType()),
                     firstContent(h.getContents())));
         }
         if (savedContent != null && !savedContent.isBlank()) {
@@ -854,13 +855,14 @@ public class TranslationRow extends Div {
                         cur.getState() == null ? "" : cur.getState().name(),
                         cur.getLastModifiedBy() == null ? "" : cur.getLastModifiedBy().getName(),
                         cur.getLastChanged() == null ? "" : cur.getLastChanged().toString(),
+                        sourceLabel(cur.getSourceType()),
                         firstContent(cur.getContents())));
             }
         }
         String live = liveContent == null ? null : liveContent.get();
         if (live != null && !live.isEmpty() && !Objects.equals(live, savedContent)) {
             rows.add(new HistoryRow(getTranslation("translate.history.unsavedRow"),
-                    "—", getTranslation("translate.history.you"), "—", live));
+                    "—", getTranslation("translate.history.you"), "—", "", live));
         }
 
         if (rows.isEmpty() && comments.isEmpty()) {
@@ -881,6 +883,8 @@ public class TranslationRow extends Div {
         grid.addColumn(HistoryRow::modifier).setHeader(getTranslation("translate.history.col.by"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(HistoryRow::when).setHeader(getTranslation("translate.history.col.when"))
+                .setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(HistoryRow::source).setHeader(getTranslation("translate.history.col.source"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(r -> {
             String c = r.content() == null ? "" : r.content();
@@ -1140,7 +1144,11 @@ public class TranslationRow extends Div {
     }
 
     private record HistoryRow(String version, String state, String modifier,
-                              String when, String content) {}
+                              String when, String source, String content) {}
+
+    private static String sourceLabel(TranslationSourceType type) {
+        return type == TranslationSourceType.MACHINE_TRANS ? "AI" : "";
+    }
 
     public record RowContext(
             EditorPreferencesService.Prefs prefs,
