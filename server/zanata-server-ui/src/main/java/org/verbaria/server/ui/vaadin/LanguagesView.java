@@ -1,8 +1,16 @@
 package org.verbaria.server.ui.vaadin;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -91,13 +99,34 @@ public class LanguagesView extends VerticalLayout implements TitleKey {
         Checkbox active = new Checkbox(getTranslation("languages.field.active"));
         active.setValue(true);
 
-        FormLayout form = new FormLayout(locale, displayName, nativeName, active);
+        // Pick from the JVM's known locales: selecting one prefills the code
+        // (BCP-47 tag) plus the English and native display names, which the
+        // admin can still tweak before saving.
+        ComboBox<Locale> picker =
+                new ComboBox<>(getTranslation("languages.field.pick"));
+        picker.setItems(availableLocales());
+        picker.setItemLabelGenerator(LanguagesView::localeLabel);
+        picker.setClearButtonVisible(true);
+        picker.setHelperText(getTranslation("languages.field.pickHint"));
+        picker.addValueChangeListener(e -> {
+            Locale l = e.getValue();
+            if (l == null) {
+                return;
+            }
+            locale.setValue(l.toLanguageTag());
+            locale.setInvalid(false);
+            displayName.setValue(l.getDisplayName(Locale.ENGLISH));
+            nativeName.setValue(l.getDisplayName(l));
+        });
+
+        FormLayout form =
+                new FormLayout(picker, locale, displayName, nativeName, active);
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
         dialog.add(form);
 
         Button save = new Button(getTranslation("languages.add.save"),
                 e -> save(dialog, locale, displayName, nativeName, active));
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.addThemeVariants(ButtonVariant.PRIMARY);
         Button cancel = new Button(getTranslation("languages.add.cancel"),
                 e -> dialog.close());
         dialog.getFooter().add(cancel, save);
@@ -150,5 +179,30 @@ public class LanguagesView extends VerticalLayout implements TitleKey {
         }
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    /** JVM locales, deduplicated by BCP-47 tag and sorted by display label. */
+    private static List<Locale> availableLocales() {
+        Map<String, Locale> byTag = new LinkedHashMap<>();
+        for (Locale l : Locale.getAvailableLocales()) {
+            if (l.getLanguage().isEmpty()) {
+                continue;
+            }
+            String tag = l.toLanguageTag();
+            if (tag.isBlank() || "und".equals(tag)) {
+                continue;
+            }
+            byTag.putIfAbsent(tag, l);
+        }
+        return byTag.values().stream()
+                .sorted(Comparator.comparing(LanguagesView::localeLabel,
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    private static String localeLabel(Locale l) {
+        String name = l.getDisplayName();
+        String tag = l.toLanguageTag();
+        return name == null || name.isBlank() ? tag : name + " (" + tag + ")";
     }
 }
