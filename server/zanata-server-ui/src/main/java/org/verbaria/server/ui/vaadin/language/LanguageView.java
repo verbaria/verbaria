@@ -13,15 +13,18 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
@@ -48,8 +51,11 @@ import org.verbaria.server.headless.repository.LanguageRequestRepository;
 import org.verbaria.server.headless.repository.LocaleMemberRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.service.LanguageTeamService;
+import org.verbaria.server.headless.service.ai.AiPolicyService;
+import org.verbaria.server.headless.service.ai.TranslationProviderRegistry;
 import org.verbaria.server.ui.vaadin.BreadcrumbsService;
 import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
+import org.verbaria.server.ui.vaadin.ProgressDialogService;
 import org.verbaria.server.ui.vaadin.MainLayout;
 
 @Route(value = "language/:slug", layout = MainLayout.class)
@@ -65,48 +71,75 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
     private final AccountRepository accountRepository;
     private final LanguageTeamService languageTeamService;
     private final BreadcrumbsService breadcrumbsService;
+    private final TranslationProviderRegistry providerRegistry;
+    private final AiPolicyService aiPolicy;
+    private final ProgressDialogService progressDialogs;
+
+    private final VerticalLayout body = new VerticalLayout();
 
     public LanguageView(LocaleRepository localeRepository,
                         LocaleMemberRepository localeMemberRepository,
                         LanguageRequestRepository languageRequestRepository,
                         AccountRepository accountRepository,
                         LanguageTeamService languageTeamService,
-                        BreadcrumbsService breadcrumbsService) {
+                        BreadcrumbsService breadcrumbsService,
+                        TranslationProviderRegistry providerRegistry,
+                        AiPolicyService aiPolicy,
+                        ProgressDialogService progressDialogs) {
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
         this.languageRequestRepository = languageRequestRepository;
         this.accountRepository = accountRepository;
         this.languageTeamService = languageTeamService;
         this.breadcrumbsService = breadcrumbsService;
+        this.providerRegistry = providerRegistry;
+        this.aiPolicy = aiPolicy;
+        this.progressDialogs = progressDialogs;
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
+        body.setPadding(true);
+        body.setSpacing(true);
+        body.setWidthFull();
+        Scroller scroller = new Scroller(body);
+        scroller.setScrollDirection(Scroller.ScrollDirection.VERTICAL);
+        scroller.setSizeFull();
+        addAndExpand(scroller);
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        removeAll();
+        body.removeAll();
         String slug = event.getRouteParameters().get("slug").orElse("");
         HLocale locale = localeRepository.findByLocaleId(new LocaleId(slug))
                 .orElseThrow(() -> new NotFoundException("Language not found: " + slug));
 
         publishBreadcrumb(slug);
-        add(buildHeader(locale));
-        add(buildActionBar(locale));
-        add(buildMembersPanel(locale));
+        body.add(buildHeader(locale));
 
         Optional<HAccount> currentOpt = currentAccount();
         boolean canEditPrompt = Roles.isCurrentUserAdmin()
                 || (currentOpt.isPresent()
                         && languageTeamService.membership(locale, currentOpt.get().getPerson())
                                 .map(HLocaleMember::isReviewer).orElse(false));
-        add(buildAiPromptPanel(locale, canEditPrompt));
-
         boolean canManage = currentOpt.isPresent() && languageTeamService.canManage(
                 locale, currentOpt.get().getPerson(), Roles.isCurrentUserAdmin());
+
+        VerticalLayout membersTab = new VerticalLayout();
+        membersTab.setPadding(false);
+        membersTab.setSpacing(true);
+        membersTab.setWidthFull();
+        membersTab.add(buildMembersPanel(locale));
         if (canManage) {
-            add(buildPendingRequestsPanel(locale, currentOpt.get()));
+            membersTab.add(buildPendingRequestsPanel(locale, currentOpt.get()));
         }
+
+        TabSheet tabs = new TabSheet();
+        tabs.setWidthFull();
+        tabs.add(new Tab(getTranslation("language.tab.members")), membersTab);
+        tabs.add(new Tab(getTranslation("language.tab.aiPrompt")),
+                buildAiPromptPanel(locale, canEditPrompt));
+        body.add(tabs);
     }
 
     private Div buildAiPromptPanel(HLocale locale, boolean canEdit) {
@@ -147,6 +180,66 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
             HorizontalLayout actions = new HorizontalLayout(save);
             actions.addClassNames(AuraUtility.Margin.Top.SMALL);
             panel.add(actions);
+
+            H3 evalTitle = new H3(getTranslation("language.ai.evaluate"));
+            evalTitle.addClassNames(AuraUtility.FontSize.MEDIUM,
+                    AuraUtility.Margin.Top.MEDIUM, AuraUtility.Margin.Bottom.SMALL);
+            Paragraph evalHint = new Paragraph(getTranslation("language.ai.evaluateHint"));
+            evalHint.addClassNames(AuraUtility.TextColor.SECONDARY,
+                    AuraUtility.FontSize.SMALL, AuraUtility.Margin.NONE);
+            TextField keyField = new TextField(getTranslation("translate.key"));
+            keyField.setWidthFull();
+            keyField.setPlaceholder("test.key");
+            TextArea valueField = new TextArea(getTranslation("translate.value"));
+            valueField.setWidthFull();
+            valueField.setMinHeight("4rem");
+            Div result = new Div();
+            result.setWidthFull();
+            result.addClassNames(AuraUtility.Whitespace.PRE_WRAP, AuraUtility.Border.ALL,
+                    AuraUtility.BorderColor.SECONDARY, AuraUtility.BorderRadius.MEDIUM,
+                    AuraUtility.Padding.SMALL, AuraUtility.Background.BASE,
+                    AuraUtility.Margin.Top.SMALL, AuraUtility.TextColor.SECONDARY);
+            result.setText(getTranslation("language.ai.evaluatePlaceholder"));
+            Button evaluate = new Button(getTranslation("language.ai.evaluateRun"), e -> {
+                if (!aiPolicy.canCurrentUserUseAi()) {
+                    Notification.show(getTranslation("language.ai.noAi"),
+                            3000, Notification.Position.MIDDLE);
+                    return;
+                }
+                var providers = providerRegistry.available();
+                if (providers.isEmpty()) {
+                    Notification.show(getTranslation("language.ai.noProvider"),
+                            3000, Notification.Position.MIDDLE);
+                    return;
+                }
+                String src = valueField.getValue();
+                if (src == null || src.isBlank()) {
+                    valueField.setInvalid(true);
+                    return;
+                }
+                valueField.setInvalid(false);
+                var provider = providers.get(0);
+                LocaleId target = locale.getLocaleId();
+                String guidance = editor.getValue();
+                String g = guidance == null || guidance.isBlank() ? null : guidance;
+                String ctx = keyField.getValue() == null || keyField.getValue().isBlank()
+                        ? keyField.getPlaceholder() : keyField.getValue();
+                progressDialogs.run(getTranslation("language.ai.evaluate"), handle -> {
+                    handle.status(handle.t("language.ai.evaluateRunning",
+                            provider.displayName()));
+                    return provider.translate(src, LocaleId.EN_US, target, ctx, g);
+                }).whenComplete((out, err) -> {
+                    if (err != null) {
+                        result.setText(getTranslation("common.failed", err.getMessage()));
+                        return;
+                    }
+                    result.removeClassName(AuraUtility.TextColor.SECONDARY);
+                    result.setText(out == null || out.isBlank()
+                            ? getTranslation("language.ai.evaluateEmpty") : out);
+                });
+            });
+            evaluate.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
+            panel.add(evalTitle, evalHint, keyField, valueField, evaluate, result);
         }
         return panel;
     }
@@ -158,23 +251,28 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
                 BreadcrumbsService.Crumb.here(slug));
     }
 
-    private Div buildHeader(HLocale locale) {
-        Div panel = new Div();
-        panel.setWidthFull();
-        H1 name = new H1(locale.getDisplayName() == null
+    private HorizontalLayout buildHeader(HLocale locale) {
+        Span name = new Span(locale.getDisplayName() == null
+                || locale.getDisplayName().isBlank()
                 ? locale.getLocaleId().getId() : locale.getDisplayName());
-        name.addClassNames(AuraUtility.Margin.NONE);
-        panel.add(name);
+        name.addClassNames(AuraUtility.FontWeight.SEMIBOLD, AuraUtility.FontSize.LARGE);
+        HorizontalLayout info = new HorizontalLayout(name);
+        info.setAlignItems(FlexComponent.Alignment.BASELINE);
+        info.setSpacing(true);
         if (locale.getNativeName() != null && !locale.getNativeName().isBlank()) {
-            Paragraph nativeName = new Paragraph(locale.getNativeName());
-            nativeName.addClassNames(AuraUtility.Margin.NONE, AuraUtility.TextColor.SECONDARY);
-            panel.add(nativeName);
+            Span nativeName = new Span(locale.getNativeName());
+            nativeName.addClassNames(AuraUtility.TextColor.SECONDARY);
+            info.add(nativeName);
         }
-        Paragraph code = new Paragraph(locale.getLocaleId().getId());
-        code.addClassNames(AuraUtility.Margin.NONE, AuraUtility.FontSize.SMALL,
-                AuraUtility.TextColor.SECONDARY);
-        panel.add(code);
-        return panel;
+        Span code = new Span(locale.getLocaleId().getId());
+        code.addClassNames(AuraUtility.FontSize.SMALL, AuraUtility.TextColor.SECONDARY);
+        info.add(code);
+
+        HorizontalLayout row = new HorizontalLayout(info, buildActionBar(locale));
+        row.setWidthFull();
+        row.setAlignItems(FlexComponent.Alignment.CENTER);
+        row.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        return row;
     }
 
     private HorizontalLayout buildActionBar(HLocale locale) {

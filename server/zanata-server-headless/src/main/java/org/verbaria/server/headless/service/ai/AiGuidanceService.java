@@ -3,6 +3,7 @@ package org.verbaria.server.headless.service.ai;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.LocaleId;
+import org.zanata.common.MessageEvaluateType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
@@ -55,6 +56,10 @@ public class AiGuidanceService {
             if (project.getName() != null && !project.getName().isBlank()) {
                 sb.append("Project Name: ").append(project.getName()).append('\n');
             }
+            String format = describeFormat(project.getMessageEvaluateType());
+            if (format != null) {
+                sb.append("Message format: ").append(format).append('\n');
+            }
         }
         String prompt = localeRepository.findByLocaleId(locale)
                 .map(HLocale::getAiPrompt).orElse(null);
@@ -63,5 +68,22 @@ public class AiGuidanceService {
         }
         String out = sb.toString().strip();
         return out.isEmpty() ? null : out;
+    }
+
+    private static String describeFormat(MessageEvaluateType type) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case JAVA_MESSAGE_FORMAT -> "Java MessageFormat — keep placeholders "
+                    + "like {0}, {1}, {0,number,integer}, {0,date} exactly as in "
+                    + "the source, and escape literal single quotes by doubling them ('').";
+            case ICU4J_MESSAGE_FORMAT -> "ICU MessageFormat — keep placeholders "
+                    + "{0}/{name}, the # symbol, and plural/select blocks "
+                    + "(e.g. one {...} other {...}) exactly as in the source.";
+            case C_PRINTF -> "C/printf — keep format specifiers like %s, %d, "
+                    + "%1$s, %.2f exactly as in the source.";
+            case NONE -> null;
+        };
     }
 }
