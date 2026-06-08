@@ -114,6 +114,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         setSizeFull();
         setPadding(true);
         setSpacing(true);
+        getStyle().set("padding-top", "0");
     }
 
     private boolean canManageProject(String projectSlug) {
