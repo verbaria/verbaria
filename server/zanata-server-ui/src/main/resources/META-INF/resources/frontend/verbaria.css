@@ -411,9 +411,11 @@ vaadin-side-nav-item::part(content) {
  * affordance. Tinted with the theme accent (NOT a lumo variable) at low
  * opacity so it reads on both the light and dark glass surfaces.
  */
-vaadin-grid.projects-tree::part(row) {
+vaadin-grid.projects-tree::part(row),
+vaadin-grid.clickable-rows::part(row) {
     cursor: pointer;
 }
-vaadin-grid.projects-tree::part(row):hover {
+vaadin-grid.projects-tree::part(row):hover,
+vaadin-grid.clickable-rows::part(row):hover {
     background-color: hsl(var(--accent-h) var(--accent-s) 50% / 0.12);
 }

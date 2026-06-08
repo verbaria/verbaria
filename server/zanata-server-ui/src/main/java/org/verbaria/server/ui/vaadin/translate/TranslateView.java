@@ -354,7 +354,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // of text-flows (e.g. Consulo *Localize.yaml, 300+) stay responsive.
         rowsGrid.setSizeFull();
         rowsGrid.getStyle().set("max-width", "100%");
-        rowsGrid.addClassNames(AuraUtility.MinHeight.NONE);
+        rowsGrid.addClassNames(AuraUtility.MinHeight.NONE, "clickable-rows");
         rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         rowsGrid.addThemeVariants(GridVariant.NO_BORDER,
                 GridVariant.WRAP_CELL_CONTENT);

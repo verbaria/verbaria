@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +47,6 @@ import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
 
-import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
@@ -191,8 +189,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         tabs.setSizeFull();
         tabs.addThemeVariants(TabSheetVariant.AURA_NO_BORDER);
         tabs.addClassNames("fill-tabsheet", AuraUtility.MinHeight.NONE);
-        tabs.add(new Tab(getTranslation("project.tab.languages")),
-                wrapLanguagesPanel(slug, languages));
+        tabs.add(new Tab(getTranslation("project.tab.languages")), languages);
         tabs.add(tabWithBadge(getTranslation("project.tab.people"), people.size()),
                 buildPeoplePanel(people, rolesByPerson));
         tabs.add(new Tab(getTranslation("project.tab.glossary")), buildGlossaryPanel(slug));
@@ -267,67 +264,6 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return right;
     }
 
-    private void openAddLanguageDialog(String slug) {
-        HProject project = projectRepository.findBySlugWithLocales(slug).orElse(null);
-        if (project == null) {
-            return;
-        }
-        Set<HLocale> current = project.getCustomizedLocales() == null
-                ? Set.of() : project.getCustomizedLocales();
-        List<HLocale> available = localeRepository.findAll().stream()
-                .filter(l -> !current.contains(l))
-                .sorted(Comparator.comparing(ProjectView::localeLabel,
-                        String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-        ComboBox<HLocale> picker = new ComboBox<>();
-        picker.setItems(available);
-        picker.setItemLabelGenerator(ProjectView::localeLabel);
-        picker.setWidthFull();
-        picker.setPlaceholder(getTranslation("project.addLanguage"));
-
-        Dialog dlg = new Dialog();
-        dlg.setHeaderTitle(getTranslation("project.addLanguage"));
-        dlg.add(picker);
-        Button add = new Button(getTranslation("common.add"), e -> {
-            HLocale picked = picker.getValue();
-            if (picked == null) {
-                picker.setInvalid(true);
-                return;
-            }
-            addLanguage(slug, picked);
-            dlg.close();
-            UI.getCurrent().getPage().reload();
-        });
-        add.addThemeVariants(ButtonVariant.PRIMARY);
-        Button cancel = new Button(getTranslation("common.cancel"), e -> dlg.close());
-        dlg.getFooter().add(cancel, add);
-        dlg.open();
-    }
-
-    private void addLanguage(String slug, HLocale locale) {
-        projectRepository.findBySlugWithLocales(slug).ifPresent(project -> {
-            Set<HLocale> set = new LinkedHashSet<>();
-            if (project.getCustomizedLocales() != null) {
-                set.addAll(project.getCustomizedLocales());
-            }
-            set.add(locale);
-            project.setCustomizedLocales(set);
-            project.setOverrideLocales(true);
-            projectRepository.save(project);
-        });
-    }
-
-    private static String localeLabel(HLocale l) {
-        if (l == null) {
-            return "";
-        }
-        String code = l.getLocaleId() == null ? "?" : l.getLocaleId().getId();
-        String display = l.getDisplayName();
-        return display == null || display.isBlank() ? code
-                : display + " (" + code + ")";
-    }
-
     private Tab tabWithBadge(String label, int count) {
         com.vaadin.flow.component.badge.Badge badge =
                 new com.vaadin.flow.component.badge.Badge();
@@ -339,36 +275,11 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return new Tab(new Span(label), badge);
     }
 
-    private Component wrapLanguagesPanel(String slug,
-            Grid<IterationStats.LocaleStats> grid) {
-        if (!canManageProject(slug)) {
-            return grid;
-        }
-        VerticalLayout panel = new VerticalLayout();
-        panel.setSizeFull();
-        panel.setPadding(false);
-        panel.setSpacing(false);
-        panel.addClassNames(AuraUtility.MinHeight.NONE);
-
-        Button addLang = new Button(getTranslation("project.addLanguage"),
-                LineAwesomeIcon.PLUS_SOLID.create(),
-                e -> openAddLanguageDialog(slug));
-        addLang.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        HorizontalLayout bar = new HorizontalLayout(addLang);
-        bar.setWidthFull();
-        bar.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-        bar.addClassNames(AuraUtility.Padding.SMALL);
-
-        panel.add(bar);
-        panel.addAndExpand(grid);
-        return panel;
-    }
-
     private Grid<IterationStats.LocaleStats> buildLanguageGrid(String projectSlug) {
         Grid<IterationStats.LocaleStats> grid = new Grid<>();
         grid.setSizeFull();
         grid.setSelectionMode(Grid.SelectionMode.NONE);
-        grid.addClassNames(AuraUtility.MinHeight.NONE);
+        grid.addClassNames(AuraUtility.MinHeight.NONE, "clickable-rows");
         grid.addThemeVariants(GridVariant.ROW_STRIPES);
         grid.addColumn(new ComponentRenderer<>(this::languageNameCell))
                 .setHeader(getTranslation("project.tab.languages")).setFlexGrow(1);
