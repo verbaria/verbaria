@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.verbaria.server.headless.service.ai.AiGuidanceService;
 import org.verbaria.server.headless.service.ai.TranslationProvider;
 import org.verbaria.server.headless.service.ai.TranslationProviderRegistry;
 import org.zanata.common.ContentState;
@@ -25,13 +26,16 @@ public class AiTranslationService {
     private final TranslationProviderRegistry registry;
     private final TranslationEditService editService;
     private final ReviewPermissionService reviewPermission;
+    private final AiGuidanceService guidanceService;
 
     public AiTranslationService(TranslationProviderRegistry registry,
             TranslationEditService editService,
-            ReviewPermissionService reviewPermission) {
+            ReviewPermissionService reviewPermission,
+            AiGuidanceService guidanceService) {
         this.registry = registry;
         this.editService = editService;
         this.reviewPermission = reviewPermission;
+        this.guidanceService = guidanceService;
     }
 
     /**
@@ -48,8 +52,9 @@ public class AiTranslationService {
             String providerId, String editorUsername) {
         TranslationProvider provider = provider(providerId);
         TranslationEditService.AiSource s = editService.aiSource(textFlowId);
+        String guidance = guidanceService.forTextFlow(textFlowId, locale);
         String out = provider.translate(s.source(), s.sourceLocale(), locale,
-                s.context());
+                s.context(), guidance);
         if (out == null || out.isBlank()) {
             return new OneResult(null, null, false);
         }
@@ -75,11 +80,12 @@ public class AiTranslationService {
         if (rows.isEmpty()) {
             return new BulkResult(0, 0);
         }
+        String guidance = guidanceService.forDocument(docId, locale);
         List<TranslationProvider.TranslationRequest> reqs =
                 new ArrayList<>(rows.size());
         for (TranslationEditService.AiSourceRow r : rows) {
             reqs.add(new TranslationProvider.TranslationRequest(
-                    r.source(), r.sourceLocale(), locale, r.context()));
+                    r.source(), r.sourceLocale(), locale, r.context(), guidance));
         }
         List<String> outs = provider.translateBatch(reqs);
         boolean review = reviewPermission.canReview(editorUsername, locale);

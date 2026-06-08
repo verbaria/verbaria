@@ -114,8 +114,9 @@ public class AnthropicTranslationProvider implements TranslationProvider, Dispos
     }
 
     @Override
-    public String translate(String source, LocaleId src, LocaleId tgt, String context) {
-        String prompt = Prompts.buildTranslate(source, src, tgt, context);
+    public String translate(String source, LocaleId src, LocaleId tgt,
+            String context, String guidance) {
+        String prompt = Prompts.buildTranslate(source, src, tgt, context, guidance);
         if (nativeClient()) {
             return runNative(prompt).trim();
         }

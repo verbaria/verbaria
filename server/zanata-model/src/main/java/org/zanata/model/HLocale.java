@@ -29,6 +29,7 @@ import org.hibernate.annotations.NaturalId;
 import org.zanata.common.LocaleId;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -56,6 +57,7 @@ public class HLocale extends ModelEntityBase implements Serializable, HasUserFri
     private String pluralForms;
     private String displayName;
     private String nativeName;
+    private String aiPrompt;
 
     public HLocale() {
     }
@@ -159,6 +161,15 @@ public class HLocale extends ModelEntityBase implements Serializable, HasUserFri
 
     public void setNativeName(String nativeName) {
         this.nativeName = nativeName;
+    }
+
+    @Column(columnDefinition = "text")
+    public String getAiPrompt() {
+        return aiPrompt;
+    }
+
+    public void setAiPrompt(String aiPrompt) {
+        this.aiPrompt = aiPrompt;
     }
 
     public String retrieveNativeName() {

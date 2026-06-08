@@ -45,9 +45,11 @@ public class OpenAiTranslationProvider implements TranslationProvider, Disposabl
     }
 
     @Override
-    public String translate(String source, LocaleId src, LocaleId tgt, String context) {
+    public String translate(String source, LocaleId src, LocaleId tgt,
+            String context, String guidance) {
         OpenAiChatModel chat = chatModel();
-        var response = chat.call(new Prompt(Prompts.buildTranslate(source, src, tgt, context)));
+        var response = chat.call(new Prompt(
+                Prompts.buildTranslate(source, src, tgt, context, guidance)));
         return response.getResult().getOutput().getText().trim();
     }
 

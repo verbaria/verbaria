@@ -30,6 +30,10 @@ import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 
+import de.f0rce.ace.AceEditor;
+import de.f0rce.ace.enums.AceMode;
+import de.f0rce.ace.enums.AceTheme;
+
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -92,11 +96,59 @@ public class LanguageView extends VerticalLayout implements BeforeEnterObserver,
         add(buildMembersPanel(locale));
 
         Optional<HAccount> currentOpt = currentAccount();
+        boolean canEditPrompt = Roles.isCurrentUserAdmin()
+                || (currentOpt.isPresent()
+                        && languageTeamService.membership(locale, currentOpt.get().getPerson())
+                                .map(HLocaleMember::isReviewer).orElse(false));
+        add(buildAiPromptPanel(locale, canEditPrompt));
+
         boolean canManage = currentOpt.isPresent() && languageTeamService.canManage(
                 locale, currentOpt.get().getPerson(), Roles.isCurrentUserAdmin());
         if (canManage) {
             add(buildPendingRequestsPanel(locale, currentOpt.get()));
         }
+    }
+
+    private Div buildAiPromptPanel(HLocale locale, boolean canEdit) {
+        Div panel = new Div();
+        panel.setWidthFull();
+        panel.addClassNames(AuraUtility.Border.ALL, AuraUtility.BorderColor.SECONDARY,
+                AuraUtility.BorderRadius.MEDIUM, AuraUtility.Padding.MEDIUM,
+                AuraUtility.BoxSizing.BORDER);
+        H3 title = new H3(getTranslation("language.ai.title"));
+        title.addClassNames(AuraUtility.Margin.NONE);
+        panel.add(title);
+        Paragraph hint = new Paragraph(getTranslation("language.ai.hint"));
+        hint.addClassNames(AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL,
+                AuraUtility.Margin.Top.NONE);
+        panel.add(hint);
+
+        AceEditor editor = new AceEditor();
+        editor.setMode(AceMode.text);
+        editor.setTheme(AceTheme.textmate);
+        editor.setValue(locale.getAiPrompt() == null ? "" : locale.getAiPrompt());
+        editor.setWidthFull();
+        editor.setHeight("160px");
+        editor.setReadOnly(!canEdit);
+        editor.setShowPrintMargin(false);
+        panel.add(editor);
+
+        if (canEdit) {
+            Button save = new Button(getTranslation("language.ai.save"), e -> {
+                String value = editor.getValue();
+                localeRepository.findByLocaleId(locale.getLocaleId()).ifPresent(l -> {
+                    l.setAiPrompt(value == null || value.isBlank() ? null : value);
+                    localeRepository.save(l);
+                });
+                Notification.show(getTranslation("language.ai.saved"),
+                        2000, Notification.Position.BOTTOM_START);
+            });
+            save.addThemeVariants(ButtonVariant.PRIMARY);
+            HorizontalLayout actions = new HorizontalLayout(save);
+            actions.addClassNames(AuraUtility.Margin.Top.SMALL);
+            panel.add(actions);
+        }
+        return panel;
     }
 
     private void publishBreadcrumb(String slug) {

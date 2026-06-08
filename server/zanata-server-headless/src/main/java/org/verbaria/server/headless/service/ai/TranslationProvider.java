@@ -21,7 +21,8 @@ public interface TranslationProvider {
     boolean isAvailable();
 
 
-    String translate(String source, LocaleId sourceLocale, LocaleId targetLocale, String context);
+    String translate(String source, LocaleId sourceLocale, LocaleId targetLocale,
+            String context, String guidance);
 
     /**
      * Default batch impl: chunks the requests, sends each chunk as a single
@@ -65,7 +66,7 @@ public interface TranslationProvider {
                         try {
                             TranslationRequest r = sub.get(i);
                             chunkOut.set(i, translate(r.source(), r.sourceLocale(),
-                                    r.targetLocale(), r.context()));
+                                    r.targetLocale(), r.context(), r.guidance()));
                         } catch (Exception ignore) {
                         }
                     }
@@ -115,7 +116,8 @@ public interface TranslationProvider {
         try {
             prompt = Prompts.buildBatchTranslate(
                     first.sourceLocale(), first.targetLocale(),
-                    json.writerWithDefaultPrettyPrinter().writeValueAsString(arr));
+                    json.writerWithDefaultPrettyPrinter().writeValueAsString(arr),
+                    first.guidance());
         } catch (Exception e) {
             throw new IllegalStateException("Failed to build batch prompt", e);
         }
@@ -129,7 +131,7 @@ public interface TranslationProvider {
      * reimplement batching. Default delegates to {@link #translate}.
      */
     default String translateRaw(String prompt, LocaleId src, LocaleId tgt) {
-        return translate(prompt, src, tgt, null);
+        return translate(prompt, src, tgt, null, null);
     }
 
     /**
@@ -222,7 +224,8 @@ public interface TranslationProvider {
     }
 
     record TranslationRequest(String source, LocaleId sourceLocale,
-                              LocaleId targetLocale, String context) {}
+                              LocaleId targetLocale, String context,
+                              String guidance) {}
 
     /** Progress callback for {@link #translateBatch(List, BatchProgress)}. */
     @FunctionalInterface

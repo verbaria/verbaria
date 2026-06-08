@@ -38,7 +38,7 @@ public class TestTranslationProvider implements TranslationProvider {
 
     @Override
     public String translate(String source, LocaleId sourceLocale,
-            LocaleId targetLocale, String context) {
+            LocaleId targetLocale, String context, String guidance) {
         return expected(source);
     }
 
