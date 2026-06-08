@@ -7,11 +7,14 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
@@ -134,6 +137,7 @@ public class ConsuloStrategy extends AbstractPullStrategy {
                         StandardCharsets.UTF_8);
                 log.info("Wrote source file {}", target);
             }
+            deleteStaleSubFiles(docDir, rawBySubPath.keySet());
             return;
         }
 
@@ -355,13 +359,10 @@ public class ConsuloStrategy extends AbstractPullStrategy {
                 && doc.getSource().getTextFlows().size() == 1
                 && RAW_CONTENT_KEY.equals(humanKey(doc.getSource().getTextFlows().get(0)));
         String locale = doc.getLocale().getLocale();
-        File out = locateOutputFile(docName, locale, rawSingleEntry);
-        File parent = out.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("Cannot create dir: " + parent);
-        }
 
         if (rawSingleEntry) {
+            File out = locateOutputFile(docName, locale, true);
+            mkParent(out);
             String resId = doc.getSource().getTextFlows().get(0).getId();
             String body = targetByResId.get(resId);
             if (body == null) return null;
@@ -369,6 +370,7 @@ public class ConsuloStrategy extends AbstractPullStrategy {
             return null;
         }
 
+        Map<String, String> rawBySubPath = new LinkedHashMap<>();
         Map<String, Map<String, String>> rendered = new LinkedHashMap<>();
         if (doc.getSource() != null) {
             for (TextFlow tf : doc.getSource().getTextFlows()) {
@@ -376,17 +378,75 @@ public class ConsuloStrategy extends AbstractPullStrategy {
                 if (translation == null) continue;
                 String key = humanKey(tf);
                 if (key == null) continue;
-                Map<String, String> body = new LinkedHashMap<>(1);
-                body.put("text", translation);
-                rendered.put(key, body);
+                String ext = consuloExt(tf);
+                if (ext != null) {
+                    rawBySubPath.put(subPath(key, ext), translation);
+                } else {
+                    Map<String, String> body = new LinkedHashMap<>(1);
+                    body.put("text", translation);
+                    rendered.put(key, body);
+                }
             }
         }
 
-        try (OutputStreamWriter w = new OutputStreamWriter(
-                new FileOutputStream(out), StandardCharsets.UTF_8)) {
-            blockYaml().dump(rendered, w);
+        if (!rawBySubPath.isEmpty()) {
+            File docDir = new File(transLocaleRoot(locale), docName);
+            for (Map.Entry<String, String> e : rawBySubPath.entrySet()) {
+                File target = new File(docDir, e.getKey());
+                mkParent(target);
+                Files.writeString(target.toPath(), e.getValue(),
+                        StandardCharsets.UTF_8);
+            }
+            deleteStaleSubFiles(docDir.toPath(), rawBySubPath.keySet());
+        }
+
+        if (!rendered.isEmpty() || rawBySubPath.isEmpty()) {
+            File out = locateOutputFile(docName, locale, false);
+            mkParent(out);
+            try (OutputStreamWriter w = new OutputStreamWriter(
+                    new FileOutputStream(out), StandardCharsets.UTF_8)) {
+                blockYaml().dump(rendered, w);
+            }
         }
         return null;
+    }
+
+    private static void mkParent(File f) throws IOException {
+        File parent = f.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Cannot create dir: " + parent);
+        }
+    }
+
+    private static void deleteStaleSubFiles(Path docDir, Set<String> keep)
+            throws IOException {
+        if (!Files.isDirectory(docDir)) {
+            return;
+        }
+        Set<Path> keepPaths = new HashSet<>();
+        for (String rel : keep) {
+            keepPaths.add(docDir.resolve(rel).normalize());
+        }
+        List<Path> stale = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(docDir)) {
+            walk.filter(Files::isRegularFile)
+                    .filter(p -> !keepPaths.contains(p.normalize()))
+                    .forEach(stale::add);
+        }
+        for (Path p : stale) {
+            Files.deleteIfExists(p);
+            log.info("Removed stale consulo sub-file {}", p);
+        }
+    }
+
+    private File transLocaleRoot(String locale) {
+        File transDir = getOpts().getTransDir().toFile();
+        File localeRoot = new File(transDir, locale);
+        if (!localeRoot.exists()) {
+            File alt = new File(transDir, "LOCALIZE-LIB/" + locale);
+            if (alt.exists()) localeRoot = alt;
+        }
+        return localeRoot;
     }
 
     /**

@@ -167,6 +167,40 @@ public class ConsuloSourceRoundTripTest {
         assertThat(result).contains("comment: Shown on the welcome screen");
     }
 
+    @Test
+    public void subFileRemovedFromServerIsDeletedOnSourcePull() throws Exception {
+        Path repo = inMemoryRoot();
+        Path docDir = repo.resolve(
+                "modules/y/src/main/resources/LOCALIZE-LIB/en_US/Foo.SubLocalize");
+        Files.createDirectories(docDir.resolve("inspections"));
+        Path keep = docDir.resolve("inspections/Keep.html");
+        Path gone = docDir.resolve("inspections/Gone.html");
+        Files.writeString(keep, "<html>keep</html>", StandardCharsets.UTF_8);
+        Files.writeString(gone, "<html>gone</html>", StandardCharsets.UTF_8);
+
+        // The server serves ONLY the kept sub-file (Gone was removed in the DB).
+        Resource server = new Resource("Foo.SubLocalize");
+        server.setLang(new LocaleId("en-US"));
+        TextFlow tf = new TextFlow("hash-keep", new LocaleId("en-US"),
+                "<html>keep-edited</html>");
+        PotEntryHeader peh = new PotEntryHeader();
+        peh.setContext("inspections.Keep");
+        tf.getExtensions(true).add(peh);
+        tf.getExtensions(true).add(new ConsuloSubFile("html"));
+        server.getTextFlows().add(tf);
+
+        PullOptionsImpl pullOpts = new PullOptionsImpl();
+        pullOpts.setProjectType("consulo");
+        pullOpts.setSrcDir(repo);
+        new ConsuloStrategy(pullOpts).writeSrcFile(server);
+
+        assertThat(Files.exists(gone))
+                .as("a sub-file removed from the DB must be deleted on source pull")
+                .isFalse();
+        assertThat(Files.readString(keep, StandardCharsets.UTF_8))
+                .isEqualTo("<html>keep-edited</html>");
+    }
+
     private static Resource readSource(Path repo) throws Exception {
         return readSource(repo, DOC, "**/*.yaml");
     }
