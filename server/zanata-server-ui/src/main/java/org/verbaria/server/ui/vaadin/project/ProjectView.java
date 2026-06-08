@@ -26,7 +26,6 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -36,6 +35,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.tabs.TabSheetVariant;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.NotFoundException;
@@ -44,7 +44,6 @@ import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 import org.verbaria.server.ui.vaadin.theme.ProgressBars;
-import org.verbaria.server.ui.vaadin.theme.SourceLinks;
 
 import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.common.EntityStatus;
@@ -66,18 +65,22 @@ import org.verbaria.server.ui.vaadin.BreadcrumbsService;
 import org.verbaria.server.ui.vaadin.ExploreView;
 import org.verbaria.server.ui.vaadin.HasBreadcrumbs;
 import org.verbaria.server.ui.vaadin.HasToolbarActions;
+import org.verbaria.server.ui.vaadin.HasToolbarSubtitle;
 import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.headless.stats.IterationStats;
 
 @Route(value = "project/view/:slug", layout = MainLayout.class)
 @AnonymousAllowed
-public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs, HasToolbarActions {
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver, TitleKey, HasBreadcrumbs, HasToolbarActions, HasToolbarSubtitle {
 
     @Override public String pageTitleKey() { return "page.project"; }
 
     @Override public Component toolbarActions() { return toolbarActions; }
 
+    @Override public Component toolbarSubtitle() { return toolbarSubtitle; }
+
     private Component toolbarActions;
+    private Component toolbarSubtitle;
 
 
     private final ProjectRepository projectRepository;
@@ -152,12 +155,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         versionBox.setPlaceholder(getTranslation("project.version"));
 
         this.toolbarActions = buildToolbarActions(slug, versionBox);
-        add(buildHeading(project, slug));
-        if (project.getDescription() != null && !project.getDescription().isBlank()) {
-            Paragraph desc = new Paragraph(project.getDescription());
-            desc.addClassNames(AuraUtility.Margin.Top.NONE, AuraUtility.FontStyle.ITALIC);
-            add(desc);
-        }
+        this.toolbarSubtitle = buildSubtitle(project);
 
         // Person → roles aggregation for the People panel.
         Map<HPerson, EnumSet<ProjectRole>> rolesByPerson =
@@ -190,6 +188,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
 
         TabSheet tabs = new TabSheet();
         tabs.setSizeFull();
+        tabs.addThemeVariants(TabSheetVariant.AURA_NO_BORDER);
         tabs.addClassNames("fill-tabsheet", AuraUtility.MinHeight.NONE);
         tabs.add(new Tab(getTranslation("project.tab.languages")),
                 wrapLanguagesPanel(slug, languages));
@@ -240,19 +239,14 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         );
     }
 
-    private HorizontalLayout buildHeading(HProject project, String slug) {
-        H1 name = new H1(project.getName() == null || project.getName().isBlank()
-                ? slug : project.getName());
-        name.addClassNames(AuraUtility.Margin.NONE);
-        HorizontalLayout left = new HorizontalLayout(name);
-        left.setAlignItems(FlexComponent.Alignment.CENTER);
-        left.setSpacing(true);
-        Anchor source = SourceLinks.of(project.getSourceViewURL());
-        if (source != null) {
-            source.addClassNames(AuraUtility.FontSize.LARGE);
-            left.addComponentAsFirst(source);
+    private Component buildSubtitle(HProject project) {
+        String desc = project.getDescription();
+        if (desc == null || desc.isBlank()) {
+            return null;
         }
-        return left;
+        Span span = new Span(desc);
+        span.getElement().setAttribute("title", desc);
+        return span;
     }
 
     private Component buildToolbarActions(String slug,
@@ -374,7 +368,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         grid.setSizeFull();
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.addClassNames(AuraUtility.MinHeight.NONE);
-        grid.addThemeVariants(GridVariant.NO_BORDER, GridVariant.ROW_STRIPES);
+        grid.addThemeVariants(GridVariant.ROW_STRIPES);
         grid.addColumn(new ComponentRenderer<>(this::languageNameCell))
                 .setHeader(getTranslation("project.tab.languages")).setFlexGrow(1);
         grid.addColumn(new ComponentRenderer<>(this::languagePctCell))

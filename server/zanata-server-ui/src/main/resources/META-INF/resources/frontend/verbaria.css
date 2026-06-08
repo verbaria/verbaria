@@ -271,19 +271,35 @@ vaadin-app-layout > .app-shell-content {
     overflow: hidden;
 }
 
-/* Let a tabsheet's selected-tab content (e.g. the project Languages grid)
- * fill its panel edge-to-edge instead of sitting inside the default padding.
- * Bound the content part as a flex column so a grid inside scrolls internally
- * instead of growing the whole page (single scroll, not double). */
+/* The tabsheet's content area is a `vaadin-tabsheet-scroller` whose
+ * `overflow:auto` cannot be overridden by author CSS, so a grid sized
+ * `height:100%` overflows it by ~12px (border/scrollbar-gutter rounding) and
+ * the scroller renders a second (phantom) scrollbar on top of the grid's own.
+ * Fix: make the tabsheet the positioning context and absolutely pin the
+ * selected-tab content (the grid, or the wrapper layout in the managed case)
+ * with inset:0 — this removes it from the scroller's scroll-size calc so the
+ * scroller has nothing to overflow, leaving the grid's own scrollbar as the
+ * single scroller. The scroller's leftover phantom scrollbar is hidden with
+ * `scrollbar-width:none` on its exposed `::part(content)` (Vaadin 25 forbids
+ * injecting into the scroller's shadow, but the part is reachable from here). */
 vaadin-tabsheet.fill-tabsheet {
     min-height: 0;
+    position: relative;
 }
 vaadin-tabsheet.fill-tabsheet::part(content) {
     padding: 0 !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
+    scrollbar-width: none !important;
+}
+vaadin-tabsheet.fill-tabsheet::part(tabs-container) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+vaadin-tabsheet.fill-tabsheet > vaadin-grid,
+vaadin-tabsheet.fill-tabsheet > vaadin-vertical-layout {
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
 }
 
 vaadin-side-nav-item::part(content) {

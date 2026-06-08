@@ -95,6 +95,7 @@ public class MainLayout extends AppLayout
     private final Span breadcrumbsSlot = new Span();
     private final Span searchSlot = new Span();
     private final Span actionsSlot = new Span();
+    private final Span subtitleSlot = new Span();
 
     /**
      * Wrapper for the routed view. AppLayout's {@code content} slot holds
@@ -146,8 +147,12 @@ public class MainLayout extends AppLayout
         contentCard.setSpacing(false);
         contentCard.addClassNames("glass-surface", "app-content-card",
                 AuraUtility.Overflow.HIDDEN);
-        breadcrumbsSlot.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.MinWidth.NONE);
-        crumbBar = new Div(breadcrumbsSlot, actionsSlot);
+        breadcrumbsSlot.addClassNames(AuraUtility.Flex.SHRINK_NONE);
+        subtitleSlot.addClassNames(AuraUtility.Flex.AUTO, AuraUtility.MinWidth.NONE,
+                AuraUtility.TextColor.SECONDARY, AuraUtility.FontSize.SMALL,
+                AuraUtility.Overflow.HIDDEN, AuraUtility.TextOverflow.ELLIPSIS,
+                AuraUtility.Whitespace.NOWRAP);
+        crumbBar = new Div(breadcrumbsSlot, subtitleSlot, actionsSlot);
         crumbBar.setWidthFull();
         crumbBar.addClassNames(AuraUtility.Display.FLEX, AuraUtility.AlignItems.CENTER,
                 AuraUtility.Gap.MEDIUM, AuraUtility.Padding.Horizontal.MEDIUM,
@@ -228,6 +233,7 @@ public class MainLayout extends AppLayout
             publishDefaultBreadcrumb(event);
         }
         renderToolbarActions();
+        renderToolbarSubtitle();
         renderBreadcrumbs();
         renderToolbarSearch();
     }
@@ -238,6 +244,16 @@ public class MainLayout extends AppLayout
             Component c = a.toolbarActions();
             if (c != null) {
                 actionsSlot.add(c);
+            }
+        }
+    }
+
+    private void renderToolbarSubtitle() {
+        subtitleSlot.removeAll();
+        if (currentRoutedContent instanceof HasToolbarSubtitle s) {
+            Component c = s.toolbarSubtitle();
+            if (c != null) {
+                subtitleSlot.add(c);
             }
         }
     }
