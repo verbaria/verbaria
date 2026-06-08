@@ -33,9 +33,11 @@ import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
 import org.zanata.rest.dto.resource.Resource;
+import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
+import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
@@ -57,17 +59,20 @@ public class OfflineExportService {
     private final TextFlowRepository textFlowRepository;
     private final TextFlowTargetRepository targetRepository;
     private final GettextExtensions gettext;
+    private final TextFlowExtensionStore extensionStore;
 
     public OfflineExportService(ProjectIterationRepository iterationRepository,
                                 DocumentRepository documentRepository,
                                 TextFlowRepository textFlowRepository,
                                 TextFlowTargetRepository targetRepository,
-                                GettextExtensions gettext) {
+                                GettextExtensions gettext,
+                                TextFlowExtensionStore extensionStore) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.textFlowRepository = textFlowRepository;
         this.gettext = gettext;
+        this.extensionStore = extensionStore;
     }
 
     public record Bundle(String filename, String contentType, byte[] bytes) {}
@@ -190,17 +195,21 @@ public class OfflineExportService {
             }
         }
         // Preserve source order; key each entry by its original human key.
-        Map<String, String> entries = new LinkedHashMap<>();
+        Map<String, ConsuloWriter.Entry> entries = new LinkedHashMap<>();
         for (TextFlow tf : source.getTextFlows()) {
             String translation = translatedByResId.get(tf.getId());
             if (translation == null) continue;
             String humanKey = humanKey(tf);
             if (humanKey == null) continue;
-            entries.put(humanKey, translation);
+            ConsuloSubFile consulo = tf.getExtensions() == null ? null
+                    : tf.getExtensions().findByType(ConsuloSubFile.class);
+            List<String> names = consulo == null ? null : consulo.getParamNames();
+            List<String> types = consulo == null ? null : consulo.getParamTypes();
+            entries.put(humanKey, new ConsuloWriter.Entry(translation, names, types));
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-            new ConsuloWriter().write(w, entries);
+            new ConsuloWriter().writeEntries(w, entries);
         }
         return out.toByteArray();
     }
@@ -309,6 +318,13 @@ public class OfflineExportService {
                 header.setContext(ctx);
                 xf.getExtensions(true).add(header);
             }
+            ConsuloSubFile consulo = extensionStore.get(tf, ConsuloSubFile.class)
+                    .orElse(null);
+            if (consulo != null
+                    && (notEmpty(consulo.getParamNames())
+                            || notEmpty(consulo.getParamTypes()))) {
+                xf.getExtensions(true).add(consulo);
+            }
             out.add(xf);
         }
         r.getTextFlows().addAll(out);
@@ -349,6 +365,10 @@ public class OfflineExportService {
         if (list == null || list.isEmpty()) return "";
         String c = list.get(0);
         return c == null ? "" : c;
+    }
+
+    private static boolean notEmpty(List<String> list) {
+        return list != null && !list.isEmpty();
     }
 
     public static HTextFlowTargetHistory lastGoodVersion(HTextFlowTarget rejected) {
