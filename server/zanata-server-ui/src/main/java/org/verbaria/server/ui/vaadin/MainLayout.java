@@ -379,6 +379,7 @@ public class MainLayout extends AppLayout
         nav.add(navLink(getTranslation("nav.groups"), GroupsView.class));
         nav.add(navLink(getTranslation("nav.languages"), LanguagesView.class));
         nav.add(navLink(getTranslation("nav.glossary"), GlossaryView.class));
+        nav.add(navLink(getTranslation("nav.activity"), ActivityView.class));
         return nav;
     }
 

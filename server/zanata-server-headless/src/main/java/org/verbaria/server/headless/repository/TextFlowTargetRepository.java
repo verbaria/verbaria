@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -75,4 +76,45 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
             """)
     List<Object[]> translatedCountPerDocForLocale(@Param("id") Long iterId,
                                                   @Param("locale") LocaleId locale);
+
+    /**
+     * Latest state per target (the most recent action), with the actor,
+     * text-flow, document, version and project eagerly fetched so the activity
+     * feed can render detached rows. Optional user/project filters: a null
+     * value means "no filter".
+     */
+    @Query("""
+            select t from HTextFlowTarget t
+              join fetch t.lastModifiedBy per
+              join fetch per.account acc
+              join fetch t.textFlow tf
+              join fetch tf.document doc
+              join fetch doc.projectIteration it
+              join fetch it.project p
+            where t.lastModifiedBy is not null
+              and (:username is null or acc.username = :username)
+              and (:projectSlug is null or p.slug = :projectSlug)
+              and (:locale is null or t.locale.localeId = :locale)
+              and t.lastChanged >= :from
+              and t.lastChanged < :to
+            order by t.lastChanged desc
+            """)
+    List<HTextFlowTarget> findRecentActivity(@Param("username") String username,
+            @Param("projectSlug") String projectSlug,
+            @Param("locale") LocaleId locale,
+            @Param("from") java.util.Date from,
+            @Param("to") java.util.Date to, Pageable pageable);
+
+    /**
+     * Current targets for the given text flows (all locales), used by the
+     * activity feed to reconstruct the previous value of each change —
+     * unfiltered, so the prior value shows regardless of who set it.
+     */
+    @Query("""
+            select t from HTextFlowTarget t
+              join fetch t.locale
+            where t.textFlow.id in :textFlowIds
+            """)
+    List<HTextFlowTarget> findForTextFlows(
+            @Param("textFlowIds") Collection<Long> textFlowIds);
 }
