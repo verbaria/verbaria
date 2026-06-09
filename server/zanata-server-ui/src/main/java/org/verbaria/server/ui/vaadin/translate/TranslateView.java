@@ -139,6 +139,10 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     /** Grid (summary columns + expandable editor details) driven by a
      * server-paged CallbackDataProvider. */
     private final Grid<RowData> rowsGrid = new Grid<>();
+    /** The row whose details are currently expanded, and its live editor, so a
+     * click on another row can guard against discarding unsaved edits. */
+    private RowData openRow;
+    private TranslationRow openEditor;
 
     /**
      * Snapshot of everything the row renderer needs. Equality/hashCode are
@@ -370,11 +374,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             rowsGrid.addColumn(new ComponentRenderer<>(this::aiCell))
                     .setHeader("").setAutoWidth(true).setFlexGrow(0);
             rowsGrid.setItemDetailsRenderer(
-                    new ComponentRenderer<Component, RowData>(d ->
-                            rowFactory.getObject().populate(rowContext(), d.flow(),
-                                    d.existing(), d.state(), d.source(), true)));
-            rowsGrid.setDetailsVisibleOnClick(true);
+                    new ComponentRenderer<Component, RowData>(d -> {
+                        TranslationRow row = rowFactory.getObject().populate(
+                                rowContext(), d.flow(), d.existing(), d.state(),
+                                d.source(), true);
+                        openEditor = row;
+                        return row;
+                    }));
+            rowsGrid.setDetailsVisibleOnClick(false);
+            rowsGrid.addItemClickListener(e -> handleRowClick(e.getItem()));
         }
+        openRow = null;
+        openEditor = null;
         addAndExpand(rowsGrid);
 
         installDataProvider(docIdForProvider);
@@ -383,6 +394,48 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // works no matter which row (if any) has focus.
         Shortcuts.addShortcutListener(this, this::openShortcutsHelp,
                 Key.KEY_Y, KeyModifier.ALT);
+    }
+
+    /**
+     * Details now open via this explicit click handler instead of
+     * {@code setDetailsVisibleOnClick(true)}: clicking the open row toggles it
+     * closed, while switching to another row is blocked with a warning when the
+     * open editor still has unsaved edits.
+     */
+    private void handleRowClick(RowData clicked) {
+        if (clicked == null || clicked.equals(openRow)) {
+            return;
+        }
+        if (openRow != null && openEditor != null && openEditor.isDirty()) {
+            showUnsavedWarning(() -> applyRowClick(clicked));
+            return;
+        }
+        applyRowClick(clicked);
+    }
+
+    private void applyRowClick(RowData clicked) {
+        if (openRow != null) {
+            rowsGrid.setDetailsVisible(openRow, false);
+        }
+        rowsGrid.setDetailsVisible(clicked, true);
+        openRow = clicked;
+    }
+
+    private void showUnsavedWarning(Runnable onDiscard) {
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("translate.unsaved.title"));
+        dlg.add(new Paragraph(getTranslation("translate.unsaved.message")));
+        Button keep = new Button(getTranslation("translate.unsaved.keep"),
+                e -> dlg.close());
+        keep.addThemeVariants(ButtonVariant.PRIMARY);
+        Button discard = new Button(getTranslation("translate.unsaved.discard"),
+                e -> {
+                    dlg.close();
+                    onDiscard.run();
+                });
+        discard.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.ERROR);
+        dlg.getFooter().add(discard, keep);
+        dlg.open();
     }
 
     /**

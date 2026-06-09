@@ -628,6 +628,10 @@ public class TranslationRow extends Div {
         return save;
     }
 
+    public boolean isDirty() {
+        return !liveContent.equals(savedContent);
+    }
+
     /**
      * Single source of truth for action-button enablement, recomputed on every
      * value change and after every save/approve/reject. Save tracks the live
