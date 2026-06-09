@@ -138,6 +138,22 @@ class ActivityFeedIT extends AbstractPushPullIT {
     }
 
     @Test
+    void populatesSourceAndResIdForNavigation() throws Exception {
+        seedOneTranslation();
+
+        List<Entry> entries = activityFeed.recent(null, PROJECT, "fr-FR",
+                null, null, 50);
+
+        assertThat(entries).isNotEmpty();
+        assertThat(entries).allSatisfy(e -> {
+            // Source text is available so a "saved but empty" row can fall back
+            // to it, and resId drives the key deep-link.
+            assertThat(e.source()).isEqualTo("Hello");
+            assertThat(e.resId()).isNotBlank();
+        });
+    }
+
+    @Test
     void filtersByDateRange() throws Exception {
         seedOneTranslation();
 

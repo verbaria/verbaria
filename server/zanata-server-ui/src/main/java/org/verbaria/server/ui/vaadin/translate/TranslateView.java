@@ -406,6 +406,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         installDataProvider(docIdForProvider);
 
+        // Deep link from the Activity feed: ?q=<resId> pre-fills the search so
+        // the editor lands on the specific key.
+        String keyQuery = event.getLocation().getQueryParameters()
+                .getSingleParameter("q").orElse(null);
+        if (keyQuery != null && !keyQuery.isBlank()) {
+            filter.setValue(keyQuery);
+        }
+
         // Alt+Y → keyboard-shortcuts help. Bound at the view level so it
         // works no matter which row (if any) has focus.
         Shortcuts.addShortcutListener(this, this::openShortcutsHelp,

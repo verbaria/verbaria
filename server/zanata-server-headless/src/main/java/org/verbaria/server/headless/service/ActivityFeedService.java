@@ -25,6 +25,7 @@ import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
@@ -45,28 +46,33 @@ public class ActivityFeedService {
     private final AccountRepository accountRepository;
     private final ProjectRepository projectRepository;
     private final LocaleRepository localeRepository;
+    private final GettextExtensions gettext;
 
     public ActivityFeedService(TextFlowTargetRepository targetRepository,
             TextFlowTargetHistoryRepository historyRepository,
             AccountRepository accountRepository,
             ProjectRepository projectRepository,
-            LocaleRepository localeRepository) {
+            LocaleRepository localeRepository,
+            GettextExtensions gettext) {
         this.targetRepository = targetRepository;
         this.historyRepository = historyRepository;
         this.accountRepository = accountRepository;
         this.projectRepository = projectRepository;
         this.localeRepository = localeRepository;
+        this.gettext = gettext;
     }
 
     public record Entry(String actorUsername, String actorName,
             ContentState state, String projectSlug, String projectName,
             String versionSlug, String docId, String localeId,
+            String key, String resId, String source,
             String value, String previousValue, Date when) {}
 
     private record Raw(Long textFlowId, String localeId, Integer version,
             String value, ContentState state, String actorUsername,
             String actorName, String projectSlug, String projectName,
-            String versionSlug, String docId, Date when) {}
+            String versionSlug, String docId, String key, String resId,
+            String source, Date when) {}
 
     public record Actor(String username, String displayName) {}
 
@@ -164,7 +170,8 @@ public class ActivityFeedService {
             String prev = previousValue(chains, r);
             out.add(new Entry(r.actorUsername(), r.actorName(), r.state(),
                     r.projectSlug(), r.projectName(), r.versionSlug(),
-                    r.docId(), r.localeId(), r.value(), prev, r.when()));
+                    r.docId(), r.localeId(), r.key(), r.resId(), r.source(),
+                    r.value(), prev, r.when()));
         }
         out.removeIf(e -> e.when() == null);
         out.sort(Comparator.comparing(Entry::when).reversed());
@@ -260,9 +267,13 @@ public class ActivityFeedService {
         }
         String username = actor.getAccount() == null ? null
                 : actor.getAccount().getUsername();
+        String context = gettext.context(tf);
+        String key = context == null || context.isBlank()
+                ? tf.getResId() : context;
         return new Raw(tf.getId(), localeId, version, value, state, username,
                 actor.getName(), p.getSlug(), p.getName(), it.getSlug(),
-                doc.getDocId(), when);
+                doc.getDocId(), key, tf.getResId(), firstContent(tf.getContents()),
+                when);
     }
 
     private static String firstContent(List<String> contents) {

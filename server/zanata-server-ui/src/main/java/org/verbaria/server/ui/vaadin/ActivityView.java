@@ -95,6 +95,9 @@ public class ActivityView extends VerticalLayout implements TitleKey {
         grid.addComponentColumn(this::actionCell)
                 .setHeader(getTranslation("activity.col.action"))
                 .setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(this::keyCell)
+                .setHeader(getTranslation("activity.col.key"))
+                .setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(this::changeCell)
                 .setHeader(getTranslation("activity.col.change")).setFlexGrow(2);
         grid.addComponentColumn(this::whereCell)
@@ -140,8 +143,12 @@ public class ActivityView extends VerticalLayout implements TitleKey {
         Div d = new Div();
         d.addClassNames(AuraUtility.Display.INLINE_FLEX, AuraUtility.Gap.SMALL,
                 AuraUtility.AlignItems.CENTER, AuraUtility.FlexWrap.WRAP);
+        String value = e.value();
+        boolean empty = value == null || value.isBlank();
         String prev = e.previousValue();
-        if (prev != null && !prev.isEmpty()) {
+        // Only show "before → after" when there's a distinct previous value;
+        // an unchanged value (AA → AA) adds nothing.
+        if (prev != null && !prev.isBlank() && !prev.equals(value)) {
             Span before = new Span(prev);
             before.addClassNames(AuraUtility.TextColor.SECONDARY,
                     AuraUtility.TextDecoration.LINE_THROUGH);
@@ -149,21 +156,45 @@ public class ActivityView extends VerticalLayout implements TitleKey {
             arrow.addClassNames(AuraUtility.TextColor.TERTIARY);
             d.add(before, arrow);
         }
-        String value = e.value();
-        Span after = new Span(value == null || value.isEmpty()
-                ? getTranslation("activity.value.empty") : value);
-        after.addClassNames(AuraUtility.TextColor.BODY,
-                AuraUtility.FontWeight.MEDIUM);
-        d.add(after);
+        if (empty) {
+            // Saved with no translation — fall back to the source text so the
+            // row isn't blank.
+            Span src = new Span(e.source() == null || e.source().isBlank()
+                    ? getTranslation("activity.value.empty") : e.source());
+            src.addClassNames(AuraUtility.TextColor.SECONDARY,
+                    AuraUtility.FontStyle.ITALIC);
+            d.add(src);
+        } else {
+            Span after = new Span(value);
+            after.addClassNames(AuraUtility.TextColor.BODY,
+                    AuraUtility.FontWeight.MEDIUM);
+            d.add(after);
+        }
         return d;
+    }
+
+    private Anchor keyCell(Entry e) {
+        String label = e.key() == null || e.key().isBlank()
+                ? e.resId() : e.key();
+        Anchor a = new Anchor(translateLink(e), label);
+        a.addClassNames(AuraUtility.TextColor.PRIMARY,
+                AuraUtility.TextDecoration.NONE, AuraUtility.FontWeight.MEDIUM);
+        return a;
+    }
+
+    private static String translateLink(Entry e) {
+        String url = "/translate/" + e.projectSlug() + "/" + e.versionSlug()
+                + "/" + e.localeId() + "?doc=" + e.docId();
+        if (e.resId() != null && !e.resId().isBlank()) {
+            url += "&q=" + e.resId();
+        }
+        return url;
     }
 
     private Anchor whereCell(Entry e) {
         String label = (e.projectName() == null ? e.projectSlug() : e.projectName())
                 + " › " + e.versionSlug() + " › " + e.docId();
-        Anchor a = new Anchor("/translate/" + e.projectSlug() + "/"
-                + e.versionSlug() + "/" + e.localeId() + "?doc=" + e.docId(),
-                label);
+        Anchor a = new Anchor(translateLink(e), label);
         a.addClassNames(AuraUtility.TextColor.BODY,
                 AuraUtility.TextDecoration.NONE);
         return a;
