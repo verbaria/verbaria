@@ -131,7 +131,7 @@ class AiTranslateIT extends AbstractPushPullIT {
 
         AiTranslationService.BulkResult res = aiTranslationService
                 .translateUntranslated(doc.getId(), fr, TestTranslationProvider.ID,
-                        USER, 1000);
+                        USER, 1000, ContentState.Approved);
 
         assertThat(res.translated()).isEqualTo(2);
         assertThat(res.approved()).isEqualTo(2);

@@ -72,8 +72,19 @@ public class AiTranslationService {
         return new OneResult(out, state, true);
     }
 
+    public String suggestOne(Long textFlowId, LocaleId locale,
+            String providerId) {
+        TranslationProvider provider = provider(providerId);
+        TranslationEditService.AiSource s = editService.aiSource(textFlowId);
+        String guidance = guidanceService.forTextFlow(textFlowId, locale);
+        String out = provider.translate(s.source(), s.sourceLocale(), locale,
+                s.context(), guidance);
+        return out == null || out.isBlank() ? null : out;
+    }
+
     public BulkResult translateUntranslated(Long docId, LocaleId locale,
-            String providerId, String editorUsername, int limit) {
+            String providerId, String editorUsername, int limit,
+            ContentState targetState) {
         TranslationProvider provider = provider(providerId);
         List<TranslationEditService.AiSourceRow> rows =
                 editService.aiUntranslatedSources(docId, locale, limit);
@@ -89,6 +100,8 @@ public class AiTranslationService {
         }
         List<String> outs = provider.translateBatch(reqs);
         boolean review = reviewPermission.canReview(editorUsername, locale);
+        ContentState applied = targetState == ContentState.Approved && review
+                ? ContentState.Approved : ContentState.NeedReview;
         int translated = 0;
         int approved = 0;
         for (int i = 0; i < rows.size(); i++) {
@@ -100,8 +113,8 @@ public class AiTranslationService {
             editService.save(id, locale, out, editorUsername,
                     TranslationSourceType.MACHINE_TRANS);
             translated++;
-            if (review) {
-                editService.changeState(id, locale, ContentState.Approved);
+            editService.changeState(id, locale, applied);
+            if (applied == ContentState.Approved) {
                 approved++;
             }
         }

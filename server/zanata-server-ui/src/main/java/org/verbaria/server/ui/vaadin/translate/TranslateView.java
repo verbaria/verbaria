@@ -82,6 +82,7 @@ import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TranslateFilterMode;
 import org.verbaria.server.headless.service.AiTranslationService;
+import org.verbaria.server.headless.service.ReviewPermissionService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -188,6 +189,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          EditorPreferencesService editorPreferences,
                          BreadcrumbsService breadcrumbsService,
                          ProjectRepository projectRepository,
+                         ReviewPermissionService reviewPermission,
                          ObjectProvider<TranslationRow> rowFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
@@ -200,6 +202,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.editorPreferences = editorPreferences;
         this.breadcrumbsService = breadcrumbsService;
         this.projectRepository = projectRepository;
+        this.reviewPermission = reviewPermission;
         this.rowFactory = rowFactory;
         setSizeFull();
         setPadding(true);
@@ -207,6 +210,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private final ProjectRepository projectRepository;
+    private final ReviewPermissionService reviewPermission;
     /** Project-level message-evaluate setting, resolved per navigation. */
     private MessageEvaluateType messageEvaluateType = MessageEvaluateType.NONE;
 
@@ -545,12 +549,37 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         var item = mb.addItem(getTranslation("translate.action.aiBulk"));
         item.getElement().setAttribute("title", getTranslation("translate.action.aiTooltip"));
         for (var provider : aiRegistry.available()) {
-            item.getSubMenu().addItem(provider.displayName(), e -> runBulkAi(doc, provider));
+            item.getSubMenu().addItem(provider.displayName(),
+                    e -> openBulkAiDialog(doc, provider));
         }
         return mb;
     }
 
-    private void runBulkAi(HDocument doc, TranslationProvider provider) {
+    private void openBulkAiDialog(HDocument doc, TranslationProvider provider) {
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("ai.suggest.bulkTitle", provider.displayName()));
+        dlg.add(new Paragraph(getTranslation("ai.suggest.bulkMessage")));
+        Button cancel = new Button(getTranslation("translate.unsaved.keep"),
+                e -> dlg.close());
+        Button needReview = new Button(getTranslation("ai.suggest.insertReview"), e -> {
+            dlg.close();
+            runBulkAi(doc, provider, ContentState.NeedReview);
+        });
+        needReview.addThemeVariants(ButtonVariant.PRIMARY);
+        dlg.getFooter().add(cancel, needReview);
+        if (canReviewCurrentLocale()) {
+            Button approve = new Button(getTranslation("ai.suggest.insertApprove"), e -> {
+                dlg.close();
+                runBulkAi(doc, provider, ContentState.Approved);
+            });
+            approve.addThemeVariants(ButtonVariant.SUCCESS);
+            dlg.getFooter().add(approve);
+        }
+        dlg.open();
+    }
+
+    private void runBulkAi(HDocument doc, TranslationProvider provider,
+                           ContentState targetState) {
         // Capture the user on the UI thread; the work runs on a background
         // thread where the security context isn't available.
         String editor = currentUsername();
@@ -562,9 +591,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
             // The service loads the untranslated flows WITH their extensions
             // (so reading gettext context can't trip a LazyInitializationException),
-            // translates, saves each, and approves when the editor may review.
+            // translates, saves each, and sets the chosen state.
             return aiTranslationService.translateUntranslated(
-                    docId, currentLocale, providerId, editor, 1000);
+                    docId, currentLocale, providerId, editor, 1000, targetState);
         }).whenComplete((res, err) -> {
             if (err != null) {
                 Notification.show(getTranslation("translate.bulkAi.failed", err.getMessage()),
@@ -1096,5 +1125,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             return null;
         }
         return auth.getName();
+    }
+
+    private boolean canReviewCurrentLocale() {
+        return reviewPermission.canReview(currentUsername(), currentLocale);
     }
 }

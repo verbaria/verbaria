@@ -690,48 +690,78 @@ public class TranslationRow extends Div {
             trigger.getSubMenu().addItem(provider.displayName(), ev -> {
                 String providerId = provider.id();
                 String providerName = provider.displayName();
-                String editor = currentUsername();
                 progressDialogs.run(getTranslation("ai.translate.bulkRunning", providerName),
                         handle -> {
                             handle.status(handle.t("translate.docSwitcher.callingProvider", providerName));
-                            // The service translates AND persists: it saves the
-                            // result and, for a reviewer/admin, also approves it,
-                            // so there's no second click.
-                            return aiTranslationService.translateOne(
-                                    flow.getId(), ctx.currentLocale(), providerId, editor);
+                            return aiTranslationService.suggestOne(
+                                    flow.getId(), ctx.currentLocale(), providerId);
                         })
-                        .whenComplete((res, err) -> {
+                        .whenComplete((suggestion, err) -> {
                             if (err != null) {
                                 Notification.show(getTranslation("ai.translate.failed", err.getMessage()),
                                         5000, Notification.Position.MIDDLE);
                                 return;
                             }
-                            if (res != null && res.content() != null && !res.content().isBlank()) {
-                                area.setValue(res.content());
-                                liveContent = res.content();
-                                if (res.applied()) {
-                                    // Auto-saved (and approved for reviewers).
-                                    savedContent = res.content();
-                                    if (res.state() != null) {
-                                        stateSpan.setText(res.state().name());
-                                        applyStateColor(stateSpan, res.state());
-                                        currentState = res.state();
-                                    }
-                                    refreshActions();
-                                    Notification.show(getTranslation("ai.translate.filledBy", providerName),
-                                            2000, Notification.Position.BOTTOM_START);
-                                } else {
-                                    // A translation already existed: only fill the
-                                    // editor; the user must Save/Approve by hand.
-                                    refreshActions();
-                                    Notification.show(getTranslation("ai.translate.suggested", providerName),
-                                            3000, Notification.Position.BOTTOM_START);
-                                }
+                            if (suggestion != null && !suggestion.isBlank()) {
+                                openAiSuggestionDialog(area, stateSpan, suggestion, providerName);
                             }
                         });
             });
         }
         return bar;
+    }
+
+    private void openAiSuggestionDialog(TranslationEditor area, Span stateSpan,
+            String suggestion, String providerName) {
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle(getTranslation("ai.suggest.title", providerName));
+        Paragraph preview = new Paragraph(suggestion);
+        preview.addClassNames(AuraUtility.FontStyle.ITALIC, AuraUtility.TextColor.SECONDARY);
+        dlg.add(preview);
+
+        Button insert = new Button(getTranslation("ai.suggest.insert"), e -> {
+            dlg.close();
+            applyAiSuggestion(area, stateSpan, suggestion, null, providerName);
+        });
+        Button needReview = new Button(getTranslation("ai.suggest.insertReview"), e -> {
+            dlg.close();
+            applyAiSuggestion(area, stateSpan, suggestion, ContentState.NeedReview, providerName);
+        });
+        needReview.addThemeVariants(ButtonVariant.PRIMARY);
+        dlg.getFooter().add(insert, needReview);
+        if (canReview) {
+            Button approve = new Button(getTranslation("ai.suggest.insertApprove"), e -> {
+                dlg.close();
+                applyAiSuggestion(area, stateSpan, suggestion, ContentState.Approved, providerName);
+            });
+            approve.addThemeVariants(ButtonVariant.SUCCESS);
+            dlg.getFooter().add(approve);
+        }
+        dlg.open();
+    }
+
+    private void applyAiSuggestion(TranslationEditor area, Span stateSpan,
+            String content, ContentState targetState, String providerName) {
+        area.setValue(content);
+        liveContent = content;
+        if (targetState == null) {
+            refreshActions();
+            Notification.show(getTranslation("ai.translate.suggested", providerName),
+                    3000, Notification.Position.BOTTOM_START);
+            return;
+        }
+        translationEditService.save(flow.getId(), ctx.currentLocale(), content,
+                currentUsername(), TranslationSourceType.MACHINE_TRANS);
+        ContentState newState = translationEditService.changeState(
+                flow.getId(), ctx.currentLocale(), targetState);
+        savedContent = content;
+        stateSpan.setText(newState.name());
+        applyStateColor(stateSpan, newState);
+        currentState = newState;
+        refreshActions();
+        ctx.refreshRows().run();
+        Notification.show(getTranslation("ai.translate.filledBy", providerName),
+                2000, Notification.Position.BOTTOM_START);
     }
 
     private Button buildApproveButton(Span stateSpan) {
