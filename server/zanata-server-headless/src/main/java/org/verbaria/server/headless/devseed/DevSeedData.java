@@ -424,14 +424,22 @@ public class DevSeedData implements CommandLineRunner {
                     List<HTextFlow> persistedFlows = textFlowRepository
                         .findByDocument(savedDoc.getId());
 
-                    boolean big = persistedFlows.size() >= 1000;
+                    int size = persistedFlows.size();
+                    boolean big = size >= 1000;
+                    // Spread completion across the three highlight tiers so the
+                    // red (<50%) / orange (50-80%) / green (>=80%) bars are all
+                    // visible. FR walks all three across the messages/errors/menu
+                    // docs; DE gets its own spread; RU stays a small needs-review
+                    // set (NeedReview doesn't count as translated).
                     if (fr != null) {
                         targetCount += seedTargets(persistedFlows, fr,
-                            ContentState.Translated, "FR: ", big ? 600 : 5);
+                            ContentState.Translated, "FR: ",
+                            big ? 600 : pctCount(size, frPct(ds.docId())));
                     }
                     if (de != null) {
                         targetCount += seedTargets(persistedFlows, de,
-                            ContentState.Approved, "DE: ", big ? 400 : 3);
+                            ContentState.Approved, "DE: ",
+                            big ? 400 : pctCount(size, dePct(ds.docId())));
                     }
                     if (ru != null) {
                         targetCount += seedTargets(persistedFlows, ru,
@@ -442,6 +450,26 @@ public class DevSeedData implements CommandLineRunner {
         }
         log.info("Seeded {} documents with {} text flows and {} translation targets",
             docCount, flowCount, targetCount);
+    }
+
+    private static int pctCount(int size, double pct) {
+        return Math.max(0, Math.min(size, (int) Math.round(size * pct)));
+    }
+
+    private static double frPct(String docId) {
+        return switch (docId) {
+            case "errors" -> 0.66;
+            case "menu" -> 0.34;
+            default -> 0.90;
+        };
+    }
+
+    private static double dePct(String docId) {
+        return switch (docId) {
+            case "errors" -> 0.85;
+            case "menu" -> 0.17;
+            default -> 0.50;
+        };
     }
 
     private int seedTargets(List<HTextFlow> flows, HLocale locale,

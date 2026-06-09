@@ -1979,6 +1979,27 @@ public final class AuraUtility {
     }
 
     /**
+     * Aura accent color class names — applied to any element to override its
+     * accent color (e.g. a progress bar's fill, which reads
+     * {@code --aura-accent-color}). See
+     * <a href="https://vaadin.com/docs/latest/styling/themes/aura/color#accent-color-class-names">Aura color docs</a>.
+     */
+    public static final class Accent {
+
+        public static final String NEUTRAL = "aura-accent-neutral";
+        public static final String RED = "aura-accent-red";
+        public static final String ORANGE = "aura-accent-orange";
+        public static final String YELLOW = "aura-accent-yellow";
+        public static final String GREEN = "aura-accent-green";
+        public static final String BLUE = "aura-accent-blue";
+        public static final String PURPLE = "aura-accent-purple";
+
+        private Accent() {
+        }
+
+    }
+
+    /**
      * Classes for setting the text overflow.
      */
     public static final class TextOverflow {

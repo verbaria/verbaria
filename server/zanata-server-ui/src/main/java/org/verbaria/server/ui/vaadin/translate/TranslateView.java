@@ -63,6 +63,7 @@ import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
+import org.verbaria.server.ui.vaadin.theme.ProgressBars;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -310,8 +311,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         docPopover.setModal(false);
         docPopover.setTarget(docSwitcher);
         add(docPopover);
-        docSwitcher.addClickListener(e ->
-                openDocPickerVia(docPopover, docSwitcher, iterId, viewingSource));
+        docSwitcher.addClickListener(e -> {
+            if (docPopover.isOpened()) {
+                docPopover.close();
+            } else {
+                openDocPickerVia(docPopover, docSwitcher, iterId, viewingSource);
+            }
+        });
 
         // Stats popover — same pattern. buildStatsBadge() runs findByDocument
         // over the entire version (slow on large versions like Consulo) so
@@ -324,7 +330,13 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         statsPopover.setTarget(statsBtn);
         statsPopover.setWidth("420px");
         statsPopover.setOpenOnClick(false);
-        statsBtn.addClickListener(e -> openStatsVia(statsPopover, statsBtn));
+        statsBtn.addClickListener(e -> {
+            if (statsPopover.isOpened()) {
+                statsPopover.close();
+            } else {
+                openStatsVia(statsPopover, statsBtn);
+            }
+        });
 
         HorizontalLayout headingRight = new HorizontalLayout();
         headingRight.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -744,9 +756,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             long done = viewingSource ? total
                     : translatedByDoc.getOrDefault(d.getId(), 0L);
             int pct = pctOf.applyAsInt(d);
-            String colorClass = pct == 100 ? AuraUtility.TextColor.SUCCESS
-                    : pct >= 50 ? AuraUtility.TextColor.ORANGE
-                    : AuraUtility.TextColor.ERROR;
+            String colorClass = ProgressBars.textColorClass(pct);
             Span pill = new Span(String.format("%d%% (%d/%d)", pct, done, total));
             pill.addClassNames(colorClass, AuraUtility.FontWeight.SEMIBOLD);
             pill.getStyle().set("font-variant-numeric", "tabular-nums");

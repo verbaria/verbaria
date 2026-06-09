@@ -433,7 +433,7 @@ public class IterationView extends VerticalLayout implements BeforeEnterObserver
         row.setAlignItems(FlexComponent.Alignment.BASELINE);
         row.add(statBlock(String.format("%.2f%%", stats.approvedPct),
                 getTranslation("iteration.stats.approved"),
-                AuraUtility.TextColor.SUCCESS));
+                ProgressBars.textColorClass(stats.approvedPct)));
         row.add(statBlock(String.format("%.2f%%", stats.translatedPct),
                 getTranslation("iteration.stats.translated"),
                 ProgressBars.textColorClass(stats.translatedPct)));
