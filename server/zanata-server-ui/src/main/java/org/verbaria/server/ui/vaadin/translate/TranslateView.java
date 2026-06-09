@@ -352,27 +352,29 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // Grid shows a compact summary per text-flow and renders the full
         // editor only in an expandable details row, so documents with hundreds
         // of text-flows (e.g. Consulo *Localize.yaml, 300+) stay responsive.
-        rowsGrid.setSizeFull();
-        rowsGrid.getStyle().set("max-width", "100%");
-        rowsGrid.addClassNames(AuraUtility.MinHeight.NONE, "clickable-rows");
-        rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
-        rowsGrid.addThemeVariants(GridVariant.NO_BORDER,
-                GridVariant.WRAP_CELL_CONTENT);
-        rowsGrid.addColumn(new ComponentRenderer<>(this::sourceCell))
-                .setHeader(getTranslation("translate.col.source")).setFlexGrow(3);
-        rowsGrid.addColumn(new ComponentRenderer<>(this::translationCell))
-                .setHeader(getTranslation("translate.col.translation"))
-                .setFlexGrow(3);
-        rowsGrid.addColumn(new ComponentRenderer<>(this::stateCell))
-                .setHeader(getTranslation("translate.col.state"))
-                .setAutoWidth(true).setFlexGrow(0);
-        rowsGrid.addColumn(new ComponentRenderer<>(this::aiCell))
-                .setHeader("").setAutoWidth(true).setFlexGrow(0);
-        rowsGrid.setItemDetailsRenderer(
-                new ComponentRenderer<Component, RowData>(d ->
-                        rowFactory.getObject().populate(rowContext(), d.flow(),
-                                d.existing(), d.state(), d.source(), true)));
-        rowsGrid.setDetailsVisibleOnClick(true);
+        if (rowsGrid.getColumns().isEmpty()) {
+            rowsGrid.setSizeFull();
+            rowsGrid.getStyle().set("max-width", "100%");
+            rowsGrid.addClassNames(AuraUtility.MinHeight.NONE, "clickable-rows");
+            rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
+            rowsGrid.addThemeVariants(GridVariant.NO_BORDER,
+                    GridVariant.WRAP_CELL_CONTENT);
+            rowsGrid.addColumn(new ComponentRenderer<>(this::sourceCell))
+                    .setHeader(getTranslation("translate.col.source")).setFlexGrow(3);
+            rowsGrid.addColumn(new ComponentRenderer<>(this::translationCell))
+                    .setHeader(getTranslation("translate.col.translation"))
+                    .setFlexGrow(3);
+            rowsGrid.addColumn(new ComponentRenderer<>(this::stateCell))
+                    .setHeader(getTranslation("translate.col.state"))
+                    .setAutoWidth(true).setFlexGrow(0);
+            rowsGrid.addColumn(new ComponentRenderer<>(this::aiCell))
+                    .setHeader("").setAutoWidth(true).setFlexGrow(0);
+            rowsGrid.setItemDetailsRenderer(
+                    new ComponentRenderer<Component, RowData>(d ->
+                            rowFactory.getObject().populate(rowContext(), d.flow(),
+                                    d.existing(), d.state(), d.source(), true)));
+            rowsGrid.setDetailsVisibleOnClick(true);
+        }
         addAndExpand(rowsGrid);
 
         installDataProvider(docIdForProvider);

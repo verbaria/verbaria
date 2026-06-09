@@ -322,10 +322,40 @@ public class DevSeedData implements CommandLineRunner {
         "Settings"
     );
 
-    private List<String> sourcesFor(String slug) {
-        if (!"perf-1k".equals(slug)) {
-            return SAMPLE_SOURCES;
+    private static final List<String> ERROR_SOURCES = List.of(
+        "File not found",
+        "Permission denied",
+        "Connection timed out",
+        "Invalid input value",
+        "Operation was cancelled",
+        "Out of memory"
+    );
+
+    private static final List<String> MENU_SOURCES = List.of(
+        "File",
+        "Edit",
+        "View",
+        "Open Recent",
+        "Preferences",
+        "Help"
+    );
+
+    /** One seedable document: its docId and the source strings it contains. */
+    private record DocSeed(String docId, List<String> sources) {}
+
+    /** Documents to seed for a project — a few per project so the doc switcher
+     *  has something to switch between; perf-1k stays a single 1000-string doc. */
+    private List<DocSeed> docsFor(String slug) {
+        if ("perf-1k".equals(slug)) {
+            return List.of(new DocSeed("messages", perfSources()));
         }
+        return List.of(
+            new DocSeed("messages", SAMPLE_SOURCES),
+            new DocSeed("errors", ERROR_SOURCES),
+            new DocSeed("menu", MENU_SOURCES));
+    }
+
+    private List<String> perfSources() {
         List<String> out = new ArrayList<>(1000);
         for (int i = 0; i < 1000; i++) {
             out.add(SAMPLE_SOURCES.get(i % SAMPLE_SOURCES.size())
@@ -351,60 +381,62 @@ public class DevSeedData implements CommandLineRunner {
 
         for (HProject project : projectRepository.findAll()) {
             for (HProjectIteration iteration : project.getProjectIterations()) {
-                List<HDocument> existing = documentRepository
-                    .findByVersion(project.getSlug(), iteration.getSlug());
-                if (!existing.isEmpty()) {
-                    continue;
-                }
+                for (DocSeed ds : docsFor(project.getSlug())) {
+                    if (documentRepository.findByVersionAndDocId(
+                            project.getSlug(), iteration.getSlug(), ds.docId())
+                            .isPresent()) {
+                        continue;
+                    }
 
-                HDocument doc = new HDocument(
-                    "messages", "messages", "",
-                    ContentType.TextPlain, enUs);
-                doc.setProjectIteration(iteration);
-                doc.setRevision(1);
+                    HDocument doc = new HDocument(
+                        ds.docId(), ds.docId(), "",
+                        ContentType.TextPlain, enUs);
+                    doc.setProjectIteration(iteration);
+                    doc.setRevision(1);
 
-                List<String> sources = sourcesFor(project.getSlug());
-                List<HTextFlow> flows = new ArrayList<>();
-                for (int i = 0; i < sources.size(); i++) {
-                    String src = sources.get(i);
-                    // Match production behavior: resId is a hash, original
-                    // human-readable key (msg.N) lives in the gettext context.
-                    String originalKey = "msg." + i;
-                    HTextFlow tf = new HTextFlow(doc,
-                        HashUtil.generateHash(originalKey), src);
-                    tf.setRevision(1);
-                    tf.setPos(i);
-                    PotEntryHeader header =
-                        new PotEntryHeader();
-                    header.setContext(originalKey);
-                    extensionStore.put(tf, header);
-                    SimpleComment comment = new SimpleComment(
-                        "Demo source comment for " + originalKey);
-                    extensionStore.put(tf, comment);
-                    flows.add(tf);
-                }
-                doc.setTextFlows(flows);
-                iteration.getDocuments().put(doc.getDocId(), doc);
+                    List<String> sources = ds.sources();
+                    List<HTextFlow> flows = new ArrayList<>();
+                    for (int i = 0; i < sources.size(); i++) {
+                        String src = sources.get(i);
+                        // Match production behavior: resId is a hash, original
+                        // human-readable key (msg.N) lives in the gettext context.
+                        String originalKey = "msg." + i;
+                        HTextFlow tf = new HTextFlow(doc,
+                            HashUtil.generateHash(originalKey), src);
+                        tf.setRevision(1);
+                        tf.setPos(i);
+                        PotEntryHeader header =
+                            new PotEntryHeader();
+                        header.setContext(originalKey);
+                        extensionStore.put(tf, header);
+                        SimpleComment comment = new SimpleComment(
+                            "Demo source comment for " + originalKey);
+                        extensionStore.put(tf, comment);
+                        flows.add(tf);
+                    }
+                    doc.setTextFlows(flows);
+                    iteration.getDocuments().put(doc.getDocId(), doc);
 
-                HDocument savedDoc = documentRepository.save(doc);
-                docCount++;
-                flowCount += flows.size();
+                    HDocument savedDoc = documentRepository.save(doc);
+                    docCount++;
+                    flowCount += flows.size();
 
-                List<HTextFlow> persistedFlows = textFlowRepository
-                    .findByDocument(savedDoc.getId());
+                    List<HTextFlow> persistedFlows = textFlowRepository
+                        .findByDocument(savedDoc.getId());
 
-                boolean big = persistedFlows.size() >= 1000;
-                if (fr != null) {
-                    targetCount += seedTargets(persistedFlows, fr,
-                        ContentState.Translated, "FR: ", big ? 600 : 5);
-                }
-                if (de != null) {
-                    targetCount += seedTargets(persistedFlows, de,
-                        ContentState.Approved, "DE: ", big ? 400 : 3);
-                }
-                if (ru != null) {
-                    targetCount += seedTargets(persistedFlows, ru,
-                        ContentState.NeedReview, "RU: ", big ? 300 : 2);
+                    boolean big = persistedFlows.size() >= 1000;
+                    if (fr != null) {
+                        targetCount += seedTargets(persistedFlows, fr,
+                            ContentState.Translated, "FR: ", big ? 600 : 5);
+                    }
+                    if (de != null) {
+                        targetCount += seedTargets(persistedFlows, de,
+                            ContentState.Approved, "DE: ", big ? 400 : 3);
+                    }
+                    if (ru != null) {
+                        targetCount += seedTargets(persistedFlows, ru,
+                            ContentState.NeedReview, "RU: ", big ? 300 : 2);
+                    }
                 }
             }
         }
