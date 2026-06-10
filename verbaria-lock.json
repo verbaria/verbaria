@@ -3,25 +3,11 @@
   "server" : "https://i.verbaria.org/",
   "project" : "verbaria",
   "projectVersion" : "master",
-  "generatedAt" : "2026-06-10T20:59:41.749242508Z",
+  "generatedAt" : "2026-06-10T21:17:31.833718046Z",
   "documents" : {
     "translations" : {
-      "source" : {                                     
+      "source" : {
         "revision" : 1
-      },
-      "translations" : {
-        "en-US" : {
-          "sig" : "14cdfa44a29f86a2bcb487e4b46f7cb3",
-          "state" : "Approved",
-          "total" : 909,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
-        },
-        "zh-CN" : {
-          "sig" : "8e1bb3cfd7f52fb8fa58998721352f00",
-          "state" : "Approved",
-          "total" : 808,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
-        }
       }
     }
   }
