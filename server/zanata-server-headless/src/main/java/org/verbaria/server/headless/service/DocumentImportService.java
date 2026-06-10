@@ -257,16 +257,26 @@ public class DocumentImportService {
             HTextFlowTarget target = textFlowTargetRepository
                     .findByTextFlowAndLocale(tf.getId(), srcLocale.getLocaleId())
                     .orElse(null);
-            // Unchanged re-push: leave the existing source-locale target alone
-            // so its version/author/lastChanged stay put — unless --force.
-            if (!force && target != null && isUnchanged(target, contents, state)) {
+            // Re-push with the same source content is a no-op regardless of who
+            // pushes: the source-locale target's state is derived from the
+            // pusher's role, so gating on state too would rewrite every entry
+            // (churning version/lastChanged and flooding history) whenever the
+            // pusher's role differs from the stored state. Compare content only.
+            if (!force && target != null
+                    && contents.equals(target.getContents())) {
                 continue;
             }
-            if (target == null) {
+            boolean isNew = target == null;
+            if (isNew) {
                 target = new HTextFlowTarget(tf, srcLocale);
             }
             target.setContents(contents);
-            target.setState(state);
+            // Only stamp the state when the target is first created; never
+            // re-stamp it on a content change so a later push can't silently
+            // flip an approved source base back to translated.
+            if (isNew) {
+                target.setState(state);
+            }
             target.setTextFlowRevision(tf.getRevision());
             // Attribute the source push to the pusher so the editor's History
             // panel shows an author instead of a blank "by".

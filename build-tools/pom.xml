@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.zanata</groupId>
   <artifactId>build-tools</artifactId>
-  <version>5.5.5</version>
+  <version>5.5.6</version>
   <name>Build Tools</name>
   <description>Build tools for Zanata modules</description>
   <url>https://github.com/verbaria/verbaria</url>
