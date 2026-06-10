@@ -1,0 +1,9 @@
+{
+    "url": "https://i.verbaria.org/",
+    "project": "verbaria",
+    "projectVersion": "master",
+    "projectType": "utf8properties",
+    "srcDir": "server/zanata-server-ui/src/main/resources/i18n",
+    "transDir": "server/zanata-server-ui/src/main/resources/i18n",
+    "includes": "translations.properties"
+}

@@ -1,0 +1,53 @@
+name: Verbaria Sync
+
+# Syncs this repo's own UI strings with the Verbaria server (config in the
+# committed verbaria.json): first pushes the source locale, then pulls the
+# latest translations and opens a PR when anything changed. Not a reusable
+# workflow — it is specific to this repository.
+#
+# Credentials:
+#   - secret VERBARIA_API_KEY  (required)
+#   - variable VERBARIA_USERNAME (optional; falls back to the action default)
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+  push:
+    branches: [ master ]
+    paths:
+      - 'server/zanata-server-ui/src/main/resources/i18n/translations.properties'
+
+concurrency:
+  group: verbaria-sync-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    if: ${{ github.repository_owner == 'verbaria' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Push source
+        uses: verbaria/source-sync@master
+        with:
+          server-url: 'https://i.verbaria.org/'
+          username: ${{ vars.VERBARIA_USERNAME }}
+          api-key: ${{ secrets.VERBARIA_API_KEY }}
+          push-type: 'source'
+          client-version: 'latest'
+
+      - name: Pull translations
+        uses: verbaria/translate-sync@master
+        with:
+          server-url: 'https://i.verbaria.org/'
+          username: ${{ vars.VERBARIA_USERNAME }}
+          api-key: ${{ secrets.VERBARIA_API_KEY }}
+          pull-type: 'trans'
+          client-version: 'latest'
