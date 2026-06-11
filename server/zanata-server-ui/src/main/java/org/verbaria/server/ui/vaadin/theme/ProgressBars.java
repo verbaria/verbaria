@@ -8,7 +8,7 @@ public final class ProgressBars {
     /** Below this translated percentage the bar/label is red (error). */
     public static final double LOW_THRESHOLD = 50.0;
     /** At or above this percentage the bar/label is green (success);
-     *  between the two thresholds it is orange (warning). */
+     *  between the two thresholds it is yellow (warning). */
     public static final double HIGH_THRESHOLD = 80.0;
 
     private ProgressBars() {
@@ -27,7 +27,7 @@ public final class ProgressBars {
             return AuraUtility.TextColor.ERROR;
         }
         if (clamped < HIGH_THRESHOLD) {
-            return AuraUtility.TextColor.ORANGE;
+            return AuraUtility.TextColor.WARNING;
         }
         return AuraUtility.TextColor.SUCCESS;
     }
@@ -38,7 +38,7 @@ public final class ProgressBars {
             return AuraUtility.Accent.RED;
         }
         if (clamped < HIGH_THRESHOLD) {
-            return AuraUtility.Accent.ORANGE;
+            return AuraUtility.Accent.YELLOW;
         }
         return AuraUtility.Accent.GREEN;
     }
