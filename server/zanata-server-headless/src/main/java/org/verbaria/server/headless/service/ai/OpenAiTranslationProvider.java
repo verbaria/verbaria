@@ -47,9 +47,23 @@ public class OpenAiTranslationProvider implements TranslationProvider, Disposabl
     @Override
     public String translate(String source, LocaleId src, LocaleId tgt,
             String context, String guidance) {
+        return runPrompt(Prompts.buildTranslate(source, src, tgt, context, guidance));
+    }
+
+    /**
+     * Run an already-built prompt verbatim. The batch path
+     * ({@link #translateChunk}) calls this with a JSON-in/JSON-out prompt, so it
+     * must NOT be re-wrapped in {@link Prompts#buildTranslate} (which would make
+     * the model translate the prompt itself and break batch parsing).
+     */
+    @Override
+    public String translateRaw(String prompt, LocaleId src, LocaleId tgt) {
+        return runPrompt(prompt);
+    }
+
+    private String runPrompt(String prompt) {
         OpenAiChatModel chat = chatModel();
-        var response = chat.call(new Prompt(
-                Prompts.buildTranslate(source, src, tgt, context, guidance)));
+        var response = chat.call(new Prompt(prompt));
         return response.getResult().getOutput().getText().trim();
     }
 
