@@ -133,30 +133,43 @@ public class ActivityFeedService {
     private static final Date MAX_DATE =
             Date.from(java.time.Instant.parse("9999-12-31T23:59:59Z"));
 
+    /**
+     * One page of the merged activity feed (current targets + history), newest
+     * first. Both sources are sorted by time, so the global page {@code [offset,
+     * offset+limit)} is contained in the top {@code offset+limit} of each — we
+     * over-fetch that many from each, merge, sort, then slice.
+     */
     @Transactional(readOnly = true)
     public List<Entry> recent(String username, String projectSlug,
-            String localeId, Date from, Date to, int limit) {
+            String localeId, Date from, Date to, int offset, int limit) {
         String u = blankToNull(username);
         String p = blankToNull(projectSlug);
         LocaleId loc = blankToNull(localeId) == null ? null
                 : new LocaleId(localeId);
         Date fromD = from == null ? MIN_DATE : from;
         Date toD = to == null ? MAX_DATE : to;
-        Pageable page = PageRequest.of(0, limit);
+        int over = offset + limit;
+        Pageable page = PageRequest.of(0, Math.max(1, over));
 
         List<Raw> raws = new ArrayList<>();
         for (HTextFlowTarget t : targetRepository.findRecentActivity(u, p, loc, fromD, toD, page)) {
             Raw r = rawFromTarget(t);
-            if (r != null) {
+            if (r != null && r.when() != null) {
                 raws.add(r);
             }
         }
         for (HTextFlowTargetHistory h : historyRepository.findRecentActivity(u, p, loc, fromD, toD, page)) {
             Raw r = rawFromHistory(h);
-            if (r != null) {
+            if (r != null && r.when() != null) {
                 raws.add(r);
             }
         }
+        raws.sort(Comparator.comparing(Raw::when).reversed());
+        if (offset >= raws.size()) {
+            return List.of();
+        }
+        List<Raw> pageRaws = new ArrayList<>(
+                raws.subList(offset, Math.min(raws.size(), over)));
 
         // Reconstruct the value each change replaced. The prior value is looked
         // up from the FULL version chain (every target + history row for the
@@ -164,18 +177,16 @@ public class ActivityFeedService {
         // set it, whether they match the active filters, or whether that
         // version is inside the activity window.
         Map<String, NavigableMap<Integer, String>> chains =
-                buildValueChains(raws);
-        List<Entry> out = new ArrayList<>();
-        for (Raw r : raws) {
+                buildValueChains(pageRaws);
+        List<Entry> out = new ArrayList<>(pageRaws.size());
+        for (Raw r : pageRaws) {
             String prev = previousValue(chains, r);
             out.add(new Entry(r.actorUsername(), r.actorName(), r.state(),
                     r.projectSlug(), r.projectName(), r.versionSlug(),
                     r.docId(), r.localeId(), r.key(), r.resId(), r.source(),
                     r.value(), prev, r.when()));
         }
-        out.removeIf(e -> e.when() == null);
-        out.sort(Comparator.comparing(Entry::when).reversed());
-        return out.size() > limit ? new ArrayList<>(out.subList(0, limit)) : out;
+        return out;
     }
 
     private Map<String, NavigableMap<Integer, String>> buildValueChains(

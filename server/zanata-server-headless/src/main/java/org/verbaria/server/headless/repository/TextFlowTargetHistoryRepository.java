@@ -1,6 +1,7 @@
 package org.verbaria.server.headless.repository;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,8 @@ public interface TextFlowTargetHistoryRepository
               join fetch doc.projectIteration it
               join fetch it.project p
             where h.lastModifiedBy is not null
+              and h.state is not null
+              and h.state <> org.zanata.common.ContentState.New
               and (:username is null or acc.username = :username)
               and (:projectSlug is null or p.slug = :projectSlug)
               and (:locale is null or t.locale.localeId = :locale)
@@ -57,8 +60,8 @@ public interface TextFlowTargetHistoryRepository
             @Param("username") String username,
             @Param("projectSlug") String projectSlug,
             @Param("locale") LocaleId locale,
-            @Param("from") java.util.Date from,
-            @Param("to") java.util.Date to, Pageable pageable);
+            @Param("from") Date from,
+            @Param("to") Date to, Pageable pageable);
 
     /**
      * All historical versions for the given text flows (all locales), used by

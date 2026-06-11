@@ -32,6 +32,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -56,6 +58,9 @@ import io.leangen.graphql.annotations.types.GraphQLType;
 
 @Entity
 @Immutable
+// Activity feed orders the whole table by last_changed (desc) with a limit;
+// index it so that's a bounded index scan, not a full sort.
+@Table(indexes = @Index(name = "idx_htfth_last_changed", columnList = "last_changed"))
 @NamedQueries({
         @NamedQuery(name = HTextFlowTargetHistory.QUERY_MATCHING_HISTORY + 1,
                 query = "select count(*) from HTextFlowTargetHistory t where t.textFlowTarget = :tft and size(t.contents) = :contentCount and contents[0] = :content0"),

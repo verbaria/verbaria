@@ -4,11 +4,11 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.List;
 
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.dataview.GridLazyDataView;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -34,8 +34,6 @@ import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 @AnonymousAllowed
 public class ActivityView extends VerticalLayout implements TitleKey {
 
-    private static final int LIMIT = 200;
-
     @Override public String pageTitleKey() { return "page.activityFeed"; }
 
     private final ActivityFeedService activityFeed;
@@ -46,6 +44,7 @@ public class ActivityView extends VerticalLayout implements TitleKey {
     private final DatePicker toFilter = new DatePicker();
     private final Grid<Entry> grid = new Grid<>(Entry.class, false);
     private final SimpleDateFormat when = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    private GridLazyDataView<Entry> dataView;
 
     public ActivityView(ActivityFeedService activityFeed) {
         this.activityFeed = activityFeed;
@@ -57,29 +56,29 @@ public class ActivityView extends VerticalLayout implements TitleKey {
         userFilter.setClearButtonVisible(true);
         userFilter.setItems(activityFeed.actors());
         userFilter.setItemLabelGenerator(Actor::displayName);
-        userFilter.addValueChangeListener(e -> reload());
+        userFilter.addValueChangeListener(e -> dataView.refreshAll());
 
         projectFilter.setPlaceholder(getTranslation("activity.filter.project"));
         projectFilter.setClearButtonVisible(true);
         projectFilter.setItems(activityFeed.projects());
         projectFilter.setItemLabelGenerator(ProjectOption::name);
-        projectFilter.addValueChangeListener(e -> reload());
+        projectFilter.addValueChangeListener(e -> dataView.refreshAll());
 
         localeFilter.setPlaceholder(getTranslation("activity.filter.locale"));
         localeFilter.setClearButtonVisible(true);
         localeFilter.setItems(activityFeed.locales());
         localeFilter.setItemLabelGenerator(LocaleOption::displayName);
-        localeFilter.addValueChangeListener(e -> reload());
+        localeFilter.addValueChangeListener(e -> dataView.refreshAll());
 
         fromFilter.setPlaceholder(getTranslation("activity.filter.from"));
         fromFilter.setLabel(getTranslation("activity.filter.from"));
         fromFilter.setClearButtonVisible(true);
-        fromFilter.addValueChangeListener(e -> reload());
+        fromFilter.addValueChangeListener(e -> dataView.refreshAll());
 
         toFilter.setPlaceholder(getTranslation("activity.filter.to"));
         toFilter.setLabel(getTranslation("activity.filter.to"));
         toFilter.setClearButtonVisible(true);
-        toFilter.addValueChangeListener(e -> reload());
+        toFilter.addValueChangeListener(e -> dataView.refreshAll());
 
         HorizontalLayout filters = new HorizontalLayout(
                 userFilter, projectFilter, localeFilter, fromFilter, toFilter);
@@ -108,24 +107,43 @@ public class ActivityView extends VerticalLayout implements TitleKey {
         grid.setSizeFull();
         grid.addClassNames(AuraUtility.MinHeight.NONE);
 
+        // Lazy, backend-paged, UNDEFINED-SIZE provider: the grid fetches one
+        // page at a time and detects the end when a page returns fewer rows
+        // than asked. No count query — counting the whole feed would be a full
+        // table scan that no index can avoid. A filter change re-queries via
+        // dataView.refreshAll().
+        dataView = grid.setItems(query -> activityFeed.recent(
+                filterUser(), filterProject(), filterLocale(),
+                filterFrom(), filterTo(),
+                query.getOffset(), query.getLimit()).stream());
+
         add(filters);
         addAndExpand(grid);
-        reload();
     }
 
-    private void reload() {
+    private String filterUser() {
         Actor u = userFilter.getValue();
+        return u == null ? null : u.username();
+    }
+
+    private String filterProject() {
         ProjectOption p = projectFilter.getValue();
+        return p == null ? null : p.slug();
+    }
+
+    private String filterLocale() {
         LocaleOption l = localeFilter.getValue();
-        List<Entry> entries = activityFeed.recent(
-                u == null ? null : u.username(),
-                p == null ? null : p.slug(),
-                l == null ? null : l.id(),
-                toDate(fromFilter.getValue()),
-                toDate(toFilter.getValue() == null ? null
-                        : toFilter.getValue().plusDays(1)),
-                LIMIT);
-        grid.setItems(entries);
+        return l == null ? null : l.id();
+    }
+
+    private Date filterFrom() {
+        return toDate(fromFilter.getValue());
+    }
+
+    private Date filterTo() {
+        // Inclusive end: add a day so the chosen date is fully covered.
+        return toDate(toFilter.getValue() == null ? null
+                : toFilter.getValue().plusDays(1));
     }
 
     private static Date toDate(LocalDate date) {

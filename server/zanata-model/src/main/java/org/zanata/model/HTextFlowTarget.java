@@ -32,6 +32,8 @@ import javax.annotation.Nonnull;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -65,6 +67,9 @@ import io.leangen.graphql.annotations.types.GraphQLType;
  * @author Asgeir Frimannsson <asgeirf@redhat.com>
  */
 @Entity
+// Activity feed orders the whole table by last_changed (desc) with a limit;
+// index it so that's a bounded index scan, not a full sort.
+@Table(indexes = @Index(name = "idx_htft_last_changed", columnList = "last_changed"))
 @EntityListeners({ HTextFlowTarget.EntityListener.class })
 @Cacheable
 @GraphQLType(name = "TextFlowTarget")

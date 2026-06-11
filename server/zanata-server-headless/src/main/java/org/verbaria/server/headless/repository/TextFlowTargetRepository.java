@@ -1,6 +1,7 @@
 package org.verbaria.server.headless.repository;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,6 +93,8 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
               join fetch doc.projectIteration it
               join fetch it.project p
             where t.lastModifiedBy is not null
+              and t.state is not null
+              and t.state <> org.zanata.common.ContentState.New
               and (:username is null or acc.username = :username)
               and (:projectSlug is null or p.slug = :projectSlug)
               and (:locale is null or t.locale.localeId = :locale)
@@ -102,8 +105,8 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
     List<HTextFlowTarget> findRecentActivity(@Param("username") String username,
             @Param("projectSlug") String projectSlug,
             @Param("locale") LocaleId locale,
-            @Param("from") java.util.Date from,
-            @Param("to") java.util.Date to, Pageable pageable);
+            @Param("from") Date from,
+            @Param("to") Date to, Pageable pageable);
 
     /**
      * Current targets for the given text flows (all locales), used by the

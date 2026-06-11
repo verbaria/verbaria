@@ -55,7 +55,7 @@ class ActivityFeedIT extends AbstractPushPullIT {
         // Regression: with every filter null the query must still run — a bare
         // NULL timestamp bind used to fail on PostgreSQL ("could not determine
         // data type of parameter").
-        List<Entry> entries = activityFeed.recent(null, null, null, null, null, 50);
+        List<Entry> entries = activityFeed.recent(null, null, null, null, null, 0, 50);
 
         assertThat(entries).isNotEmpty();
         assertThat(entries).anySatisfy(e -> {
@@ -71,19 +71,19 @@ class ActivityFeedIT extends AbstractPushPullIT {
     void filtersByUserProjectAndLocale() throws Exception {
         seedOneTranslation();
 
-        assertThat(activityFeed.recent(USER, null, null, null, null, 50))
+        assertThat(activityFeed.recent(USER, null, null, null, null, 0, 50))
                 .as("matching user").isNotEmpty();
-        assertThat(activityFeed.recent("nobody", null, null, null, null, 50))
+        assertThat(activityFeed.recent("nobody", null, null, null, null, 0, 50))
                 .as("unknown user").isEmpty();
 
-        assertThat(activityFeed.recent(null, PROJECT, null, null, null, 50))
+        assertThat(activityFeed.recent(null, PROJECT, null, null, null, 0, 50))
                 .as("matching project").isNotEmpty();
-        assertThat(activityFeed.recent(null, "other-proj", null, null, null, 50))
+        assertThat(activityFeed.recent(null, "other-proj", null, null, null, 0, 50))
                 .as("unknown project").isEmpty();
 
-        assertThat(activityFeed.recent(null, null, "fr-FR", null, null, 50))
+        assertThat(activityFeed.recent(null, null, "fr-FR", null, null, 0, 50))
                 .as("matching locale").isNotEmpty();
-        assertThat(activityFeed.recent(null, null, "de", null, null, 50))
+        assertThat(activityFeed.recent(null, null, "de", null, null, 0, 50))
                 .as("other locale").isEmpty();
     }
 
@@ -92,7 +92,7 @@ class ActivityFeedIT extends AbstractPushPullIT {
         seedOneTranslation();
 
         List<Entry> entries = activityFeed.recent(null, PROJECT, "fr-FR",
-                null, null, 50);
+                null, null, 0, 50);
 
         // The edit from "Bonjour" to "Salut" must surface both the new value
         // and the value it replaced.
@@ -130,7 +130,7 @@ class ActivityFeedIT extends AbstractPushPullIT {
         // "before", even though the version that holds it is filtered out of
         // the activity rows.
         List<Entry> entries = activityFeed.recent(USER, PROJECT2, "fr-FR",
-                null, null, 50);
+                null, null, 0, 50);
         assertThat(entries).anySatisfy(e -> {
             assertThat(e.value()).isEqualTo("New");
             assertThat(e.previousValue()).isEqualTo("Old");
@@ -142,7 +142,7 @@ class ActivityFeedIT extends AbstractPushPullIT {
         seedOneTranslation();
 
         List<Entry> entries = activityFeed.recent(null, PROJECT, "fr-FR",
-                null, null, 50);
+                null, null, 0, 50);
 
         assertThat(entries).isNotEmpty();
         assertThat(entries).allSatisfy(e -> {
@@ -161,10 +161,32 @@ class ActivityFeedIT extends AbstractPushPullIT {
         Date now = new Date();
         Date future = new Date(now.getTime() + 86_400_000L);
 
-        assertThat(activityFeed.recent(null, null, null, past, future, 50))
+        assertThat(activityFeed.recent(null, null, null, past, future, 0, 50))
                 .as("range covering now").isNotEmpty();
         assertThat(activityFeed.recent(null, null, null, past,
-                new Date(1_000L), 50))
+                new Date(1_000L), 0, 50))
                 .as("range entirely in the past").isEmpty();
+    }
+
+    @Test
+    void pagedFetchIsNewestFirstAndBounded() throws Exception {
+        seedOneTranslation();
+
+        // The lazy grid pages with (offset, limit) and detects the end when a
+        // page returns fewer rows than asked — so there's no count query.
+        List<Entry> all = activityFeed.recent(null, PROJECT, "fr-FR",
+                null, null, 0, 1000);
+        assertThat(all).as("seeded activity is present").isNotEmpty();
+        assertThat(all).as("newest first")
+                .isSortedAccordingTo(
+                        java.util.Comparator.comparing(Entry::when).reversed());
+
+        // A small first page returns just that page.
+        assertThat(activityFeed.recent(null, PROJECT, "fr-FR", null, null, 0, 1))
+                .hasSize(1);
+
+        // Offset past the end is empty (signals the grid to stop).
+        assertThat(activityFeed.recent(null, PROJECT, "fr-FR", null, null,
+                all.size(), 10)).isEmpty();
     }
 }
