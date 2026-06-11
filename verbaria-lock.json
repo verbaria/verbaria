@@ -3,11 +3,13 @@
   "server" : "https://i.verbaria.org/",
   "project" : "verbaria",
   "projectVersion" : "master",
-  "generatedAt" : "2026-06-10T20:59:41.749242508Z",
+  "sourceLocale" : "en-US",
+  "generatedAt" : "2026-06-11T10:11:46.106104548Z",
   "documents" : {
     "translations" : {
-      "source" : {                                     
-        "revision" : 1
+      "source" : {
+        "revision" : 1,
+        "sig" : "59b8fd983270d23b29a372aee7a848e3"
       },
       "translations" : {
         "en-US" : {
