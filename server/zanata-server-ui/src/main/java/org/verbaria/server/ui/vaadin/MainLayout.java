@@ -1,6 +1,7 @@
 package org.verbaria.server.ui.vaadin;
 
 import org.verbaria.server.headless.security.Roles;
+import org.verbaria.server.ui.vaadin.group.GroupsView;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 
 import java.util.ArrayList;
@@ -51,7 +52,6 @@ import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import org.verbaria.server.headless.service.ContactAdminService;
 import org.verbaria.server.headless.service.HomeContentService;
 import org.verbaria.server.ui.vaadin.admin.AdminHomeView;
-import org.verbaria.server.ui.vaadin.group.GroupsView;
 import org.verbaria.server.ui.vaadin.profile.ProfileView;
 
 /**
@@ -379,9 +379,9 @@ public class MainLayout extends AppLayout
             nav.add(navLink(getTranslation("nav.home"), HomeView.class));
         }
         nav.add(navLink(getTranslation("nav.explore"), ExploreView.class));
-        nav.add(navLink(getTranslation("nav.groups"), GroupsView.class));
+        //nav.add(navLink(getTranslation("nav.groups"), GroupsView.class));
         nav.add(navLink(getTranslation("nav.languages"), LanguagesView.class));
-        nav.add(navLink(getTranslation("nav.glossary"), GlossaryView.class));
+        //nav.add(navLink(getTranslation("nav.glossary"), GlossaryView.class));
         nav.add(navLink(getTranslation("nav.activity"), ActivityView.class));
         return nav;
     }
