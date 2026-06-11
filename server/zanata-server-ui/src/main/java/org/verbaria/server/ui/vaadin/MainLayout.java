@@ -88,6 +88,7 @@ public class MainLayout extends AppLayout
     private final LoginDialogService loginDialogService;
     private final BreadcrumbsService breadcrumbsService;
     private final HomeContentService homeContentService;
+    private final AvatarService avatarService;
 
     // Live placeholder in the toolbar — re-populated on every navigation by
     // {@link #afterNavigation}. Owning it as a field avoids querying the
@@ -114,13 +115,15 @@ public class MainLayout extends AppLayout
                       ThemeSelector themeSelector,
                       LoginDialogService loginDialogService,
                       BreadcrumbsService breadcrumbsService,
-                      HomeContentService homeContentService) {
+                      HomeContentService homeContentService,
+                      AvatarService avatarService) {
         this.contactAdminService = contactAdminService;
         this.localeSelector = localeSelector;
         this.themeSelector = themeSelector;
         this.loginDialogService = loginDialogService;
         this.breadcrumbsService = breadcrumbsService;
         this.homeContentService = homeContentService;
+        this.avatarService = avatarService;
         // Apply the persisted-locale cookie BEFORE children render. Reading
         // the cookie doesn't need the session, only the inbound HttpServletRequest
         // — which is available here because MainLayout is instantiated during
@@ -521,7 +524,7 @@ public class MainLayout extends AppLayout
         MenuBar bar = new MenuBar();
         bar.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
         HorizontalLayout label = new HorizontalLayout(
-                LineAwesomeIcon.USER_SOLID.create(),
+                avatarService.avatarForUsername(currentUsername(), 18),
                 new Span(currentUsername()));
         label.setSpacing(false);
         label.setAlignItems(FlexComponent.Alignment.CENTER);

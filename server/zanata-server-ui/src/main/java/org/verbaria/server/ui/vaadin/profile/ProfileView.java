@@ -22,15 +22,11 @@ import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 import jakarta.annotation.security.PermitAll;
 import org.verbaria.server.ui.vaadin.theme.AuraUtility;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,12 +39,10 @@ import org.vaadin.lineawesome.LineAwesomeIcon;
 import org.zanata.model.Activity;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocaleMember;
-import org.zanata.model.HApplicationConfiguration;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.ActivityRepository;
-import org.verbaria.server.headless.repository.ApplicationConfigurationRepository;
+import org.verbaria.server.ui.vaadin.AvatarService;
 import org.verbaria.server.headless.repository.LocaleMemberRepository;
-import org.verbaria.server.headless.settings.ServerSetting;
 import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.ui.vaadin.dashboard.DashboardSettingsView;
 
@@ -62,16 +56,16 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
     private final AccountRepository accountRepository;
     private final ActivityRepository activityRepository;
     private final LocaleMemberRepository localeMemberRepository;
-    private final ApplicationConfigurationRepository configRepository;
+    private final AvatarService avatarService;
 
     public ProfileView(AccountRepository accountRepository,
                        ActivityRepository activityRepository,
                        LocaleMemberRepository localeMemberRepository,
-                       ApplicationConfigurationRepository configRepository) {
+                       AvatarService avatarService) {
         this.accountRepository = accountRepository;
         this.activityRepository = activityRepository;
         this.localeMemberRepository = localeMemberRepository;
-        this.configRepository = configRepository;
+        this.avatarService = avatarService;
         setWidthFull();
         setPadding(true);
         setSpacing(true);
@@ -167,36 +161,9 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private Component buildAvatar(String displayName, String email) {
-        // Vaadin Avatar handles the circular shape, initials fallback, and
-        // image loading — when no image URL is set it falls back to the
-        // first-letter abbreviation of `name`. We feed it Gravatar when an
-        // email is on file, otherwise leave imageless for the initials.
-        com.vaadin.flow.component.avatar.Avatar avatar =
-                new com.vaadin.flow.component.avatar.Avatar(displayName);
-        avatar.setHeight("96px");
-        avatar.setWidth("96px");
+        var avatar = avatarService.avatar(displayName, email, 96);
         avatar.addClassNames(AuraUtility.Flex.NONE);
-        if (email != null) {
-            String hash = md5LowerHex(email.trim().toLowerCase(Locale.ROOT));
-            avatar.setImage("https://www.gravatar.com/avatar/" + hash
-                    + "?s=160&d=identicon&r=" + gravatarRating());
-        }
         return avatar;
-    }
-
-    /**
-     * Configured Gravatar max rating ({@code gravatar.rating}); defaults to
-     * {@code g}. Restricted to Gravatar's allowed values so a bad config can't
-     * produce a broken URL.
-     */
-    private String gravatarRating() {
-        return configRepository
-                .findByKey(ServerSetting.GRAVATAR_RATING.key())
-                .map(HApplicationConfiguration::getValue)
-                .map(v -> v == null ? "" : v.trim().toLowerCase(Locale.ROOT))
-                .filter(v -> v.equals("g") || v.equals("pg")
-                        || v.equals("r") || v.equals("x"))
-                .orElse("g");
     }
 
     private Span roleChip(String role) {
@@ -362,12 +329,4 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver, 
         return d;
     }
 
-    private static String md5LowerHex(String s) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            return HexFormat.of().formatHex(md.digest(s.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
-    }
 }

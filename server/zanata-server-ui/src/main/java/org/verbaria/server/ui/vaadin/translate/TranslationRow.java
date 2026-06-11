@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -68,6 +69,7 @@ import org.verbaria.server.headless.validation.CompositeLanguageValidator;
 import org.verbaria.server.headless.validation.LanguageValidator;
 import org.verbaria.server.headless.validation.MessageFormatValidator;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
+import org.verbaria.server.ui.vaadin.AvatarService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,7 @@ public class TranslationRow extends Div {
     private final LocaleRepository localeRepository;
     private final LocaleMemberRepository localeMemberRepository;
     private final MessageEvaluators messageEvaluators;
+    private final AvatarService avatarService;
 
     private RowContext ctx;
     private HTextFlow flow;
@@ -128,7 +131,8 @@ public class TranslationRow extends Div {
                           AccountRepository accountRepository,
                           LocaleRepository localeRepository,
                           LocaleMemberRepository localeMemberRepository,
-                          MessageEvaluators messageEvaluators) {
+                          MessageEvaluators messageEvaluators,
+                          AvatarService avatarService) {
         this.languageValidator = languageValidator;
         this.messageEvaluators = messageEvaluators;
         this.taskScheduler = taskScheduler;
@@ -143,6 +147,7 @@ public class TranslationRow extends Div {
         this.accountRepository = accountRepository;
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
+        this.avatarService = avatarService;
     }
 
     public TranslationRow populate(RowContext ctx, HTextFlow flow,
@@ -885,6 +890,7 @@ public class TranslationRow extends Div {
                     "v" + h.getVersionNum(),
                     h.getState() == null ? "" : h.getState().name(),
                     h.getLastModifiedBy() == null ? "" : h.getLastModifiedBy().getName(),
+                    h.getLastModifiedBy() == null ? null : h.getLastModifiedBy().getEmail(),
                     h.getLastChanged() == null ? "" : h.getLastChanged().toString(),
                     sourceLabel(h.getSourceType()),
                     firstContent(h.getContents())));
@@ -898,6 +904,7 @@ public class TranslationRow extends Div {
                         "current",
                         cur.getState() == null ? "" : cur.getState().name(),
                         cur.getLastModifiedBy() == null ? "" : cur.getLastModifiedBy().getName(),
+                        cur.getLastModifiedBy() == null ? null : cur.getLastModifiedBy().getEmail(),
                         cur.getLastChanged() == null ? "" : cur.getLastChanged().toString(),
                         sourceLabel(cur.getSourceType()),
                         firstContent(cur.getContents())));
@@ -906,7 +913,8 @@ public class TranslationRow extends Div {
         String live = liveContent == null ? null : liveContent.get();
         if (live != null && !live.isEmpty() && !Objects.equals(live, savedContent)) {
             rows.add(new HistoryRow(getTranslation("translate.history.unsavedRow"),
-                    "—", getTranslation("translate.history.you"), "—", "", live));
+                    "—", getTranslation("translate.history.you"),
+                    currentUserEmail(), "—", "", live));
         }
 
         if (rows.isEmpty() && comments.isEmpty()) {
@@ -924,7 +932,8 @@ public class TranslationRow extends Div {
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(HistoryRow::state).setHeader(getTranslation("translate.history.col.state"))
                 .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(HistoryRow::modifier).setHeader(getTranslation("translate.history.col.by"))
+        grid.addComponentColumn(this::historyAuthorCell)
+                .setHeader(getTranslation("translate.history.col.by"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(HistoryRow::when).setHeader(getTranslation("translate.history.col.when"))
                 .setAutoWidth(true).setFlexGrow(0);
@@ -1083,6 +1092,17 @@ public class TranslationRow extends Div {
         return auth.getName();
     }
 
+    /** Email of the signed-in user, so the unsaved "you" history row shows
+     *  their own avatar rather than a generic initials placeholder. */
+    private String currentUserEmail() {
+        String u = currentUsername();
+        if (u == null) {
+            return null;
+        }
+        List<Object[]> rows = accountRepository.findPersonNameEmail(u);
+        return rows.isEmpty() ? null : (String) rows.get(0)[1];
+    }
+
     static void applyStateColor(Span span, ContentState state) {
         // Approved and Translated both render as success-green (the legacy
         // "darkgreen" / "green" distinction is dropped — text-success already
@@ -1187,8 +1207,20 @@ public class TranslationRow extends Div {
                 .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
+    private Component historyAuthorCell(HistoryRow r) {
+        String name = r.modifier() == null ? "" : r.modifier();
+        Avatar av = avatarService.avatar(name, r.modifierEmail(), 22);
+        Span label = new Span(name);
+        HorizontalLayout row = new HorizontalLayout(av, label);
+        row.setAlignItems(FlexComponent.Alignment.CENTER);
+        row.setSpacing(false);
+        row.addClassNames(AuraUtility.Gap.SMALL);
+        return row;
+    }
+
     private record HistoryRow(String version, String state, String modifier,
-                              String when, String source, String content) {}
+                              String modifierEmail, String when, String source,
+                              String content) {}
 
     private static String sourceLabel(TranslationSourceType type) {
         return type == TranslationSourceType.MACHINE_TRANS ? "AI" : "";

@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
@@ -37,6 +39,7 @@ public class ActivityView extends VerticalLayout implements TitleKey {
     @Override public String pageTitleKey() { return "page.activityFeed"; }
 
     private final ActivityFeedService activityFeed;
+    private final AvatarService avatarService;
     private final ComboBox<Actor> userFilter = new ComboBox<>();
     private final ComboBox<ProjectOption> projectFilter = new ComboBox<>();
     private final ComboBox<LocaleOption> localeFilter = new ComboBox<>();
@@ -46,8 +49,10 @@ public class ActivityView extends VerticalLayout implements TitleKey {
     private final SimpleDateFormat when = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     private GridLazyDataView<Entry> dataView;
 
-    public ActivityView(ActivityFeedService activityFeed) {
+    public ActivityView(ActivityFeedService activityFeed,
+                        AvatarService avatarService) {
         this.activityFeed = activityFeed;
+        this.avatarService = avatarService;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -88,7 +93,7 @@ public class ActivityView extends VerticalLayout implements TitleKey {
         grid.addColumn(e -> e.when() == null ? "" : when.format(e.when()))
                 .setHeader(getTranslation("activity.col.when"))
                 .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(e -> e.actorName() == null ? e.actorUsername() : e.actorName())
+        grid.addComponentColumn(this::userCell)
                 .setHeader(getTranslation("activity.col.user"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addComponentColumn(this::actionCell)
@@ -149,6 +154,17 @@ public class ActivityView extends VerticalLayout implements TitleKey {
     private static Date toDate(LocalDate date) {
         return date == null ? null
                 : Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    private Component userCell(Entry e) {
+        String name = e.actorName() == null ? e.actorUsername() : e.actorName();
+        Avatar av = avatarService.avatar(name, e.actorEmail(), 24);
+        Span label = new Span(name == null ? "" : name);
+        HorizontalLayout row = new HorizontalLayout(av, label);
+        row.setAlignItems(FlexComponent.Alignment.CENTER);
+        row.setSpacing(false);
+        row.addClassNames(AuraUtility.Gap.SMALL);
+        return row;
     }
 
     private Span actionCell(Entry e) {

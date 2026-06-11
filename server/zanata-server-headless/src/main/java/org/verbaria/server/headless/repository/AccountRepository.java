@@ -18,6 +18,18 @@ public interface AccountRepository extends JpaRepository<HAccount, Long> {
     Optional<HAccount> findFirstByPersonEmailIgnoreCase(String email);
 
     /**
+     * Display name + email for a username as a {@code [name, email]} row, so
+     * callers (e.g. the navbar avatar) can render a person without touching the
+     * lazy {@code HAccount.person} association outside a session.
+     */
+    @Query("""
+            select p.name, p.email from HAccount a
+            join a.person p
+            where a.username = :username
+            """)
+    List<Object[]> findPersonNameEmail(@Param("username") String username);
+
+    /**
      * Eager-loads {@code roles} so callers running outside an open Hibernate
      * session — notably {@link org.verbaria.server.headless.security.ApiKeyAuthenticationFilter}
      * which executes before any controller transaction boundary — can iterate

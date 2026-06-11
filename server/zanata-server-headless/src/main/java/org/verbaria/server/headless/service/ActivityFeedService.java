@@ -63,16 +63,16 @@ public class ActivityFeedService {
     }
 
     public record Entry(String actorUsername, String actorName,
-            ContentState state, String projectSlug, String projectName,
-            String versionSlug, String docId, String localeId,
-            String key, String resId, String source,
+            String actorEmail, ContentState state, String projectSlug,
+            String projectName, String versionSlug, String docId,
+            String localeId, String key, String resId, String source,
             String value, String previousValue, Date when) {}
 
     private record Raw(Long textFlowId, String localeId, Integer version,
             String value, ContentState state, String actorUsername,
-            String actorName, String projectSlug, String projectName,
-            String versionSlug, String docId, String key, String resId,
-            String source, Date when) {}
+            String actorName, String actorEmail, String projectSlug,
+            String projectName, String versionSlug, String docId, String key,
+            String resId, String source, Date when) {}
 
     public record Actor(String username, String displayName) {}
 
@@ -181,8 +181,8 @@ public class ActivityFeedService {
         List<Entry> out = new ArrayList<>(pageRaws.size());
         for (Raw r : pageRaws) {
             String prev = previousValue(chains, r);
-            out.add(new Entry(r.actorUsername(), r.actorName(), r.state(),
-                    r.projectSlug(), r.projectName(), r.versionSlug(),
+            out.add(new Entry(r.actorUsername(), r.actorName(), r.actorEmail(),
+                    r.state(), r.projectSlug(), r.projectName(), r.versionSlug(),
                     r.docId(), r.localeId(), r.key(), r.resId(), r.source(),
                     r.value(), prev, r.when()));
         }
@@ -282,9 +282,9 @@ public class ActivityFeedService {
         String key = context == null || context.isBlank()
                 ? tf.getResId() : context;
         return new Raw(tf.getId(), localeId, version, value, state, username,
-                actor.getName(), p.getSlug(), p.getName(), it.getSlug(),
-                doc.getDocId(), key, tf.getResId(), firstContent(tf.getContents()),
-                when);
+                actor.getName(), actor.getEmail(), p.getSlug(), p.getName(),
+                it.getSlug(), doc.getDocId(), key, tf.getResId(),
+                firstContent(tf.getContents()), when);
     }
 
     private static String firstContent(List<String> contents) {
