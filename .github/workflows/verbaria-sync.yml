@@ -1,22 +1,20 @@
 name: Verbaria Sync
 
 # Syncs this repo's own UI strings with the Verbaria server (config in the
-# committed verbaria.json): first pushes the source locale, then pulls the
-# latest translations and opens a PR when anything changed. Not a reusable
-# workflow — it is specific to this repository.
+# committed verbaria.json): pushes the source locale, then pulls the latest
+# translations, and opens ONE pull request with everything that changed
+# (source, translations, and the single verbaria-lock.json). Doing both in one
+# job and one PR avoids the two-PR conflict you get from separate source/
+# translation syncs both editing the lock file.
 #
 # Credentials:
 #   - secret VERBARIA_API_KEY  (required)
-#   - variable VERBARIA_USERNAME (optional; falls back to the action default)
+#   - variable VERBARIA_USERNAME (optional)
 
 on:
   schedule:
     - cron: '0 6 * * *'
   workflow_dispatch: {}
-  push:
-    branches: [ master ]
-    paths:
-      - 'server/zanata-server-ui/src/main/resources/i18n/translations.properties'
 
 concurrency:
   group: verbaria-sync-${{ github.repository }}
@@ -26,6 +24,14 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  SERVER_URL: 'https://i.verbaria.org/'
+  PR_BRANCH: 'verbaria/sync'
+  PR_TITLE: 'chore(i18n): sync source and translations'
+  PR_LABELS: 'translations'
+  BOT_NAME: 'verbaria-bot'
+  BOT_EMAIL: 'verbaria-bot@users.noreply.github.com'
+
 jobs:
   sync:
     if: ${{ github.repository_owner == 'verbaria' }}
@@ -34,20 +40,144 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Push source
-        uses: verbaria/source-sync@master
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
         with:
-          server-url: 'https://i.verbaria.org/'
-          username: ${{ vars.VERBARIA_USERNAME }}
-          api-key: ${{ secrets.VERBARIA_API_KEY }}
-          push-type: 'source'
-          client-version: 'latest'
+          distribution: temurin
+          java-version: '25'
 
-      - name: Pull translations
-        uses: verbaria/translate-sync@master
-        with:
-          server-url: 'https://i.verbaria.org/'
-          username: ${{ vars.VERBARIA_USERNAME }}
-          api-key: ${{ secrets.VERBARIA_API_KEY }}
-          pull-type: 'trans'
-          client-version: 'latest'
+      - name: Download Verbaria CLI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dest="$RUNNER_TEMP/verbaria-cli"
+          mkdir -p "$dest"
+          gh release download --repo '${{ github.repository }}' \
+            --pattern 'verbaria-*.tar.gz' --dir "$dest"
+          mv "$dest"/verbaria-*.tar.gz "$dest/verbaria.tar.gz"
+          tar -xzf "$dest/verbaria.tar.gz" -C "$dest"
+          bin="$(find "$dest" -type f -name verbaria -path '*/bin/*' | head -n1)"
+          if [ -z "$bin" ]; then
+            echo "::error::Could not locate the verbaria launcher in the archive"
+            exit 1
+          fi
+          chmod +x "$bin"
+          echo "$(dirname "$bin")" >> "$GITHUB_PATH"
+          echo "VERBARIA_JRE=$JAVA_HOME" >> "$GITHUB_ENV"
+
+      - name: Skip if a sync PR is already open
+        id: check-pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          open="$(gh pr list --state open --head "$PR_BRANCH" --json number --jq 'length')"
+          if [ "${open:-0}" != "0" ]; then
+            echo "An open sync PR already exists on '$PR_BRANCH'; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Back up existing lock file
+        if: steps.check-pr.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          old="$RUNNER_TEMP/verbaria-lock.old.json"
+          if [ -f verbaria-lock.json ]; then
+            cp verbaria-lock.json "$old"
+          else
+            rm -f "$old"
+          fi
+
+      - name: Push source, then pull translations
+        if: steps.check-pr.outputs.skip != 'true'
+        shell: bash
+        env:
+          VERBARIA_KEY: ${{ secrets.VERBARIA_API_KEY }}
+          VERBARIA_USER: ${{ vars.VERBARIA_USERNAME }}
+        run: |
+          set -euo pipefail
+          verbaria push \
+            --url "$SERVER_URL" \
+            --username "$VERBARIA_USER" \
+            --key "$VERBARIA_KEY" \
+            --project-config verbaria.json \
+            --push-type source \
+            --batch-mode -e
+          verbaria pull \
+            --url "$SERVER_URL" \
+            --username "$VERBARIA_USER" \
+            --key "$VERBARIA_KEY" \
+            --project-config verbaria.json \
+            --pull-type trans \
+            --batch-mode -e
+
+      - name: Generate changelog from the lock diff
+        if: steps.check-pr.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          old="$RUNNER_TEMP/verbaria-lock.old.json"
+          if [ ! -f verbaria-lock.json ]; then
+            echo "No verbaria-lock.json produced; nothing to changelog."
+            exit 0
+          fi
+          # Don't credit the bot for source it merely pushed.
+          verbaria changelog --old "$old" --new verbaria-lock.json \
+            --format git-commit --output "$RUNNER_TEMP/commit-msg.txt" \
+            --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
+          verbaria changelog --old "$old" --new verbaria-lock.json \
+            --format markdown --output "$RUNNER_TEMP/changelog.md" \
+            --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
+
+      - name: Commit changes and open one PR
+        if: steps.check-pr.outputs.skip != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name  "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed; no PR."
+            exit 0
+          fi
+
+          base="${{ github.ref_name }}"
+          # Final guard against a race with the early skip step.
+          existing="$(gh pr list --state open --head "$PR_BRANCH" --json url --jq '.[0].url // empty')"
+          if [ -n "$existing" ]; then
+            echo "An open PR already exists for '$PR_BRANCH'; skipping."
+            exit 0
+          fi
+
+          git switch -C "$PR_BRANCH"
+
+          msg="$RUNNER_TEMP/commit-msg.txt"
+          [ -s "$msg" ] || printf '%s\n' "$PR_TITLE" > "$msg"
+          git commit -F "$msg"
+          git push --force origin "$PR_BRANCH"
+
+          body="$RUNNER_TEMP/changelog.md"
+          [ -s "$body" ] || cp "$msg" "$body"
+
+          labelArgs=()
+          IFS=',' read -ra labels <<< "$PR_LABELS"
+          for l in "${labels[@]}"; do
+            l="$(echo "$l" | xargs)"
+            [ -n "$l" ] && labelArgs+=(--label "$l")
+          done
+
+          url="$(gh pr create --base "$base" --head "$PR_BRANCH" \
+            --title "$PR_TITLE" \
+            --body-file "$body" \
+            "${labelArgs[@]}")"
+          echo "Opened PR: $url"

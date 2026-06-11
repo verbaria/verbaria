@@ -38,7 +38,10 @@ import org.zanata.rest.dto.resource.Resource;
  *
  */
 public class PropertiesStrategy extends AbstractPullStrategy {
-    StringSet extensions = new StringSet("comment");
+    // "gettext" carries the original property key in PotEntryHeader.context;
+    // the server hashes long/duplicate keys into the resId, so without it the
+    // pulled file would be keyed by the 32-char hash instead of the human key.
+    StringSet extensions = new StringSet("comment;gettext");
 
     protected PropertiesStrategy(PullOptions opts) {
         super(opts);
@@ -51,7 +54,9 @@ public class PropertiesStrategy extends AbstractPullStrategy {
 
     @Override
     public boolean needsDocToWriteTrans() {
-        return false;
+        // The source doc is required so PropWriter can restore the human key
+        // from PotEntryHeader.context instead of writing the resId hash.
+        return true;
     }
 
     @Override
