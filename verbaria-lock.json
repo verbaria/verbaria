@@ -4,7 +4,7 @@
   "project" : "verbaria",
   "projectVersion" : "master",
   "sourceLocale" : "en-US",
-  "generatedAt" : "2026-06-11T10:11:46.106104548Z",
+  "generatedAt" : "2026-06-11T19:04:59.438667611Z",
   "documents" : {
     "translations" : {
       "source" : {
@@ -18,10 +18,16 @@
           "total" : 909,
           "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
         },
-        "zh-CN" : {
-          "sig" : "8e1bb3cfd7f52fb8fa58998721352f00",
+        "ru" : {
+          "sig" : "2293c6ca051744e26ab173a3f1e9f96b",
           "state" : "Approved",
-          "total" : 808,
+          "total" : 909,
+          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
+        },
+        "zh-CN" : {
+          "sig" : "c03f3a4f78ab318bf6a0683031458800",
+          "state" : "Approved",
+          "total" : 909,
           "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
         }
       }
