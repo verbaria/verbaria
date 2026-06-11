@@ -473,8 +473,8 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             ResponseEntity<TranslationsResource> resp =
                     transDocResourceClient.getTranslations(docId, sourceLocale,
                             strat.getExtensions(), false, null);
-            recordTranslationLock(localDocName, sourceLocale, resp.getBody(),
-                    null);
+            recordTranslationLock(localDocName, sourceLocale,
+                    resp == null ? null : resp.getBody(), null);
         } catch (HttpClientErrorException e) {
             // No base-locale target/locale available; nothing to record.
             log.debug("No base-locale ({}) target for {}: {}", sourceLocale,

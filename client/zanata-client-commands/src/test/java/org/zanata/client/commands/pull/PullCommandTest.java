@@ -51,7 +51,9 @@ import org.zanata.rest.dto.stats.TranslationStatistics;
 import com.google.common.collect.Lists;
 
 public class PullCommandTest {
-    public static final StringSet EXTENSIONS = new StringSet("comment");
+    // Properties pull now also requests "gettext" so the original property key
+    // (PotEntryHeader.context) can be restored instead of the resId hash.
+    public static final StringSet EXTENSIONS = new StringSet("comment;gettext");
     @Mock
     private RestClientFactory restClientFactory;
     private PullOptionsImpl opts;
@@ -83,6 +85,15 @@ public class PullCommandTest {
                 versionSlug)).thenReturn(transClient);
         when(restClientFactory.getStatisticsClient()).thenReturn(statsClient);
 
+        // The properties strategy needs the source doc to write translations
+        // (so PropWriter can restore human keys), so every pull fetches it.
+        // Null lang keeps these min-percent tests off the source-locale lock
+        // path (which would issue an extra getTranslations for the base locale).
+        Resource sourceDoc = new Resource();
+        sourceDoc.setLang(null);
+        when(sourceClient.getResource("file1", EXTENSIONS))
+                .thenReturn(sourceDoc);
+
         locales = new LocaleList();
         opts.setLocaleMapList(locales);
         pullCommand = new PullCommand(opts, restClientFactory);
@@ -96,9 +107,6 @@ public class PullCommandTest {
         // Given: pull-type is source only and minimum-doc-percent is set to 80
         opts.setPullType("source");
         opts.setMinDocPercent(80);
-        when(sourceClient
-                .getResource("file1", EXTENSIONS)).thenReturn(
-                new Resource());
         pullCommand = new PullCommand(opts, restClientFactory) {
             @Override
             protected List<String>
