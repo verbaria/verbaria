@@ -15,7 +15,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>5.5.8</version>
+        <version>5.5.9</version>
         <configuration>
           <srcDir>.</srcDir>
         </configuration>

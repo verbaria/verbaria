@@ -202,7 +202,14 @@ public class AnthropicTranslationProvider implements TranslationProvider, Dispos
         synchronized (this) {
             if (scriptPath != null && Files.exists(scriptPath)) return scriptPath;
             Path tmp = Files.createTempFile("claude-translate-", ".sh");
-            try (InputStream in = new ClassPathResource(SCRIPT_RESOURCE).getInputStream()) {
+            // Load via THIS class's loader, not the thread-context loader: the
+            // batch path runs on ForkJoinPool workers whose context loader is
+            // the system loader, which can't see resources inside a Spring Boot
+            // fat jar's nested BOOT-INF/lib/*.jar. Only the loader that loaded
+            // this class can ("does not exist" otherwise — single-row works,
+            // batch fails).
+            try (InputStream in = new ClassPathResource(SCRIPT_RESOURCE,
+                    getClass().getClassLoader()).getInputStream()) {
                 Files.copy(in, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
             try {
