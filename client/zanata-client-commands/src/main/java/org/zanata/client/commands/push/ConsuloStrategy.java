@@ -1,11 +1,16 @@
 package org.zanata.client.commands.push;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +29,6 @@ import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
-import java.nio.file.Path;
-import java.io.InputStream;
 
 public class ConsuloStrategy extends AbstractPushStrategy {
 
@@ -104,14 +107,14 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         /** Optional translator comment ({@code comment:}); null when absent. */
         final String comment;
         /** Placeholder names ({@code names:}); null for raw files / absent. */
-        final java.util.List<String> names;
+        final List<String> names;
         /** Placeholder types ({@code types:}); null for raw files / absent. */
-        final java.util.List<String> types;
+        final List<String> types;
         SrcEntry(String text, String ext, String comment) {
             this(text, ext, comment, null, null);
         }
         SrcEntry(String text, String ext, String comment,
-                java.util.List<String> names, java.util.List<String> types) {
+                List<String> names, List<String> types) {
             this.text = text;
             this.ext = ext;
             this.comment = comment;
@@ -166,8 +169,7 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                 String relInside = rest.substring(1);
                 String key = FilenameUtils.removeExtension(relInside)
                         .replace('/', '.');
-                String body = Files.readString(file,
-                        java.nio.charset.StandardCharsets.UTF_8);
+                String body = Files.readString(file, StandardCharsets.UTF_8);
                 if (!body.isEmpty()) {
                     // ext "" when the file has none — still marks it raw.
                     entries.put(key, new SrcEntry(body,
@@ -216,9 +218,9 @@ public class ConsuloStrategy extends AbstractPushStrategy {
         return null;
     }
 
-    private static java.util.List<String> listOf(Object value, String field) {
-        if (value instanceof Map<?, ?> m && m.get(field) instanceof java.util.List<?> l) {
-            java.util.List<String> out = new java.util.ArrayList<>(l.size());
+    private static List<String> listOf(Object value, String field) {
+        if (value instanceof Map<?, ?> m && m.get(field) instanceof List<?> l) {
+            List<String> out = new ArrayList<>(l.size());
             for (Object o : l) {
                 out.add(o == null ? null : String.valueOf(o));
             }
@@ -242,7 +244,7 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                 String resId = looksLikeHexHash(key)
                         ? key : md5Hex(key.toLowerCase(Locale.ROOT));
                 TextFlowTarget t = new TextFlowTarget(resId);
-                t.setContents(java.util.List.of(e.getValue()));
+                t.setContents(List.of(e.getValue()));
                 t.setState(ContentState.Translated);
                 tr.getTextFlowTargets().add(t);
             }
@@ -257,21 +259,16 @@ public class ConsuloStrategy extends AbstractPushStrategy {
      */
     private Map<String, String> collectTranslationEntries(String docName, String locale)
             throws IOException {
-        File transDir = getOpts().getTransDir().toFile();
-        File localeRoot = new File(transDir, locale);
-        if (!localeRoot.exists()) {
-            File alt = new File(transDir, "LOCALIZE-LIB/" + locale);
-            if (alt.exists()) localeRoot = alt;
-        }
-        if (!localeRoot.exists()) return Map.of();
+        Path localeRoot = resolveLocaleDir(getOpts().getTransDir(), locale);
+        if (localeRoot == null) return Map.of();
 
         Map<String, String> out = new LinkedHashMap<>();
-        File yamlFile = caseInsensitiveChild(localeRoot, docName + ".yaml");
+        Path yamlFile = caseInsensitiveChild(localeRoot, docName + ".yaml");
         if (yamlFile == null) {
             yamlFile = caseInsensitiveChild(localeRoot, docName + ".yml");
         }
-        if (yamlFile != null && yamlFile.isFile()) {
-            try (FileInputStream in = new FileInputStream(yamlFile)) {
+        if (yamlFile != null && Files.isRegularFile(yamlFile)) {
+            try (InputStream in = Files.newInputStream(yamlFile)) {
                 Object root = new Yaml().load(in);
                 if (root instanceof Map<?, ?> top) {
                     for (Map.Entry<?, ?> e : top.entrySet()) {
@@ -282,42 +279,81 @@ public class ConsuloStrategy extends AbstractPushStrategy {
                 }
             }
         }
-        File subDir = caseInsensitiveChild(localeRoot, docName);
-        if (subDir != null && subDir.isDirectory()) {
+        Path subDir = caseInsensitiveChild(localeRoot, docName);
+        if (subDir != null && Files.isDirectory(subDir)) {
             collectSubFiles(subDir, "", out);
         }
         return out;
     }
 
-    private static void collectSubFiles(File dir, String prefix, Map<String, String> out)
+    private static void collectSubFiles(Path dir, String prefix, Map<String, String> out)
             throws IOException {
-        File[] children = dir.listFiles();
-        if (children == null) return;
-        for (File c : children) {
-            if (c.isDirectory()) {
-                collectSubFiles(c, prefix + c.getName() + ".", out);
-            } else {
-                String key = prefix + FilenameUtils.removeExtension(c.getName());
-                String body = Files.readString(c.toPath(),
-                        java.nio.charset.StandardCharsets.UTF_8);
-                if (!body.isEmpty()) out.put(key, body);
+        try (DirectoryStream<Path> children = Files.newDirectoryStream(dir)) {
+            for (Path c : children) {
+                String childName = c.getFileName().toString();
+                if (Files.isDirectory(c)) {
+                    collectSubFiles(c, prefix + childName + ".", out);
+                } else {
+                    String key = prefix + FilenameUtils.removeExtension(childName);
+                    String body = Files.readString(c, StandardCharsets.UTF_8);
+                    if (!body.isEmpty()) out.put(key, body);
+                }
             }
         }
     }
 
-    private static File caseInsensitiveChild(File parent, String name) {
-        File[] children = parent.listFiles();
-        if (children == null) return null;
-        for (File c : children) {
-            if (c.getName().equalsIgnoreCase(name)) return c;
+    private static Path caseInsensitiveChild(Path parent, String name)
+            throws IOException {
+        if (!Files.isDirectory(parent)) return null;
+        try (DirectoryStream<Path> children = Files.newDirectoryStream(parent)) {
+            for (Path c : children) {
+                if (c.getFileName().toString().equalsIgnoreCase(name)) return c;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the translation folder for {@code locale}. Consulo lays folders out
+     * Java-style ({@code zh_TW}) while the server/locale list uses BCP-47 ids
+     * ({@code zh-TW}), so try both separators (and case-insensitively), at the
+     * trans-dir root and under {@code LOCALIZE-LIB/}. Returns {@code null} when
+     * no matching folder exists.
+     */
+    private static Path resolveLocaleDir(Path transDir, String locale)
+            throws IOException {
+        List<String> candidates = List.of(
+                locale, locale.replace('-', '_'), locale.replace('_', '-'));
+        List<Path> bases = List.of(transDir, transDir.resolve(LOCALIZE_LIB));
+        for (Path base : bases) {
+            if (!Files.isDirectory(base)) {
+                continue;
+            }
+            for (String c : candidates) {
+                Path d = base.resolve(c);
+                if (Files.isDirectory(d)) {
+                    return d;
+                }
+            }
+            try (DirectoryStream<Path> children =
+                    Files.newDirectoryStream(base, Files::isDirectory)) {
+                for (Path child : children) {
+                    String n = child.getFileName().toString();
+                    for (String c : candidates) {
+                        if (n.equalsIgnoreCase(c)) {
+                            return child;
+                        }
+                    }
+                }
+            }
         }
         return null;
     }
 
     private static String md5Hex(String s) {
         try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-            byte[] d = md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] d = md.digest(s.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(32);
             for (byte b : d) sb.append(String.format("%02x", b));
             return sb.toString();
