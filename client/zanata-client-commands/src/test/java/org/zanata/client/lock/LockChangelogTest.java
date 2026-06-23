@@ -274,6 +274,51 @@ public class LockChangelogTest {
     }
 
     @Test
+    public void changelogReflectsOnlyTargetLocalesPresentInLock() {
+        // A sync pinned to one target locale (fr-FR) writes a lock that carries
+        // ONLY fr-FR. The changelog is a pure lock diff, so it must mention
+        // fr-FR and never invent the other server locales (de-DE, ru-RU, …).
+        VerbariaLock before = lock();
+        before.document("messages").getTranslations().put("fr-FR", tl("A"));
+        VerbariaLock after = lock();
+        after.document("messages").getTranslations()
+                .put("fr-FR", tl("B", "Alice <alice@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString("chore(i18n): sync 1 doc (fr-FR)"));
+        assertThat(msg, containsString("Updated:"));
+        assertThat(msg, containsString("fr-FR"));
+        assertThat(msg, not(containsString("de-DE")));
+        assertThat(msg, not(containsString("ru-RU")));
+        assertThat(msg, not(containsString("zh-CN")));
+
+        String md = LockChangelog.render(before, after,
+                LockChangelog.Format.MARKDOWN);
+        assertThat(md, containsString("- `messages` — fr-FR"));
+        assertThat(md, not(containsString("de-DE")));
+        assertThat(md, not(containsString("ru-RU")));
+    }
+
+    @Test
+    public void changelogListsEveryTargetLocaleThatActuallyChanged() {
+        // When several target locales are configured AND each has a real change,
+        // the changelog lists exactly those — no more, no fewer.
+        VerbariaLock before = lock();
+        before.document("messages").getTranslations().put("fr-FR", tl("A"));
+        before.document("messages").getTranslations().put("de-DE", tl("C"));
+        VerbariaLock after = lock();
+        after.document("messages").getTranslations()
+                .put("fr-FR", tl("B", "Alice <alice@x.org>"));
+        after.document("messages").getTranslations()
+                .put("de-DE", tl("D", "Bob <bob@x.org>"));
+
+        String msg = LockChangelog.render(before, after);
+        assertThat(msg, containsString("chore(i18n): sync 1 doc (de-DE, fr-FR)"));
+        assertThat(msg, not(containsString("ru-RU")));
+        assertThat(msg, not(containsString("zh-CN")));
+    }
+
+    @Test
     public void newLockAgainstEmptyTreatsEverythingAsAdded() {
         VerbariaLock after = lock();
         after.document("intro").getTranslations()
