@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -16,6 +20,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.zanata.client.commands.OptionsUtil;
 import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
@@ -29,6 +34,7 @@ import org.zanata.client.lock.VerbariaLock.TranslationLock;
 import org.zanata.client.lock.VerbariaLockReaderWriter;
 import org.zanata.common.LocaleId;
 import org.zanata.rest.client.RestClientFactory;
+import org.zanata.rest.dto.Project;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
@@ -36,8 +42,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.file.Paths;
-import java.nio.file.Path;
 
 /**
  * @author Sean Flanigan <a
@@ -95,11 +99,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     }
 
     private void runForProjectGlob(String pattern) throws Exception {
-        java.util.LinkedHashSet<String> resolved = new java.util.LinkedHashSet<>();
-        org.zanata.rest.dto.Project[] all =
+        LinkedHashSet<String> resolved = new LinkedHashSet<>();
+        Project[] all =
                 getClientFactory().getProjectsClient().getProjects();
         String regex = globToRegex(pattern);
-        for (org.zanata.rest.dto.Project p : all) {
+        for (Project p : all) {
             if (p.getId() != null && p.getId().matches(regex)) {
                 resolved.add(p.getId());
             }
@@ -111,7 +115,14 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 : getOpts().getUrl().toString());
         lock.setProject(originalProj);
         lock.setProjectVersion(getOpts().getProjectVersion());
-        lock.setGeneratedAt(java.time.Instant.now().toString());
+        lock.setGeneratedAt(Instant.now().toString());
+        // When the user pinned locales (targetLocales/locales in the config),
+        // honour them across every matched project — don't replace the list with
+        // each project's full server locale set. Only fetch per-project locales
+        // when nothing was pinned.
+        LocaleList pinnedLocales = getOpts().getLocaleMapList();
+        boolean localesPinned =
+                pinnedLocales != null && !pinnedLocales.isEmpty();
         inProjectGlob = true;
         try {
             int ok = 0, fail = 0;
@@ -120,10 +131,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                 getOpts().setProj(slug);
                 currentGlobSlug = slug;
                 try {
-                    org.zanata.client.config.LocaleList ll =
-                            org.zanata.client.commands.OptionsUtil.fetchLocalesFromServer(
-                                    getOpts(), getClientFactory());
-                    getOpts().setLocaleMapList(ll);
+                    if (!localesPinned) {
+                        LocaleList ll = OptionsUtil.fetchLocalesFromServer(
+                                getOpts(), getClientFactory());
+                        getOpts().setLocaleMapList(ll);
+                    }
                     rebuildProjectScopedClients();
                     run();
                     ok++;
@@ -316,7 +328,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
                     : getOpts().getUrl().toString());
             lock.setProject(getOpts().getProj());
             lock.setProjectVersion(getOpts().getProjectVersion());
-            lock.setGeneratedAt(java.time.Instant.now().toString());
+            lock.setGeneratedAt(Instant.now().toString());
         }
 
         // The source/base locale (the shared-keys locale, e.g. en-US) is not a
