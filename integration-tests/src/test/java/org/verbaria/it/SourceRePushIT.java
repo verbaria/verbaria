@@ -164,6 +164,49 @@ class SourceRePushIT extends AbstractPushPullIT {
     }
 
     @Test
+    void rePushRevivesObsoletedDocument() throws Exception {
+        // Reproduces the consulo-java case: a doc soft-deleted by a cross-project
+        // push must be REVIVED on re-push, not re-inserted (which trips the
+        // unique key (doc_id, project_iteration_id) on the obsolete row).
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureUser(USER_A, KEY_A);
+        fixtures.ensureProject("itsrcrevive", VERSION);
+        Files.writeString(tmp.resolve("messages.properties"),
+                "greeting=Hello\nbye=Goodbye\n");
+
+        new PushCommand(srcPush("properties", "itsrcrevive", USER_A, KEY_A)).run();
+        Long docId = documentRepository
+                .findByVersionAndDocId("itsrcrevive", VERSION, "messages")
+                .orElseThrow().getId();
+
+        // Soft-delete the document (what the cross-project push did).
+        new TransactionTemplate(txManager).executeWithoutResult(s -> {
+            HDocument d = documentRepository.findById(docId).orElseThrow();
+            d.setObsolete(true);
+            documentRepository.save(d);
+        });
+        assertThat(documentRepository
+                .findByVersionAndDocId("itsrcrevive", VERSION, "messages"))
+                .as("doc must be soft-deleted before the re-push")
+                .isEmpty();
+
+        // Re-push must succeed by reviving the obsolete row (no duplicate key).
+        clearLockFiles();
+        new PushCommand(srcPush("properties", "itsrcrevive", USER_A, KEY_A)).run();
+
+        HDocument revived = documentRepository
+                .findByVersionAndDocId("itsrcrevive", VERSION, "messages")
+                .orElseThrow();
+        assertThat(revived.getId())
+                .as("the same document row must be revived, not re-created")
+                .isEqualTo(docId);
+        assertThat(textFlowRepository.findByDocument(revived.getId()))
+                .as("the revived doc keeps its source text flows")
+                .isNotEmpty();
+    }
+
+    @Test
     void identicalConsuloSourceRePushCreatesNoHistory() throws Exception {
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");

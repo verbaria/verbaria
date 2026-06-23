@@ -33,6 +33,22 @@ public interface DocumentRepository extends JpaRepository<HDocument, Long> {
                                               @Param("versionSlug") String versionSlug,
                                               @Param("docId") String docId);
 
+    /**
+     * Like {@link #findByVersionAndDocId} but also returns an OBSOLETE document.
+     * Source import uses this so re-pushing a doc that was soft-deleted revives
+     * the existing row instead of inserting a duplicate (the unique constraint
+     * on {@code (doc_id, project_iteration_id)} covers obsolete rows too).
+     */
+    @Query("""
+            select d from HDocument d
+            where d.projectIteration.slug = :versionSlug
+              and d.projectIteration.project.slug = :projectSlug
+              and d.docId = :docId
+            """)
+    Optional<HDocument> findAnyByVersionAndDocId(@Param("projectSlug") String projectSlug,
+                                                 @Param("versionSlug") String versionSlug,
+                                                 @Param("docId") String docId);
+
     @Query("""
             select d from HDocument d
             join fetch d.projectIteration pi

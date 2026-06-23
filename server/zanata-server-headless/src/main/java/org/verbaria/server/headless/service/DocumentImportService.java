@@ -109,8 +109,11 @@ public class DocumentImportService {
 
         HLocale srcLocale = resolveLocale(resource.getLang());
 
+        // Include obsolete rows: a doc that was soft-deleted (e.g. pushed over
+        // by another project's set) must be REVIVED, not re-inserted — the
+        // unique key (doc_id, project_iteration_id) covers obsolete rows too.
         Optional<HDocument> existing =
-                documentRepository.findByVersionAndDocId(projectSlug, versionSlug, docId);
+                documentRepository.findAnyByVersionAndDocId(projectSlug, versionSlug, docId);
         HDocument doc;
         boolean created;
         if (existing.isPresent()) {
