@@ -118,22 +118,31 @@ jobs:
             --batch-mode -e
 
       - name: Generate changelog from the lock diff
+        id: changelog
         if: steps.check-pr.outputs.skip != 'true'
         shell: bash
         run: |
           set -euo pipefail
           old="$RUNNER_TEMP/verbaria-lock.old.json"
-          if [ ! -f verbaria-lock.json ]; then
+          # The changelog is the semantic "did anything change?" signal: it diffs
+          # the old/new locks by doc/locale/source content, IGNORING the volatile
+          # generatedAt timestamp. So when only the timestamp moved (the push
+          # source step strips translations from the lock and the pull re-adds
+          # them with a fresh timestamp), the changelog is empty -> no PR.
+          changed=false
+          if [ -f verbaria-lock.json ]; then
+            # Don't credit the bot for source it merely pushed.
+            verbaria changelog --old "$old" --new verbaria-lock.json \
+              --format git-commit --output "$RUNNER_TEMP/commit-msg.txt" \
+              --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
+            verbaria changelog --old "$old" --new verbaria-lock.json \
+              --format markdown --output "$RUNNER_TEMP/changelog.md" \
+              --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
+            [ -s "$RUNNER_TEMP/commit-msg.txt" ] && changed=true
+          else
             echo "No verbaria-lock.json produced; nothing to changelog."
-            exit 0
           fi
-          # Don't credit the bot for source it merely pushed.
-          verbaria changelog --old "$old" --new verbaria-lock.json \
-            --format git-commit --output "$RUNNER_TEMP/commit-msg.txt" \
-            --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
-          verbaria changelog --old "$old" --new verbaria-lock.json \
-            --format markdown --output "$RUNNER_TEMP/changelog.md" \
-            --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
       - name: Commit changes and open one PR
         if: steps.check-pr.outputs.skip != 'true'
@@ -148,6 +157,12 @@ jobs:
           git add -A
           if git diff --cached --quiet; then
             echo "Nothing changed; no PR."
+            exit 0
+          fi
+          # Only the lock's generatedAt timestamp moved (no real source/
+          # translation change) -> the changelog is empty -> don't open an empty PR.
+          if [ "${{ steps.changelog.outputs.changed }}" != "true" ]; then
+            echo "Only the lock timestamp moved; nothing meaningful changed. No PR."
             exit 0
           fi
 
