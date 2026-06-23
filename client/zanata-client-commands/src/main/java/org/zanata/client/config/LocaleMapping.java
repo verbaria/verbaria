@@ -45,10 +45,13 @@ public class LocaleMapping implements Serializable {
     }
 
     /**
-     * BCP47 locale ID
+     * BCP47 locale ID. A config may supply the Java-style {@code zh_TW}
+     * (underscore) — canonicalise it to {@code zh-TW} here so it is a valid
+     * server {@link org.zanata.common.LocaleId}. The on-disk locale form is
+     * preserved separately via {@link #getLocalLocale()} / {@link #getJavaLocale()}.
      */
     public String getLocale() {
-        return locale;
+        return locale == null ? null : locale.replace('_', '-');
     }
 
     public void setLocale(String localeID) {

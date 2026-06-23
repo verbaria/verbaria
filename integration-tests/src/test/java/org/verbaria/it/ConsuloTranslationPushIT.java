@@ -103,4 +103,43 @@ class ConsuloTranslationPushIT extends AbstractPushPullIT {
                 .hasSize(1);
         assertThat(targets.get(0).getContents()).containsExactly(GREETING_ZH);
     }
+
+    @Test
+    void pushesConsuloZhTwTranslationWithUnderscoreLocaleConfig() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("zh-TW");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itconsulozhcfg", VERSION);
+
+        Path libEn = tmp.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(libEn);
+        Files.writeString(libEn.resolve("messages.yaml"),
+                "greeting:\n    text: 'Hello'\n", StandardCharsets.UTF_8);
+        Path libZh = tmp.resolve("LOCALIZE-LIB/zh_TW");
+        Files.createDirectories(libZh);
+        Files.writeString(libZh.resolve("messages.yaml"),
+                "greeting:\n    text: '" + GREETING_ZH + "'\n",
+                StandardCharsets.UTF_8);
+
+        // The config lists the locale Java-style (zh_TW). It must be sent to the
+        // server as the BCP-47 zh-TW, not rejected with
+        // "expected lang[-country[-modifier]], got zh_TW".
+        PushOptionsImpl push = pushOpts("both", "consulo", "itconsulozhcfg");
+        LocaleList locales = new LocaleList();
+        locales.add(new LocaleMapping("zh_TW"));
+        push.setLocaleMapList(locales);
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itconsulozhcfg", VERSION, "messages")
+                .orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        List<HTextFlowTarget> targets = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), new LocaleId("zh-TW"));
+        assertThat(targets)
+                .as("a zh_TW locale config must push to the zh-TW server locale")
+                .hasSize(1);
+        assertThat(targets.get(0).getContents()).containsExactly(GREETING_ZH);
+    }
 }
