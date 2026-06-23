@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.adapter.properties.PropWriter;
 import org.zanata.adapter.xliff.XliffCommon.ValidationType;
+import org.zanata.client.commands.OptionsUtil;
 import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
@@ -305,6 +306,13 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         globLock.setProject(originalProj);
         globLock.setProjectVersion(getOpts().getProjectVersion());
         globLock.setGeneratedAt(java.time.Instant.now().toString());
+        // When the user pinned locales (targetLocales/locales in the config),
+        // honour them across every matched project instead of replacing the list
+        // with each project's full server locale set — otherwise the lock records
+        // every server locale rather than the configured target(s).
+        LocaleList pinnedLocales = getOpts().getLocaleMapList();
+        boolean localesPinned =
+                pinnedLocales != null && !pinnedLocales.isEmpty();
         inProjectGlob = true;
         try {
             int ok = 0, fail = 0;
@@ -319,10 +327,11 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         .map(d -> "**/" + d + ".yaml").toList());
                 getOpts().setIncludes(includes);
                 try {
-                    org.zanata.client.config.LocaleList ll =
-                            org.zanata.client.commands.OptionsUtil.fetchLocalesFromServer(
-                                    getOpts(), getClientFactory());
-                    getOpts().setLocaleMapList(ll);
+                    if (!localesPinned) {
+                        LocaleList ll = OptionsUtil.fetchLocalesFromServer(
+                                getOpts(), getClientFactory());
+                        getOpts().setLocaleMapList(ll);
+                    }
                     rebuildProjectScopedClients();
                     checkOptions();
                     pushCurrentModule();
