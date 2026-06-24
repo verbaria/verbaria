@@ -28,6 +28,13 @@ public interface TextFlowRepository extends JpaRepository<HTextFlow, Long> {
             """)
     List<HTextFlow> findByIds(@Param("ids") Collection<Long> ids);
 
+    /** Every text flow of a document, obsolete ones included (for hard delete). */
+    @Query("""
+            select tf from HTextFlow tf
+            where tf.document.id = :docId
+            """)
+    List<HTextFlow> findAllByDocumentIncludingObsolete(@Param("docId") Long docId);
+
     /**
      * Eagerly initialises the lazy {@code extensions} collection for the given
      * text flows. Call within the same session/request as the page query so the

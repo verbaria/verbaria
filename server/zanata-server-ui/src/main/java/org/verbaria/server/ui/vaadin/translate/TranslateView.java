@@ -23,6 +23,9 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -82,7 +85,9 @@ import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.verbaria.server.headless.repository.TranslateFilterMode;
+import org.verbaria.server.headless.security.Roles;
 import org.verbaria.server.headless.service.AiTranslationService;
+import org.verbaria.server.headless.service.DocumentAdminService;
 import org.verbaria.server.headless.service.ReviewPermissionService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
@@ -191,6 +196,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          BreadcrumbsService breadcrumbsService,
                          ProjectRepository projectRepository,
                          ReviewPermissionService reviewPermission,
+                         DocumentAdminService documentAdminService,
                          ObjectProvider<TranslationRow> rowFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
@@ -204,6 +210,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.breadcrumbsService = breadcrumbsService;
         this.projectRepository = projectRepository;
         this.reviewPermission = reviewPermission;
+        this.documentAdminService = documentAdminService;
         this.rowFactory = rowFactory;
         setSizeFull();
         setPadding(true);
@@ -212,6 +219,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
     private final ProjectRepository projectRepository;
     private final ReviewPermissionService reviewPermission;
+    private final DocumentAdminService documentAdminService;
     /** Project-level message-evaluate setting, resolved per navigation. */
     private MessageEvaluateType messageEvaluateType = MessageEvaluateType.NONE;
 
@@ -643,10 +651,14 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         trigger.setEnabled(false);
         String capturedVersionSlug = versionSlug;
         String capturedLocaleStr = localeStr;
+        // Capture on the UI thread — the worker below has no security context.
+        boolean admin = Roles.isCurrentUserAdmin();
         progressDialogs.run(getTranslation("translate.docSwitcher.title"), handle -> {
             handle.update(0, 3, handle.t("translate.docSwitcher.listing", capturedVersionSlug));
-            List<HDocument> allDocs = documentRepository
-                    .findByVersion(projectSlug, versionSlug);
+            // Admins also see soft-deleted docs (so they can restore/purge them).
+            List<HDocument> allDocs = admin
+                    ? documentRepository.findByVersionIncludingObsolete(projectSlug, versionSlug)
+                    : documentRepository.findByVersion(projectSlug, versionSlug);
             handle.update(1, 3, handle.t("translate.docSwitcher.countingTextFlows"));
             Map<Long, Long> totalByDoc = new HashMap<>();
             Map<Long, Long> translatedByDoc = new HashMap<>();
@@ -690,7 +702,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             Map<Long, Long> needsReviewByDoc = (Map<Long, Long>) data[3];
             VerticalLayout body = buildDocPickerBody(
                     allDocs, totalByDoc, translatedByDoc, needsReviewByDoc,
-                    viewingSource, pop);
+                    viewingSource, pop, admin);
             pop.removeAll();
             pop.add(body);
             pop.open();
@@ -734,7 +746,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
             Map<Long, Long> translatedByDoc,
             Map<Long, Long> needsReviewByDoc,
             boolean viewingSource,
-            Popover pop) {
+            Popover pop,
+            boolean admin) {
         TextField search = new TextField();
         search.setPlaceholder(getTranslation("translate.docSwitcher.searchPlaceholder"));
         search.setClearButtonVisible(true);
@@ -747,11 +760,29 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         grid.setSizeFull();
         grid.setSelectionMode(Grid.SelectionMode.NONE);
 
-        grid.addColumn(HDocument::getDocId)
-                .setHeader(getTranslation("translate.docPicker.column.document"))
-                .setFlexGrow(1)
-                .setSortable(true)
-                .setKey("docId");
+        // Admin: show the docId with a "Deleted" badge for soft-deleted docs.
+        if (admin) {
+            grid.addComponentColumn(d -> {
+                Span id = new Span(d.getDocId());
+                if (!d.isObsolete()) {
+                    return id;
+                }
+                Span tag = new Span(getTranslation("translate.docPicker.deletedBadge"));
+                tag.addClassNames(AuraUtility.TextColor.ERROR,
+                        AuraUtility.FontWeight.SEMIBOLD, AuraUtility.FontSize.SMALL);
+                HorizontalLayout cell = new HorizontalLayout(id, tag);
+                cell.setAlignItems(FlexComponent.Alignment.CENTER);
+                cell.setSpacing(true);
+                return cell;
+            }).setHeader(getTranslation("translate.docPicker.column.document"))
+                    .setFlexGrow(1).setKey("docId");
+        } else {
+            grid.addColumn(HDocument::getDocId)
+                    .setHeader(getTranslation("translate.docPicker.column.document"))
+                    .setFlexGrow(1)
+                    .setSortable(true)
+                    .setKey("docId");
+        }
 
         ToIntFunction<HDocument> pctOf = d -> {
             long total = totalByDoc.getOrDefault(d.getId(), 0L);
@@ -790,15 +821,72 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
 
         ListDataProvider<HDocument> dp =
                 new ListDataProvider<>(allDocs);
-        grid.setDataProvider(dp);
+
+        // Combined client-side filter: search text + (admin) show-deleted toggle.
+        String[] searchText = { "" };
+        boolean[] showDeleted = { false };
+        Runnable applyFilter = () -> {
+            String q = searchText[0];
+            boolean showDel = showDeleted[0];
+            dp.setFilter(d -> (showDel || !d.isObsolete())
+                    && (q.isEmpty() || d.getDocId().toLowerCase().contains(q)));
+        };
+        applyFilter.run();
         search.addValueChangeListener(e -> {
-            String q = e.getValue() == null ? "" : e.getValue().trim().toLowerCase();
-            dp.setFilter(d -> q.isEmpty() || d.getDocId().toLowerCase().contains(q));
+            searchText[0] = e.getValue() == null ? "" : e.getValue().trim().toLowerCase();
+            applyFilter.run();
         });
+
+        // Admin maintenance via right-click context menu: restore / soft-delete
+        // / hard-delete. Items depend on the row's obsolete state, so they're
+        // rebuilt per target through the dynamic-content handler.
+        if (admin) {
+            GridContextMenu<HDocument> ctx = grid.addContextMenu();
+            ctx.setDynamicContentHandler(d -> {
+                if (d == null) {
+                    return false;
+                }
+                ctx.removeAll();
+                if (d.isObsolete()) {
+                    ctx.addItem(getTranslation("translate.docPicker.restore"),
+                            e -> e.getItem().ifPresent(doc -> {
+                                documentAdminService.restore(projectSlug, versionSlug, doc.getDocId());
+                                doc.setObsolete(false);
+                                Notification.show(getTranslation(
+                                        "translate.docPicker.restored", doc.getDocId()),
+                                        3000, Notification.Position.BOTTOM_START);
+                                applyFilter.run();
+                            }));
+                } else {
+                    ctx.addItem(getTranslation("translate.docPicker.softDelete"),
+                            e -> e.getItem().ifPresent(doc -> {
+                                documentAdminService.softDelete(projectSlug, versionSlug, doc.getDocId());
+                                doc.setObsolete(true);
+                                Notification.show(getTranslation(
+                                        "translate.docPicker.softDeleted", doc.getDocId()),
+                                        3000, Notification.Position.BOTTOM_START);
+                                applyFilter.run();
+                            }));
+                }
+                GridMenuItem<HDocument> hard = ctx.addItem(
+                        getTranslation("translate.docPicker.hardDelete"),
+                        e -> e.getItem().ifPresent(
+                                doc -> confirmHardDeleteDoc(doc, dp, allDocs)));
+                hard.addClassName(AuraUtility.TextColor.ERROR);
+                return true;
+            });
+        }
+
+        grid.setDataProvider(dp);
 
         grid.addItemClickListener(ev -> {
             HDocument picked = ev.getItem();
             if (picked == null) return;
+            if (picked.isObsolete()) {
+                Notification.show(getTranslation("translate.docPicker.deletedNotice"),
+                        3000, Notification.Position.MIDDLE);
+                return;
+            }
             LoggerFactory.getLogger(TranslateView.class)
                     .info("doc-picker → switch to {}", picked.getDocId());
             // Close client-side first so the popover disappears instantly,
@@ -821,15 +909,57 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         grid.addClassNames(AuraUtility.MinHeight.NONE, AuraUtility.Flex.ONE);
         grid.setAllRowsVisible(false);
 
-        VerticalLayout body = new VerticalLayout(search, grid);
+        VerticalLayout body = new VerticalLayout();
         body.setPadding(true);
         body.setSpacing(true);
         body.setWidthFull();
         body.setHeight("calc(70vh - 2rem)");
-        body.setFlexGrow(0, search);
-        body.setFlexGrow(1, grid);
         body.addClassNames(AuraUtility.MinHeight.NONE, AuraUtility.Overflow.HIDDEN);
+
+        body.add(search);
+        body.setFlexGrow(0, search);
+        // Admin "show deleted" toggle on its own full-width row — the search
+        // field is width:100%, so packing the checkbox beside it in a
+        // HorizontalLayout pushes the checkbox off-screen.
+        if (admin) {
+            Checkbox showDeletedBox =
+                    new Checkbox(getTranslation("translate.docPicker.showDeleted"));
+            showDeletedBox.addClassNames(AuraUtility.Flex.SHRINK_NONE);
+            showDeletedBox.addValueChangeListener(e -> {
+                showDeleted[0] = Boolean.TRUE.equals(e.getValue());
+                applyFilter.run();
+            });
+            body.add(showDeletedBox);
+            body.setFlexGrow(0, showDeletedBox);
+        }
+        body.add(grid);
+        body.setFlexGrow(1, grid);
         return body;
+    }
+
+    private void confirmHardDeleteDoc(HDocument d, ListDataProvider<HDocument> dp,
+            List<HDocument> allDocs) {
+        ConfirmDialog cd = new ConfirmDialog();
+        cd.setHeader(getTranslation("translate.docPicker.hardDeleteTitle"));
+        cd.setText(getTranslation("translate.docPicker.hardDeleteConfirm", d.getDocId()));
+        cd.setCancelable(true);
+        cd.setConfirmText(getTranslation("translate.docPicker.hardDeleteBtn"));
+        cd.setConfirmButtonTheme("primary error");
+        cd.addConfirmListener(e -> {
+            try {
+                documentAdminService.hardDelete(projectSlug, versionSlug, d.getDocId());
+                allDocs.remove(d);
+                dp.refreshAll();
+                Notification.show(getTranslation(
+                        "translate.docPicker.hardDeleted", d.getDocId()),
+                        3000, Notification.Position.BOTTOM_START);
+            } catch (Exception ex) {
+                Notification.show(getTranslation(
+                        "translate.docPicker.deleteFailed", ex.getMessage()),
+                        5000, Notification.Position.MIDDLE);
+            }
+        });
+        cd.open();
     }
 
     private Popover setupFilter() {

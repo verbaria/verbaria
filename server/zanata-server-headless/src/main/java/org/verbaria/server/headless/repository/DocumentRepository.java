@@ -100,4 +100,18 @@ public interface DocumentRepository extends JpaRepository<HDocument, Long> {
     long countMatchingByVersion(@Param("projectSlug") String projectSlug,
                                 @Param("versionSlug") String versionSlug,
                                 @Param("q") String lowerQ);
+
+    /**
+     * Like {@link #findByVersion} but also returns obsolete (soft-deleted)
+     * documents — backs the doc-switcher's admin "show deleted" toggle.
+     * Obsolete rows sort last.
+     */
+    @Query("""
+            select d from HDocument d
+            where d.projectIteration.slug = :versionSlug
+              and d.projectIteration.project.slug = :projectSlug
+            order by d.obsolete, d.path, d.name
+            """)
+    List<HDocument> findByVersionIncludingObsolete(@Param("projectSlug") String projectSlug,
+                                                   @Param("versionSlug") String versionSlug);
 }
