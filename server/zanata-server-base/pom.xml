@@ -17,7 +17,7 @@
 
     <properties>
         <spring-boot.version>4.0.6</spring-boot.version>
-        <vaadin.version>25.2.0-beta1</vaadin.version>
+        <vaadin.version>25.2.0</vaadin.version>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
     </properties>

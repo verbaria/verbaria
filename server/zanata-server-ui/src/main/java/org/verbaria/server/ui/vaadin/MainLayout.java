@@ -318,7 +318,7 @@ public class MainLayout extends AppLayout
             crumbBar.setVisible(!crumbs.isEmpty() || hasActions);
         }
         if (crumbs.isEmpty()) return;
-        Breadcrumbs widget = new Breadcrumbs();
+        Breadcrumbs widget = new Breadcrumbs(Breadcrumbs.Mode.MANUAL);
         for (BreadcrumbsService.Crumb c : crumbs) {
             // Current-page crumbs use the single-arg (text-only) constructor —
             // an item with no path renders as a non-link and the web component
