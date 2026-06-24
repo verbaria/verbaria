@@ -236,8 +236,9 @@ public class HProjectIteration extends SlugEntityBase
     public ProjectType getEffectiveProjectType() {
         ProjectType projectType = getProjectType();
         if (projectType == null) {
-            // NB some old projects have null defaultProjectType
-            return getProject().getDefaultProjectType();
+            // NB some old projects have null defaultProjectType; a child also
+            // inherits its parent project's type through the parent chain.
+            return getProject().getEffectiveDefaultProjectType();
         }
         return projectType;
     }

@@ -22,6 +22,7 @@ import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.headless.repository.RoleRepository;
 import org.verbaria.server.headless.security.Roles;
+import org.verbaria.server.headless.service.ProjectHierarchyService;
 
 @Service
 public class ItFixtures {
@@ -31,17 +32,20 @@ public class ItFixtures {
     private final LocaleRepository localeRepository;
     private final ProjectRepository projectRepository;
     private final ProjectIterationRepository iterationRepository;
+    private final ProjectHierarchyService hierarchyService;
 
     public ItFixtures(AccountRepository accountRepository,
                       RoleRepository roleRepository,
                       LocaleRepository localeRepository,
                       ProjectRepository projectRepository,
-                      ProjectIterationRepository iterationRepository) {
+                      ProjectIterationRepository iterationRepository,
+                      ProjectHierarchyService hierarchyService) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
         this.localeRepository = localeRepository;
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
+        this.hierarchyService = hierarchyService;
     }
 
     @Transactional
@@ -112,5 +116,74 @@ public class ItFixtures {
             project.addIteration(iter);
             iterationRepository.save(iter);
         }
+    }
+
+    /** A project with no versions yet (for testing version mirroring). */
+    @Transactional
+    public void ensureProjectNoVersion(String slug, ProjectType type) {
+        projectRepository.findBySlug(slug).orElseGet(() -> {
+            HProject p = new HProject();
+            p.setSlug(slug);
+            p.setName(slug);
+            p.setStatus(EntityStatus.ACTIVE);
+            p.setDefaultProjectType(type);
+            return projectRepository.save(p);
+        });
+    }
+
+    /** Turn on overrideLocales with the given customized locale set. */
+    @Transactional
+    public void setProjectLocales(String slug, String... localeIds) {
+        HProject p = projectRepository.findBySlug(slug).orElseThrow();
+        Set<HLocale> set = new HashSet<>();
+        for (String id : localeIds) {
+            set.add(ensureLocale(id));
+        }
+        p.setOverrideLocales(true);
+        p.setCustomizedLocales(set);
+        projectRepository.save(p);
+    }
+
+    @Transactional
+    public void setProjectSourceViewURL(String slug, String url) {
+        HProject p = projectRepository.findBySlug(slug).orElseThrow();
+        p.setSourceViewURL(url);
+        projectRepository.save(p);
+    }
+
+    /** Link child -> parent, mirroring the parent's versions onto the child. */
+    @Transactional
+    public void linkParent(String childSlug, String parentSlug) {
+        HProject child = projectRepository.findBySlug(childSlug).orElseThrow();
+        HProject parent = projectRepository.findBySlug(parentSlug).orElseThrow();
+        hierarchyService.linkParent(child, parent);
+    }
+
+    /** Add a version whose iteration carries no own project type. */
+    @Transactional
+    public void addVersion(String slug, String version) {
+        HProject p = projectRepository.findBySlug(slug).orElseThrow();
+        if (iterationRepository.findByProjectAndSlug(slug, version).isPresent()) {
+            return;
+        }
+        HProjectIteration iter = new HProjectIteration();
+        iter.setSlug(version);
+        iter.setProject(p);
+        iter.setStatus(EntityStatus.ACTIVE);
+        p.addIteration(iter);
+        iterationRepository.save(iter);
+    }
+
+    /** Add a parent version and propagate it to children (mirrors production). */
+    @Transactional
+    public void addVersionAndPropagate(String parentSlug, String version) {
+        addVersion(parentSlug, version);
+        HProject parent = projectRepository.findBySlug(parentSlug).orElseThrow();
+        hierarchyService.propagateVersionToChildren(parent, version);
+    }
+
+    @Transactional
+    public boolean hasVersion(String slug, String version) {
+        return iterationRepository.findByProjectAndSlug(slug, version).isPresent();
     }
 }

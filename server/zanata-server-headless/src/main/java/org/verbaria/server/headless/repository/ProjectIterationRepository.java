@@ -1,11 +1,15 @@
 package org.verbaria.server.headless.repository;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.zanata.model.HLocale;
 import org.zanata.model.HProjectIteration;
 
 @Repository
@@ -29,11 +33,7 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
     Optional<HProjectIteration> findFullByProjectAndSlug(@Param("projectSlug") String projectSlug,
                                                          @Param("versionSlug") String versionSlug);
 
-    /**
-     * Returns the project's {@code customizedLocales} set when
-     * {@code overrideLocales=true}; otherwise empty (caller falls back to
-     * the server-wide active locale list).
-     */
+    /** The iteration's project's own customized locales, when it overrides. */
     @Query("""
             select cl from HProjectIteration i
             join i.project p
@@ -41,13 +41,33 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
             where i.id = :iterId
               and p.overrideLocales = true
             """)
-    java.util.List<org.zanata.model.HLocale> findCustomizedLocalesIfOverride(
-            @Param("iterId") Long iterId);
+    List<HLocale> findOwnCustomizedLocales(@Param("iterId") Long iterId);
 
-    default Optional<java.util.Collection<org.zanata.model.HLocale>> findProjectLocales(Long iterId) {
-        java.util.List<org.zanata.model.HLocale> list = findCustomizedLocalesIfOverride(iterId);
-        return list == null || list.isEmpty()
-                ? Optional.empty() : Optional.of(list);
+    /** The parent project's customized locales, when the parent overrides. */
+    @Query("""
+            select cl from HProjectIteration i
+            join i.project p
+            join p.parentProject pp
+            join pp.customizedLocales cl
+            where i.id = :iterId
+              and pp.overrideLocales = true
+            """)
+    List<HLocale> findParentCustomizedLocales(@Param("iterId") Long iterId);
+
+    /**
+     * The project's effective customized locales (its own when it overrides,
+     * else its parent's); empty when nobody overrides — callers then fall back
+     * to the server-wide active locale list. Query-based (detached results) so
+     * it works for callers without an open session (e.g. the stats cache).
+     */
+    default Optional<Collection<HLocale>> findProjectLocales(Long iterId) {
+        List<HLocale> own = findOwnCustomizedLocales(iterId);
+        if (own != null && !own.isEmpty()) {
+            return Optional.of(new ArrayList<>(own));
+        }
+        List<HLocale> parent = findParentCustomizedLocales(iterId);
+        return parent == null || parent.isEmpty()
+                ? Optional.empty() : Optional.of(new ArrayList<>(parent));
     }
 
     @Query("""
@@ -56,7 +76,22 @@ public interface ProjectIterationRepository extends JpaRepository<HProjectIterat
             where i.id = :iterId
               and p.defaultSourceLocale is not null
             """)
-    Optional<org.zanata.model.HLocale> findProjectSourceLocale(@Param("iterId") Long iterId);
+    Optional<HLocale> findOwnSourceLocale(@Param("iterId") Long iterId);
+
+    @Query("""
+            select pp.defaultSourceLocale from HProjectIteration i
+            join i.project p
+            join p.parentProject pp
+            where i.id = :iterId
+              and pp.defaultSourceLocale is not null
+            """)
+    Optional<HLocale> findParentSourceLocale(@Param("iterId") Long iterId);
+
+    /** The project's effective source locale (its own, else its parent's). */
+    default Optional<HLocale> findProjectSourceLocale(Long iterId) {
+        Optional<HLocale> own = findOwnSourceLocale(iterId);
+        return own.isPresent() ? own : findParentSourceLocale(iterId);
+    }
 
     /**
      * Like {@link #findFullByProjectAndSlug} but also eagerly loads

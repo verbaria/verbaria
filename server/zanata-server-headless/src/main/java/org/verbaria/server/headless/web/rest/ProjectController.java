@@ -19,7 +19,8 @@ import org.verbaria.server.headless.web.rest.LocaleController.LocaleDetails;
  * Backs the React project-version pages (/project/{slug}/version/{v}).
  * Returns the locales actually enabled for the iteration (respecting the
  * iteration's overrideLocales toggle, falling back to the project's
- * customisation, and finally to all enabled HLocales).
+ * customisation, then up the project's parent chain, and finally to all
+ * enabled HLocales).
  */
 @RestController
 public class ProjectController {
@@ -66,10 +67,10 @@ public class ProjectController {
         if (iter != null) {
             if (iter.isOverrideLocales() && !iter.getCustomizedLocales().isEmpty()) {
                 picked = iter.getCustomizedLocales();
-            } else if (iter.getProject() != null
-                    && iter.getProject().isOverrideLocales()
-                    && !iter.getProject().getCustomizedLocales().isEmpty()) {
-                picked = iter.getProject().getCustomizedLocales();
+            } else if (iter.getProject() != null) {
+                // Walk the project's parent chain: nearest override wins,
+                // else null -> fall back to the global default locales below.
+                picked = iter.getProject().getEffectiveCustomizedLocales();
             }
         }
         List<HLocale> source = picked != null

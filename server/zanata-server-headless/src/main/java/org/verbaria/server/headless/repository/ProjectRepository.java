@@ -69,4 +69,10 @@ public interface ProjectRepository extends JpaRepository<HProject, Long> {
               and m.person.account.username = :username
             """)
     List<String> findMaintainedSlugs(@Param("username") String username);
+
+    /** Direct children of the given parent (for mirroring + cycle detection). */
+    List<HProject> findByParentProjectId(Long parentId);
+
+    /** All projects ordered by slug — populates the parent-project picker. */
+    List<HProject> findAllByOrderBySlugAsc();
 }

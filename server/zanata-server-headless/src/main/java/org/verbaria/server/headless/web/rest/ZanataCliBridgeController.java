@@ -69,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.verbaria.server.headless.service.DocumentImportService;
 import org.verbaria.server.headless.service.OfflineExportService;
+import org.verbaria.server.headless.service.ProjectHierarchyService;
 import org.verbaria.server.headless.service.SourceUploadService;
 import java.io.InputStream;
 
@@ -117,6 +118,7 @@ public class ZanataCliBridgeController {
     private final OfflineExportService offlineExportService;
     private final SourceUploadService sourceUploadService;
     private final TextFlowExtensionStore extensionStore;
+    private final ProjectHierarchyService hierarchyService;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -131,7 +133,8 @@ public class ZanataCliBridgeController {
                                      DocumentImportService importService,
                                      OfflineExportService offlineExportService,
                                      SourceUploadService sourceUploadService,
-                                     TextFlowExtensionStore extensionStore) {
+                                     TextFlowExtensionStore extensionStore,
+                                     ProjectHierarchyService hierarchyService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -143,6 +146,7 @@ public class ZanataCliBridgeController {
         this.offlineExportService = offlineExportService;
         this.sourceUploadService = sourceUploadService;
         this.extensionStore = extensionStore;
+        this.hierarchyService = hierarchyService;
     }
 
     // ---------- 1. version ----------
@@ -224,7 +228,6 @@ public class ZanataCliBridgeController {
         if (body.getName() != null) p.setName(body.getName());
         if (body.getDescription() != null) p.setDescription(body.getDescription());
         if (body.getSourceViewURL() != null) p.setSourceViewURL(body.getSourceViewURL());
-        if (body.getSourceCheckoutURL() != null) p.setSourceCheckoutURL(body.getSourceCheckoutURL());
         if (body.getStatus() != null) p.setStatus(body.getStatus());
         if (body.getDefaultType() != null) {
             try {
@@ -276,10 +279,8 @@ public class ZanataCliBridgeController {
         if (iteration.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        ProjectType pt = iteration.get().getProjectType();
-        if (pt == null && iteration.get().getProject() != null) {
-            pt = iteration.get().getProject().getDefaultProjectType();
-        }
+        // Inherits the parent project's type when this child sets none.
+        ProjectType pt = iteration.get().getEffectiveProjectType();
         // Starter verbaria.json. The CLI's `init` fills in srcDir/includes/
         // excludes/transDir afterward. Keys match org.zanata.client.config
         // .ZanataConfig so the client can parse it straight back as JSON.
@@ -384,6 +385,10 @@ public class ZanataCliBridgeController {
             }
         }
         HProjectIteration saved = iterationRepository.save(i);
+        if (created) {
+            // Mirror this new version onto any child projects.
+            hierarchyService.propagateVersionToChildren(project, iter);
+        }
         ProjectIteration out = toDto(saved);
         return created
                 ? ResponseEntity.status(HttpStatus.CREATED).body(out)
@@ -1013,12 +1018,12 @@ public class ZanataCliBridgeController {
         dto.setId(p.getSlug());
         dto.setName(p.getName() == null ? p.getSlug() : p.getName());
         dto.setDescription(p.getDescription());
-        dto.setSourceViewURL(p.getSourceViewURL());
-        dto.setSourceCheckoutURL(p.getSourceCheckoutURL());
+        dto.setSourceViewURL(p.getResolvedSourceViewURL());
         dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
-        dto.setDefaultType(p.getDefaultProjectType() == null
+        ProjectType effectiveType = p.getEffectiveDefaultProjectType();
+        dto.setDefaultType(effectiveType == null
                 ? ProjectType.File.toString()
-                : p.getDefaultProjectType().toString());
+                : effectiveType.toString());
         List<ProjectIteration> iters = new ArrayList<>();
         if (p.getProjectIterations() != null) {
             for (HProjectIteration i : p.getProjectIterations()) {

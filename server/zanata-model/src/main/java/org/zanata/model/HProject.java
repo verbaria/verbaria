@@ -58,7 +58,6 @@ import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.MessageEvaluateType;
 import org.zanata.common.ProjectType;
-import org.zanata.model.validator.Url;
 import org.zanata.rest.dto.Project;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -84,11 +83,14 @@ public class HProject extends SlugEntityBase
     private String description;
     @jakarta.persistence.Lob
     private String homeContent;
-    @Url(canEndInSlash = true)
     @Column(columnDefinition = "text")
     private String sourceViewURL;
-    @Column(columnDefinition = "text")
-    private String sourceCheckoutURL;
+    // Eager + flat (a parent has no parent): one extra join, and the resolved
+    // source URL / project type stay safe to read from detached entities (DTOs,
+    // the /explore grid) without a LazyInitializationException.
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "parent_project_id")
+    private HProject parentProject;
     private boolean overrideLocales = false;
     private boolean restrictedByRoles = false;
     private boolean privateProject = false;
@@ -263,8 +265,8 @@ public class HProject extends SlugEntityBase
         this.sourceViewURL = sourceViewURL;
     }
 
-    public void setSourceCheckoutURL(final String sourceCheckoutURL) {
-        this.sourceCheckoutURL = sourceCheckoutURL;
+    public void setParentProject(final HProject parentProject) {
+        this.parentProject = parentProject;
     }
 
     public void setOverrideLocales(final boolean overrideLocales) {
@@ -343,8 +345,103 @@ public class HProject extends SlugEntityBase
         return this.sourceViewURL;
     }
 
-    public String getSourceCheckoutURL() {
-        return this.sourceCheckoutURL;
+    public HProject getParentProject() {
+        return this.parentProject;
+    }
+
+    /** Guards every parent-chain walk against cycles / runaway depth. */
+    private static final int MAX_PARENT_DEPTH = 16;
+
+    /**
+     * Target languages resolved through the parent chain: the first project
+     * (this, then ancestors) that overrides with a non-empty set wins. Returns
+     * {@code null} when nobody overrides, so callers fall back to the global
+     * default locales.
+     */
+    @Transient
+    public Set<HLocale> getEffectiveCustomizedLocales() {
+        int depth = 0;
+        for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
+                p = p.parentProject, depth++) {
+            if (p.overrideLocales && p.customizedLocales != null
+                    && !p.customizedLocales.isEmpty()) {
+                return p.customizedLocales;
+            }
+        }
+        return null;
+    }
+
+    /** Project type resolved through the parent chain (first non-null wins). */
+    @Transient
+    public ProjectType getEffectiveDefaultProjectType() {
+        int depth = 0;
+        for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
+                p = p.parentProject, depth++) {
+            if (p.defaultProjectType != null) {
+                return p.defaultProjectType;
+            }
+        }
+        return null;
+    }
+
+    /** Message-format setting resolved through the parent chain (first set wins). */
+    @Transient
+    public MessageEvaluateType getEffectiveMessageEvaluateType() {
+        int depth = 0;
+        for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
+                p = p.parentProject, depth++) {
+            if (p.messageEvaluateType != null) {
+                return p.messageEvaluateType;
+            }
+        }
+        return MessageEvaluateType.NONE;
+    }
+
+    /** Source locale resolved through the parent chain (first non-null wins). */
+    @Transient
+    public HLocale getEffectiveDefaultSourceLocale() {
+        int depth = 0;
+        for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
+                p = p.parentProject, depth++) {
+            if (p.defaultSourceLocale != null) {
+                return p.defaultSourceLocale;
+            }
+        }
+        return null;
+    }
+
+    /** Source-URL template resolved through the parent chain (raw, unexpanded). */
+    @Transient
+    public String getEffectiveSourceViewURL() {
+        int depth = 0;
+        for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
+                p = p.parentProject, depth++) {
+            if (p.sourceViewURL != null && !p.sourceViewURL.isBlank()) {
+                return p.sourceViewURL;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The effective source URL with macros expanded for THIS project:
+     * {@code $PROJECT_ID$} → slug, {@code $PROJECT_NAME$} → name. So a parent
+     * template {@code http://github.com/consulo/$PROJECT_ID$} resolves to each
+     * child's own URL.
+     */
+    @Transient
+    public String getResolvedSourceViewURL() {
+        return expandUrlMacros(getEffectiveSourceViewURL(), getSlug(), getName());
+    }
+
+    public static String expandUrlMacros(String template, String slug,
+            String name) {
+        if (template == null) {
+            return null;
+        }
+        return template
+                .replace("$PROJECT_ID$", slug == null ? "" : slug)
+                .replace("$PROJECT_NAME$", name == null ? "" : name);
     }
 
     public boolean isOverrideLocales() {

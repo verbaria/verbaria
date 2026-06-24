@@ -201,7 +201,7 @@ public class ExploreView extends VerticalLayout
                     AuraUtility.TextColor.SECONDARY);
             row.add(desc);
         }
-        Anchor source = SourceLinks.of(p.getSourceViewURL());
+        Anchor source = SourceLinks.of(p.getResolvedSourceViewURL());
         if (source != null) {
             row.addComponentAsFirst(source);
         }

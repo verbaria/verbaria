@@ -288,7 +288,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // associations outside a transaction.
         var project = projectRepository.findBySlug(projectSlug).orElse(null);
         messageEvaluateType = project == null
-                ? MessageEvaluateType.NONE : project.getMessageEvaluateType();
+                ? MessageEvaluateType.NONE
+                : project.getEffectiveMessageEvaluateType();
 
         // No more eager findByDocument — DataProvider pulls pages from DB.
         sourceLocale = doc.getLocale() != null && doc.getLocale().getLocaleId() != null

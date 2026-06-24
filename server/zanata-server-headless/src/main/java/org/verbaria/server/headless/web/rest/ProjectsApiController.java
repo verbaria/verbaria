@@ -68,12 +68,12 @@ public class ProjectsApiController {
         dto.setId(p.getSlug());
         dto.setName(p.getName() == null ? p.getSlug() : p.getName());
         dto.setDescription(p.getDescription());
-        dto.setSourceViewURL(p.getSourceViewURL());
-        dto.setSourceCheckoutURL(p.getSourceCheckoutURL());
+        dto.setSourceViewURL(p.getResolvedSourceViewURL());
         dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
-        dto.setDefaultType(p.getDefaultProjectType() == null
+        ProjectType effectiveType = p.getEffectiveDefaultProjectType();
+        dto.setDefaultType(effectiveType == null
                 ? ProjectType.File.toString()
-                : p.getDefaultProjectType().toString());
+                : effectiveType.toString());
         List<ProjectIteration> iters = new ArrayList<>();
         if (p.getProjectIterations() != null) {
             for (HProjectIteration i : p.getProjectIterations()) {
