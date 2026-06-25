@@ -156,6 +156,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         ComboBox<HProject> parent = new ComboBox<>(getTranslation("projectSettings.parentProject"));
         parent.setItems(projectRepository.findAllByOrderBySlugAsc().stream()
                 .filter(c -> !c.getSlug().equals(slug))
+                .filter(c -> c.getParentProject() == null)
                 .toList());
         parent.setItemLabelGenerator(this::projectLabel);
         parent.setClearButtonVisible(true);
