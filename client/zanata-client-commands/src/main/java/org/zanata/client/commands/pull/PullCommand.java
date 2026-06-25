@@ -74,6 +74,7 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         strategies.put(PROJECT_TYPE_XML, XmlStrategy.class);
         strategies.put(PROJECT_TYPE_OFFLINE_PO, OfflinePoStrategy.class);
         strategies.put(PROJECT_TYPE_CONSULO, ConsuloStrategy.class);
+        strategies.put(PROJECT_TYPE_CHROME, ChromeStrategy.class);
     }
 
     public PullCommand(PullOptions opts) {

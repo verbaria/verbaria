@@ -107,7 +107,7 @@ public class DocumentImportService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Project iteration not found: " + projectSlug + "/" + versionSlug));
 
-        HLocale srcLocale = resolveLocale(resource.getLang());
+        HLocale srcLocale = resolveSourceLocale(iter, resource.getLang());
 
         // Include obsolete rows: a doc that was soft-deleted (e.g. pushed over
         // by another project's set) must be REVIVED, not re-inserted — the
@@ -465,6 +465,12 @@ public class DocumentImportService {
             if (!hex) return false;
         }
         return true;
+    }
+
+    private HLocale resolveSourceLocale(HProjectIteration iter, LocaleId pushed) {
+        HLocale configured = iter.getProject() == null ? null
+                : iter.getProject().getEffectiveDefaultSourceLocale();
+        return configured != null ? configured : resolveLocale(pushed);
     }
 
     private HLocale resolveLocale(LocaleId localeId) {

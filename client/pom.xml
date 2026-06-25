@@ -72,6 +72,11 @@
       </dependency>
       <dependency>
         <groupId>org.zanata</groupId>
+        <artifactId>zanata-adapter-chrome</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.zanata</groupId>
         <artifactId>zanata-adapter-properties</artifactId>
         <version>${project.version}</version>
       </dependency>

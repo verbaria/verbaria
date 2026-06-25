@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.zanata.rest.dto.ExtensionValue;
+import org.zanata.rest.dto.extensions.chrome.ChromeMessage;
 import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 
@@ -14,7 +15,8 @@ import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
         property = "object-type")
 @JsonSubTypes({ @Type(value = PotEntryHeader.class, name = "pot-entry-header"),
         @Type(value = SimpleComment.class, name = "comment"),
-        @Type(value = ConsuloSubFile.class, name = "consulo-sub-file") })
+        @Type(value = ConsuloSubFile.class, name = "consulo-sub-file"),
+        @Type(value = ChromeMessage.class, name = "chrome-message") })
 @JsonTypeName("TextFlowExtension")
 public interface TextFlowExtension extends ExtensionValue {
 

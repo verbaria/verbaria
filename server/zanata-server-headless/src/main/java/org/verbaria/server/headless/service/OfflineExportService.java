@@ -24,7 +24,10 @@ import org.zanata.adapter.xliff.XliffWriter;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
+import org.zanata.adapter.chrome.ChromeWriter;
 import org.zanata.adapter.consulo.ConsuloWriter;
+import org.zanata.rest.dto.extensions.chrome.ChromeMessage;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.common.dto.TranslatedDoc;
 import org.zanata.model.HDocument;
@@ -116,6 +119,7 @@ public class OfflineExportService {
             case Properties, Utf8Properties -> "text/plain;charset=UTF-8";
             case Xliff -> "application/xliff+xml";
             case Consulo -> "application/x-yaml";
+            case Chrome -> "application/json";
             default -> "text/plain;charset=UTF-8";
         };
         String name = (doc.getDocId() == null ? "doc" : doc.getDocId())
@@ -164,6 +168,7 @@ public class OfflineExportService {
             case Properties, Utf8Properties -> ".properties";
             case Xliff -> ".xlf";
             case Consulo -> ".yaml";
+            case Chrome -> ".json";
             case Gettext, Podir, Xml, File -> ".po";
         };
     }
@@ -181,7 +186,38 @@ public class OfflineExportService {
             case Utf8Properties -> writeProperties(source, trans, locale, PropWriter.CHARSET.UTF8);
             case Xliff -> writeXliff(source, trans, locale);
             case Consulo -> writeYaml(source, trans);
+            case Chrome -> writeChromeJson(source, trans);
         };
+    }
+
+    byte[] writeChromeJson(Resource source, TranslationsResource trans)
+            throws IOException {
+        Map<String, String> translatedByResId = new LinkedHashMap<>();
+        if (trans.getTextFlowTargets() != null) {
+            for (TextFlowTarget t : trans.getTextFlowTargets()) {
+                String c = firstContent(t.getContents());
+                if (!c.isEmpty()) translatedByResId.put(t.getResId(), c);
+            }
+        }
+        Map<String, ChromeWriter.Entry> entries = new LinkedHashMap<>();
+        for (TextFlow tf : source.getTextFlows()) {
+            String translation = translatedByResId.get(tf.getId());
+            if (translation == null) continue;
+            String humanKey = humanKey(tf);
+            if (humanKey == null) continue;
+            ChromeMessage meta = tf.getExtensions() == null ? null
+                    : tf.getExtensions().findByType(ChromeMessage.class);
+            SimpleComment comment = tf.getExtensions() == null ? null
+                    : tf.getExtensions().findByType(SimpleComment.class);
+            String description = comment == null ? null : comment.getValue();
+            entries.put(humanKey,
+                    new ChromeWriter.Entry(translation, description, meta));
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+            new ChromeWriter().write(w, entries);
+        }
+        return out.toByteArray();
     }
 
     // Package-private so yamlForDoc above can call directly without going through writeOne's enum.

@@ -93,6 +93,7 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         strategies.put(PROJECT_TYPE_XLIFF, new XliffStrategy());
         strategies.put(PROJECT_TYPE_XML, new XmlStrategy());
         strategies.put(PROJECT_TYPE_CONSULO, new ConsuloStrategy());
+        strategies.put(PROJECT_TYPE_CHROME, new ChromeStrategy());
         strategies.put(
                 PROJECT_TYPE_OFFLINE_PO,
                 new OfflinePoStrategy(getClientFactory()

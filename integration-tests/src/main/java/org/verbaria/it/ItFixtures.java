@@ -151,6 +151,13 @@ public class ItFixtures {
         projectRepository.save(p);
     }
 
+    @Transactional
+    public void setProjectSourceLocale(String slug, String localeId) {
+        HProject p = projectRepository.findBySlug(slug).orElseThrow();
+        p.setDefaultSourceLocale(ensureLocale(localeId));
+        projectRepository.save(p);
+    }
+
     /** Link child -> parent, mirroring the parent's versions onto the child. */
     @Transactional
     public void linkParent(String childSlug, String parentSlug) {

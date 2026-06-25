@@ -17,6 +17,7 @@ import org.zanata.model.HAccount;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
+import org.zanata.adapter.chrome.ChromeReader;
 import org.zanata.adapter.consulo.ConsuloReader;
 import org.zanata.util.HashUtil;
 
@@ -84,10 +85,13 @@ public class SourceUploadService {
             // them as docIds without prefixing.
             resource = new ConsuloReader().extractTemplate(baseDocId, in);
             hashTextFlowIds(resource);
+        } else if (lower.endsWith("messages.json")) {
+            resource = new ChromeReader().extractTemplate(baseDocId, in);
+            hashTextFlowIds(resource);
         } else {
             throw new IllegalArgumentException(
                     "Unsupported file extension: " + fileName
-                            + " (accepted: .properties, .po, .pot, .xlf, .xliff, .yaml, .yml)");
+                            + " (accepted: .properties, .po, .pot, .xlf, .xliff, .yaml, .yml, messages.json)");
         }
         return documentImportService.importSource(projectSlug, versionSlug,
                 baseDocId, resource, actor);
