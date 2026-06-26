@@ -78,7 +78,6 @@ abstract class AbstractPushPullIT {
         }
     }
 
-    /** In-memory working dir — all client file I/O is nio Path-based. */
     Path inMemoryRoot() throws Exception {
         jimfs = Jimfs.newFileSystem(Configuration.unix());
         Path root = jimfs.getPath("/work");
@@ -139,15 +138,14 @@ abstract class AbstractPushPullIT {
     void pushBoth(String proj) throws Exception {
         PushOptionsImpl push = pushOpts("both", "properties", proj);
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
     }
 
-    /** Pull (both) and return the lock the CLI wrote, like translate-sync does. */
     VerbariaLock pullBothAndReadLock(String proj) throws Exception {
         PullOptionsImpl pull = pullOpts("both", "properties", proj);
         pull.setLocaleMapList(frLocales());
-        pull.setIncludes("messages.properties");
+        pull.setIncludes("messages*.properties");
         new PullCommand(pull).run();
         return VerbariaLockReaderWriter.readOrNull(
                 tmp.resolve("verbaria-lock.json"));

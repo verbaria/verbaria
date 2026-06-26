@@ -18,8 +18,6 @@ class ChangelogIT extends AbstractPushPullIT {
 
     @Test
     void endToEndChangelogReportsTranslationEdit() throws Exception {
-        // playground flow: push both (approved), a translator edits a
-        // translation in the editor, pull, diff the locks -> changelog.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -31,7 +29,7 @@ class ChangelogIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itclt");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         push.setApprove(true);
         new PushCommand(push).run();
 
@@ -65,7 +63,7 @@ class ChangelogIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itclm");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         push.setApprove(true);
         new PushCommand(push).run();
 
@@ -103,7 +101,7 @@ class ChangelogIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itcls");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         push.setApprove(true);
         new PushCommand(push).run();
 

@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(scanBasePackages = {"org.verbaria.server.headless", "org.verbaria.it"})
+@SpringBootApplication(scanBasePackages = {"org.verbaria.server.headless", "org.verbaria.it", "org.zanata.adapter"})
 @EntityScan("org.zanata.model")
 @EnableJpaRepositories("org.verbaria.server.headless.repository")
 public class ItApplication {

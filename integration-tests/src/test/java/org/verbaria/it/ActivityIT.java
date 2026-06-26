@@ -33,17 +33,15 @@ class ActivityIT extends AbstractPushPullIT {
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("itactivity", VERSION);
 
-        // UPLOAD_SOURCE_DOCUMENT — push the source bundle.
         Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
         new PushCommand(pushOpts("source", "properties", "itactivity")).run();
         assertThat(typesFor(USER)).contains(ActivityType.UPLOAD_SOURCE_DOCUMENT);
 
-        // UPLOAD_TRANSLATION_DOCUMENT — push a fr-FR translation.
         Files.writeString(tmp.resolve("messages_fr_FR.properties"),
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itactivity");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
         assertThat(typesFor(USER))
                 .contains(ActivityType.UPLOAD_TRANSLATION_DOCUMENT);
@@ -54,11 +52,9 @@ class ActivityIT extends AbstractPushPullIT {
         Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
         LocaleId fr = new LocaleId("fr-FR");
 
-        // UPDATE_TRANSLATION — edit the translation in the editor.
         translationEditService.save(tfId, fr, "Salut", USER);
         assertThat(typesFor(USER)).contains(ActivityType.UPDATE_TRANSLATION);
 
-        // REVIEWED_TRANSLATION — approve it.
         translationEditService.changeState(tfId, fr, ContentState.Approved, null,
                 USER);
         assertThat(typesFor(USER)).contains(ActivityType.REVIEWED_TRANSLATION);

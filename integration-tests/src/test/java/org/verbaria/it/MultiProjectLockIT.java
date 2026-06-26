@@ -37,7 +37,7 @@ class MultiProjectLockIT extends AbstractPushPullIT {
 
         PullOptionsImpl pull = pullOpts("both", "properties", "globcon**");
         pull.setLocaleMapList(frLocales());
-        pull.setIncludes("messages.properties");
+        pull.setIncludes("messages*.properties");
         new PullCommand(pull).run();
 
         VerbariaLock lock = VerbariaLockReaderWriter.readOrNull(
@@ -65,12 +65,9 @@ class MultiProjectLockIT extends AbstractPushPullIT {
                 "greeting=Hallo\n");
         PushOptionsImpl push = pushOpts("both", "properties", "globpina");
         push.setLocaleMapList(frDeLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
 
-        // Pull into a fresh dir with targetLocales pinned to fr-FR only — even
-        // though the server also has a de-DE translation, a glob pull must not
-        // pull every server locale, only the pinned one.
         Path pullDir = jimfs.getPath("/pull");
         Files.createDirectories(pullDir);
         PullOptionsImpl pull = pullOpts("trans", "properties", "globpin**");
@@ -101,8 +98,6 @@ class MultiProjectLockIT extends AbstractPushPullIT {
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("globplock", VERSION);
 
-        // Unique doc id so find-doc routes it unambiguously to this project
-        // (the test DB is shared and other tests also create a "messages" doc).
         Path en = tmp.resolve("LOCALIZE-LIB/en_US");
         Files.createDirectories(en);
         Files.writeString(en.resolve("glplockdoc.yaml"),
@@ -116,14 +111,10 @@ class MultiProjectLockIT extends AbstractPushPullIT {
         Files.writeString(de.resolve("glplockdoc.yaml"),
                 "greeting:\n    text: 'Hallo'\n", StandardCharsets.UTF_8);
 
-        // Seed the server with BOTH locales so the glob push could (wrongly)
-        // record them all in the lock.
         PushOptionsImpl seed = pushOpts("both", "consulo", "globplock");
         seed.setLocaleMapList(frDeLocales());
         new PushCommand(seed).run();
 
-        // Glob trans push pinned to fr-FR only: the lock must record just fr-FR,
-        // not every server locale.
         PushOptionsImpl push = pushOpts("trans", "consulo", "globp**");
         push.setLocaleMapList(frLocales());
         new PushCommand(push).run();
@@ -142,7 +133,7 @@ class MultiProjectLockIT extends AbstractPushPullIT {
     private void pushOneProject(String proj) throws Exception {
         PushOptionsImpl push = pushOpts("both", "properties", proj);
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
     }
 

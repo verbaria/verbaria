@@ -21,9 +21,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void rePushingSameTranslationDoesNotBumpVersionOrAuthor() throws Exception {
-        // A re-push that carries an identical translation must be a no-op: the
-        // target's version, author and lastChanged must not churn. Only a real
-        // content change advances the version.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -66,10 +63,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void editorSaveCreditsTheEditingUserNotTheOriginalPusher() throws Exception {
-        // A translation first created by a bot push is then edited in the web
-        // editor by a real translator. The editor save must re-attribute the
-        // target to that translator so pull-generated changelogs credit them,
-        // not the bot.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -103,9 +96,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void forceSourcePushOverridesUnchangedSourceTarget() throws Exception {
-        // The same no-op / --force logic governs the source push: the source's
-        // own locale target must not churn on an identical re-push, but --force
-        // rewrites it.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureAdmin(USER, API_KEY);
@@ -113,7 +103,7 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
         Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
         PushOptionsImpl push = pushOpts("source", "properties", "itforcesrc");
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
 
         HDocument doc = documentRepository
@@ -125,7 +115,7 @@ class TranslationHistoryIT extends AbstractPushPullIT {
                 .findByTextFlowIdsAndLocale(List.of(tfId), en).get(0).getVersionNum();
 
         PushOptionsImpl repush = pushOpts("source", "properties", "itforcesrc");
-        repush.setIncludes("messages.properties");
+        repush.setIncludes("messages*.properties");
         new PushCommand(repush).run();
         assertThat(textFlowTargetRepository
                 .findByTextFlowIdsAndLocale(List.of(tfId), en).get(0).getVersionNum())
@@ -133,7 +123,7 @@ class TranslationHistoryIT extends AbstractPushPullIT {
                 .isEqualTo(v0);
 
         PushOptionsImpl force = pushOpts("source", "properties", "itforcesrc");
-        force.setIncludes("messages.properties");
+        force.setIncludes("messages*.properties");
         force.setForce(true);
         new PushCommand(force).run();
         assertThat(textFlowTargetRepository
@@ -144,8 +134,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void forcePushOverridesUnchangedTranslation() throws Exception {
-        // --force bypasses the value-check no-op: an identical re-push still
-        // advances the version (fully overriding state).
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -173,7 +161,7 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
         PushOptionsImpl force = pushOpts("both", "properties", "itforce");
         force.setLocaleMapList(frLocales());
-        force.setIncludes("messages.properties");
+        force.setIncludes("messages*.properties");
         force.setForce(true);
         new PushCommand(force).run();
 
@@ -185,12 +173,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void rePushingTranslationsDoesNotDuplicateHistory() throws Exception {
-        // Reproduces the "duplicate key (target_id, version_num)" crash. The
-        // import wrote a history row by hand on every re-push of an already
-        // translated string — even when nothing changed, so the target's
-        // @Version stayed put. That leaves an orphan history row at the current
-        // version; the next real edit's @PreUpdate listener then writes history
-        // at the SAME version, violating the (target_id, version_num) natural id.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -202,11 +184,8 @@ class TranslationHistoryIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         pushBoth("itdup");
 
-        // Re-push the SAME translation — nothing changes, so the version must
-        // not advance and no history should be written.
         pushBoth("itdup");
 
-        // Now change it and push again, exactly as a translator would.
         Files.writeString(tmp.resolve("messages_fr_FR.properties"),
                 "greeting=Salut\n");
         pushBoth("itdup");
@@ -222,9 +201,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
                 .as("the re-pushed translation must be persisted")
                 .containsExactly("Salut");
 
-        // The crash was a duplicate (target_id, version_num). Production rejects
-        // it; the test DB silently keeps both rows, so assert on the rows
-        // directly — every version number must appear at most once.
         List<HTextFlowTargetHistory> history = textFlowTargetHistoryRepository
                 .findByTextFlowAndLocale(ids.get(0), new LocaleId("fr-FR"));
         assertThat(history.stream().map(HTextFlowTargetHistory::getVersionNum))
@@ -234,11 +210,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void editorChangeStateApproveDoesNotDuplicateHistory() throws Exception {
-        // The actual editor crash path: TranslationEditService.changeState(...,
-        // Approved). It used to write a history row by hand on top of the one
-        // the @PreUpdate listener writes, so the very next state change violated
-        // the (target_id, version_num) natural id — the production
-        // "duplicate key value violates unique constraint" 23505 error.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -256,8 +227,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
         Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
         LocaleId fr = new LocaleId("fr-FR");
 
-        // Edit a couple of times to advance the @Version, mirroring a real
-        // translator session before the approve that crashed at version 2.
         translationEditService.save(tfId, fr, "Salut");
         translationEditService.save(tfId, fr, "Coucou");
 
@@ -281,8 +250,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
 
     @Test
     void editorReApproveIsIdempotent() throws Exception {
-        // Re-approving an already-approved row must be a harmless no-op (the UI
-        // can leave the button enabled), not a duplicate-history crash.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -316,13 +283,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
     @Test
     void editorApproveAfterRePushPersistsAndDoesNotDuplicateHistory()
             throws Exception {
-        // The exact playground report: the translation is pushed (and re-pushed,
-        // which left an orphan history row at the target's current version while
-        // its @Version stayed put), then a translator approves an edit in the
-        // editor. The approve's @PreUpdate listener writes history at that same
-        // version, hits the duplicate (target_id, version_num) constraint, the
-        // transaction rolls back — so the approved text is never saved ("I can't
-        // see Hey") and re-trying surfaces the duplicate-key error.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -333,8 +293,6 @@ class TranslationHistoryIT extends AbstractPushPullIT {
         Files.writeString(tmp.resolve("messages_fr_FR.properties"),
                 "greeting=Bonjour\n");
         pushBoth("itedit");
-        // Re-push the same translation: the buggy import leaves an orphan
-        // history row at the current (unchanged) version.
         pushBoth("itedit");
 
         HDocument doc = documentRepository

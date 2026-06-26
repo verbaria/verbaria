@@ -7,7 +7,7 @@ import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(scanBasePackages = "org.verbaria.server")
+@SpringBootApplication(scanBasePackages = {"org.verbaria.server", "org.zanata.adapter"})
 @EntityScan(basePackages = "org.zanata.model")
 @EnableJpaRepositories(basePackages = "org.verbaria.server.headless.repository")
 @EnableVaadin({

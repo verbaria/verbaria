@@ -25,6 +25,7 @@ import org.zanata.adapter.properties.PropWriter;
 import org.zanata.adapter.xliff.XliffCommon.ValidationType;
 import org.zanata.client.commands.OptionsUtil;
 import org.zanata.client.commands.PushPullCommand;
+import org.zanata.client.commands.GenericArchiveTransport;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -60,11 +61,6 @@ import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.file.Files;
 
-/**
- * @author Sean Flanigan <a
- *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
- *
- */
 public class PushCommand extends PushPullCommand<PushOptions> {
     private static final Logger log = LoggerFactory
             .getLogger(PushCommand.class);
@@ -233,31 +229,8 @@ public class PushCommand extends PushPullCommand<PushOptions> {
 
     @Override
     public void run() throws Exception {
-        String proj = getOpts().getProj();
-        if (proj != null && (proj.contains("*") || proj.contains("?"))) {
-            runForProjectGlob(proj);
-            return;
-        }
-        checkOptions();
         logOptions(log, getOpts());
-        pushCurrentModule();
-
-        if (pushSource() && getOpts().getEnableModules()
-                && getOpts().isRootModule()) {
-            List<String> obsoleteDocs =
-                    getObsoleteDocNamesForProjectIterationFromServer();
-            log.info("found {} docs in obsolete modules (or no module): {}",
-                    obsoleteDocs.size(), obsoleteDocs);
-            if (getOpts().getDeleteObsoleteModules() && !obsoleteDocs.isEmpty()) {
-                // offer to delete obsolete documents
-                confirmWithUser("Do you want to delete all documents from the server which don't belong to any module in the Maven reactor?\n");
-                deleteSourceDocsFromServer(obsoleteDocs);
-            } else {
-                log.warn(
-                        "found {} docs in obsolete modules (or no module).  use -Dzanata.deleteObsoleteModules to delete them",
-                        obsoleteDocs.size());
-            }
-        }
+        new org.zanata.client.commands.GenericArchiveTransport().push(getOpts());
     }
 
     private void runForProjectGlob(String pattern) throws Exception {
@@ -298,8 +271,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         String originalProj = getOpts().getProj();
         java.util.List<String> originalIncludes = getOpts().getIncludes();
         boolean originalInteractive = getOpts().isInteractiveMode();
-        // The dispatcher line above is the explicit intent; skip per-project
-        // "are you sure?" prompts inside the loop.
         if (originalInteractive) getOpts().setInteractiveMode(false);
         globLock = new VerbariaLock();
         globLock.setServer(getOpts().getUrl() == null ? null
@@ -307,10 +278,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         globLock.setProject(originalProj);
         globLock.setProjectVersion(getOpts().getProjectVersion());
         globLock.setGeneratedAt(java.time.Instant.now().toString());
-        // When the user pinned locales (targetLocales/locales in the config),
-        // honour them across every matched project instead of replacing the list
-        // with each project's full server locale set — otherwise the lock records
-        // every server locale rather than the configured target(s).
         LocaleList pinnedLocales = getOpts().getLocaleMapList();
         boolean localesPinned =
                 pinnedLocales != null && !pinnedLocales.isEmpty();
@@ -390,10 +357,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
     }
 
-    /**
-     * gets doc list from server, returns a list of qualified doc names from
-     * obsolete modules, or from no module.
-     */
     protected List<String> getObsoleteDocNamesForProjectIterationFromServer() {
         if (!getOpts().getEnableModules())
             return Collections.emptyList();
@@ -405,7 +368,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
 
         List<String> obsoleteDocs = new ArrayList<String>();
         for (ResourceMeta doc : remoteDocList) {
-            // NB ResourceMeta.name == HDocument.docId
             String docName = doc.getName();
 
             Matcher matcher = p.matcher(docName);
@@ -451,7 +413,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
 
         final StringSet extensions = strat.getExtensions();
 
-        // to save memory, we don't load all the docs into a HashMap
         Set<String> unsortedDocNames =
                 strat.findDocNames(sourceDir, getOpts().getIncludes(),
                         getOpts().getExcludes(),
@@ -468,7 +429,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                             getDocsAfterFromDoc(unqualifiedDocName(getOpts()
                                     .getFromDoc()), localDocNames);
                 }
-                // else fromDoc does not apply to this module
             } else {
                 docsToPush =
                         getDocsAfterFromDoc(getOpts().getFromDoc(),
@@ -499,7 +459,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         .getCurrentModule());
                 return;
             } else {
-                // nop
             }
         } else {
             log.warn(
@@ -587,7 +546,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                             });
                 }
 
-                // Copy Trans after pushing (only when pushing source)
                 if (getOpts().getCopyTrans() && (pushSource())) {
                     this.copyTransForDocument(qualifiedDocName);
                 }
@@ -601,10 +559,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                             "--resume-from " + getOpts().getCurrentModule(true)
                                     + " ";
                 }
-                // Note: '.' is included after trailing newlines to prevent them
-                // being stripped,
-                // since stripping newlines can cause extra text to be appended
-                // to the options.
                 message +=
                         getOpts().buildFromDocArgument(
                                 qualifiedDocName(localDocName))
@@ -615,18 +569,9 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
         deleteSourceDocsFromServer(obsoleteDocs);
 
-        // Record the resulting server state so the lock reflects what was just
-        // pushed (read back from the server to capture any server-side merge).
         writeLockFromServer(docsToPush, extensions);
     }
 
-    /**
-     * Builds {@code verbaria-lock.json} from the server's state for the pushed
-     * documents: source revisions (one call) plus, when translations were
-     * pushed, a signature per locale read back from the server. Mirrors what
-     * {@code pull} records, so push- and pull-written locks stay consistent.
-     * Best-effort: a failure here must not fail the push.
-     */
     private void writeLockFromServer(SortedSet<String> docsToPush,
             StringSet extensions) {
         if (getOpts().isDryRun() || docsToPush.isEmpty()) {
@@ -645,7 +590,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                 lock.setGeneratedAt(java.time.Instant.now().toString());
             }
 
-            // Source revisions for all docs in a single request.
             Map<String, Integer> revisionByDoc = new HashMap<>();
             for (ResourceMeta meta : getDocListForProjectIterationFromServer()) {
                 revisionByDoc.put(meta.getName(), meta.getRevision());
@@ -677,7 +621,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
     }
 
-    /** Lock doc key: project-qualified in multi-project (glob) mode. */
     private String lockDocKey(String localDocName) {
         return inProjectGlob ? currentGlobSlug + "/" + localDocName
                 : localDocName;
@@ -724,15 +667,9 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         .put(locale.getId(), entry);
             }
         } catch (HttpClientErrorException.NotFound e) {
-            // No translations stored for this doc+locale yet.
         }
     }
 
-    /**
-     * Mark every non-empty target as approved (reviewed). The server enforces
-     * that only admins may actually keep the approved state; for other users it
-     * downgrades to translated.
-     */
     @VisibleForTesting
     static void markApproved(TranslationsResource targetDoc) {
         for (TextFlowTarget tft : targetDoc.getTextFlowTargets()) {
@@ -753,7 +690,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             Collection<TextFlowTarget> untranslatedEntries =
                     originalTargets.stream()
                     .filter(tft -> {
-                        // it's unsafe to rely on content state (plural entries)
                         return tft == null
                                 || tft.getContents().isEmpty()
                                 || all(tft.getContents(),
@@ -767,15 +703,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
     }
 
-    /**
-     * Returns a list with all documents before fromDoc removed.
-     *
-     * @param fromDoc
-     * @param docNames
-     * @return a set with only the documents after fromDoc, inclusive
-     * @throws RuntimeException
-     *             if no document with the specified name exists
-     */
     private SortedSet<String> getDocsAfterFromDoc(String fromDoc,
             SortedSet<String> docNames) {
         SortedSet<String> docsToPush;
@@ -791,13 +718,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         return docsToPush;
     }
 
-    /**
-     * Returns obsolete docs which belong to the current module. Returns any
-     * docs in the current module from the server, unless they are found in the
-     * localDocNames set.
-     *
-     * @param localDocNames
-     */
     private List<String> getObsoleteDocsInModuleFromServer(
             Set<String> localDocNames) {
         List<String> qualifiedDocNames =
@@ -813,9 +733,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         return obsoleteDocs;
     }
 
-    /**
-     * @param qualifiedDocNames
-     */
     private void deleteSourceDocsFromServer(List<String> qualifiedDocNames) {
         for (String qualifiedDocName : qualifiedDocNames) {
             deleteSourceDocFromServer(qualifiedDocName);
@@ -857,7 +774,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         break;
 
                     case NotAccepted:
-                        // try to submit the process again
                         status =
                                 asyncProcessClient
                                         .startSourceDocCreationOrUpdateWithDocId(
@@ -874,7 +790,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         break;
                 }
 
-                // Wait before retrying
                 wait(POLL_PERIOD);
                 status = asyncProcessClient.getProcessStatus(status.getUrl());
             }
@@ -887,15 +802,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
     }
 
-    /**
-     * Split TranslationsResource into List&lt;TranslationsResource&gt;
-     * according to maxBatchSize, but only if mergeType=AUTO
-     *
-     * @param doc
-     * @param maxBatchSize
-     * @return list of TranslationsResource, each containing up to maxBatchSize
-     *         TextFlowTargets
-     */
     public List<TranslationsResource> splitIntoBatch(TranslationsResource doc,
             int maxBatchSize) {
         List<TranslationsResource> targetDocList =
@@ -913,8 +819,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
             int toIndex;
 
             for (int i = 1; i <= numBatches; i++) {
-                // make a dummy TranslationsResource to hold just the
-                // TextFlowTargets for each batch
                 TranslationsResource resource = new TranslationsResource();
                 resource.setExtensions(doc.getExtensions());
                 resource.setLinks(doc.getLinks());
@@ -984,7 +888,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         break;
 
                     case NotAccepted:
-                        // try to submit the process again
                         status =
                                 asyncProcessClient
                                         .startTranslatedDocCreationOrUpdateWithDocId(
@@ -1005,13 +908,11 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                         break;
                 }
 
-                // Wait before retrying
                 wait(POLL_PERIOD);
                 status = asyncProcessClient.getProcessStatus(status.getUrl());
             }
             ConsoleUtils.endProgressFeedback();
 
-            // Show warning messages
             if (status.getMessages().size() > 0) {
                 log.warn("Pushed translations with warnings:");
                 for (String mssg : status.getMessages()) {
@@ -1057,7 +958,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
                     this.copyTransClient.getCopyTransStatus(getOpts()
                             .getProj(), getOpts().getProjectVersion(), docName);
         } catch (HttpClientErrorException.NotFound e) {
-            // 404 - Probably because of an old server
             if (getClientFactory()
                     .compareToServerVersion("1.8.0-SNAPSHOT") < 0) {
                 log.warn("Copy Trans not started (Incompatible server version.)");
@@ -1099,7 +999,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         }
     }
 
-    // TODO Perhaps move this to ConsoleUtils
     private static void wait(int millis) {
         try {
             Thread.sleep(millis);

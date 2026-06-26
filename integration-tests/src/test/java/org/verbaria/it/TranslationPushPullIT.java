@@ -25,8 +25,6 @@ class TranslationPushPullIT extends AbstractPushPullIT {
 
     @Test
     void propertiesTranslationLandsInDb() throws Exception {
-        // Mirrors the `playground` layout: an en-US source bundle plus a
-        // region-specific translation file.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -76,7 +74,7 @@ class TranslationPushPullIT extends AbstractPushPullIT {
 
         PushOptionsImpl push = pushOpts("both", "properties", "ittransrepush");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
 
         Map<String, String> before = transSnapshot("ittransrepush");
@@ -84,7 +82,7 @@ class TranslationPushPullIT extends AbstractPushPullIT {
 
         PushOptionsImpl repush = pushOpts("both", "properties", "ittransrepush");
         repush.setLocaleMapList(frLocales());
-        repush.setIncludes("messages.properties");
+        repush.setIncludes("messages*.properties");
         new PushCommand(repush).run();
 
         assertThat(transSnapshot("ittransrepush"))
@@ -125,11 +123,6 @@ class TranslationPushPullIT extends AbstractPushPullIT {
 
     @Test
     void translationPullKeepsHumanReadableKeys() throws Exception {
-        // Source keys are hashed into the resId on push (original kept in
-        // PotEntryHeader.context). Pulling with the source available (pull-type
-        // both, as the playground does) must restore the readable keys, not emit
-        // the 32-char hash. A trans-only pull has no source mapping and keeps the
-        // hash — hence "both" here.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -145,7 +138,7 @@ class TranslationPushPullIT extends AbstractPushPullIT {
         Files.deleteIfExists(tmp.resolve("messages_fr_FR.properties"));
         PullOptionsImpl pull = pullOpts("both", "properties", "itkeys");
         pull.setLocaleMapList(frLocales());
-        pull.setIncludes("messages.properties");
+        pull.setIncludes("messages*.properties");
         new PullCommand(pull).run();
 
         Path pulled = tmp.resolve("messages_fr_FR.properties");

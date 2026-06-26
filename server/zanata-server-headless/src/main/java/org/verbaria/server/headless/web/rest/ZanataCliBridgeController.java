@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RestController;
 import org.zanata.common.ContentState;
 import org.zanata.common.ContentType;
@@ -68,38 +70,16 @@ import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.verbaria.server.headless.service.DocumentImportService;
+import org.verbaria.server.headless.service.LockService;
 import org.verbaria.server.headless.service.OfflineExportService;
+import org.verbaria.server.headless.service.PullArchiveService;
+import org.verbaria.server.headless.service.PushArchiveService;
+import org.verbaria.server.headless.service.PushPlanService;
 import org.verbaria.server.headless.service.ProjectHierarchyService;
 import org.verbaria.server.headless.service.SourceUploadService;
+import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Compatibility REST bridge for the classic Zanata CLI
- * (zanata-cli / zanata-rest-client / zanata-client-commands).
- *
- * The CLI talks to a fixed set of paths under {@code /rest/...} which the
- * old JAX-RS services (in zanata-war / services) used to publish. Those are
- * gone in this Spring Boot module, so this controller stands those routes
- * back up using the existing Spring Data repositories.
- *
- * Notes on overlapping routes:
- *  - {@link ProjectsApiController} already exposes
- *    GET /rest/projects/p/{slug} as a free-form Map<String,Object> for the
- *    React UI. To avoid clobbering it, the CLI-shape Project DTO endpoint
- *    here is registered under the same path but typed differently — Spring
- *    will dispatch by HTTP method and accept header. The PUT method is
- *    exclusive to this controller; the existing GET still works for the React
- *    UI but if/when ProjectsApiController is deleted this controller's GET
- *    will take over transparently.
- *  - {@link EditorController} exposes /rest/project/{slug}/... (singular) for
- *    the React editor; CLI paths are /rest/projects/p/{slug}/... (plural) so
- *    there is no collision.
- *
- * Security: SecurityConfig currently permits all /rest/** requests. Write
- * endpoints here additionally read SecurityContextHolder and reject anonymous
- * principals with 401 — once an API-key filter is added, this will Just Work
- * because Spring will populate the authentication for the matching credentials.
- */
 @RestController
 @RequestMapping("/rest")
 public class ZanataCliBridgeController {
@@ -119,6 +99,10 @@ public class ZanataCliBridgeController {
     private final SourceUploadService sourceUploadService;
     private final TextFlowExtensionStore extensionStore;
     private final ProjectHierarchyService hierarchyService;
+    private final PushPlanService pushPlanService;
+    private final PushArchiveService pushArchiveService;
+    private final PullArchiveService pullArchiveService;
+    private final LockService lockService;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -134,7 +118,11 @@ public class ZanataCliBridgeController {
                                      OfflineExportService offlineExportService,
                                      SourceUploadService sourceUploadService,
                                      TextFlowExtensionStore extensionStore,
-                                     ProjectHierarchyService hierarchyService) {
+                                     ProjectHierarchyService hierarchyService,
+                                     PushPlanService pushPlanService,
+                                     PushArchiveService pushArchiveService,
+                                     PullArchiveService pullArchiveService,
+                                     LockService lockService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
@@ -147,9 +135,11 @@ public class ZanataCliBridgeController {
         this.sourceUploadService = sourceUploadService;
         this.extensionStore = extensionStore;
         this.hierarchyService = hierarchyService;
+        this.pushPlanService = pushPlanService;
+        this.pushArchiveService = pushArchiveService;
+        this.pullArchiveService = pullArchiveService;
+        this.lockService = lockService;
     }
-
-    // ---------- 1. version ----------
 
     @GetMapping("/version")
     public ResponseEntity<VersionInfo> version() {
@@ -159,11 +149,6 @@ public class ZanataCliBridgeController {
                 "spring"));
     }
 
-    // ---------- 1a. list all projects (CLI init flow) ----------
-    //
-    // The CLI's `zanata-cli init` calls GET /rest/projects when the user picks
-    // "select an existing project". JSON only.
-
     @GetMapping(value = "/projects",
             produces = {MediaType.APPLICATION_JSON_VALUE,
                         "application/vnd.zanata.projects+json"})
@@ -171,7 +156,6 @@ public class ZanataCliBridgeController {
     public ResponseEntity<?> listProjects() {
         List<Project> dtos = new ArrayList<>();
         for (HProject p : projectRepository.findAll()) {
-            // Skip soft-deleted projects so the CLI menu stays clean.
             if (p.getStatus() == EntityStatus.OBSOLETE) continue;
             Project dto = new Project();
             dto.setId(p.getSlug());
@@ -181,31 +165,21 @@ public class ZanataCliBridgeController {
             dto.setDefaultType(p.getDefaultProjectType() == null
                     ? ProjectType.File.toString()
                     : p.getDefaultProjectType().toString());
-            // Iterations omitted on purpose — the CLI init only needs id/name
-            // for the picker, and including them blows up the response.
             dtos.add(dto);
         }
         return ResponseEntity.ok(dtos);
     }
 
-    // ---------- 2. get project (CLI Project DTO) ----------
-
     @GetMapping("/projects/p/{slug}/cli")
     @Transactional(readOnly = true)
     public ResponseEntity<Project> getProjectCli(@PathVariable("slug") String slug) {
-        // Sibling path '/cli' chosen to avoid clobbering ProjectsApiController.
-        // (See class-level Javadoc.) The legacy CLI hits /projects/p/{slug} directly,
-        // so we also expose the same content via PUT /projects/p/{slug} below;
-        // if ProjectsApiController is deleted, change this mapping to "/projects/p/{slug}".
         return projectRepository.findBySlugWithIterations(slug)
                 .map(p -> ResponseEntity.ok(toDto(p)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ---------- 3. put project ----------
-
     @PutMapping("/projects/p/{slug}")
-            
+
     @Transactional
     public ResponseEntity<Project> putProject(@PathVariable("slug") String slug,
                                               @RequestBody Project body) {
@@ -233,10 +207,8 @@ public class ZanataCliBridgeController {
             try {
                 p.setDefaultProjectType(ProjectType.getValueOf(body.getDefaultType()));
             } catch (Exception ignore) {
-                // keep whatever default we had
             }
         }
-        // HProject must have a name (NotEmpty); fall back to the slug.
         if (p.getName() == null || p.getName().isEmpty()) {
             p.setName(slug);
         }
@@ -247,8 +219,6 @@ public class ZanataCliBridgeController {
                 : ResponseEntity.ok(out);
     }
 
-    // ---------- 4. get project iteration ----------
-
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}")
     @Transactional(readOnly = true)
     public ResponseEntity<ProjectIteration> getIteration(@PathVariable("slug") String slug,
@@ -257,13 +227,6 @@ public class ZanataCliBridgeController {
                 .map(i -> ResponseEntity.ok(toDto(i)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
-    // ---------- 4b. zanata.xml sample (CLI init step "Continue?") ----------
-    //
-    // Ports the legacy ConfigurationServiceImpl.getGeneralConfig builder
-    // (server/services/.../ConfigurationServiceImpl.java in the old repo)
-    // so `zanata-cli init` can fetch a starter zanata.xml after the user
-    // picks project+version.
 
     @GetMapping(value = "/projects/p/{slug}/iterations/i/{iter}/config",
             produces = {MediaType.APPLICATION_JSON_VALUE,
@@ -279,11 +242,7 @@ public class ZanataCliBridgeController {
         if (iteration.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        // Inherits the parent project's type when this child sets none.
         ProjectType pt = iteration.get().getEffectiveProjectType();
-        // Starter verbaria.json. The CLI's `init` fills in srcDir/includes/
-        // excludes/transDir afterward. Keys match org.zanata.client.config
-        // .ZanataConfig so the client can parse it straight back as JSON.
         Map<String, Object> config = new java.util.LinkedHashMap<>();
         config.put("url", resolveBaseUrl(host, forwardedHost, forwardedProto));
         config.put("project", slug);
@@ -302,13 +261,6 @@ public class ZanataCliBridgeController {
         return scheme + "://" + h + "/";
     }
 
-    // ---------- 4a. iteration active locales ----------
-    //
-    // The CLI's push command consults this to decide which translation files
-    // to upload — files for locales not in this list are skipped with
-    // "no locale entry found from project config". We return every enabled
-    // locale from the server (no per-iteration locale overrides yet).
-
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/locales")
     @Transactional(readOnly = true)
     public ResponseEntity<?> iterationLocales(@PathVariable("slug") String slug,
@@ -317,13 +269,9 @@ public class ZanataCliBridgeController {
         if (iterOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        // Project-customized locale set (when overrideLocales=true) → returns
-        // only those locales; else fall back to every active server locale.
         var customized = iterationRepository.findProjectLocales(iterOpt.get().getId());
         Iterable<org.zanata.model.HLocale> source = customized.isPresent()
                 ? customized.get() : localeRepository.findAll();
-        // Always include the project's source locale so the CLI can write
-        // source-edit pushes back even when it's not in customizedLocales.
         var projectSource = iterationRepository.findProjectSourceLocale(iterOpt.get().getId());
         java.util.LinkedHashMap<Long, org.zanata.model.HLocale> uniq = new java.util.LinkedHashMap<>();
         for (var l : source) if (l.isActive()) uniq.put(l.getId(), l);
@@ -335,21 +283,19 @@ public class ZanataCliBridgeController {
             org.zanata.rest.dto.LocaleDetails ld = new org.zanata.rest.dto.LocaleDetails(
                     loc.getLocaleId(),
                     loc.getDisplayName(),
-                    null /* alias */,
+                    null ,
                     loc.getNativeName(),
-                    true /* enabled */,
-                    true /* enabledByDefault */,
+                    true ,
+                    true ,
                     loc.getPluralForms(),
-                    false /* rtl - not on HLocale */);
+                    false );
             details.add(ld);
         }
         return ResponseEntity.ok(details);
     }
 
-    // ---------- 5. put project iteration ----------
-
     @PutMapping("/projects/p/{slug}/iterations/i/{iter}")
-            
+
     @Transactional
     public ResponseEntity<ProjectIteration> putIteration(@PathVariable("slug") String slug,
                                                          @PathVariable("iter") String iter,
@@ -381,12 +327,10 @@ public class ZanataCliBridgeController {
             try {
                 i.setProjectType(ProjectType.getValueOf(body.getProjectType()));
             } catch (Exception ignore) {
-                // inherit from project
             }
         }
         HProjectIteration saved = iterationRepository.save(i);
         if (created) {
-            // Mirror this new version onto any child projects.
             hierarchyService.propagateVersionToChildren(project, iter);
         }
         ProjectIteration out = toDto(saved);
@@ -395,8 +339,6 @@ public class ZanataCliBridgeController {
                 : ResponseEntity.ok(out);
     }
 
-    // ---------- 6. list source documents ----------
-
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r")
     @Transactional(readOnly = true)
     public ResponseEntity<?> listSourceDocs(@PathVariable("slug") String slug,
@@ -404,8 +346,6 @@ public class ZanataCliBridgeController {
         if (iterationRepository.findByProjectAndSlug(slug, iter).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        // CLI client (SourceDocResourceClient.getResourceMeta) expects a bare
-        // List<ResourceMeta> in JSON.
         List<ResourceMeta> out = new ArrayList<>();
         for (HDocument d : documentRepository.findByVersion(slug, iter)) {
             ResourceMeta meta = new ResourceMeta(d.getDocId());
@@ -420,8 +360,6 @@ public class ZanataCliBridgeController {
         return ResponseEntity.ok(out);
     }
 
-    // ---------- 7. get a source document ----------
-
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
     @Transactional(readOnly = true)
     public ResponseEntity<Resource> getSourceDoc(@PathVariable("slug") String slug,
@@ -433,10 +371,8 @@ public class ZanataCliBridgeController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // ---------- 8. put a source document ----------
-
     @PutMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
-            
+
     public ResponseEntity<Resource> putSourceDoc(@PathVariable("slug") String slug,
                                                  @PathVariable("iter") String iter,
                                                  @PathVariable("docId") String docId,
@@ -459,8 +395,6 @@ public class ZanataCliBridgeController {
         }
     }
 
-    // ---------- 9. delete a source document ----------
-
     @DeleteMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}")
     @Transactional
     public ResponseEntity<Void> deleteSourceDoc(@PathVariable("slug") String slug,
@@ -482,12 +416,6 @@ public class ZanataCliBridgeController {
         documentRepository.save(doc);
         return ResponseEntity.noContent().build();
     }
-
-    // ---------- 9a. CLI no-slash variants: /resource?docId=X ----------
-    //
-    // SourceDocResourceClient prefers /resource?docId=... over /r/{docId};
-    // it falls back to the slash form only on 404. Mirror the legacy
-    // contract on the new endpoints.
 
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/resource")
     @Transactional(readOnly = true)
@@ -543,10 +471,8 @@ public class ZanataCliBridgeController {
         return asyncPushTranslations(slug, iter, docId, locale, force, body);
     }
 
-    // ---------- 10. get translations ----------
-
     @GetMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
-            
+
     @Transactional(readOnly = true)
     public ResponseEntity<TranslationsResource> getTranslations(@PathVariable("slug") String slug,
                                                                 @PathVariable("iter") String iter,
@@ -575,9 +501,6 @@ public class ZanataCliBridgeController {
         for (HTextFlow tf : flows) {
             HTextFlowTarget t = targets.get(tf.getId());
             if (t == null) continue;
-            // A rejected value is never pulled. If the rejection replaced an
-            // earlier good value, that value is restored; otherwise the client
-            // falls back to source. Same rule for every project format.
             HTextFlowTargetHistory good = null;
             if (t.getState() == ContentState.Rejected) {
                 good = OfflineExportService.lastGoodVersion(t);
@@ -591,8 +514,6 @@ public class ZanataCliBridgeController {
             dto.setContents(contents == null ? List.of("") : contents);
             dto.setRevision(t.getVersionNum());
             dto.setTextFlowRevision(t.getTextFlowRevision());
-            // expose who translated so clients can attribute changes (e.g.
-            // Co-authored-by trailers in verbaria-lock.json-driven commit messages)
             HPerson author = good != null
                     ? (good.getTranslator() != null ? good.getTranslator() : good.getLastModifiedBy())
                     : (t.getTranslator() != null ? t.getTranslator() : t.getLastModifiedBy());
@@ -607,10 +528,8 @@ public class ZanataCliBridgeController {
         return ResponseEntity.ok(out);
     }
 
-    // ---------- 11. put translations ----------
-
     @PutMapping("/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
-            
+
     public ResponseEntity<Map<String, Integer>> putTranslations(@PathVariable("slug") String slug,
                                                                 @PathVariable("iter") String iter,
                                                                 @PathVariable("docId") String docId,
@@ -634,8 +553,6 @@ public class ZanataCliBridgeController {
         }
     }
 
-    // ---------- 12. iteration stats ----------
-
     @GetMapping("/stats/proj/{slug}/iter/{iter}")
     @Transactional(readOnly = true)
     public ResponseEntity<ContainerTranslationStatistics> iterationStats(
@@ -649,7 +566,6 @@ public class ZanataCliBridgeController {
         long totalSourceWords = iterationRepository.sumSourceWordCount(iteration.getId());
         long totalSourceMsgs = iterationRepository.countSourceTextFlows(iteration.getId());
 
-        // locale -> state -> words
         Map<HLocale, EnumMap<ContentState, Long>> byLocale = new HashMap<>();
         for (Object[] row : textFlowTargetRepository.aggregateWordsByLocaleAndState(iteration.getId())) {
             HLocale loc = (HLocale) row[0];
@@ -662,10 +578,6 @@ public class ZanataCliBridgeController {
 
         ContainerTranslationStatistics container = new ContainerTranslationStatistics();
         container.setId(slug + ":" + iter);
-        // The CLI's ConsoleStatisticsOutput / CsvStatisticsOutput look up a
-        // link with rel="statSource" whose type tells them the granularity
-        // (PROJ_ITER for project-version stats, DOC for per-document stats).
-        // Without these refs the CLI NPEs.
         org.zanata.rest.dto.Links refs = new org.zanata.rest.dto.Links();
         refs.add(new org.zanata.rest.dto.Link(
                 java.net.URI.create("/rest/stats/proj/" + slug + "/iter/" + iter),
@@ -695,10 +607,6 @@ public class ZanataCliBridgeController {
             wordRow.setLastTranslated("");
             stats.add(wordRow);
 
-            // MESSAGE-unit stats: we don't have a per-locale per-state message
-            // count aggregate handy, so we approximate by attributing the
-            // source message count proportionally to word counts. Good-enough
-            // for the CLI's `stats` display until a real message aggregator lands.
             long msgDone = totalSourceWords == 0 ? 0
                     : Math.round(((double) doneWords / totalSourceWords) * totalSourceMsgs);
             long msgUntranslated = Math.max(0L, totalSourceMsgs - msgDone);
@@ -721,11 +629,8 @@ public class ZanataCliBridgeController {
         return ResponseEntity.ok(container);
     }
 
-    // ---------- 13. async process status ----------
-
     @GetMapping("/async/{processId}")
     public ResponseEntity<ProcessStatus> asyncStatus(@PathVariable("processId") String processId) {
-        // Push handlers are synchronous in this bridge, so the CLI can stop polling.
         ProcessStatus status = new ProcessStatus();
         status.setStatusCode(ProcessStatus.ProcessStatusCode.Finished);
         status.setPercentageComplete(100);
@@ -733,21 +638,6 @@ public class ZanataCliBridgeController {
         return ResponseEntity.ok(status);
     }
 
-    // ---------- 13a. async source-doc push (legacy AsynchronousProcessResource) ----------
-    //
-    // The CLI's `push --push-type source|both` uses this rather than the sync
-    // PUT .../r/{docId}. The legacy contract was: PUT returns a ProcessStatus
-    // with an id, the CLI polls /async/{id} until Finished. Since our import
-    // service is synchronous we just do the import inline and return Finished.
-
-    // NOT @Transactional on purpose: importService.importSource is itself
-    // @Transactional. If this method also opened a transaction, the service
-    // call would join it; a failure inside the service marks that shared
-    // transaction rollback-only, but our catch(Exception) below swallows the
-    // exception and returns a Failed ProcessStatus — then the outer commit
-    // throws UnexpectedRollbackException, masking the real error with a raw
-    // 500. Letting the service own its transaction means a failure rolls back
-    // cleanly and surfaces here with its actual message (matches putSourceDoc).
     @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/resource")
     public ResponseEntity<ProcessStatus> asyncPushSource(@PathVariable("slug") String slug,
                                                          @PathVariable("iter") String iter,
@@ -758,7 +648,6 @@ public class ZanataCliBridgeController {
         if (actor == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // Fall back to the Resource name if the docId query param is missing.
         String docId = decodeDocId(docIdParam != null && !docIdParam.isBlank()
                 ? docIdParam : body.getName());
         try {
@@ -766,8 +655,6 @@ public class ZanataCliBridgeController {
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
-            // The CLI discards the response body, so log the real cause here —
-            // otherwise an import failure is invisible on both ends.
             log.error("source push failed for {}/{} doc {}", slug, iter, docId, ex);
             ProcessStatus status = new ProcessStatus();
             status.setStatusCode(ProcessStatus.ProcessStatusCode.Failed);
@@ -778,19 +665,11 @@ public class ZanataCliBridgeController {
         ProcessStatus done = new ProcessStatus();
         done.setStatusCode(ProcessStatus.ProcessStatusCode.Finished);
         done.setPercentageComplete(100);
-        // CLI's AsyncProcessClient.getProcessStatus appends `url` to
-        // /rest/async/ — return a bare opaque id, not a full path.
         done.setUrl("sync-source-push-finished");
         done.addMessage("source push complete (sync)");
         return ResponseEntity.ok(done);
     }
 
-    // ---------- 13b. async translation push ----------
-
-    // NOT @Transactional on purpose — see asyncPushSource: the service method
-    // (importTranslations) owns the transaction, so a failure there rolls back
-    // cleanly and the real message reaches our catch instead of being masked
-    // by an UnexpectedRollbackException at this method's commit.
     @PutMapping("/async/projects/p/{slug}/iterations/i/{iter}/r/{docId}/translations/{locale}")
     public ResponseEntity<ProcessStatus> asyncPushTranslations(@PathVariable("slug") String slug,
                                                                @PathVariable("iter") String iter,
@@ -808,7 +687,6 @@ public class ZanataCliBridgeController {
         } catch (java.util.NoSuchElementException nse) {
             return ResponseEntity.notFound().build();
         } catch (Exception ex) {
-            // The CLI discards the response body, so log the real cause here.
             log.error("translation push failed for {}/{} doc {} locale {}",
                     slug, iter, docId, locale, ex);
             ProcessStatus status = new ProcessStatus();
@@ -825,8 +703,6 @@ public class ZanataCliBridgeController {
         return ResponseEntity.ok(done);
     }
 
-    // ---------- 14. copy trans (intentionally unimplemented) ----------
-
     @PostMapping("/copytrans/proj/{slug}/iter/{iter}/doc/{docId}")
     public ResponseEntity<ProcessStatus> copyTrans(@PathVariable("slug") String slug,
                                                    @PathVariable("iter") String iter,
@@ -837,13 +713,6 @@ public class ZanataCliBridgeController {
         status.addMessage("copyTrans is not implemented in the Spring bridge yet");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(status);
     }
-
-    // ---------- 15. download all docs for offline translation ----------
-    //
-    // GET /rest/file/translation/{project}/{iter}/{locale}/offlinepo
-    // returns a ZIP of one file per document, in the project's configured
-    // format (.po / .properties / .xlf). Same path the legacy "Download
-    // All for Offline Translation" menu item hits.
 
     @GetMapping("/file/translation/{slug}/{iter}/{locale}/{fileType}")
     public ResponseEntity<byte[]> downloadTranslationBundle(@PathVariable("slug") String slug,
@@ -862,10 +731,6 @@ public class ZanataCliBridgeController {
         }
     }
 
-    /**
-     * Per-document translated file download — the "Download translated [format]"
-     * action shown on each row of the version's Documents grid.
-     */
     @GetMapping("/file/translated-doc/{slug}/{iter}/{locale}")
     public ResponseEntity<byte[]> downloadTranslatedDoc(
             @PathVariable("slug") String slug,
@@ -885,9 +750,108 @@ public class ZanataCliBridgeController {
         }
     }
 
+    public record PushPlanRequest(String projectType, String project,
+            List<String> paths, List<String> targetLocales, String sourceLang) {
+    }
+
+    @PostMapping(value = "/push-plan",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> pushPlan(@RequestBody PushPlanRequest body) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        ProjectType type;
+        try {
+            type = ProjectType.getValueOf(body.projectType());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Unknown project type: " + body.projectType()));
+        }
+        List<String> paths = body.paths() == null ? List.of() : body.paths();
+        try {
+            return ResponseEntity.ok(Map.of("entries", pushPlanService.plan(
+                    type, body.project(), paths, body.targetLocales(),
+                    body.sourceLang())));
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", iae.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/push-archive",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> pushArchive(
+            @RequestParam("projectType") String projectType,
+            @RequestParam("project") String project,
+            @RequestParam("version") String version,
+            @RequestParam(value = "targetLocales", required = false) List<String> targetLocales,
+            @RequestParam(value = "sourceLang", required = false) String sourceLang,
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
+            @RequestParam("archive") MultipartFile archive) {
+        HAccount actor = currentUser();
+        if (actor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        ProjectType type;
+        try {
+            type = ProjectType.getValueOf(projectType);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Unknown project type: " + projectType));
+        }
+        try (InputStream in = archive.getInputStream()) {
+            var imported = pushArchiveService.push(
+                    type, project, version, targetLocales, sourceLang, force, in, actor);
+            return ResponseEntity.ok(Map.of("imported", imported,
+                    "lock", lockService.buildLock(project, version, targetLocales, false)));
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", iae.getMessage() == null ? iae.toString() : iae.getMessage()));
+        } catch (IOException ioe) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", ioe.getMessage() == null ? ioe.toString() : ioe.getMessage()));
+        }
+    }
+
+    @GetMapping(value = "/pull-archive")
+    public ResponseEntity<?> pullArchive(
+            @RequestParam("projectType") String projectType,
+            @RequestParam("project") String project,
+            @RequestParam("version") String version,
+            @RequestParam(value = "pullType", required = false) String pullType,
+            @RequestParam(value = "targetLocales", required = false) List<String> targetLocales) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        ProjectType type;
+        try {
+            type = ProjectType.getValueOf(projectType);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Unknown project type: " + projectType));
+        }
+        try {
+            byte[] zip = pullArchiveService.pull(type, project, version,
+                    pullType, targetLocales);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/zip")
+                    .header("Content-Disposition",
+                            "attachment; filename=\"" + project + "-" + version + ".zip\"")
+                    .body(zip);
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", iae.getMessage() == null ? iae.toString() : iae.getMessage()));
+        } catch (IOException ioe) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", ioe.getMessage() == null ? ioe.toString() : ioe.getMessage()));
+        }
+    }
+
     @GetMapping(value = "/find-doc",
-            produces = {org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
-                    org.springframework.http.MediaType.APPLICATION_XML_VALUE})
+            produces = {MediaType.APPLICATION_JSON_VALUE,
+                    MediaType.APPLICATION_XML_VALUE})
     @Transactional(readOnly = true)
     public ResponseEntity<?> findDocByDocId(
             @org.springframework.web.bind.annotation.RequestParam("docId") String docId) {
@@ -900,16 +864,9 @@ public class ZanataCliBridgeController {
         var iter = d.getProjectIteration();
         return ResponseEntity.ok(java.util.Map.of(
                 "docId", d.getDocId(),
-                "project", iter.getProject() == null ? null : iter.getProject().getSlug(),
+                "project", iter.getProject() == null ? "" : iter.getProject().getSlug(),
                 "version", iter.getSlug()));
     }
-
-    // ---------- 14a. raw-file source upload (YAML / properties / po) ----------
-    //
-    // Lets curl / scripts push a source file's raw bytes without first
-    // converting to a Resource DTO. The server runs SourceUploadService
-    // (same code path the Vaadin upload widget uses) so the .yaml,
-    // .properties, .po, .pot, .xlf, .xliff branches all just work.
 
     @org.springframework.web.bind.annotation.PostMapping(
             value = "/file/source/{slug}/{iter}",
@@ -925,8 +882,6 @@ public class ZanataCliBridgeController {
         }
         try (InputStream in = file.getInputStream()) {
             String fileName = docIdOverride != null && !docIdOverride.isBlank()
-                    // If caller forced a docId, append the original extension
-                    // so SourceUploadService still dispatches on it.
                     ? docIdOverride + "." + extOf(file.getOriginalFilename())
                     : file.getOriginalFilename();
             DocumentImportService.ImportResult result =
@@ -950,15 +905,6 @@ public class ZanataCliBridgeController {
         return dot < 0 ? "yaml" : fileName.substring(dot + 1);
     }
 
-    // ---------- 15a. per-doc YAML download (Consulo localize) ----------
-    //
-    // GET /rest/file/translation/{slug}/{iter}/{locale}/yaml?docId=foo
-    // returns the rendered Consulo-style YAML for one document. Used by
-    // the Consulo project-type CLI pull strategy — one file at a time, not
-    // a ZIP, so the CLI can lay them out under LOCALIZE-LIB/<locale>/.
-
-    // Distinct URL prefix so Spring's path matcher doesn't compete with
-    // the ZIP-bundle endpoint at /file/translation/{slug}/{iter}/{locale}/{fileType}.
     @GetMapping(value = "/yaml/translation/{slug}/{iter}/{locale}",
             produces = {"application/x-yaml", "text/yaml",
                     org.springframework.http.MediaType.TEXT_PLAIN_VALUE,
@@ -995,12 +941,6 @@ public class ZanataCliBridgeController {
                 .body(bundle.bytes());
     }
 
-    // ---------- helpers ----------
-
-    /**
-     * The legacy Zanata REST API encodes slashes in docIds as commas because
-     * JAX-RS path segments don't tolerate slashes well.
-     */
     private static String decodeDocId(String raw) {
         return raw == null ? null : raw.replace(',', '/');
     }

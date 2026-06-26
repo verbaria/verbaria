@@ -28,7 +28,7 @@ class NeedsReviewIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itapprove");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         new PushCommand(push).run();
 
         HDocument doc = documentRepository
@@ -37,7 +37,6 @@ class NeedsReviewIT extends AbstractPushPullIT {
         LocaleId fr = new LocaleId("fr-FR");
         PageRequest page = PageRequest.of(0, 50);
 
-        // An editor save leaves the translation Translated (awaiting approval).
         translationEditService.save(tfId, fr, "Bonjour");
         assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "",
                 TranslateFilterMode.NEED_APPROVE.code(), page))
@@ -64,7 +63,7 @@ class NeedsReviewIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itreview");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         push.setApprove(true);
         new PushCommand(push).run();
 
@@ -73,17 +72,14 @@ class NeedsReviewIT extends AbstractPushPullIT {
         Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
         LocaleId fr = new LocaleId("fr-FR");
 
-        // Fresh translation against the current source: nothing to review.
         assertThat(textFlowRepository.countNeedsReviewForDoc(doc.getId(), fr))
                 .isZero();
 
-        // Source changes → the fr-FR translation now predates it.
         translationEditService.updateSource(tfId, "Hey");
         assertThat(textFlowRepository.countNeedsReviewForDoc(doc.getId(), fr))
                 .as("source edit should flag the existing translation for review")
                 .isEqualTo(1L);
 
-        // One-click "still valid" clears the flag.
         translationEditService.markReviewed(tfId, fr);
         assertThat(textFlowRepository.countNeedsReviewForDoc(doc.getId(), fr))
                 .as("markReviewed should clear the needs-review flag")
@@ -102,7 +98,7 @@ class NeedsReviewIT extends AbstractPushPullIT {
                 "greeting=Bonjour\n");
         PushOptionsImpl push = pushOpts("both", "properties", "itreviewq");
         push.setLocaleMapList(frLocales());
-        push.setIncludes("messages.properties");
+        push.setIncludes("messages*.properties");
         push.setApprove(true);
         new PushCommand(push).run();
 
@@ -113,7 +109,6 @@ class NeedsReviewIT extends AbstractPushPullIT {
         LocaleId fr = new LocaleId("fr-FR");
         PageRequest page = PageRequest.of(0, 50);
 
-        // Fresh: needs-review filter is empty; the complete filter shows the row.
         assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "", 3, page))
                 .isEmpty();
         assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "", 2, page))
@@ -121,14 +116,12 @@ class NeedsReviewIT extends AbstractPushPullIT {
 
         translationEditService.updateSource(tfId, "Hey");
 
-        // stateMode=3 (needs review) now returns the stale flow; incomplete (1) doesn't.
         assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "", 3, page))
                 .as("needs-review filter must list the now-stale translation")
                 .hasSize(1);
         assertThat(textFlowRepository.pageForTranslateView(doc.getId(), fr, "", 1, page))
                 .isEmpty();
 
-        // Aggregate counts behind the doc selector and the version page.
         assertThat(textFlowRepository.countNeedsReviewForDoc(doc.getId(), fr))
                 .isEqualTo(1L);
         assertThat(textFlowRepository.countNeedsReviewInIteration(iterId, fr))

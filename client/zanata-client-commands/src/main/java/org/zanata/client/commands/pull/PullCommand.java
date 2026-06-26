@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.OptionsUtil;
 import org.zanata.client.commands.PushPullCommand;
+import org.zanata.client.commands.GenericArchiveTransport;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
@@ -43,11 +44,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * @author Sean Flanigan <a
- *         href="mailto:sflaniga@redhat.com">sflaniga@redhat.com</a>
- *
- */
 public class PullCommand extends PushPullCommand<PullOptions> {
     private static final Logger log = LoggerFactory
             .getLogger(PullCommand.class);
@@ -55,10 +51,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     private static final Map<String, Class<? extends PullStrategy>> strategies =
             new HashMap<String, Class<? extends PullStrategy>>();
 
-    /**
-     * Sync state recorded during {@link #run()} and written to
-     * {@code verbaria-lock.json} at the end. Null when not pulling translations.
-     */
     private VerbariaLock lock;
 
     private boolean inProjectGlob;
@@ -117,10 +109,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         lock.setProject(originalProj);
         lock.setProjectVersion(getOpts().getProjectVersion());
         lock.setGeneratedAt(Instant.now().toString());
-        // When the user pinned locales (targetLocales/locales in the config),
-        // honour them across every matched project — don't replace the list with
-        // each project's full server locale set. Only fetch per-project locales
-        // when nothing was pinned.
         LocaleList pinnedLocales = getOpts().getLocaleMapList();
         boolean localesPinned =
                 pinnedLocales != null && !pinnedLocales.isEmpty();
@@ -185,10 +173,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         }
     }
 
-    /**
-     * @param logger
-     * @param opts
-     */
     static void logOptions(Logger logger, PullOptions opts) {
         logger.info("Server: {}", opts.getUrl());
         logger.info("Project: {}", opts.getProj());
@@ -233,229 +217,15 @@ public class PullCommand extends PushPullCommand<PullOptions> {
     @SuppressFBWarnings({"SLF4J_FORMAT_SHOULD_BE_CONST"})
     @Override
     public void run() throws Exception {
-        String proj = getOpts().getProj();
-        if (proj != null && (proj.contains("*") || proj.contains("?"))) {
-            runForProjectGlob(proj);
-            return;
-        }
         logOptions();
-
-        LocaleList locales = getOpts().getLocaleMapList();
-        if (locales == null && (getOpts().getPullType() != PushPullType.Source)) {
-            throw new ConfigException("no locales specified");
-        }
-        PullStrategy strat = createStrategy(getOpts());
-
-        if (strat.isTransOnly()
-                && getOpts().getPullType() == PushPullType.Source) {
-            log.error("You are trying to pull source only, but source is not available for this project type.\n");
-            log.info("Nothing to do. Aborting.\n");
-            return;
-        }
-
-        if (getOpts().getApprovedOnly()) {
-            if (getOpts().getIncludeFuzzy() || getOpts().getCreateSkeletons()) {
-                String msg =
-                        "You can't use the option --approved together with --create-skeletons or --include-fuzzy";
-                log.error(msg);
-                throw new ConfigException(msg);
-            }
-        }
-
-        List<String> unsortedDocNamesForModule =
-                getQualifiedDocNamesForCurrentModuleFromServer();
-        SortedSet<String> docNamesForModule =
-                new TreeSet<String>(unsortedDocNamesForModule);
-
-        SortedSet<String> docsToPull = docNamesForModule;
-        if (getOpts().getFromDoc() != null) {
-            if (getOpts().getEnableModules()) {
-                if (belongsToCurrentModule(getOpts().getFromDoc())) {
-                    docsToPull =
-                            getDocsAfterFromDoc(getOpts().getFromDoc(),
-                                    docsToPull);
-                }
-                // else fromDoc does not apply to this module
-            } else {
-                docsToPull =
-                        getDocsAfterFromDoc(getOpts().getFromDoc(), docsToPull);
-            }
-        }
-
-        // TODO compare docNamesForModule with localDocNames, offer to delete
-        // obsolete translations from filesystem
-        if (docNamesForModule.isEmpty()) {
-            log.info("No documents in remote module: {}; nothing to do",
-                    getOpts().getCurrentModule());
-            return;
-        }
-        log.info("Pulling {} of {} docs for this module from the server",
-                docsToPull.size(), docNamesForModule.size());
-        log.debug("Doc names: {}", docsToPull);
-
-        PushPullType pullType = getOpts().getPullType();
-        boolean pullSrc =
-                pullType == PushPullType.Both
-                        || pullType == PushPullType.Source;
-        boolean pullTarget =
-                pullType == PushPullType.Both || pullType == PushPullType.Trans;
-
-        if (pullSrc && strat.isTransOnly()) {
-            log.warn("Source is not available for this project type. Source will not be pulled.\n");
-            pullSrc = false;
-        }
-
-        if (needToGetStatistics(pullTarget)) {
-            log.info("Setting minimum document completion percentage may potentially increase the processing time.");
-        }
-
-        if (pullSrc) {
-            log.warn("Pull Type set to '{}': existing source-language files may be overwritten/deleted", pullType);
-            confirmWithUser("This will overwrite/delete any existing documents and translations in the above directories.\n");
-        } else {
-            confirmWithUser(
-                    "This will overwrite/delete any existing translations in the above directory.\n");
-        }
-
-        Optional<Map<String, Map<LocaleId, TranslatedPercent>>> optionalStats =
-                prepareStatsIfApplicable(pullTarget, locales);
-
-        // Start a fresh lock describing this sync; populated below per doc.
-        // In multi-project (glob) mode reuse the shared aggregate lock so every
-        // project's docs land in one file instead of overwriting each other.
-        if (!inProjectGlob) {
-            lock = new VerbariaLock();
-            lock.setServer(getOpts().getUrl() == null ? null
-                    : getOpts().getUrl().toString());
-            lock.setProject(getOpts().getProj());
-            lock.setProjectVersion(getOpts().getProjectVersion());
-            lock.setGeneratedAt(Instant.now().toString());
-        }
-
-        // The source/base locale (the shared-keys locale, e.g. en-US) is not a
-        // translation: when it appears in the locale list, "pulling" it means
-        // syncing the on-disk source files from the server (see below).
-        int targetLocalesPulled = 0;
-        int sourceLocaleSynced = 0;
-        for (String qualifiedDocName : docsToPull) {
-            try {
-                Resource doc = null;
-                String localDocName = unqualifiedDocName(qualifiedDocName);
-                boolean createSkeletons = getOpts().getCreateSkeletons();
-                if (strat.needsDocToWriteTrans() || pullSrc || createSkeletons) {
-                    doc = sourceDocResourceClient.getResource(qualifiedDocName,
-                            strat.getExtensions());
-                    doc.setName(localDocName);
-                }
-                if (pullSrc) {
-                    writeSrcDoc(strat, doc);
-                }
-                if (doc != null) {
-                    // Record the source handle: server revision plus a content
-                    // signature, so a source edit shows up in the changelog even
-                    // when the server-side revision didn't move.
-                    SourceLock src = new SourceLock(doc.getRevision());
-                    src.setSig(LockSignature.sourceSignature(doc));
-                    lock.document(lockDocKey(localDocName)).setSource(src);
-                    if (pullTarget) {
-                        if (lock.getSourceLocale() == null
-                                && doc.getLang() != null) {
-                            lock.setSourceLocale(doc.getLang().getId());
-                        }
-                        recordSourceLocaleLock(strat, localDocName,
-                                qualifiedDocName, doc.getLang());
-                    }
-                }
-
-                if (pullTarget) {
-                    List<LocaleId> skippedLocales = Lists.newArrayList();
-                    // The document's own source language is the base/shared-keys
-                    // locale, not a translation. When it's in the locale list,
-                    // "pulling" it means syncing the on-disk source files from
-                    // the server (overriding the scanned originals in place via
-                    // writeSrcFile) — NOT writing a translation into the source
-                    // dir. Skip the in-loop source write if pullSrc already did
-                    // it this pass (pull-type source/both).
-                    LocaleId sourceLang = doc == null ? null : doc.getLang();
-                    for (LocaleMapping locMapping : locales) {
-                        LocaleId locale = new LocaleId(locMapping.getLocale());
-                        if (sourceLang != null && sourceLang.equals(locale)) {
-                            if (!pullSrc && doc != null) {
-                                writeSrcDoc(strat, doc);
-                                sourceLocaleSynced++;
-                            }
-                            continue;
-                        }
-                        Path transFile =
-                                strat.getTransFileToWrite(localDocName,
-                                        locMapping);
-
-                        if (shouldPullThisLocale(optionalStats, localDocName, locale)) {
-                            pullDocForLocale(strat, doc, localDocName, qualifiedDocName,
-                                    createSkeletons, locMapping, transFile);
-                            targetLocalesPulled++;
-                        } else {
-                            skippedLocales.add(locale);
-                        }
-
-                    }
-                    if (!skippedLocales.isEmpty()) {
-                        log.info(
-                                "Translation file for document {} for locales {} are skipped due to insufficient completed percentage",
-                                localDocName, skippedLocales);
-                    }
-                }
-
-            } catch (RuntimeException e) {
-                String message =
-                        "Operation failed: " + e.getMessage() + "\n\n"
-                                + "    To retry from the last document, please set the following option(s):\n\n"
-                                + "        ";
-                if (getOpts().getEnableModules()) {
-                    message +=
-                            "--resume-from " + getOpts().getCurrentModule(true)
-                                    + " ";
-                }
-                // Note: '.' is included after trailing newlines to prevent them
-                // being stripped,
-                // since stripping newlines can cause extra text to be appended
-                // to the options.
-                message +=
-                        getOpts().buildFromDocArgument(qualifiedDocName)
-                                + "\n\n.";
-                log.error(message);
-                throw new RuntimeException(e.getMessage(), e);
-            }
-        }
-
-        if (pullTarget && targetLocalesPulled == 0 && sourceLocaleSynced == 0) {
-            log.warn("Nothing was pulled. The locales to pull were {}. Configure "
-                    + "target locales for project '{}' (and have translations in "
-                    + "them), or set \"targetLocales\" in verbaria.json. To sync "
-                    + "the source/base-locale files, use --pull-type source or "
-                    + "both.", locales, getOpts().getProj());
-        }
-        if (sourceLocaleSynced > 0) {
-            log.info("Synced source files for {} document(s) from the source "
-                    + "(base) locale.", sourceLocaleSynced);
-        }
-
-        if (!inProjectGlob) {
-            writeLock();
-        }
+        new GenericArchiveTransport().pull(getOpts());
     }
 
-    /** Lock doc key: project-qualified in multi-project (glob) mode. */
     private String lockDocKey(String localDocName) {
         return inProjectGlob ? currentGlobSlug + "/" + localDocName
                 : localDocName;
     }
 
-    /**
-     * Writes {@code verbaria-lock.json} at the project root (the cache dir),
-     * capturing the sync state for incremental pulls and commit-message
-     * generation. Best-effort: a failure here must not fail the pull.
-     */
     private void writeLock() {
         if (lock == null || getOpts().isDryRun()) {
             return;
@@ -489,17 +259,11 @@ public class PullCommand extends PushPullCommand<PullOptions> {
             recordTranslationLock(localDocName, sourceLocale,
                     resp == null ? null : resp.getBody(), null);
         } catch (HttpClientErrorException e) {
-            // No base-locale target/locale available; nothing to record.
             log.debug("No base-locale ({}) target for {}: {}", sourceLocale,
                     localDocName, e.getStatusCode());
         }
     }
 
-    /**
-     * Records the lock entry for one document+locale from the pulled targets.
-     * No-op when there are no countable targets. Uses the include-fuzzy policy
-     * to decide which targets count (accepted-only by default).
-     */
     private void recordTranslationLock(String localDocName, LocaleId locale,
             TranslationsResource targetDoc, Path transFile) {
         if (lock == null || targetDoc == null) {
@@ -543,15 +307,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         recordTranslationLock(localDocName, locale, targetDoc, transFile);
     }
 
-    /**
-     * Returns a list with all documents before fromDoc removed.
-     *
-     * @param fromDoc
-     * @param docNames
-     * @return a set with only the documents after fromDoc, inclusive
-     * @throws RuntimeException
-     *             if no document with the specified name exists
-     */
     private SortedSet<String> getDocsAfterFromDoc(String fromDoc,
             SortedSet<String> docNames) {
         SortedSet<String> docsToPull;
@@ -579,9 +334,6 @@ public class PullCommand extends PushPullCommand<PullOptions> {
         }
     }
 
-    /**
-     * source Resource may be null if needsDocToWriteTrans() returns false
-     */
     private void writeTargetDoc(PullStrategy strat, String localDocName,
             LocaleMappedTranslatedDoc translatedDoc)
             throws IOException {

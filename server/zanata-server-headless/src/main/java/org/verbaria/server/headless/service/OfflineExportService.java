@@ -1,7 +1,6 @@
 package org.verbaria.server.headless.service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,24 +17,22 @@ import java.io.OutputStreamWriter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.zanata.adapter.po.PoWriter2;
-import org.zanata.adapter.properties.PropWriter;
-import org.zanata.adapter.xliff.XliffWriter;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
-import org.zanata.adapter.chrome.ChromeWriter;
-import org.zanata.adapter.consulo.ConsuloWriter;
-import org.zanata.rest.dto.extensions.chrome.ChromeMessage;
-import org.zanata.rest.dto.extensions.comment.SimpleComment;
+import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
-import org.zanata.common.dto.TranslatedDoc;
+import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.zanata.model.HDocument;
+import org.zanata.model.HPerson;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
 import org.zanata.model.HTextFlowTargetHistory;
+import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.resource.Resource;
+import org.zanata.rest.dto.extensions.chrome.ChromeMessage;
+import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -47,13 +44,6 @@ import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.TextFlowRepository;
 import org.verbaria.server.headless.repository.TextFlowTargetRepository;
 
-/**
- * Produces offline-translation bundles. The file format inside the ZIP is
- * driven by the project's {@code defaultProjectType} (Gettext/Podir → .po,
- * Properties → .properties Latin-1, Utf8Properties → .properties UTF-8,
- * Xliff → .xlf, Xml/File/null → .po fallback). Also produces a TMX dump
- * for the matching {@code /tm/...} endpoint.
- */
 @Service
 public class OfflineExportService {
 
@@ -63,28 +53,26 @@ public class OfflineExportService {
     private final TextFlowTargetRepository targetRepository;
     private final GettextExtensions gettext;
     private final TextFlowExtensionStore extensionStore;
+    private final DocumentLayoutRegistry layoutRegistry;
 
     public OfflineExportService(ProjectIterationRepository iterationRepository,
                                 DocumentRepository documentRepository,
                                 TextFlowRepository textFlowRepository,
                                 TextFlowTargetRepository targetRepository,
                                 GettextExtensions gettext,
-                                TextFlowExtensionStore extensionStore) {
+                                TextFlowExtensionStore extensionStore,
+                                DocumentLayoutRegistry layoutRegistry) {
         this.iterationRepository = iterationRepository;
         this.documentRepository = documentRepository;
         this.targetRepository = targetRepository;
         this.textFlowRepository = textFlowRepository;
         this.gettext = gettext;
         this.extensionStore = extensionStore;
+        this.layoutRegistry = layoutRegistry;
     }
 
     public record Bundle(String filename, String contentType, byte[] bytes) {}
 
-    /**
-     * Produce a single translated YAML for one document + locale, suitable
-     * for direct download by {@code zanata-cli pull --project-type yaml}.
-     * Returns empty Optional if the document doesn't exist.
-     */
     @Transactional(readOnly = true)
     public Optional<Bundle> yamlForDoc(String projectSlug, String versionSlug,
                                        String docId, LocaleId locale) throws IOException {
@@ -94,15 +82,11 @@ public class OfflineExportService {
         HDocument doc = docOpt.get();
         Resource source = toResource(doc);
         TranslationsResource trans = toTranslations(doc, locale);
-        byte[] body = writeYaml(source, trans);
+        byte[] body = layoutRegistry.forType(ProjectType.Consulo).orElseThrow()
+                .writeTranslation(source, trans, locale.getId());
         return Optional.of(new Bundle(docId + ".yaml", "application/x-yaml", body));
     }
 
-    /**
-     * Render a single document's translations in the project's configured
-     * file format, ready for direct download. Used by the per-row
-     * "Download translated" action in the version's documents grid.
-     */
     @Transactional(readOnly = true)
     public Optional<Bundle> singleTranslatedDoc(String projectSlug, String versionSlug,
                                                 String docId, LocaleId locale) throws IOException {
@@ -110,32 +94,21 @@ public class OfflineExportService {
                 .findByVersionAndDocId(projectSlug, versionSlug, docId);
         if (docOpt.isEmpty()) return Optional.empty();
         ProjectType type = resolveProjectType(projectSlug, versionSlug);
-        String ext = extensionFor(type);
+        DocumentLayout layout = layoutFor(type);
         HDocument doc = docOpt.get();
         Resource source = toResource(doc);
         TranslationsResource trans = toTranslations(doc, locale);
         byte[] body = writeOne(type, source, trans, locale);
-        String contentType = switch (type) {
-            case Properties, Utf8Properties -> "text/plain;charset=UTF-8";
-            case Xliff -> "application/xliff+xml";
-            case Consulo -> "application/x-yaml";
-            case Chrome -> "application/json";
-            default -> "text/plain;charset=UTF-8";
-        };
         String name = (doc.getDocId() == null ? "doc" : doc.getDocId())
-                + "-" + locale.getId() + ext;
-        return Optional.of(new Bundle(name, contentType, body));
+                + "-" + locale.getId() + layout.fileExtension();
+        return Optional.of(new Bundle(name, layout.contentType(), body));
     }
 
-    /**
-     * ZIP of one file per non-obsolete document for the given locale, in
-     * the project's configured format.
-     */
     @Transactional(readOnly = true)
     public Bundle zipForOfflineTranslation(String projectSlug, String versionSlug,
                                            LocaleId locale) throws IOException {
         ProjectType type = resolveProjectType(projectSlug, versionSlug);
-        String ext = extensionFor(type);
+        String ext = layoutFor(type).fileExtension();
         List<HDocument> docs = documentRepository.findByVersion(projectSlug, versionSlug);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(buf)) {
@@ -163,134 +136,20 @@ public class OfflineExportService {
         return ProjectType.Gettext;
     }
 
-    private static String extensionFor(ProjectType type) {
-        return switch (type) {
-            case Properties, Utf8Properties -> ".properties";
-            case Xliff -> ".xlf";
-            case Consulo -> ".yaml";
-            case Chrome -> ".json";
-            case Gettext, Podir, Xml, File -> ".po";
-        };
+    private DocumentLayout layoutFor(ProjectType type) {
+        return layoutRegistry.forType(type)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No document layout for project type: " + type));
     }
 
     private byte[] writeOne(ProjectType type, Resource source,
                             TranslationsResource trans, LocaleId locale) throws IOException {
-        return switch (type) {
-            case Gettext, Podir, Xml, File -> {
-                PoWriter2 writer = new PoWriter2();
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                writer.writePo(out, "UTF-8", source, trans);
-                yield out.toByteArray();
-            }
-            case Properties -> writeProperties(source, trans, locale, PropWriter.CHARSET.Latin1);
-            case Utf8Properties -> writeProperties(source, trans, locale, PropWriter.CHARSET.UTF8);
-            case Xliff -> writeXliff(source, trans, locale);
-            case Consulo -> writeYaml(source, trans);
-            case Chrome -> writeChromeJson(source, trans);
-        };
+        return layoutRegistry.forType(type)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No document layout for project type: " + type))
+                .writeTranslation(source, trans, locale.getId());
     }
 
-    byte[] writeChromeJson(Resource source, TranslationsResource trans)
-            throws IOException {
-        Map<String, String> translatedByResId = new LinkedHashMap<>();
-        if (trans.getTextFlowTargets() != null) {
-            for (TextFlowTarget t : trans.getTextFlowTargets()) {
-                String c = firstContent(t.getContents());
-                if (!c.isEmpty()) translatedByResId.put(t.getResId(), c);
-            }
-        }
-        Map<String, ChromeWriter.Entry> entries = new LinkedHashMap<>();
-        for (TextFlow tf : source.getTextFlows()) {
-            String translation = translatedByResId.get(tf.getId());
-            if (translation == null) continue;
-            String humanKey = humanKey(tf);
-            if (humanKey == null) continue;
-            ChromeMessage meta = tf.getExtensions() == null ? null
-                    : tf.getExtensions().findByType(ChromeMessage.class);
-            SimpleComment comment = tf.getExtensions() == null ? null
-                    : tf.getExtensions().findByType(SimpleComment.class);
-            String description = comment == null ? null : comment.getValue();
-            entries.put(humanKey,
-                    new ChromeWriter.Entry(translation, description, meta));
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-            new ChromeWriter().write(w, entries);
-        }
-        return out.toByteArray();
-    }
-
-    // Package-private so yamlForDoc above can call directly without going through writeOne's enum.
-    byte[] writeYaml(Resource source, TranslationsResource trans) throws IOException {
-        // Build resId → translation map for O(1) lookups.
-        Map<String, String> translatedByResId = new LinkedHashMap<>();
-        if (trans.getTextFlowTargets() != null) {
-            for (TextFlowTarget t : trans.getTextFlowTargets()) {
-                String c = firstContent(t.getContents());
-                if (!c.isEmpty()) translatedByResId.put(t.getResId(), c);
-            }
-        }
-        // Preserve source order; key each entry by its original human key.
-        Map<String, ConsuloWriter.Entry> entries = new LinkedHashMap<>();
-        for (TextFlow tf : source.getTextFlows()) {
-            String translation = translatedByResId.get(tf.getId());
-            if (translation == null) continue;
-            String humanKey = humanKey(tf);
-            if (humanKey == null) continue;
-            ConsuloSubFile consulo = tf.getExtensions() == null ? null
-                    : tf.getExtensions().findByType(ConsuloSubFile.class);
-            List<String> names = consulo == null ? null : consulo.getParamNames();
-            List<String> types = consulo == null ? null : consulo.getParamTypes();
-            entries.put(humanKey, new ConsuloWriter.Entry(translation, names, types));
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (OutputStreamWriter w = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-            new ConsuloWriter().writeEntries(w, entries);
-        }
-        return out.toByteArray();
-    }
-
-    /** Original human-readable key from PotEntryHeader.context, falling back to resId. */
-    private static String humanKey(TextFlow tf) {
-        if (tf.getExtensions() != null) {
-            PotEntryHeader h = tf.getExtensions().findByType(PotEntryHeader.class);
-            if (h != null && h.getContext() != null && !h.getContext().isEmpty()) {
-                return h.getContext();
-            }
-        }
-        return tf.getId();
-    }
-
-    private byte[] writeProperties(Resource source, TranslationsResource trans,
-                                   LocaleId locale, PropWriter.CHARSET charset)
-            throws IOException {
-        File tmp = File.createTempFile("zanata-export-", ".properties");
-        try {
-            TranslatedDoc td = new TranslatedDoc(source, trans, locale);
-            PropWriter.writeTranslationsFile(td, tmp.toPath(), charset, true, false);
-            return Files.readAllBytes(tmp.toPath());
-        } finally {
-            tmp.delete();
-        }
-    }
-
-    private byte[] writeXliff(Resource source, TranslationsResource trans,
-                              LocaleId locale) throws IOException {
-        File tmp = File.createTempFile("zanata-export-", ".xlf");
-        try {
-            XliffWriter.writeFile(tmp.toPath(), source, locale.getId(), trans, true, false);
-            return Files.readAllBytes(tmp.toPath());
-        } finally {
-            tmp.delete();
-        }
-    }
-
-    /**
-     * Minimal TMX 1.4 dump of all non-empty, non-New translations in the
-     * iteration for the given locale. Matches the shape of the legacy
-     * {@code TranslationsTMXExportStrategy} output enough that tools like
-     * OmegaT / Trados can re-ingest it.
-     */
     @Transactional(readOnly = true)
     public Bundle tmx(String projectSlug, String versionSlug, LocaleId locale) {
         List<HDocument> docs = documentRepository.findByVersion(projectSlug, versionSlug);
@@ -331,7 +190,7 @@ public class OfflineExportService {
                 out.toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    private Resource toResource(HDocument d) {
+    Resource toResource(HDocument d) {
         Resource r = new Resource(d.getDocId());
         r.setContentType(d.getContentType() == null
                 ? org.zanata.common.ContentType.TextPlain : d.getContentType());
@@ -345,9 +204,6 @@ public class OfflineExportService {
                     firstContent(tf.getContents()));
             xf.setPlural(Boolean.TRUE.equals(tf.isPlural()));
             xf.setRevision(tf.getRevision());
-            // Re-attach the original human key (PotEntryData.context) so
-            // YAML/PO export can emit something readable instead of the
-            // 32-char resId hash.
             String ctx = gettext.context(tf);
             if (ctx != null && !ctx.isEmpty()) {
                 PotEntryHeader header = new PotEntryHeader();
@@ -361,13 +217,17 @@ public class OfflineExportService {
                             || notEmpty(consulo.getParamTypes()))) {
                 xf.getExtensions(true).add(consulo);
             }
+            extensionStore.get(tf, ChromeMessage.class)
+                    .ifPresent(m -> xf.getExtensions(true).add(m));
+            extensionStore.get(tf, SimpleComment.class)
+                    .ifPresent(c -> xf.getExtensions(true).add(c));
             out.add(xf);
         }
         r.getTextFlows().addAll(out);
         return r;
     }
 
-    private TranslationsResource toTranslations(HDocument d, LocaleId locale) {
+    TranslationsResource toTranslations(HDocument d, LocaleId locale) {
         TranslationsResource tr = new TranslationsResource();
         List<HTextFlow> flows = textFlowRepository.findByDocument(d.getId());
         for (HTextFlow tf : flows) {
@@ -392,6 +252,11 @@ public class OfflineExportService {
             xt.setContents(List.of(content));
             xt.setRevision(hTarget.getVersionNum() == null ? 0 : hTarget.getVersionNum());
             xt.setTextFlowRevision(tf.getRevision());
+            HPerson who = hTarget.getTranslator() != null
+                    ? hTarget.getTranslator() : hTarget.getLastModifiedBy();
+            if (who != null) {
+                xt.setTranslator(new Person(who.getEmail(), who.getName()));
+            }
             tr.getTextFlowTargets().add(xt);
         }
         return tr;

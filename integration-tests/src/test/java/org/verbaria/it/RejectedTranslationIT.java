@@ -20,9 +20,6 @@ class RejectedTranslationIT extends AbstractPushPullIT {
 
     @Test
     void rejectedTranslationIsNotPulled() throws Exception {
-        // A rejected translation must never be used: pulling it back must fall
-        // back to source, not return the rejected text. Format-independent —
-        // the server withholds it before any writer runs.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");
@@ -43,7 +40,7 @@ class RejectedTranslationIT extends AbstractPushPullIT {
         Files.deleteIfExists(tmp.resolve("messages_fr_FR.properties"));
         PullOptionsImpl pull = pullOpts("trans", "properties", "itrej");
         pull.setLocaleMapList(frLocales());
-        pull.setIncludes("messages.properties");
+        pull.setIncludes("messages*.properties");
         new PullCommand(pull).run();
 
         Path pulled = tmp.resolve("messages_fr_FR.properties");
@@ -56,8 +53,6 @@ class RejectedTranslationIT extends AbstractPushPullIT {
     @Test
     void rejectedTranslationIsExcludedFromExportRegardlessOfFormat()
             throws Exception {
-        // Same rule via the offline export (gettext/PO output here) — proving
-        // the policy lives in the shared resource builder, not per-format.
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");
         fixtures.ensureLocale("fr-FR");

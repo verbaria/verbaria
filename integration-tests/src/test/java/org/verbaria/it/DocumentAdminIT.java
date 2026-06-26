@@ -14,11 +14,6 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlowTarget;
 import org.verbaria.server.headless.service.DocumentAdminService;
 
-/**
- * Admin document maintenance: soft-delete/restore toggles the obsolete flag,
- * and hard-delete purges the document with all its text flows, targets and
- * history without tripping a foreign key.
- */
 class DocumentAdminIT extends AbstractPushPullIT {
 
     @Autowired
@@ -26,7 +21,7 @@ class DocumentAdminIT extends AbstractPushPullIT {
 
     private void pushSource(String proj) throws Exception {
         PushOptionsImpl o = pushOpts("source", "properties", proj);
-        o.setIncludes("messages.properties");
+        o.setIncludes("messages*.properties");
         new PushCommand(o).run();
     }
 
@@ -47,7 +42,6 @@ class DocumentAdminIT extends AbstractPushPullIT {
         Long docId = doc.getId();
         Long tfId = textFlowRepository.findByDocument(docId).get(0).getId();
 
-        // Create an fr-FR target, then change it so a history row is snapshotted.
         assertThat(approve(tfId, "Bonjour")).isEqualTo(200);
         assertThat(approve(tfId, "Salut")).isEqualTo(200);
         assertThat(textFlowTargetRepository
@@ -55,7 +49,6 @@ class DocumentAdminIT extends AbstractPushPullIT {
                 .as("precondition: an fr-FR target exists")
                 .hasSize(1);
 
-        // Purge.
         documentAdminService.hardDelete("itdocpurge", VERSION, "messages");
 
         assertThat(documentRepository
