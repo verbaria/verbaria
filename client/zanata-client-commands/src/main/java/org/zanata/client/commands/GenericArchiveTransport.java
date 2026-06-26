@@ -112,7 +112,8 @@ public class GenericArchiveTransport {
                 new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
                 byte[].class);
         Path transDir = opts.getTransDir();
-        int written = extract(resp.getBody(), transDir);
+        int written = extract(resp.getBody(), transDir,
+                lockDir(opts.getProjectConfig(), transDir));
         log.info("Pull succeeded: wrote {} file(s) into {}", written,
                 transDir == null ? null : transDir.toAbsolutePath().normalize());
     }
@@ -210,10 +211,21 @@ public class GenericArchiveTransport {
         }
         Object lock = resp == null ? null : resp.get("lock");
         if (lock != null) {
-            Files.write(srcDir.resolve("verbaria-lock.json"),
-                    PRETTY.writeValueAsBytes(lock));
-            log.info("Wrote verbaria-lock.json");
+            Path lockFile = lockDir(opts.getProjectConfig(), srcDir)
+                    .resolve("verbaria-lock.json");
+            Files.write(lockFile, PRETTY.writeValueAsBytes(lock));
+            log.info("Wrote {}", lockFile);
         }
+    }
+
+    private static Path lockDir(Path projectConfig, Path fallback) {
+        if (projectConfig != null) {
+            Path abs = projectConfig.toAbsolutePath();
+            if (abs.getParent() != null) {
+                return abs.getParent();
+            }
+        }
+        return fallback;
     }
 
     public static List<String> collect(Path baseDir, List<String> includes,
@@ -268,7 +280,8 @@ public class GenericArchiveTransport {
         return out.toByteArray();
     }
 
-    private static int extract(byte[] archive, Path transDir) throws IOException {
+    private static int extract(byte[] archive, Path transDir, Path lockDir)
+            throws IOException {
         if (archive == null) {
             return 0;
         }
@@ -280,11 +293,15 @@ public class GenericArchiveTransport {
                 if (entry.isDirectory()) {
                     continue;
                 }
-                Path target = transDir.resolve(entry.getName());
+                boolean lock = "verbaria-lock.json".equals(entry.getName());
+                Path base = lock ? lockDir : transDir;
+                Path target = base.resolve(entry.getName());
                 Files.createDirectories(target.getParent());
                 Files.write(target, zip.readAllBytes());
-                log.info("  - {}", entry.getName());
-                written++;
+                log.info("  - {}", target);
+                if (!lock) {
+                    written++;
+                }
             }
         }
         return written;
