@@ -4,30 +4,30 @@
   "project" : "verbaria",
   "projectVersion" : "master",
   "sourceLocale" : "en-US",
-  "generatedAt" : "2026-06-12T10:24:21.098736292Z",
+  "generatedAt" : "2026-06-26T09:40:55.494234995Z",
   "documents" : {
     "translations" : {
       "source" : {
-        "revision" : 1,
-        "sig" : "59b8fd983270d23b29a372aee7a848e3"
+        "revision" : 2,
+        "sig" : "9d79322bf14612a5562cd6de57823da6"
       },
       "translations" : {
         "en-US" : {
-          "sig" : "14cdfa44a29f86a2bcb487e4b46f7cb3",
+          "sig" : "8636acb7315881e5b3c3c3fb040d4f93",
           "state" : "Approved",
-          "total" : 909,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
+          "total" : 930,
+          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>", "github <github@no-reply.com>" ]
         },
         "ru" : {
-          "sig" : "2293c6ca051744e26ab173a3f1e9f96b",
+          "sig" : "57d4847dde10a6d4d8d7de907a54a768",
           "state" : "Approved",
-          "total" : 909,
+          "total" : 908,
           "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
         },
         "zh-CN" : {
-          "sig" : "c03f3a4f78ab318bf6a0683031458800",
+          "sig" : "d41a46d40c3158cc26dbffd70cb9a13d",
           "state" : "Approved",
-          "total" : 909,
+          "total" : 908,
           "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
         }
       }
