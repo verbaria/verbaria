@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.LocaleId;
@@ -28,7 +29,8 @@ public class LockService {
     private final DocumentRepository documentRepository;
     private final LocaleRepository localeRepository;
     private final OfflineExportService exportService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
 
     public LockService(ProjectRepository projectRepository,
             DocumentRepository documentRepository,

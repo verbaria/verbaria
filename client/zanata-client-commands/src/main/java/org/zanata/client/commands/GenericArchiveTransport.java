@@ -20,6 +20,7 @@ import java.util.zip.ZipOutputStream;
 import java.net.URLEncoder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
@@ -41,6 +42,9 @@ public class GenericArchiveTransport {
 
     private static final Logger log =
             LoggerFactory.getLogger(GenericArchiveTransport.class);
+
+    private static final ObjectMapper PRETTY = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
 
     private final RestTemplate rest = new RestTemplate();
 
@@ -207,7 +211,7 @@ public class GenericArchiveTransport {
         Object lock = resp == null ? null : resp.get("lock");
         if (lock != null) {
             Files.write(srcDir.resolve("verbaria-lock.json"),
-                    new ObjectMapper().writeValueAsBytes(lock));
+                    PRETTY.writeValueAsBytes(lock));
             log.info("Wrote verbaria-lock.json");
         }
     }

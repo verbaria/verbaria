@@ -6,6 +6,10 @@ spring:
     name: zanata-server-spring
     version: @project.version@
 
+  jackson:
+    serialization:
+      indent-output: true
+
   autoconfigure:
     exclude:
       - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
