@@ -15,6 +15,7 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
+import org.zanata.common.LocaleId;
 import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
@@ -44,8 +45,8 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     }
 
     @Override
-    public java.util.List<String> scanPatterns() {
-        return java.util.List.of("**/" + LIB + "**");
+    public List<String> scanPatterns() {
+        return List.of("**/" + LIB + "**");
     }
 
     @Override
@@ -77,6 +78,75 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     public Resource readSource(String docId, byte[] content) {
         return new ConsuloReader()
                 .extractTemplate(docId, new ByteArrayInputStream(content));
+    }
+
+    @Override
+    public Resource readSource(String docId, Map<String, byte[]> files) {
+        Resource resource = new Resource(docId);
+        resource.setLang(LocaleId.EN_US);
+        String subMarker = "/" + docId + "/";
+        for (Map.Entry<String, byte[]> e : files.entrySet()) {
+            String path = e.getKey().replace('\\', '/');
+            byte[] bytes = e.getValue();
+            if (isAnchor(path, docId)) {
+                Resource anchor = new ConsuloReader().extractTemplate(docId,
+                        new ByteArrayInputStream(bytes));
+                resource.getTextFlows().addAll(anchor.getTextFlows());
+            } else {
+                int idx = path.indexOf(subMarker);
+                String rel = idx >= 0
+                        ? path.substring(idx + subMarker.length())
+                        : path.substring(path.lastIndexOf('/') + 1);
+                String ext = "";
+                String stem = rel;
+                int dot = rel.lastIndexOf('.');
+                if (dot > rel.lastIndexOf('/')) {
+                    ext = rel.substring(dot + 1);
+                    stem = rel.substring(0, dot);
+                }
+                String key = stem.replace('/', '.');
+                TextFlow tf = new TextFlow(key, LocaleId.EN_US,
+                        new String(bytes, StandardCharsets.UTF_8));
+                tf.getExtensions(true).add(new ConsuloSubFile(ext));
+                resource.getTextFlows().add(tf);
+            }
+        }
+        return resource;
+    }
+
+    @Override
+    public Map<String, byte[]> writeSourceFiles(Resource source,
+            String sourceLocaleId) throws IOException {
+        Map<String, byte[]> out = new LinkedHashMap<>();
+        Map<String, ConsuloWriter.Entry> yamlEntries = new LinkedHashMap<>();
+        String base = LIB + sourceLocaleId.replace('-', '_') + "/"
+                + source.getName();
+        for (TextFlow tf : source.getTextFlows()) {
+            if (tf.getContents() == null || tf.getContents().isEmpty()) {
+                continue;
+            }
+            String content = tf.getContents().get(0);
+            ConsuloSubFile sub = tf.getExtensions() == null ? null
+                    : tf.getExtensions().findByType(ConsuloSubFile.class);
+            if (sub != null && sub.getExtension() != null
+                    && !sub.getExtension().isEmpty()) {
+                String rel = humanKey(tf).replace('.', '/') + "."
+                        + sub.getExtension();
+                out.put(base + "/" + rel,
+                        content.getBytes(StandardCharsets.UTF_8));
+            } else {
+                yamlEntries.put(humanKey(tf), entry(tf, content));
+            }
+        }
+        out.put(base + ".yaml", render(yamlEntries));
+        return out;
+    }
+
+    private static boolean isAnchor(String path, String docId) {
+        return path.endsWith("/" + docId + ".yaml")
+                || path.equals(docId + ".yaml")
+                || path.endsWith("/" + docId + ".yml")
+                || path.equals(docId + ".yml");
     }
 
     @Override

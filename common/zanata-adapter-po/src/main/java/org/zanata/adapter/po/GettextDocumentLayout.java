@@ -3,6 +3,7 @@ package org.zanata.adapter.po;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -38,8 +39,8 @@ public final class GettextDocumentLayout implements DocumentLayout {
     }
 
     @Override
-    public java.util.List<String> scanPatterns() {
-        return java.util.List.of("**/*" + POT, "**/*" + PO);
+    public List<String> scanPatterns() {
+        return List.of("**/*" + POT, "**/*" + PO);
     }
 
     @Override

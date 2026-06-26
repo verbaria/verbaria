@@ -214,7 +214,9 @@ public class OfflineExportService {
                     .orElse(null);
             if (consulo != null
                     && (notEmpty(consulo.getParamNames())
-                            || notEmpty(consulo.getParamTypes()))) {
+                            || notEmpty(consulo.getParamTypes())
+                            || (consulo.getExtension() != null
+                                    && !consulo.getExtension().isEmpty()))) {
                 xf.getExtensions(true).add(consulo);
             }
             extensionStore.get(tf, ChromeMessage.class)

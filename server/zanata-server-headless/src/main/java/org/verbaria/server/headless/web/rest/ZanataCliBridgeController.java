@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.zanata.common.ProjectType;
 import org.zanata.model.HAccount;
+import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
+import org.zanata.rest.dto.LocaleDetails;
 import org.zanata.rest.dto.VersionInfo;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.repository.AccountRepository;
@@ -97,7 +100,7 @@ public class ZanataCliBridgeController {
             return ResponseEntity.notFound().build();
         }
         ProjectType pt = iteration.get().getEffectiveProjectType();
-        Map<String, Object> config = new java.util.LinkedHashMap<>();
+        Map<String, Object> config = new LinkedHashMap<>();
         config.put("url", resolveBaseUrl(host, forwardedHost, forwardedProto));
         config.put("project", slug);
         config.put("projectVersion", iter);
@@ -137,17 +140,17 @@ public class ZanataCliBridgeController {
             return ResponseEntity.notFound().build();
         }
         var customized = iterationRepository.findProjectLocales(iterOpt.get().getId());
-        Iterable<org.zanata.model.HLocale> source = customized.isPresent()
+        Iterable<HLocale> source = customized.isPresent()
                 ? customized.get() : localeRepository.findAll();
         var projectSource = iterationRepository.findProjectSourceLocale(iterOpt.get().getId());
-        java.util.LinkedHashMap<Long, org.zanata.model.HLocale> uniq = new java.util.LinkedHashMap<>();
+        LinkedHashMap<Long, HLocale> uniq = new LinkedHashMap<>();
         for (var l : source) if (l.isActive()) uniq.put(l.getId(), l);
-        projectSource.filter(org.zanata.model.HLocale::isActive)
+        projectSource.filter(HLocale::isActive)
                 .ifPresent(l -> uniq.putIfAbsent(l.getId(), l));
-        List<org.zanata.rest.dto.LocaleDetails> details = new ArrayList<>();
+        List<LocaleDetails> details = new ArrayList<>();
         for (var loc : uniq.values()) {
             if (loc.getLocaleId() == null) continue;
-            org.zanata.rest.dto.LocaleDetails ld = new org.zanata.rest.dto.LocaleDetails(
+            LocaleDetails ld = new LocaleDetails(
                     loc.getLocaleId(),
                     loc.getDisplayName(),
                     null ,

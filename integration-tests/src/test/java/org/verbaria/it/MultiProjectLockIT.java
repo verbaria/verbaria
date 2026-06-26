@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,10 @@ import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.lock.VerbariaLock;
 import org.zanata.client.lock.VerbariaLockReaderWriter;
+import org.zanata.common.LocaleId;
+import org.zanata.common.ProjectType;
+import org.zanata.model.HDocument;
+import org.zanata.model.HTextFlowTarget;
 
 class MultiProjectLockIT extends AbstractPushPullIT {
 
@@ -128,6 +133,53 @@ class MultiProjectLockIT extends AbstractPushPullIT {
                 .as("a glob push must record only the pinned locale, not every "
                         + "server locale")
                 .containsExactly("fr-FR");
+    }
+
+    @Test
+    void globTransPushWithoutIncludesScansViaServer() throws Exception {
+        String greetingRu = "\u041f\u0440\u0438\u0432\u0435\u0442";
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("ru");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("globniru", VERSION);
+        fixtures.setProjectType("globniru", ProjectType.Consulo);
+
+        Path en = tmp.resolve("src/main/resources/LOCALIZE-LIB/en_US");
+        Files.createDirectories(en);
+        Files.writeString(en.resolve("mni.yaml"),
+                "greeting:\n    text: 'Hello'\n", StandardCharsets.UTF_8);
+        Path ru = tmp.resolve("src/main/resources/LOCALIZE-LIB/ru");
+        Files.createDirectories(ru);
+        Files.writeString(ru.resolve("mni.yaml"),
+                "greeting:\n    text: '" + greetingRu + "'\n",
+                StandardCharsets.UTF_8);
+        Path junk = tmp.resolve("target/classes/LOCALIZE-LIB/ru");
+        Files.createDirectories(junk);
+        Files.writeString(junk.resolve("mni.yaml"),
+                "greeting:\n    text: 'JUNK'\n", StandardCharsets.UTF_8);
+
+        new PushCommand(pushOpts("source", "consulo", "globniru")).run();
+
+        PushOptionsImpl push = pushOpts("trans", "consulo", "globni**");
+        push.setProjectType(null);
+        push.setIncludes(null);
+        push.setExcludes("**/target/**");
+        LocaleList locales = new LocaleList();
+        locales.add(new LocaleMapping("ru"));
+        push.setLocaleMapList(locales);
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("globniru", VERSION, "mni").orElseThrow();
+        Long tfId = textFlowRepository.findByDocument(doc.getId()).get(0).getId();
+        List<HTextFlowTarget> targets = textFlowTargetRepository
+                .findByTextFlowIdsAndLocale(List.of(tfId), new LocaleId("ru"));
+        assertThat(targets)
+                .as("glob translation push with no includes must store the ru "
+                        + "target classified from the LOCALIZE-LIB/ru dir")
+                .hasSize(1);
+        assertThat(targets.get(0).getContents()).containsExactly(greetingRu);
     }
 
     private void pushOneProject(String proj) throws Exception {

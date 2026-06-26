@@ -29,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.commands.push.PushOptions;
@@ -92,13 +93,21 @@ public class GenericArchiveTransport {
 
     @SuppressWarnings("unchecked")
     private List<String> serverIncludes(PushOptions opts) {
-        String url = base(opts) + "rest/projects/p/" + opts.getProj()
+        String proj = opts.getProj();
+        if (proj == null || proj.indexOf('*') >= 0 || proj.indexOf('?') >= 0) {
+            return List.of();
+        }
+        String url = base(opts) + "rest/projects/p/" + proj
                 + "/iterations/i/" + opts.getProjectVersion() + "/config";
-        Map<String, Object> cfg = rest.exchange(url, HttpMethod.GET,
-                new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
-                Map.class).getBody();
-        Object inc = cfg == null ? null : cfg.get("includes");
-        return inc instanceof List ? (List<String>) inc : List.of();
+        try {
+            Map<String, Object> cfg = rest.exchange(url, HttpMethod.GET,
+                    new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
+                    Map.class).getBody();
+            Object inc = cfg == null ? null : cfg.get("includes");
+            return inc instanceof List ? (List<String>) inc : List.of();
+        } catch (RestClientException e) {
+            return List.of();
+        }
     }
 
     @SuppressWarnings("unchecked")

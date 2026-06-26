@@ -7,6 +7,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -46,8 +47,8 @@ public final class ChromeDocumentLayout implements DocumentLayout {
     }
 
     @Override
-    public java.util.List<String> scanPatterns() {
-        return java.util.List.of("**/" + LOCALES + "*/" + FILE);
+    public List<String> scanPatterns() {
+        return List.of("**/" + LOCALES + "*/" + FILE);
     }
 
     @Override

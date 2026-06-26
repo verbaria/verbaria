@@ -46,39 +46,72 @@ public class PushArchiveService {
                         "No document layout for project type: " + type));
         List<PushPlanService.PlanEntry> plan = pushPlanService.plan(type, pattern,
                 new ArrayList<>(files.keySet()), targetLocales, sourceLang);
-        List<Imported> done = new ArrayList<>();
+        Map<String, List<PushPlanService.PlanEntry>> groups =
+                new LinkedHashMap<>();
         for (PushPlanService.PlanEntry e : plan) {
-            if (e.source()) {
-                importOne(layout, version, e, files.get(e.path()), force, actor, done);
+            String key = e.source() + "|" + e.project() + "|" + e.docId()
+                    + "|" + e.localeId();
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(e);
+        }
+        List<Imported> done = new ArrayList<>();
+        for (List<PushPlanService.PlanEntry> group : groups.values()) {
+            if (group.get(0).source()) {
+                importSourceGroup(layout, version, group, files, force, actor,
+                        done);
             }
         }
-        for (PushPlanService.PlanEntry e : plan) {
-            if (!e.source()) {
-                importOne(layout, version, e, files.get(e.path()), force, actor, done);
+        for (List<PushPlanService.PlanEntry> group : groups.values()) {
+            if (!group.get(0).source()) {
+                importTransGroup(layout, version, group, files, force, actor,
+                        done);
             }
         }
         return done;
     }
 
-    private void importOne(DocumentLayout layout, String version,
-            PushPlanService.PlanEntry e, byte[] bytes, boolean force,
-            HAccount actor, List<Imported> done) throws IOException {
-        if (bytes == null) {
+    private void importSourceGroup(DocumentLayout layout, String version,
+            List<PushPlanService.PlanEntry> group, Map<String, byte[]> files,
+            boolean force, HAccount actor, List<Imported> done)
+            throws IOException {
+        PushPlanService.PlanEntry first = group.get(0);
+        Map<String, byte[]> groupFiles = new LinkedHashMap<>();
+        for (PushPlanService.PlanEntry e : group) {
+            byte[] bytes = files.get(e.path());
+            if (bytes != null) {
+                groupFiles.put(e.path(), bytes);
+            }
+        }
+        if (groupFiles.isEmpty()) {
             return;
         }
-        if (e.source()) {
-            Resource resource = layout.readSource(e.docId(), bytes);
-            if (e.localeId() != null && !e.localeId().isEmpty()) {
-                resource.setLang(new LocaleId(e.localeId()));
+        Resource resource = layout.readSource(first.docId(), groupFiles);
+        if (first.localeId() != null && !first.localeId().isEmpty()) {
+            resource.setLang(new LocaleId(first.localeId()));
+        }
+        importService.importSource(first.project(), version, first.docId(),
+                resource, actor, force);
+        for (PushPlanService.PlanEntry e : group) {
+            if (files.get(e.path()) != null) {
+                done.add(new Imported(e.path(), e.docId(), e.localeId(),
+                        e.project(), true));
             }
-            importService.importSource(e.project(), version, e.docId(),
-                    resource, actor, force);
-        } else {
+        }
+    }
+
+    private void importTransGroup(DocumentLayout layout, String version,
+            List<PushPlanService.PlanEntry> group, Map<String, byte[]> files,
+            boolean force, HAccount actor, List<Imported> done)
+            throws IOException {
+        for (PushPlanService.PlanEntry e : group) {
+            byte[] bytes = files.get(e.path());
+            if (bytes == null) {
+                continue;
+            }
             importService.importTranslations(e.project(), version, e.docId(),
                     e.localeId(), layout.readTranslation(bytes), actor, force);
+            done.add(new Imported(e.path(), e.docId(), e.localeId(),
+                    e.project(), false));
         }
-        done.add(new Imported(e.path(), e.docId(), e.localeId(), e.project(),
-                e.source()));
     }
 
     private static Map<String, byte[]> unzip(InputStream in) throws IOException {

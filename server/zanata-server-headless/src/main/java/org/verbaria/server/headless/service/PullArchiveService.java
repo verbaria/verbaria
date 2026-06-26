@@ -73,8 +73,10 @@ public class PullArchiveService {
                     String docSourceId = d.getLocale() == null
                             ? projectSource : d.getLocale().getLocaleId().getId();
                     if (wantSource) {
-                        add(zip, prefix + layout.sourceOutputPath(d.getDocId(), docSourceId),
-                                layout.writeSource(source));
+                        for (var f : layout.writeSourceFiles(source, docSourceId)
+                                .entrySet()) {
+                            add(zip, prefix + f.getKey(), f.getValue());
+                        }
                     }
                     if (wantTrans) {
                         for (HLocale loc : targets) {
@@ -84,8 +86,10 @@ public class PullArchiveService {
                             }
                             TranslationsResource trans = exportService
                                     .toTranslations(d, loc.getLocaleId());
-                            add(zip, prefix + layout.outputPath(d.getDocId(), localeId),
-                                    layout.writeTranslation(source, trans, localeId));
+                            for (var f : layout.writeTranslationFiles(source,
+                                    trans, localeId).entrySet()) {
+                                add(zip, prefix + f.getKey(), f.getValue());
+                            }
                         }
                     }
                 }
