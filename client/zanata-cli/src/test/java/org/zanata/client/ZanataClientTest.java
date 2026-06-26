@@ -13,7 +13,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.zanata.client.commands.NullAbortStrategy;
 import org.zanata.client.commands.ZanataCommand;
-import org.zanata.client.commands.stats.GetStatisticsOptionsImpl;
+import org.zanata.client.commands.push.PushOptionsImpl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -82,8 +82,7 @@ public class ZanataClientTest {
      * @throws Exception
      */
     @ParameterizedTest
-    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
-            "put-user", "put-version", "stats" })
+    @ValueSource(strings = { "init", "pull", "push", "changelog" })
     public void testHelpSubCommand(String cmdName) throws Exception {
         client.processArgs("help", cmdName);
         assertOutputIncludesUsage(out);
@@ -97,8 +96,7 @@ public class ZanataClientTest {
      * @throws Exception
      */
     @ParameterizedTest
-    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
-            "put-user", "put-version", "stats" })
+    @ValueSource(strings = { "init", "pull", "push", "changelog" })
     public void testHelpSubOption(String cmdName) throws Exception {
         client.processArgs(cmdName, "--help");
         assertOutputIncludesUsage(out);
@@ -148,8 +146,7 @@ public class ZanataClientTest {
      * @throws Exception
      */
     @ParameterizedTest
-    @ValueSource(strings = { "list-remote", "pull", "push", "put-project",
-            "put-user", "put-version", "stats" })
+    @ValueSource(strings = { "init", "pull", "push", "changelog" })
     public void testInvalidSubOption(String cmdName) throws Exception {
         client.processArgs(cmdName, "--nosuchoption");
         assertOutputIncludesUsage(err);
@@ -159,16 +156,9 @@ public class ZanataClientTest {
         // !outputListsCommands(err));
     }
 
-    /**
-     * zanata-cli stats --url https://zanata.example.com/ --project aproject
-     * --project-version 1.2
-     *
-     * @throws Exception
-     */
     @Test
-    public void testStatsCommand() throws Exception {
-        GetStatisticsOptionsImpl mockOptions =
-                mock(GetStatisticsOptionsImpl.class);
+    public void testPushCommandDispatch() throws Exception {
+        PushOptionsImpl mockOptions = mock(PushOptionsImpl.class);
         ZanataCommand mockCommand = mock(ZanataCommand.class);
 
         try (MockedStatic<SubCommandHandler2> mocked =
@@ -179,7 +169,7 @@ public class ZanataClientTest {
                     .thenReturn(mockOptions);
             when(mockOptions.initCommand()).thenReturn(mockCommand);
 
-            String command = "stats";
+            String command = "push";
             String url = "https://zanata.example.com/";
             String project = "aproject";
             String version = "1.2";
