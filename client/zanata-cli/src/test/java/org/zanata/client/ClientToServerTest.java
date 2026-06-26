@@ -42,7 +42,7 @@ public class ClientToServerTest {
     @Test
     @Disabled("this will talk to live server")
     public void testDisableSSLCertOption() {
-        String command = "stats";
+        String command = "pull";
         String url = "https://translate.engineering.redhat.com/";
         String project = "iok";
         String version = "6.4";
@@ -61,11 +61,10 @@ public class ClientToServerTest {
                     .connect(new InetSocketAddress(0));
             int port = address.getPort();
 
-            String command = "stats";
+            String command = "pull";
             String url = "http://localhost:" + port + "/";
             String project = "iok";
             String version = "6.4";
-            //        client.setErrors(true);
             client.processArgs(command, "--url", url, "--project", project,
                     "--project-version", version, "--username", "admin",
                     "--key",
@@ -75,7 +74,7 @@ public class ClientToServerTest {
             Mockito.verify(mockAbortStrategy).abort(throwableCapture.capture());
             assertThat("Client will display meaningful message for 503",
                     throwableCapture.getValue().getMessage()
-                            .contains("unavailable"));
+                            .toLowerCase().contains("unavailable"));
         }
     }
 }
