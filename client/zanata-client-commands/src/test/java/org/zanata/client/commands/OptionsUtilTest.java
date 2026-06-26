@@ -177,34 +177,6 @@ public class OptionsUtilTest {
     }
 
     @Test
-    public void willNotFetchFromServerIfNoProjectConfigDefined() {
-        boolean result = OptionsUtil
-                .shouldFetchLocalesFromServer(Optional.empty(),
-                        opts);
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    public void willFetchFromServerIfProjectConfigHasNoLocalesDefined() {
-        boolean result = OptionsUtil.shouldFetchLocalesFromServer(
-                Optional.of(new ZanataConfig()),
-                opts);
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    public void willNotFetchFromServerIfProjectConfigHasLocalesDefined() {
-        ZanataConfig config = new ZanataConfig();
-        LocaleList locales = new LocaleList();
-        locales.add(new LocaleMapping("zh"));
-        config.setLocales(locales);
-        opts.setInteractiveMode(false);
-        boolean result = OptionsUtil.shouldFetchLocalesFromServer(
-                Optional.of(config), opts);
-        assertThat(result).isFalse();
-    }
-
-    @Test
     public void readProjectConfigWillReturnEmptyIfNoProjectConfigDefinedInOptions()
             throws IOException {
         assertThat(OptionsUtil.readProjectConfigFile(opts).isPresent()).isFalse();

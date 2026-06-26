@@ -20,6 +20,8 @@ import java.util.zip.ZipOutputStream;
 import java.net.URLEncoder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -37,6 +39,9 @@ import org.zanata.client.config.LocaleMapping;
 
 public class GenericArchiveTransport {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(GenericArchiveTransport.class);
+
     private final RestTemplate rest = new RestTemplate();
 
     public void push(PushOptions opts) throws IOException {
@@ -44,22 +49,41 @@ public class GenericArchiveTransport {
         List<String> includes = resolveIncludes(opts);
         List<String> paths = collect(srcDir, includes,
                 opts.getExcludes(), opts.getCaseSensitive());
+        log.info("Scanning {} - found {} candidate file(s)",
+                srcDir == null ? null : srcDir.toAbsolutePath().normalize(),
+                paths.size());
         if (paths.isEmpty()) {
+            log.warn("No files matched; nothing to push.");
             return;
         }
         PushPullType pushType = opts.getPushType();
         boolean wantSource = pushType != PushPullType.Trans;
         boolean wantTrans = pushType != PushPullType.Source;
+        log.info("Asking server which files to send...");
         List<String> toSend = new ArrayList<>();
+        int sources = 0;
+        int translations = 0;
         for (Map<String, Object> entry : requestPlan(opts, paths)) {
             boolean source = Boolean.TRUE.equals(entry.get("source"));
             if ((source && wantSource) || (!source && wantTrans)) {
-                toSend.add(String.valueOf(entry.get("path")));
+                String path = String.valueOf(entry.get("path"));
+                toSend.add(path);
+                if (source) {
+                    sources++;
+                } else {
+                    translations++;
+                }
+                log.info("  + {} [{}]", path, source ? "source" : "translation");
             }
         }
-        if (!toSend.isEmpty()) {
-            uploadArchive(opts, srcDir, toSend);
+        if (toSend.isEmpty()) {
+            log.warn("Server selected nothing to send for push-type '{}'.",
+                    pushType);
+            return;
         }
+        log.info("Sending {} file(s): {} source, {} translation",
+                toSend.size(), sources, translations);
+        uploadArchive(opts, srcDir, toSend);
     }
 
     public void pull(PullOptions opts) throws IOException {
@@ -77,10 +101,16 @@ public class GenericArchiveTransport {
                 url.append("&targetLocales=").append(enc(m.getLocale()));
             }
         }
+        log.info("Pulling '{}' documents for {} {} from {}...",
+                opts.getPullType(), opts.getProj(), opts.getProjectVersion(),
+                base(opts));
         ResponseEntity<byte[]> resp = rest.exchange(url.toString(), HttpMethod.GET,
                 new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
                 byte[].class);
-        extract(resp.getBody(), opts.getTransDir());
+        Path transDir = opts.getTransDir();
+        int written = extract(resp.getBody(), transDir);
+        log.info("Pull succeeded: wrote {} file(s) into {}", written,
+                transDir == null ? null : transDir.toAbsolutePath().normalize());
     }
 
     private List<String> resolveIncludes(PushOptions opts) {
@@ -132,6 +162,8 @@ public class GenericArchiveTransport {
     private void uploadArchive(PushOptions opts, Path srcDir, List<String> paths)
             throws IOException {
         byte[] zip = zip(srcDir, paths);
+        log.info("Uploading archive ({} file(s), {} KB)...",
+                paths.size(), Math.max(1, zip.length / 1024));
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         if (opts.getProjectType() != null && !opts.getProjectType().isBlank()) {
             parts.add("projectType", opts.getProjectType());
@@ -157,10 +189,26 @@ public class GenericArchiveTransport {
         Map<String, Object> resp = rest.postForObject(
                 base(opts) + "rest/push-archive",
                 new HttpEntity<>(parts, headers), Map.class);
+        Object imported = resp == null ? null : resp.get("imported");
+        if (imported instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> m) {
+                    log.info("  -> {} as locale '{}' [{}]", m.get("docId"),
+                            m.get("localeId"),
+                            Boolean.TRUE.equals(m.get("source"))
+                                    ? "source" : "translation");
+                }
+            }
+            log.info("Push succeeded: server imported {} entr{}.",
+                    list.size(), list.size() == 1 ? "y" : "ies");
+        } else {
+            log.info("Push succeeded.");
+        }
         Object lock = resp == null ? null : resp.get("lock");
         if (lock != null) {
             Files.write(srcDir.resolve("verbaria-lock.json"),
                     new ObjectMapper().writeValueAsBytes(lock));
+            log.info("Wrote verbaria-lock.json");
         }
     }
 
@@ -216,10 +264,11 @@ public class GenericArchiveTransport {
         return out.toByteArray();
     }
 
-    private static void extract(byte[] archive, Path transDir) throws IOException {
+    private static int extract(byte[] archive, Path transDir) throws IOException {
         if (archive == null) {
-            return;
+            return 0;
         }
+        int written = 0;
         try (ZipInputStream zip =
                 new ZipInputStream(new ByteArrayInputStream(archive))) {
             ZipEntry entry;
@@ -230,8 +279,11 @@ public class GenericArchiveTransport {
                 Path target = transDir.resolve(entry.getName());
                 Files.createDirectories(target.getParent());
                 Files.write(target, zip.readAllBytes());
+                log.info("  - {}", entry.getName());
+                written++;
             }
         }
+        return written;
     }
 
     private static List<String> targetLocales(PushOptions opts) {

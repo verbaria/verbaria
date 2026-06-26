@@ -1,5 +1,7 @@
 package org.zanata.client.commands.push;
 
+import java.nio.file.Path;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,6 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         logger.info("Version: {}", opts.getProjectVersion());
         logger.info("Username: {}", opts.getUsername());
         logger.info("Project type: {}", opts.getProjectType());
-        logger.info("Source language: {}", opts.getSourceLang());
         logger.info("Merge type: {}", opts.getMergeType());
         logger.info("Include patterns: {}",
                 StringUtils.join(opts.getIncludes(), " "));
@@ -40,15 +41,26 @@ public class PushCommand extends PushPullCommand<PushOptions> {
         logger.info("Default excludes: {}", opts.getDefaultExcludes());
         if (opts.getPushType() == PushPullType.Trans) {
             logger.info("Pushing target documents only");
-            logger.info("Locales to push: {}", opts.getLocaleMapList());
+            logger.info("Locales to push: {}", localesToPush(opts));
         } else if (opts.getPushType() == PushPullType.Source) {
             logger.info("Pushing source documents only");
         } else {
             logger.info("Pushing source and target documents");
-            logger.info("Locales to push: {}", opts.getLocaleMapList());
+            logger.info("Locales to push: {}", localesToPush(opts));
         }
-        logger.info("Source directory (originals): {}", opts.getSrcDir());
+        logger.info("Source directory (originals): {}", expand(opts.getSrcDir()));
         logger.info("Target base directory (translations): {}",
-                opts.getTransDir());
+                expand(opts.getTransDir()));
+    }
+
+    private static Object localesToPush(PushOptions opts) {
+        if (opts.getLocaleMapList() == null || opts.getLocaleMapList().isEmpty()) {
+            return "(detected from local directory names)";
+        }
+        return opts.getLocaleMapList();
+    }
+
+    private static Object expand(Path dir) {
+        return dir == null ? null : dir.toAbsolutePath().normalize();
     }
 }

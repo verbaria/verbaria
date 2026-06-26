@@ -382,7 +382,7 @@ public class DevSeedData implements CommandLineRunner {
         for (HProject project : projectRepository.findAll()) {
             for (HProjectIteration iteration : project.getProjectIterations()) {
                 for (DocSeed ds : docsFor(project.getSlug())) {
-                    if (documentRepository.findByVersionAndDocId(
+                    if (documentRepository.findAnyByVersionAndDocId(
                             project.getSlug(), iteration.getSlug(), ds.docId())
                             .isPresent()) {
                         continue;

@@ -49,14 +49,11 @@ public class OptionsUtil {
 
     public static void applyConfigFiles(ConfigurableOptions opts)
             throws ConfigurationException, IOException {
-        Optional<ZanataConfig> zanataConfig = Optional.empty();
         if (opts instanceof ConfigurableProjectOptions) {
             ConfigurableProjectOptions projOpts =
                     (ConfigurableProjectOptions) opts;
-            zanataConfig = applyProjectConfigToProjectOptions(projOpts);
+            applyProjectConfigToProjectOptions(projOpts);
         }
-        boolean shouldFetchLocalesFromServer =
-                shouldFetchLocalesFromServer(zanataConfig, opts);
         if (opts.getUserConfig() != null) {
             if (opts.getUserConfig().exists()) {
                 log.info("Loading user config from {}", opts.getUserConfig());
@@ -67,19 +64,6 @@ public class OptionsUtil {
                 System.err.printf(
                         "User config file '%s' not found; ignoring.%n",
                         opts.getUserConfig());
-            }
-        }
-        // we have to wait until user config has been applied
-        if (shouldFetchLocalesFromServer) {
-            ConfigurableProjectOptions projectOptions =
-                    (ConfigurableProjectOptions) opts;
-            boolean isProjectGlob = projectOptions.getProj() != null
-                    && (projectOptions.getProj().contains("*")
-                        || projectOptions.getProj().contains("?"));
-            if (!isProjectGlob) {
-                LocaleList localeMappings =
-                        fetchLocalesFromServer(projectOptions);
-                projectOptions.setLocaleMapList(localeMappings);
             }
         }
     }
@@ -98,38 +82,6 @@ public class OptionsUtil {
                     opts.getProjectConfig());
         }
         return projectConfig;
-    }
-
-    public static boolean shouldFetchLocalesFromServer(
-            Optional<ZanataConfig> projectConfig, ConfigurableOptions opts) {
-        if (!projectConfig.isPresent()) {
-            if (opts instanceof ConfigurableProjectOptions) {
-                ConfigurableProjectOptions projectOptions =
-                        (ConfigurableProjectOptions) opts;
-                return StringUtils.isNotEmpty(projectOptions.getProj()) &&
-                        StringUtils
-                                .isNotEmpty(projectOptions.getProjectVersion());
-            }
-            return false;
-        }
-        ZanataConfig zanataConfig = projectConfig.get();
-        // Explicit targetLocales is the intended way to pin locales: use them
-        // verbatim, don't query the server, and don't nag (unlike the legacy
-        // "locales" mapping list below).
-        if (zanataConfig.getTargetLocalesAsList() != null) {
-            return false;
-        }
-        boolean localesDefinedInFile =
-                zanataConfig.getLocales() != null
-                        && !zanataConfig.getLocales().isEmpty();
-        if (localesDefinedInFile) {
-            ConsoleInteractor console = new ConsoleInteractorImpl(opts);
-            console.printfln(Warning, get(
-                    "locales.in.config.deprecated"));
-            return false;
-        } else {
-            return true;
-        }
     }
 
     /**
@@ -158,13 +110,6 @@ public class OptionsUtil {
 
     }
 
-
-    public static LocaleList fetchLocalesFromServer(
-            ConfigurableProjectOptions projectOpts) {
-        return ServerRestClient.fetchLocales(projectOpts.getUrl(),
-                projectOpts.getUsername(), projectOpts.getKey(),
-                projectOpts.getProj(), projectOpts.getProjectVersion());
-    }
 
     /**
      * Applies values from the project configuration unless they have been set

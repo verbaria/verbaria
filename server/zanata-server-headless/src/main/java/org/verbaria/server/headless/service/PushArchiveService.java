@@ -88,11 +88,15 @@ public class PushArchiveService {
         if (first.localeId() != null && !first.localeId().isEmpty()) {
             resource.setLang(new LocaleId(first.localeId()));
         }
-        importService.importSource(first.project(), version, first.docId(),
-                resource, actor, force);
+        DocumentImportService.ImportResult result = importService.importSource(
+                first.project(), version, first.docId(), resource, actor, force);
+        String storedLocale = result.document().getLocale() != null
+                && result.document().getLocale().getLocaleId() != null
+                ? result.document().getLocale().getLocaleId().getId()
+                : first.localeId();
         for (PushPlanService.PlanEntry e : group) {
             if (files.get(e.path()) != null) {
-                done.add(new Imported(e.path(), e.docId(), e.localeId(),
+                done.add(new Imported(e.path(), e.docId(), storedLocale,
                         e.project(), true));
             }
         }
