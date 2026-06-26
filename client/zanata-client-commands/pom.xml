@@ -27,37 +27,18 @@
       <artifactId>zanata-common-util</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-properties</artifactId>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-po</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-consulo</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-chrome</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-xliff</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>2.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-rest-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.zanata</groupId>
-      <artifactId>zanata-adapter-glossary</artifactId>
+      <groupId>org.reactivestreams</groupId>
+      <artifactId>reactive-streams</artifactId>
     </dependency>
 
     <dependency>
@@ -89,6 +70,17 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-configuration2</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -126,27 +118,13 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-xml</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-csv</artifactId>
     </dependency>
 
     <dependency>
@@ -158,6 +136,7 @@
     <dependency>
       <groupId>org.simpleframework</groupId>
       <artifactId>simple</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>

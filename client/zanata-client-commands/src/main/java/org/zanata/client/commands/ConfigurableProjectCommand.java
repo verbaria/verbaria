@@ -21,7 +21,6 @@
 package org.zanata.client.commands;
 
 import org.zanata.client.exceptions.ConfigException;
-import org.zanata.rest.client.RestClientFactory;
 
 /**
  * Base class for commands which supports configuration by the user's verbaria.ini
@@ -44,7 +43,7 @@ public abstract class ConfigurableProjectCommand<O extends ConfigurableProjectOp
     protected static final String PROJECT_TYPE_CHROME = "chrome";
 
     public ConfigurableProjectCommand(O opts) {
-        super(opts, null);
+        super(opts);
         validateMandatoryOptions(opts);
     }
 
@@ -53,13 +52,6 @@ public abstract class ConfigurableProjectCommand<O extends ConfigurableProjectOp
             throw new ConfigException("Project must be specified");
         if (opts.getProjectVersion() == null)
             throw new ConfigException("Project version must be specified");
-        if (getProjectType() == null)
-            throw new ConfigException("Project type must be specified");
-    }
-
-    public ConfigurableProjectCommand(O opts, RestClientFactory restClientFactory) {
-        super(opts, restClientFactory);
-        validateMandatoryOptions(opts);
     }
 
     protected String getProjectType() {

@@ -16,6 +16,7 @@ import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.common.LocaleId;
+import org.zanata.common.ProjectType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlowTarget;
 
@@ -126,6 +127,60 @@ class ChromePushPullIT extends AbstractPushPullIT {
         assertThat(doc.getLocale().getLocaleId())
                 .as("source doc must use the project source locale, not en-US")
                 .isEqualTo(new LocaleId("en"));
+    }
+
+    @Test
+    void pushResolvesProjectTypeFromProjectWhenOmitted() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itchrometype", VERSION);
+        fixtures.setProjectType("itchrometype", ProjectType.Chrome);
+        fixtures.setProjectSourceLocale("itchrometype", "en");
+
+        Path enDir = tmp.resolve("src/main/chrome/_locales/en");
+        Files.createDirectories(enDir);
+        Files.writeString(enDir.resolve("messages.json"), ALL_OPTIONS_JSON,
+                StandardCharsets.UTF_8);
+
+        PushOptionsImpl push = pushOpts("source", "chrome", "itchrometype");
+        push.setProjectType(null);
+        push.setSourceLang("en");
+        push.setIncludes("**/_locales/*/messages.json");
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itchrometype", VERSION, DOC_ID)
+                .orElseThrow();
+        assertThat(textFlowRepository.findByDocument(doc.getId())).isNotEmpty();
+    }
+
+    @Test
+    void pushScansUsingServerSuppliedRulesWhenIncludesOmitted()
+            throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itchromescan", VERSION);
+        fixtures.setProjectType("itchromescan", ProjectType.Chrome);
+        fixtures.setProjectSourceLocale("itchromescan", "en");
+
+        Path enDir = tmp.resolve("src/main/chrome/_locales/en");
+        Files.createDirectories(enDir);
+        Files.writeString(enDir.resolve("messages.json"), ALL_OPTIONS_JSON,
+                StandardCharsets.UTF_8);
+        Files.writeString(tmp.resolve("README.md"), "ignore me",
+                StandardCharsets.UTF_8);
+
+        PushOptionsImpl push = pushOpts("source", "chrome", "itchromescan");
+        push.setProjectType(null);
+        push.setIncludes(null);
+        new PushCommand(push).run();
+
+        HDocument doc = documentRepository
+                .findByVersionAndDocId("itchromescan", VERSION, DOC_ID)
+                .orElseThrow();
+        assertThat(textFlowRepository.findByDocument(doc.getId())).isNotEmpty();
     }
 
     @Test

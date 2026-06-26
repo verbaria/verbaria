@@ -1,6 +1,7 @@
 package org.zanata.adapter.layout;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -15,6 +16,10 @@ public interface DocumentLayout {
     String fileExtension();
 
     String contentType();
+
+    default List<String> scanPatterns() {
+        return List.of("**/*" + fileExtension());
+    }
 
     Optional<PathDoc> classify(String relativePath);
 

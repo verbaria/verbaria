@@ -52,11 +52,6 @@
       </dependency>
       <dependency>
         <groupId>org.zanata</groupId>
-        <artifactId>zanata-rest-client</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.zanata</groupId>
         <artifactId>zanata-adapter-glossary</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -151,6 +146,5 @@
     <module>zanata-cli</module>
     <module>zanata-client-commands</module>
     <module>zanata-maven-plugin</module>
-    <module>zanata-rest-client</module>
   </modules>
 </project>

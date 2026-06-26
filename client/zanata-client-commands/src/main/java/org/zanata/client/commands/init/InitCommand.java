@@ -23,138 +23,81 @@ package org.zanata.client.commands.init;
 import static org.apache.commons.io.Charsets.UTF_8;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Confirmation;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Hint;
-import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
 import static org.zanata.client.commands.Messages.get;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import ch.qos.logback.classic.Level;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.commands.ConfigurableCommand;
-import org.zanata.client.commands.ConfigurableProjectOptions;
 import org.zanata.client.commands.ConsoleInteractor;
 import org.zanata.client.commands.ConsoleInteractorImpl;
-import org.zanata.client.commands.OptionsUtil;
-import org.zanata.client.config.ZanataConfig;
+import org.zanata.client.commands.ServerRestClient;
+import org.zanata.client.exceptions.ConfigException;
 import org.zanata.client.util.VersionComparator;
-import org.zanata.rest.client.ProjectIterationClient;
-import org.zanata.rest.client.RestClientFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
-import java.nio.file.Paths;
-import java.nio.file.Path;
-import java.nio.file.Files;
-import java.io.OutputStream;
-import java.io.InputStream;
 
-/**
- * @author Patrick Huang <a
- *         href="mailto:pahuang@redhat.com">pahuang@redhat.com</a>
- */
 public class InitCommand extends ConfigurableCommand<InitOptions> {
     private static final Logger log = LoggerFactory
             .getLogger(InitCommand.class);
     private static final String ITERATION_URL = "%siteration/view/%s/%s";
-    private static final ObjectMapper CONFIG_MAPPER = new ObjectMapper()
-            .enable(SerializationFeature.INDENT_OUTPUT);
     private ConsoleInteractor console;
     private ProjectConfigHandler projectConfigHandler;
     private UserConfigHandler userConfigHandler;
 
     public InitCommand(InitOptions opts) {
-        // we don't have all mandatory information yet (server URL etc)
-        super(opts, new RestClientFactory() {
-            private static final long serialVersionUID = 1L;
-        });
+        super(opts);
         console = new ConsoleInteractorImpl(opts);
-        projectConfigHandler =
-                new ProjectConfigHandler(console, getOpts());
+        projectConfigHandler = new ProjectConfigHandler(console, getOpts());
         userConfigHandler = new UserConfigHandler(console, getOpts());
     }
 
     @VisibleForTesting
     protected InitCommand(InitOptions opts, ConsoleInteractor console) {
-        this(opts, console, new RestClientFactory() {
-            private static final long serialVersionUID = 1L;
-        });
-    }
-
-    @VisibleForTesting
-    protected InitCommand(InitOptions opts,
-            ConsoleInteractor console,
-            RestClientFactory restClientFactory) {
-        super(opts, restClientFactory);
+        super(opts);
         this.console = console;
-        projectConfigHandler =
-                new ProjectConfigHandler(console, getOpts());
+        projectConfigHandler = new ProjectConfigHandler(console, getOpts());
         userConfigHandler = new UserConfigHandler(console, getOpts());
     }
 
     @Override
     protected void run() throws Exception {
-
         if (getOpts().getUsername() == null) {
-            // Search for verbaria.ini
             log.info("Username not specified, trying config file");
             userConfigHandler.verifyUserConfig();
         }
 
-        setClientFactory(OptionsUtil.createClientFactory(getOpts()));
-
         ensureServerVersion();
 
-        // If there's a verbaria.json, ask the user
         projectConfigHandler.handleExistingProjectConfig();
 
-        // Select or create a project and version
-        new ProjectPrompt(console, getOpts(),
-                new ProjectIterationPrompt(console, getOpts(),
-                        getClientFactory()), getClientFactory())
-                .selectOrCreateNewProjectAndVersion();
-
-        advancedSettingsReminder();
+        if (getOpts().getProj() == null
+                || getOpts().getProjectVersion() == null) {
+            throw new ConfigException(
+                    "Project and version must be specified (use --project and"
+                            + " --project-version); create them in the server UI"
+                            + " first.");
+        }
 
         downloadProjectConfig(getOpts().getProj(),
-                getOpts().getProjectVersion(),
-                Paths.get("verbaria.json"));
+                getOpts().getProjectVersion(), Paths.get("verbaria.json"));
 
-        applyConfigFileSilently();
-
-        // Prompt for src dir.
-        SourceConfigPrompt sourceConfigPrompt =
-                new SourceConfigPrompt(console, getOpts()).promptUser();
-
-        //Prompt for trans dir, .
-        new TransConfigPrompt(console, getOpts(),
-                        sourceConfigPrompt.getDocNames()).promptUser();
-
-        writeToConfig(getOpts().getSrcDir(),
-                sourceConfigPrompt.getIncludes(), sourceConfigPrompt
-                        .getExcludes(), getOpts().getTransDir(),
-                getOpts().getProjectConfig());
-
-        // Offer a few useful commands plus urls (what next)
         displayAdviceAboutWhatIsNext(projectConfigHandler.hasOldConfig());
     }
 
     @VisibleForTesting
     protected void ensureServerVersion() {
-        String serverVersion =
-                getClientFactory().getServerVersionInfo().getVersionNo();
-
-        if (new VersionComparator().compare(serverVersion, "3.4.0") < 0) {
+        String serverVersion = ServerRestClient.serverVersion(
+                getOpts().getUrl(), getOpts().getUsername(), getOpts().getKey());
+        if (serverVersion != null
+                && new VersionComparator().compare(serverVersion, "3.4.0") < 0) {
             console.printfln(Warning, get("server.incompatible"));
             console.printfln(Hint, get("server.incompatible.hint"));
             throw new RuntimeException(get("server.incompatible"));
@@ -184,116 +127,29 @@ public class InitCommand extends ConfigurableCommand<InitOptions> {
         console.printfln(get("browse.online.help"));
     }
 
-    private void advancedSettingsReminder() {
-        ConfigurableProjectOptions opts = getOpts();
-        console.printfln(Warning, get("customize.languages.warning"));
-        console.printfln(Hint, get("view.project"),
-                getProjectIterationUrl(opts.getUrl(), opts.getProj(),
-                        opts.getProjectVersion()));
-        console.printf(Question, get("continue.yes.no"));
-        console.expectYes();
-    }
-
-    private void applyConfigFileSilently()
-            throws ConfigurationException, IOException {
-        ConfigurableProjectOptions opts = getOpts();
-        ch.qos.logback.classic.Logger logger =
-                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
-                        OptionsUtil.class);
-        Level preLevel = logger.getLevel();
-        logger.setLevel(Level.OFF);
-        try {
-            OptionsUtil.applyConfigFiles(opts);
-        } finally {
-            logger.setLevel(preLevel);
-        }
-        console.printfln(
-                Confirmation, get("project.version.type.confirmation"),
-                opts.getProjectType(), opts.getProj(), opts
-                        .getProjectVersion());
-    }
-
     private boolean isInvokedByMaven() {
         return getOpts().getClass().getPackage().getName().contains("maven");
     }
 
     private static String getProjectIterationUrl(URL server, String projectSlug,
             String iterationSlug) {
-        return String.format(ITERATION_URL, server,
-                projectSlug, iterationSlug);
+        return String.format(ITERATION_URL, server, projectSlug, iterationSlug);
     }
 
-
-    public static void offerRetryOnServerError(Exception e,
-            ConsoleInteractor consoleInteractor) {
-        consoleInteractor.printfln(Warning, get("server.error"),
-                Throwables.getRootCause(e).getMessage());
-        consoleInteractor.printf(Question, get("server.error.try.again"));
-        consoleInteractor.expectYes();
-    }
-
-    /**
-     * Downloads the verbaria.json config file using REST api.
-     *
-     * @param projectId
-     *            project slug
-     * @param iterationId
-     *            iteration slug
-     * @param configFileDest
-     *            project config destination
-     */
     @VisibleForTesting
     protected void downloadProjectConfig(String projectId, String iterationId,
             Path configFileDest) throws IOException {
-        ProjectIterationClient projectIterationClient = getClientFactory()
-                .getProjectIterationClient(projectId, iterationId);
+        String content = ServerRestClient.fetchConfig(getOpts().getUrl(),
+                getOpts().getUsername(), getOpts().getKey(), projectId,
+                iterationId);
 
-        String content;
-        try {
-            content = projectIterationClient.sampleConfiguration();
-        } catch (Exception e) {
-            offerRetryOnServerError(e, console);
-            downloadProjectConfig(projectId, iterationId, configFileDest);
-            return;
-        }
-
-        Preconditions.checkState(
-                !Files.exists(configFileDest),
+        Preconditions.checkState(!Files.exists(configFileDest),
                 "Can not create %s. Make sure permission is writable.",
                 configFileDest);
 
-        log.debug("project config from the server:\n{}", content);
         Files.writeString(configFileDest, content, UTF_8);
         getOpts().setProjectConfig(configFileDest);
-
-    }
-
-    @VisibleForTesting
-    protected void writeToConfig(Path srcDir, String includes,
-            String excludes, Path transDir,
-            Path configFile)
-            throws Exception {
-        ZanataConfig currentConfig;
-        try (InputStream in =
-                Files.newInputStream(configFile)) {
-            currentConfig = CONFIG_MAPPER.readValue(in, ZanataConfig.class);
-        }
-        currentConfig.setSrcDir(srcDir.toString());
-        currentConfig.setIncludes(Strings.emptyToNull(includes));
-        currentConfig.setExcludes(Strings.emptyToNull(excludes));
-        currentConfig.setHooks(null);
-        if (currentConfig.getLocales() != null
-                && currentConfig.getLocales().isEmpty()) {
-            currentConfig.setLocales(null);
-        }
-        currentConfig.setTransDir(transDir.toString());
-        try (OutputStream out =
-                Files.newOutputStream(configFile)) {
-            CONFIG_MAPPER.writeValue(out, currentConfig);
-        }
-
         console.printfln(Confirmation, "Project config created at:%s",
                 getOpts().getProjectConfig());
     }
-
 }

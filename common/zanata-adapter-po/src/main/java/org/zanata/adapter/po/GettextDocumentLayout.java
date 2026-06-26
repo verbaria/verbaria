@@ -38,6 +38,11 @@ public final class GettextDocumentLayout implements DocumentLayout {
     }
 
     @Override
+    public java.util.List<String> scanPatterns() {
+        return java.util.List.of("**/*" + POT, "**/*" + PO);
+    }
+
+    @Override
     public Optional<PathDoc> classify(String relativePath) {
         String norm = relativePath.replace('\\', '/');
         if (norm.endsWith(POT)) {

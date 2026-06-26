@@ -46,6 +46,11 @@ public final class ChromeDocumentLayout implements DocumentLayout {
     }
 
     @Override
+    public java.util.List<String> scanPatterns() {
+        return java.util.List.of("**/" + LOCALES + "*/" + FILE);
+    }
+
+    @Override
     public Optional<PathDoc> classify(String relativePath) {
         String norm = relativePath.replace('\\', '/');
         if (!norm.endsWith(FILE)) {

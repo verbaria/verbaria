@@ -21,20 +21,12 @@ import org.zanata.client.commands.AppAbortStrategy;
 import org.zanata.client.commands.ArgsUtil;
 import org.zanata.client.commands.BasicOptions;
 import org.zanata.client.commands.BasicOptionsImpl;
-import org.zanata.client.commands.ListRemoteOptionsImpl;
-import org.zanata.client.commands.PutProjectOptionsImpl;
-import org.zanata.client.commands.PutUserOptionsImpl;
-import org.zanata.client.commands.PutVersionOptionsImpl;
 import org.zanata.client.commands.SystemExitStrategy;
 import org.zanata.client.commands.ZanataCommand;
 import org.zanata.client.commands.changelog.ChangelogOptionsImpl;
-import org.zanata.client.commands.glossary.delete.GlossaryDeleteOptionsImpl;
-import org.zanata.client.commands.glossary.pull.GlossaryPullOptionsImpl;
-import org.zanata.client.commands.glossary.push.GlossaryPushOptionsImpl;
 import org.zanata.client.commands.init.InitOptionsImpl;
 import org.zanata.client.commands.pull.PullOptionsImpl;
 import org.zanata.client.commands.push.PushOptionsImpl;
-import org.zanata.client.commands.stats.GetStatisticsOptionsImpl;
 import org.zanata.util.VersionUtility;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,20 +55,8 @@ public class ZanataClient extends BasicOptionsImpl {
     @SubCommands({
             @SubCommand(name = "help", impl = HelpOptions.class),
             @SubCommand(name = "init", impl = InitOptionsImpl.class),
-            // @SubCommand(name="list-local", impl=ListLocalOptionsImpl.class),
-            @SubCommand(name = "list-remote",
-                    impl = ListRemoteOptionsImpl.class),
             @SubCommand(name = "pull", impl = PullOptionsImpl.class),
             @SubCommand(name = "push", impl = PushOptionsImpl.class),
-            @SubCommand(name = "put-project",
-                    impl = PutProjectOptionsImpl.class),
-            @SubCommand(name = "put-user", impl = PutUserOptionsImpl.class),
-            @SubCommand(name = "put-version",
-                    impl = PutVersionOptionsImpl.class),
-            @SubCommand(name = "stats", impl = GetStatisticsOptionsImpl.class),
-            @SubCommand(name = "glossary-delete", impl = GlossaryDeleteOptionsImpl.class),
-            @SubCommand(name = "glossary-push", impl = GlossaryPushOptionsImpl.class),
-            @SubCommand(name = "glossary-pull", impl = GlossaryPullOptionsImpl.class),
             @SubCommand(name = "changelog", impl = ChangelogOptionsImpl.class)})
 
     // if this field name changes, change COMMAND_FIELD too

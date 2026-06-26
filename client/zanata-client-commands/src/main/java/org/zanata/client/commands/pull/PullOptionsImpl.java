@@ -57,11 +57,7 @@ public class PullOptionsImpl extends AbstractPushPullOptionsImpl<PullOptions>
 
     @Override
     public ZanataCommand initCommand() {
-        if (PROJECT_TYPE_FILE.equalsIgnoreCase(getProjectType())) {
-            return new RawPullCommand(this);
-        } else {
-            return new PullCommand(this);
-        }
+        return new PullCommand(this);
     }
 
     @Override

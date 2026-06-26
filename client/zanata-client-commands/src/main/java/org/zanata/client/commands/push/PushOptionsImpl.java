@@ -23,7 +23,6 @@ package org.zanata.client.commands.push;
 
 import com.google.common.collect.ImmutableList;
 import org.kohsuke.args4j.Option;
-import org.zanata.adapter.xliff.XliffCommon;
 import org.zanata.client.commands.AbstractPushPullOptionsImpl;
 import org.zanata.client.commands.BooleanValueHandler;
 import org.zanata.client.commands.PushPullType;
@@ -69,11 +68,7 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
 
     @Override
     public ZanataCommand initCommand() {
-        if (PROJECT_TYPE_FILE.equalsIgnoreCase(getProjectType())) {
-            return new RawPushCommand(this);
-        } else {
-            return new PushCommand(this);
-        }
+        return new PushCommand(this);
     }
 
     @Override
@@ -264,7 +259,7 @@ public class PushOptionsImpl extends AbstractPushPullOptionsImpl<PushOptions>
     @Nonnull
     public String getValidate() {
         if (validate == null) {
-            return XliffCommon.ValidationType.CONTENT.name();
+            return "CONTENT";
         }
         return validate;
     }

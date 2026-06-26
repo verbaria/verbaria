@@ -28,7 +28,6 @@ import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.pull.PullOptions;
-import org.zanata.client.commands.pull.RawPullCommand;
 
 import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -132,11 +131,7 @@ abstract class AbstractPullMojo extends
     }
 
     public PushPullCommand<PullOptions> initCommand() {
-        if (PROJECT_TYPE_FILE.equalsIgnoreCase(getProjectType())) {
-            return new RawPullCommand(this);
-        } else {
-            return new PullCommand(this);
-        }
+        return new PullCommand(this);
     }
 
     @Override

@@ -28,7 +28,6 @@ import org.zanata.client.commands.PushPullCommand;
 import org.zanata.client.commands.PushPullType;
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptions;
-import org.zanata.client.commands.push.RawPushCommand;
 
 import com.google.common.collect.ImmutableList;
 
@@ -46,11 +45,7 @@ abstract class AbstractPushMojo extends
 
     @Override
     public PushPullCommand<PushOptions> initCommand() {
-        if (PROJECT_TYPE_FILE.equalsIgnoreCase(getProjectType())) {
-            return new RawPushCommand(this);
-        } else {
-            return new PushCommand(this);
-        }
+        return new PushCommand(this);
     }
 
     /**

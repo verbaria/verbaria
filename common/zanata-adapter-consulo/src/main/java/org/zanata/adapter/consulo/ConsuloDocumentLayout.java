@@ -44,6 +44,11 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     }
 
     @Override
+    public java.util.List<String> scanPatterns() {
+        return java.util.List.of("**/" + LIB + "**");
+    }
+
+    @Override
     public Optional<PathDoc> classify(String relativePath) {
         String norm = relativePath.replace('\\', '/');
         int idx = norm.indexOf(LIB);

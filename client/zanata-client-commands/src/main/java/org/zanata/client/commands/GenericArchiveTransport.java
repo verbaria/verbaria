@@ -40,7 +40,8 @@ public class GenericArchiveTransport {
 
     public void push(PushOptions opts) throws IOException {
         Path srcDir = opts.getSrcDir();
-        List<String> paths = collect(srcDir, opts.getIncludes(),
+        List<String> includes = resolveIncludes(opts);
+        List<String> paths = collect(srcDir, includes,
                 opts.getExcludes(), opts.getCaseSensitive());
         if (paths.isEmpty()) {
             return;
@@ -62,10 +63,11 @@ public class GenericArchiveTransport {
 
     public void pull(PullOptions opts) throws IOException {
         StringBuilder url = new StringBuilder(base(opts))
-                .append("rest/pull-archive?projectType=")
-                .append(enc(opts.getProjectType()))
-                .append("&project=").append(enc(opts.getProj()))
+                .append("rest/pull-archive?project=").append(enc(opts.getProj()))
                 .append("&version=").append(enc(opts.getProjectVersion()));
+        if (opts.getProjectType() != null && !opts.getProjectType().isBlank()) {
+            url.append("&projectType=").append(enc(opts.getProjectType()));
+        }
         if (opts.getPullType() != null) {
             url.append("&pullType=").append(enc(opts.getPullType().name()));
         }
@@ -78,6 +80,25 @@ public class GenericArchiveTransport {
                 new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
                 byte[].class);
         extract(resp.getBody(), opts.getTransDir());
+    }
+
+    private List<String> resolveIncludes(PushOptions opts) {
+        List<String> own = opts.getIncludes();
+        if (own != null && !own.isEmpty()) {
+            return own;
+        }
+        return serverIncludes(opts);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> serverIncludes(PushOptions opts) {
+        String url = base(opts) + "rest/projects/p/" + opts.getProj()
+                + "/iterations/i/" + opts.getProjectVersion() + "/config";
+        Map<String, Object> cfg = rest.exchange(url, HttpMethod.GET,
+                new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
+                Map.class).getBody();
+        Object inc = cfg == null ? null : cfg.get("includes");
+        return inc instanceof List ? (List<String>) inc : List.of();
     }
 
     @SuppressWarnings("unchecked")
@@ -103,7 +124,9 @@ public class GenericArchiveTransport {
             throws IOException {
         byte[] zip = zip(srcDir, paths);
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-        parts.add("projectType", opts.getProjectType());
+        if (opts.getProjectType() != null && !opts.getProjectType().isBlank()) {
+            parts.add("projectType", opts.getProjectType());
+        }
         parts.add("project", opts.getProj());
         parts.add("version", opts.getProjectVersion());
         parts.add("force", String.valueOf(opts.isForce()));
@@ -132,7 +155,7 @@ public class GenericArchiveTransport {
         }
     }
 
-    static List<String> collect(Path baseDir, List<String> includes,
+    public static List<String> collect(Path baseDir, List<String> includes,
             List<String> excludes, boolean caseSensitive) throws IOException {
         List<String> out = new ArrayList<>();
         if (baseDir == null || !Files.isDirectory(baseDir)) {

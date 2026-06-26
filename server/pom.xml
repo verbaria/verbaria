@@ -247,31 +247,6 @@
           </exclusion>
         </exclusions>
       </dependency>
-      <!-- zanata client -->
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>zanata-rest-client</artifactId>
-        <version>${project.version}</version>
-        <scope>test</scope>
-        <!-- The client uses a newer version of resteasy -->
-        <exclusions>
-          <exclusion>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-core</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.zanata</groupId>
-        <artifactId>zanata-rest-client</artifactId>
-        <version>${project.version}</version>
-        <type>test-jar</type>
-        <scope>test</scope>
-      </dependency>
 
       <!-- zanata server -->
       <dependency>

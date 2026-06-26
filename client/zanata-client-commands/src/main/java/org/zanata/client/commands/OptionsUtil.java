@@ -2,7 +2,6 @@ package org.zanata.client.commands;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -24,14 +23,10 @@ import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.config.ZanataConfig;
 import org.zanata.client.exceptions.ConfigException;
-import org.zanata.rest.client.ProjectIterationLocalesClient;
-import org.zanata.rest.client.RestClientFactory;
-import org.zanata.util.VersionUtility;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
@@ -59,9 +54,6 @@ public class OptionsUtil {
             ConfigurableProjectOptions projOpts =
                     (ConfigurableProjectOptions) opts;
             zanataConfig = applyProjectConfigToProjectOptions(projOpts);
-        } else if (opts instanceof ConfigurableGlossaryOptions) {
-            applyConfigToGlossaryOptions(
-                    (ConfigurableGlossaryOptions) opts);
         }
         boolean shouldFetchLocalesFromServer =
                 shouldFetchLocalesFromServer(zanataConfig, opts);
@@ -85,8 +77,8 @@ public class OptionsUtil {
                     && (projectOptions.getProj().contains("*")
                         || projectOptions.getProj().contains("?"));
             if (!isProjectGlob) {
-                LocaleList localeMappings = fetchLocalesFromServer(projectOptions,
-                        createClientFactoryWithoutVersionCheck(projectOptions));
+                LocaleList localeMappings =
+                        fetchLocalesFromServer(projectOptions);
                 projectOptions.setLocaleMapList(localeMappings);
             }
         }
@@ -140,22 +132,6 @@ public class OptionsUtil {
         }
     }
 
-    public static void applyConfigToGlossaryOptions(ConfigurableGlossaryOptions opts)
-            throws IOException {
-        File configFile = opts.getConfig();
-        if (configFile != null) {
-            if (configFile.exists()) {
-                log.info("Loading config from {}", configFile);
-                ZanataConfig projectConfig =
-                        CONFIG_MAPPER.readValue(configFile, ZanataConfig.class);
-                applyBasicConfig(opts, projectConfig);
-            } else {
-                log.warn("Config file '{}' not found; ignoring.",
-                        configFile);
-            }
-        }
-    }
-
     /**
      * Load project config (verbaria.json) file.
      *
@@ -184,20 +160,10 @@ public class OptionsUtil {
 
 
     public static LocaleList fetchLocalesFromServer(
-            ConfigurableProjectOptions projectOpts,
-            RestClientFactory restClientFactory) {
-        LocaleList localeList = new LocaleList();
-        ProjectIterationLocalesClient projectIterationLocalesClient =
-                restClientFactory
-                        .getProjectLocalesClient(projectOpts.getProj(),
-                                projectOpts.getProjectVersion());
-        List<LocaleMapping> localeMappings =
-                Lists.transform(projectIterationLocalesClient.getLocales(),
-                        input -> input == null ? null : new LocaleMapping(
-                                input.getLocaleId().getId(),
-                                input.getAlias()));
-        localeList.addAll(localeMappings);
-        return localeList;
+            ConfigurableProjectOptions projectOpts) {
+        return ServerRestClient.fetchLocales(projectOpts.getUrl(),
+                projectOpts.getUsername(), projectOpts.getKey(),
+                projectOpts.getProj(), projectOpts.getProjectVersion());
     }
 
     /**
@@ -440,44 +406,4 @@ public class OptionsUtil {
         return temp;
     }
 
-    /**
-     * Creates rest client factory that will perform an eager REST version check.
-     */
-    public static <O extends ConfigurableOptions> RestClientFactory
-            createClientFactory(
-                    O opts) {
-        checkMandatoryOptsForRequestFactory(opts);
-        try {
-            RestClientFactory restClientFactory =
-                    new RestClientFactory(opts.getUrl().toURI(),
-                            opts.getUsername(), opts.getKey(),
-                            VersionUtility.getAPIVersionInfo(),
-                            opts.getLogHttp(),
-                            opts.isDisableSSLCert());
-            restClientFactory.performVersionCheck();
-            return restClientFactory;
-        } catch (URISyntaxException e) {
-            throw new ConfigException(e);
-        }
-    }
-
-    /**
-     * Creates rest client factory that will NOT perform an eager REST version
-     * check. You can call
-     * org.zanata.rest.client.RestClientFactory#performVersionCheck()
-     * afterwards.
-     */
-    public static <O extends ConfigurableOptions> RestClientFactory
-            createClientFactoryWithoutVersionCheck(
-                    O opts) {
-        checkMandatoryOptsForRequestFactory(opts);
-        try {
-            return new RestClientFactory(opts.getUrl().toURI(),
-                    opts.getUsername(), opts.getKey(),
-                    VersionUtility.getAPIVersionInfo(), opts.getLogHttp(),
-                    opts.isDisableSSLCert());
-        } catch (URISyntaxException e) {
-            throw new ConfigException(e);
-        }
-    }
 }

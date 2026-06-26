@@ -30,7 +30,6 @@ import org.apache.commons.exec.ShutdownHookProcessDestroyer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.config.CommandHook;
-import org.zanata.rest.client.RestClientFactory;
 
 /**
  * Base class for commands which supports configuration by the user's verbaria.ini
@@ -41,22 +40,14 @@ import org.zanata.rest.client.RestClientFactory;
 public abstract class ConfigurableCommand<O extends ConfigurableOptions>
         implements ZanataCommand {
     private final O opts;
-    private RestClientFactory clientFactory;
     private boolean deprecated;
     private String deprecationMessage;
 
     private static final Logger log = LoggerFactory
             .getLogger(ConfigurableCommand.class);
 
-    public ConfigurableCommand(O opts, RestClientFactory clientFactory) {
-        this.opts = opts;
-        this.clientFactory =
-                clientFactory == null ? OptionsUtil.createClientFactory(opts)
-                        : clientFactory;
-    }
-
     public ConfigurableCommand(O opts) {
-        this(opts, null);
+        this.opts = opts;
     }
 
     // see ConsoleInteractorImpl
@@ -74,14 +65,6 @@ public abstract class ConfigurableCommand<O extends ConfigurableOptions>
 
     public O getOpts() {
         return opts;
-    }
-
-    public RestClientFactory getClientFactory() {
-        return clientFactory;
-    }
-
-    protected final void setClientFactory(RestClientFactory clientFactory) {
-        this.clientFactory = clientFactory;
     }
 
     @Override
