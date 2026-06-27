@@ -1,12 +1,8 @@
 package org.zanata.client.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
-import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
-import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders.allHolders;
 import static org.zanata.client.commands.Messages.get;
 
 import java.io.File;
@@ -24,10 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.zanata.client.InMemoryFs;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.config.ZanataConfig;
@@ -39,8 +33,6 @@ public class OptionsUtilTest {
     public InMemoryFs tempFolder = new InMemoryFs();
     private ConfigurableProjectOptions opts;
     private ZanataConfig config;
-    @Mock
-    private ConsoleInteractor console;
 
     @BeforeEach
     public void setUp() {
@@ -142,38 +134,6 @@ public class OptionsUtilTest {
         OptionsUtil.applyUserConfig(opts, config);
 
         verifyNoMoreInteractions(config);
-    }
-
-    @Test
-    public void willWarnUserIfRuleSeemsWrong() {
-        opts.setInteractiveMode(false);
-        String rule = "{foo}/{bar}/{locale}";
-        opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(rule)));
-        OptionsUtil.checkPotentialMistakesInRules(opts, console);
-
-        verify(console).printfln(Warning, get("unrecognized.variables"),
-                allHolders(), rule);
-    }
-
-    @Test
-    public void willAskUserToConfirmIfRuleSeemsWrongAndInInteractiveMode() {
-        opts.setInteractiveMode(true);
-        String rule = "{foo}/{bar}/{locale}";
-        opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(rule)));
-        OptionsUtil.checkPotentialMistakesInRules(opts, console);
-
-        verify(console).printfln(Warning, get("unrecognized.variables"),
-                allHolders(), rule);
-        verify(console).printfln(Question, get("confirm.rule"));
-    }
-
-    @Test
-    public void willThrowExceptionIfRuleIsInvalid() {
-        String rule = "{filename}/{path}";
-        opts.setFileMappingRules(Lists.newArrayList(new FileMappingRule(rule)));
-
-        assertThrows(IllegalStateException.class, () ->
-                OptionsUtil.checkPotentialMistakesInRules(opts, console));
     }
 
     @Test

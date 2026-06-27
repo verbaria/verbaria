@@ -18,20 +18,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zanata.client.config.ConfigUtil;
-import org.zanata.client.config.FileMappingRule;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.client.config.ZanataConfig;
 import org.zanata.client.exceptions.ConfigException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Question;
 import static org.zanata.client.commands.ConsoleInteractor.DisplayMode.Warning;
-import static org.zanata.client.commands.FileMappingRuleHandler.*;
-import static org.zanata.client.commands.FileMappingRuleHandler.Placeholders.allHolders;
 import static org.zanata.client.commands.Messages.get;
 import java.io.InputStream;
 
@@ -141,8 +136,6 @@ public class OptionsUtil {
         if (opts.getCommandHooks().isEmpty() && config.getHooks() != null) {
             opts.setCommandHooks(config.getHooks());
         }
-        opts.setFileMappingRules(config.getRules());
-        checkPotentialMistakesInRules(opts, new ConsoleInteractorImpl(opts));
     }
 
     private static void applyBasicConfig(ConfigurableOptions opts,
@@ -151,45 +144,6 @@ public class OptionsUtil {
             opts.setUrl(config.getUrl());
         }
     }
-
-    /**
-     * Will check potential mistakes in file mapping rules. Missing locale in
-     * the rule is considered invalid. Extra "{" and/or "}" will incur warnings
-     * (user may have mis-spelt the placeholder)
-     *
-     * @param opts
-     * @param console
-     */
-    @VisibleForTesting
-    protected static void checkPotentialMistakesInRules(
-            ConfigurableProjectOptions opts, ConsoleInteractor console) {
-        boolean potentialProblem = false;
-        boolean invalid = false;
-        for (FileMappingRule mappingRule : opts.getFileMappingRules()) {
-            String rule = mappingRule.getRule();
-            if (!isRuleValid(rule)) {
-                console.printfln(Warning, get("invalid.rule"), rule);
-                invalid = true;
-            }
-            if (ruleMayHaveProblem(rule)) {
-                console.printfln(Warning, get("unrecognized.variables"),
-                        allHolders(), rule);
-                potentialProblem = true;
-            }
-        }
-        Preconditions.checkState(!invalid);
-        if (potentialProblem && opts.isInteractiveMode()) {
-            console.printfln(Question, get("confirm.rule"));
-            console.expectYes();
-        }
-    }
-
-    private static boolean ruleMayHaveProblem(String rule) {
-        String remains = stripValidHolders(rule);
-        return remains.contains("{") || remains.contains("}");
-
-    }
-
 
     /**
      * Note: command line options take precedence over pom.xml which
@@ -341,14 +295,6 @@ public class OptionsUtil {
         if (opts.isDisableSSLCert()) {
             log.warn("SSL certificate verification will be disabled. You should consider adding the certificate instead of disabling it.");
         }
-    }
-
-    public static String stripValidHolders(String rule) {
-        String temp = rule;
-        for (Placeholders placeholder : Placeholders.values()) {
-            temp = temp.replace(placeholder.holder(), "");
-        }
-        return temp;
     }
 
 }

@@ -15,8 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.google.common.collect.Lists;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ZanataConfigTest {
@@ -93,21 +91,6 @@ public class ZanataConfigTest {
         assertThat(config.getString("zanata.username")).isEqualTo("admin");
         assertThat(config.getBoolean("zanata.debug")).isFalse();
         assertThat(config.getBoolean("zanata.errors")).isTrue();
-    }
-
-    @Test
-    public void canReadAndWriteRules() throws Exception {
-        ZanataConfig zanataConfig = new ZanataConfig();
-        zanataConfig.setRules(Lists.newArrayList(new FileMappingRule("*.odt",
-                "{filename}_{locale}.{extension}")));
-        mapper.writeValue(zanataProjectJson, zanataConfig);
-
-        ZanataConfig config =
-                mapper.readValue(zanataProjectJson, ZanataConfig.class);
-        assertThat(config.getRules()).hasSize(1);
-        FileMappingRule rule = config.getRules().get(0);
-        assertThat(rule.getPattern()).isEqualTo("*.odt");
-        assertThat(rule.getRule()).isEqualTo("{filename}_{locale}.{extension}");
     }
 
 }

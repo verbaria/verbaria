@@ -62,7 +62,6 @@ public class ZanataConfig implements Serializable {
     private List<CommandHook> hooks = new ArrayList<CommandHook>();
     private transient Splitter splitter = Splitter.on(",").omitEmptyStrings()
             .trimResults();
-    private List<FileMappingRule> rules = new ArrayList<FileMappingRule>();
 
     public ZanataConfig() {
     }
@@ -210,11 +209,4 @@ public class ZanataConfig implements Serializable {
         return ImmutableList.of();
     }
 
-    public List<FileMappingRule> getRules() {
-        return rules;
-    }
-
-    public void setRules(List<FileMappingRule> rules) {
-        this.rules = rules;
-    }
 }
