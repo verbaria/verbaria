@@ -30,7 +30,6 @@ import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.rest.dto.LocaleDetails;
 import org.zanata.rest.dto.VersionInfo;
-import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
@@ -52,7 +51,6 @@ public class ZanataCliBridgeController {
     private final PushArchiveService pushArchiveService;
     private final PullArchiveService pullArchiveService;
     private final LockService lockService;
-    private final DocumentLayoutRegistry layoutRegistry;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -64,8 +62,7 @@ public class ZanataCliBridgeController {
                                      PushPlanService pushPlanService,
                                      PushArchiveService pushArchiveService,
                                      PullArchiveService pullArchiveService,
-                                     LockService lockService,
-                                     DocumentLayoutRegistry layoutRegistry) {
+                                     LockService lockService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.localeRepository = localeRepository;
@@ -74,7 +71,6 @@ public class ZanataCliBridgeController {
         this.pushArchiveService = pushArchiveService;
         this.pullArchiveService = pullArchiveService;
         this.lockService = lockService;
-        this.layoutRegistry = layoutRegistry;
     }
 
     @GetMapping("/version")
@@ -106,19 +102,6 @@ public class ZanataCliBridgeController {
         config.put("projectVersion", iter);
         if (pt != null) {
             config.put("projectType", pt.toString().toLowerCase());
-        }
-        ProjectType resolved;
-        try {
-            resolved = resolveType(null, slug);
-        } catch (IllegalArgumentException e) {
-            resolved = pt;
-        }
-        ProjectType scanType = resolved;
-        if (scanType != null) {
-            layoutRegistry.forType(scanType).ifPresent(layout -> {
-                config.put("fileExtension", layout.fileExtension());
-                config.put("includes", layout.scanPatterns());
-            });
         }
         return ResponseEntity.ok(config);
     }

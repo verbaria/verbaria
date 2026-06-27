@@ -156,7 +156,7 @@ class ChromePushPullIT extends AbstractPushPullIT {
     }
 
     @Test
-    void pushScansUsingServerSuppliedRulesWhenIncludesOmitted()
+    void pushWithoutIncludesScansAllAndServerClassifiesByPath()
             throws Exception {
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en");

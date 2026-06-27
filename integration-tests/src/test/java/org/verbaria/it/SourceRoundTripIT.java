@@ -146,7 +146,7 @@ class SourceRoundTripIT extends AbstractPushPullIT {
         Files.delete(sub);
         assertThat(Files.exists(sub)).isFalse();
 
-        new PullCommand(pullOpts("source", "consulo", "itconsulo")).run();
+        consuloPullSource("itconsulo");
 
         assertThat(Files.exists(sub)).as("sub-file recreated with same extension").isTrue();
         assertThat(Files.readString(sub)).isEqualTo("<b>Hi</b>");
@@ -167,7 +167,7 @@ class SourceRoundTripIT extends AbstractPushPullIT {
                 "greeting:\n    text: Hello\nbye:\n    text: Goodbye\n");
 
         new PushCommand(pushOpts("source", "consulo", "itrepush")).run();
-        new PullCommand(pullOpts("source", "consulo", "itrepush")).run();
+        consuloPullSource("itrepush");
 
         Map<String, String> dbBefore = dbSnapshot("messages");
         assertThat(dbBefore).hasSize(3);
@@ -181,11 +181,17 @@ class SourceRoundTripIT extends AbstractPushPullIT {
                         + "state, author or timestamps")
                 .isEqualTo(dbBefore);
 
-        new PullCommand(pullOpts("source", "consulo", "itrepush")).run();
+        consuloPullSource("itrepush");
         assertThat(Files.readString(yaml))
                 .as("a second push of unchanged source must not change the "
                         + "pulled files")
                 .isEqualTo(fileBefore);
+    }
+
+    private void consuloPullSource(String proj) throws Exception {
+        var pull = pullOpts("source", "consulo", proj);
+        pull.setTransDir(tmp.resolve("LOCALIZE-LIB"));
+        new PullCommand(pull).run();
     }
 
     private Map<String, String> dbSnapshot(String docId) {
@@ -247,7 +253,7 @@ class SourceRoundTripIT extends AbstractPushPullIT {
 
         Files.writeString(yaml, "icu.key:\n    text: 'placeholder'\n");
 
-        new PullCommand(pullOpts("source", "consulo", "itconsuloicu")).run();
+        consuloPullSource("itconsuloicu");
 
         String raw = Files.readString(yaml);
         assertThat(raw)
@@ -328,7 +334,7 @@ class SourceRoundTripIT extends AbstractPushPullIT {
                     text: 'placeholder'
                 """);
 
-        new PullCommand(pullOpts("source", "consulo", proj)).run();
+        consuloPullSource(proj);
 
         Object root;
         try (var in = Files.newInputStream(yaml)) {

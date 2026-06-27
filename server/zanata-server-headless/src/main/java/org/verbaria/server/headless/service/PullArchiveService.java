@@ -3,6 +3,7 @@ package org.verbaria.server.headless.service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -57,11 +58,10 @@ public class PullArchiveService {
         boolean wantTrans = !"source".equalsIgnoreCase(pullType);
 
         List<HProject> projects = matchingProjects(projectSlug);
-        boolean glob = projects.size() > 1 || projectSlug.indexOf('*') >= 0;
+        Set<String> written = new HashSet<>();
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(buf)) {
             for (HProject project : projects) {
-                String prefix = glob ? project.getSlug() + "/" : "";
                 List<HLocale> targets = wantTrans
                         ? targetLocales(project, requestedLocales) : List.of();
                 String projectSource = project.getEffectiveDefaultSourceLocale() == null
@@ -75,7 +75,9 @@ public class PullArchiveService {
                     if (wantSource) {
                         for (var f : layout.writeSourceFiles(source, docSourceId)
                                 .entrySet()) {
-                            add(zip, prefix + f.getKey(), f.getValue());
+                            if (written.add(f.getKey())) {
+                                add(zip, f.getKey(), f.getValue());
+                            }
                         }
                     }
                     if (wantTrans) {
@@ -88,7 +90,9 @@ public class PullArchiveService {
                                     .toTranslations(d, loc.getLocaleId());
                             for (var f : layout.writeTranslationFiles(source,
                                     trans, localeId).entrySet()) {
-                                add(zip, prefix + f.getKey(), f.getValue());
+                                if (written.add(f.getKey())) {
+                                    add(zip, f.getKey(), f.getValue());
+                                }
                             }
                         }
                     }

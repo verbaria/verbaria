@@ -182,6 +182,63 @@ class MultiProjectLockIT extends AbstractPushPullIT {
         assertThat(targets.get(0).getContents()).containsExactly(greetingRu);
     }
 
+    @Test
+    void globConsuloPullIsFlatWithoutProjectSubdir() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("ru");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("consflata", VERSION);
+        fixtures.setProjectType("consflata", ProjectType.Consulo);
+        fixtures.ensureProject("consflatb", VERSION);
+        fixtures.setProjectType("consflatb", ProjectType.Consulo);
+
+        pushConsulo("consflata", "a.Localize", "Hello A", "\u041f\u0440\u0438\u0432\u0435\u0442 A");
+        pushConsulo("consflatb", "b.Localize", "Hello B", "\u041f\u0440\u0438\u0432\u0435\u0442 B");
+
+        Path repo = jimfs.getPath("/consflatout");
+        Path lib = repo.resolve("src/main/resources/LOCALIZE-LIB");
+        Files.createDirectories(lib);
+        PullOptionsImpl pull = pullOpts("trans", "consulo", "consflat**");
+        pull.setSrcDir(lib);
+        pull.setTransDir(lib);
+        pull.setProjectConfig(repo.resolve("verbaria.json"));
+        LocaleList ru = new LocaleList();
+        ru.add(new LocaleMapping("ru"));
+        pull.setLocaleMapList(ru);
+        new PullCommand(pull).run();
+
+        assertThat(Files.exists(lib.resolve("ru/a.Localize.yaml")))
+                .as("consulo glob pull is flat: doc A under LOCALIZE-LIB/ru")
+                .isTrue();
+        assertThat(Files.exists(lib.resolve("ru/b.Localize.yaml")))
+                .isTrue();
+        assertThat(Files.exists(lib.resolve("consflata")))
+                .as("no per-project subdirectory for consulo glob pull")
+                .isFalse();
+        assertThat(Files.exists(lib.resolve("consflatb"))).isFalse();
+    }
+
+    private void pushConsulo(String proj, String doc, String en, String ru)
+            throws Exception {
+        Path base = tmp.resolve(proj);
+        Path enDir = base.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(enDir);
+        Files.writeString(enDir.resolve(doc + ".yaml"),
+                "greeting:\n    text: '" + en + "'\n", StandardCharsets.UTF_8);
+        Path ruDir = base.resolve("LOCALIZE-LIB/ru");
+        Files.createDirectories(ruDir);
+        Files.writeString(ruDir.resolve(doc + ".yaml"),
+                "greeting:\n    text: '" + ru + "'\n", StandardCharsets.UTF_8);
+        PushOptionsImpl push = pushOpts("both", "consulo", proj);
+        push.setSrcDir(base);
+        push.setTransDir(base);
+        LocaleList locales = new LocaleList();
+        locales.add(new LocaleMapping("ru"));
+        push.setLocaleMapList(locales);
+        new PushCommand(push).run();
+    }
+
     private void pushOneProject(String proj) throws Exception {
         PushOptionsImpl push = pushOpts("both", "properties", proj);
         push.setLocaleMapList(frLocales());

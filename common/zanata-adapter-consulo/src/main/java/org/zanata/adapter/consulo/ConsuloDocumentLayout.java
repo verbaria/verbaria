@@ -71,7 +71,7 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
 
     @Override
     public String outputPath(String docId, String localeId) {
-        return LIB + localeId.replace('-', '_') + "/" + docId + ".yaml";
+        return localeId.replace('-', '_') + "/" + docId + ".yaml";
     }
 
     @Override
@@ -119,7 +119,7 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
             String sourceLocaleId) throws IOException {
         Map<String, byte[]> out = new LinkedHashMap<>();
         Map<String, ConsuloWriter.Entry> yamlEntries = new LinkedHashMap<>();
-        String base = LIB + sourceLocaleId.replace('-', '_') + "/"
+        String base = sourceLocaleId.replace('-', '_') + "/"
                 + source.getName();
         for (TextFlow tf : source.getTextFlows()) {
             if (tf.getContents() == null || tf.getContents().isEmpty()) {

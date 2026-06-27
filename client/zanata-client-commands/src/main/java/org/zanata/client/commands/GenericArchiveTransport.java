@@ -32,7 +32,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.commands.push.PushOptions;
@@ -50,8 +49,7 @@ public class GenericArchiveTransport {
 
     public void push(PushOptions opts) throws IOException {
         Path srcDir = opts.getSrcDir();
-        List<String> includes = resolveIncludes(opts);
-        List<String> paths = collect(srcDir, includes,
+        List<String> paths = collect(srcDir, opts.getIncludes(),
                 opts.getExcludes(), opts.getCaseSensitive());
         log.info("Scanning {} - found {} candidate file(s)",
                 srcDir == null ? null : srcDir.toAbsolutePath().normalize(),
@@ -118,32 +116,6 @@ public class GenericArchiveTransport {
                 transDir == null ? null : transDir.toAbsolutePath().normalize());
     }
 
-    private List<String> resolveIncludes(PushOptions opts) {
-        List<String> own = opts.getIncludes();
-        if (own != null && !own.isEmpty()) {
-            return own;
-        }
-        return serverIncludes(opts);
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String> serverIncludes(PushOptions opts) {
-        String proj = opts.getProj();
-        if (proj == null || proj.indexOf('*') >= 0 || proj.indexOf('?') >= 0) {
-            return List.of();
-        }
-        String url = base(opts) + "rest/projects/p/" + proj
-                + "/iterations/i/" + opts.getProjectVersion() + "/config";
-        try {
-            Map<String, Object> cfg = rest.exchange(url, HttpMethod.GET,
-                    new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
-                    Map.class).getBody();
-            Object inc = cfg == null ? null : cfg.get("includes");
-            return inc instanceof List ? (List<String>) inc : List.of();
-        } catch (RestClientException e) {
-            return List.of();
-        }
-    }
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> requestPlan(PushOptions opts,
