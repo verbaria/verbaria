@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -125,11 +126,5 @@ class ChromePushArchiveIT extends AbstractPushPullIT {
             }
         }
         return out.toByteArray();
-    }
-
-    private interface Map {
-        static java.util.Map.Entry<String, String> entry(String k, String v) {
-            return java.util.Map.entry(k, v);
-        }
     }
 }

@@ -23,22 +23,21 @@ import java.nio.file.Files;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.ZanataCommand;
-import org.zanata.client.lock.LockChangelog;
-import org.zanata.client.lock.VerbariaLock;
-import org.zanata.client.lock.VerbariaLockReaderWriter;
 
-/**
- * Offline command: diffs two {@code verbaria-lock.json} files and writes the change
- * set (git commit message, or Markdown changelog) to stdout or a file. Needs no
- * server connection. An empty diff produces empty output, so the scheduled-sync
- * workflow can gate the commit/PR on a non-empty result.
- */
 public class ChangelogCommand implements ZanataCommand {
     private static final Logger log =
             LoggerFactory.getLogger(ChangelogCommand.class);
 
     private final ChangelogOptions opts;
+    private final RestTemplate rest = new RestTemplate();
 
     public ChangelogCommand(ChangelogOptions opts) {
         this.opts = opts;
@@ -46,19 +45,41 @@ public class ChangelogCommand implements ZanataCommand {
 
     @Override
     public void runWithActions() throws Exception {
-        VerbariaLock oldLock =
-                VerbariaLockReaderWriter.readOrEmpty(opts.getOldLock());
         File newFile = opts.getNewLock();
         if (newFile == null || !newFile.isFile()) {
             throw new RuntimeException("New lock file not found: " + newFile);
         }
-        VerbariaLock newLock = VerbariaLockReaderWriter.readOrNull(newFile);
+        if (opts.getUrl() == null) {
+            throw new RuntimeException("Server URL is required (--url)");
+        }
 
-        LockChangelog.Format format =
-                LockChangelog.Format.parse(opts.getFormat());
-        String output = LockChangelog.between(oldLock, newLock)
-                .excludeAuthors(opts.getExcludeAuthors())
-                .render(format);
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("new", filePart(newFile, "new.json"));
+        File oldFile = opts.getOldLock();
+        if (oldFile != null && oldFile.isFile()) {
+            parts.add("old", filePart(oldFile, "old.json"));
+        }
+        if (opts.getFormat() != null) {
+            parts.add("format", opts.getFormat());
+        }
+        if (opts.getExcludeAuthors() != null) {
+            for (String who : opts.getExcludeAuthors()) {
+                parts.add("excludeAuthors", who);
+            }
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Auth-User",
+                opts.getUsername() == null ? "" : opts.getUsername());
+        headers.set("X-Auth-Token",
+                opts.getKey() == null ? "" : opts.getKey());
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        String output = rest.postForObject(base() + "rest/changelog",
+                new HttpEntity<>(parts, headers), String.class);
+        if (output == null) {
+            output = "";
+        }
 
         File outFile = opts.getOutput();
         if (outFile != null) {
@@ -73,6 +94,22 @@ public class ChangelogCommand implements ZanataCommand {
             }
             out.flush();
         }
+    }
+
+    private static ByteArrayResource filePart(File file, String name)
+            throws Exception {
+        byte[] bytes = Files.readAllBytes(file.toPath());
+        return new ByteArrayResource(bytes) {
+            @Override
+            public String getFilename() {
+                return name;
+            }
+        };
+    }
+
+    private String base() {
+        String url = opts.getUrl().toString();
+        return url.endsWith("/") ? url : url + "/";
     }
 
     @Override

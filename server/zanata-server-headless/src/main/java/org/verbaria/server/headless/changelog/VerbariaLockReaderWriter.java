@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see the FSF site: http://www.fsf.org.
  */
-package org.zanata.client.lock;
+package org.verbaria.server.headless.changelog;
 
 import java.io.File;
 import java.io.IOException;
@@ -75,6 +75,13 @@ public final class VerbariaLockReaderWriter {
     public static VerbariaLock readOrEmpty(File file) {
         VerbariaLock lock = readOrNull(file);
         return lock == null ? new VerbariaLock() : lock;
+    }
+
+    public static VerbariaLock parse(byte[] content) throws IOException {
+        if (content == null || content.length == 0) {
+            return null;
+        }
+        return MAPPER.readValue(content, VerbariaLock.class);
     }
 
     /**

@@ -19,9 +19,9 @@ package org.zanata.client.commands.changelog;
 import java.io.File;
 import java.util.List;
 
-import org.zanata.client.commands.BasicOptions;
+import org.zanata.client.commands.ConfigurableOptions;
 
-public interface ChangelogOptions extends BasicOptions {
+public interface ChangelogOptions extends ConfigurableOptions {
     File getOldLock();
 
     File getNewLock();

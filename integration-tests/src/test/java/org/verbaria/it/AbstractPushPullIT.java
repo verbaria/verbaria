@@ -26,8 +26,8 @@ import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
-import org.zanata.client.lock.VerbariaLock;
-import org.zanata.client.lock.VerbariaLockReaderWriter;
+import org.verbaria.server.headless.changelog.VerbariaLock;
+import org.verbaria.server.headless.changelog.VerbariaLockReaderWriter;
 
 import org.verbaria.server.headless.service.OfflineExportService;
 import org.verbaria.server.headless.service.TranslationEditService;

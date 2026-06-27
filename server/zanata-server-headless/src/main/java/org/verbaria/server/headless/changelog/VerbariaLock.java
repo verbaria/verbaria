@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see the FSF site: http://www.fsf.org.
  */
-package org.zanata.client.lock;
+package org.verbaria.server.headless.changelog;
 
 import java.util.List;
 import java.util.Map;

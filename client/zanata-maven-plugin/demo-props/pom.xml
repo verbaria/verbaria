@@ -21,7 +21,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>6.0.3</version>
+        <version>6.0.4</version>
         <configuration>
           <projectType>properties</projectType>
           <srcDir>${zanata.srcDir}</srcDir>

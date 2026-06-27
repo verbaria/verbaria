@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see the FSF site: http://www.fsf.org.
  */
-package org.zanata.client.lock;
+package org.verbaria.server.headless.changelog;
 
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -25,7 +25,7 @@ import com.google.common.jimfs.Jimfs;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.zanata.client.lock.VerbariaLock.SourceLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.SourceLock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -22,7 +22,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>6.0.3</version>
+        <version>6.0.4</version>
         <configuration>
           <srcDir>${zanata.srcDir}</srcDir>
           <transDir>${zanata.transDir}</transDir>

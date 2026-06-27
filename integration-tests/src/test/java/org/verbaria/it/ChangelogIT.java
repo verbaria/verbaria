@@ -2,19 +2,97 @@ package org.verbaria.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
+import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import org.zanata.client.commands.changelog.ChangelogCommand;
+import org.zanata.client.commands.changelog.ChangelogOptionsImpl;
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
-import org.zanata.client.lock.LockChangelog;
-import org.zanata.client.lock.VerbariaLock;
-import org.zanata.client.lock.VerbariaLockReaderWriter;
+import org.verbaria.server.headless.changelog.LockChangelog;
+import org.verbaria.server.headless.changelog.VerbariaLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.TranslationLock;
+import org.verbaria.server.headless.changelog.VerbariaLockReaderWriter;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 
 class ChangelogIT extends AbstractPushPullIT {
+
+    private VerbariaLock sampleLock(String sig, String generatedAt) {
+        VerbariaLock lock = new VerbariaLock();
+        lock.setProject("itclend");
+        lock.setProjectVersion(VERSION);
+        lock.setSourceLocale("en-US");
+        lock.setGeneratedAt(generatedAt);
+        lock.document("messages").getTranslations().put("fr-FR",
+                new TranslationLock(sig, "Translated", 1,
+                        List.of("Alice <alice@x.org>")));
+        return lock;
+    }
+
+    private File runChangelog(File oldF, File newF, String format)
+            throws Exception {
+        File out = oldF.toPath().getParent().resolve("out-" + format + ".txt")
+                .toFile();
+        ChangelogOptionsImpl opts = new ChangelogOptionsImpl();
+        opts.setUrl(URI.create("http://localhost:" + port + "/").toURL());
+        opts.setUsername(USER);
+        opts.setKey(API_KEY);
+        opts.setOldLock(oldF);
+        opts.setNewLock(newF);
+        opts.setFormat(format);
+        opts.setOutput(out);
+        new ChangelogCommand(opts).runWithActions();
+        return out;
+    }
+
+    @Test
+    void changelogEndpointReturnsEmptyForGeneratedAtOnlyDiff() throws Exception {
+        fixtures.ensureAdmin(USER, API_KEY);
+        Path dir = Files.createTempDirectory("changelog-it");
+        File oldF = dir.resolve("verbaria-lock.old.json").toFile();
+        File newF = dir.resolve("verbaria-lock.json").toFile();
+        VerbariaLockReaderWriter.write(
+                sampleLock("S1", "2026-06-27T10:50:37.552376661Z"),
+                oldF.toPath());
+        VerbariaLockReaderWriter.write(
+                sampleLock("S1", "2026-06-27T11:09:44.303295402Z"),
+                newF.toPath());
+
+        File out = runChangelog(oldF, newF, "git-commit");
+        assertThat(out).exists();
+        assertThat(out.length())
+                .as("a generatedAt-only diff must produce an empty file so the "
+                        + "sync action opens no PR")
+                .isZero();
+    }
+
+    @Test
+    void changelogEndpointReportsRealTranslationChange() throws Exception {
+        fixtures.ensureAdmin(USER, API_KEY);
+        Path dir = Files.createTempDirectory("changelog-it");
+        File oldF = dir.resolve("verbaria-lock.old.json").toFile();
+        File newF = dir.resolve("verbaria-lock.json").toFile();
+        VerbariaLockReaderWriter.write(
+                sampleLock("S1", "2026-06-27T10:50:37.552376661Z"),
+                oldF.toPath());
+        VerbariaLockReaderWriter.write(
+                sampleLock("S2", "2026-06-27T11:09:44.303295402Z"),
+                newF.toPath());
+
+        File out = runChangelog(oldF, newF, "git-commit");
+        String body = Files.readString(out.toPath());
+        assertThat(body)
+                .as("a real signature change must produce a commit message")
+                .contains("messages")
+                .contains("fr-FR")
+                .contains("Co-authored-by: Alice <alice@x.org>");
+    }
 
     @Test
     void endToEndChangelogReportsTranslationEdit() throws Exception {

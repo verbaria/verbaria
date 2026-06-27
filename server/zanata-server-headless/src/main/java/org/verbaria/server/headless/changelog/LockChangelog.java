@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see the FSF site: http://www.fsf.org.
  */
-package org.zanata.client.lock;
+package org.verbaria.server.headless.changelog;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,9 +25,9 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.zanata.client.lock.VerbariaLock.DocumentLock;
-import org.zanata.client.lock.VerbariaLock.SourceLock;
-import org.zanata.client.lock.VerbariaLock.TranslationLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.DocumentLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.SourceLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.TranslationLock;
 
 /**
  * Diffs two {@link VerbariaLock}s and renders the change set describing

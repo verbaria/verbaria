@@ -121,21 +121,32 @@ jobs:
         id: changelog
         if: steps.check-pr.outputs.skip != 'true'
         shell: bash
+        env:
+          VERBARIA_KEY: ${{ secrets.VERBARIA_API_KEY }}
+          VERBARIA_USER: ${{ vars.VERBARIA_USERNAME }}
         run: |
           set -euo pipefail
           old="$RUNNER_TEMP/verbaria-lock.old.json"
-          # The changelog is the semantic "did anything change?" signal: it diffs
-          # the old/new locks by doc/locale/source content, IGNORING the volatile
+          # The server is the "did anything change?" authority: it diffs the
+          # old/new locks by doc/locale/source content, IGNORING the volatile
           # generatedAt timestamp. So when only the timestamp moved (the push
           # source step strips translations from the lock and the pull re-adds
           # them with a fresh timestamp), the changelog is empty -> no PR.
           changed=false
           if [ -f verbaria-lock.json ]; then
             # Don't credit the bot for source it merely pushed.
-            verbaria changelog --old "$old" --new verbaria-lock.json \
+            verbaria changelog \
+              --url "$SERVER_URL" \
+              --username "$VERBARIA_USER" \
+              --key "$VERBARIA_KEY" \
+              --old "$old" --new verbaria-lock.json \
               --format git-commit --output "$RUNNER_TEMP/commit-msg.txt" \
               --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
-            verbaria changelog --old "$old" --new verbaria-lock.json \
+            verbaria changelog \
+              --url "$SERVER_URL" \
+              --username "$VERBARIA_USER" \
+              --key "$VERBARIA_KEY" \
+              --old "$old" --new verbaria-lock.json \
               --format markdown --output "$RUNNER_TEMP/changelog.md" \
               --exclude-author "$BOT_EMAIL,$BOT_NAME" || true
             [ -s "$RUNNER_TEMP/commit-msg.txt" ] && changed=true

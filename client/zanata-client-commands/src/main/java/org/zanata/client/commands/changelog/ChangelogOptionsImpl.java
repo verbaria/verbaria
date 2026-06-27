@@ -21,15 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.kohsuke.args4j.Option;
-import org.zanata.client.commands.BasicOptionsImpl;
+import org.zanata.client.commands.ConfigurableOptionsImpl;
 import org.zanata.client.commands.ZanataCommand;
 
 /**
- * Options for the offline {@code changelog} command, which diffs two
- * {@code verbaria-lock.json} files and renders the change set as a git commit
+ * Options for the {@code changelog} command, which asks the server to diff two
+ * {@code verbaria-lock.json} files and render the change set as a git commit
  * message (default) or a Markdown changelog.
  */
-public class ChangelogOptionsImpl extends BasicOptionsImpl
+public class ChangelogOptionsImpl extends ConfigurableOptionsImpl
         implements ChangelogOptions {
 
     private File oldLock;

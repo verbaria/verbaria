@@ -14,14 +14,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this software; if not, see the FSF site: http://www.fsf.org.
  */
-package org.zanata.client.lock;
+package org.verbaria.server.headless.changelog;
 
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.zanata.client.lock.VerbariaLock.SourceLock;
-import org.zanata.client.lock.VerbariaLock.TranslationLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.SourceLock;
+import org.verbaria.server.headless.changelog.VerbariaLock.TranslationLock;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -179,6 +179,17 @@ public class LockChangelogTest {
         VerbariaLock lock = lock();
         lock.document("a").getTranslations().put("de", tl("X"));
         assertThat(LockChangelog.render(lock, lock), is(""));
+    }
+
+    @Test
+    public void generatedAtOnlyDiffProducesEmptyMessage() {
+        VerbariaLock before = lock();
+        before.setGeneratedAt("2026-06-27T10:50:37.552376661Z");
+        before.document("a").getTranslations().put("de", tl("X"));
+        VerbariaLock after = lock();
+        after.setGeneratedAt("2026-06-27T11:09:44.303295402Z");
+        after.document("a").getTranslations().put("de", tl("X"));
+        assertThat(LockChangelog.render(before, after), is(""));
     }
 
     @Test
