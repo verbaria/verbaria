@@ -21,7 +21,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>6.0.2</version>
+        <version>6.0.3</version>
         <configuration>
           <projectType>xliff</projectType>
           <srcDir>${zanata.srcDir}</srcDir>

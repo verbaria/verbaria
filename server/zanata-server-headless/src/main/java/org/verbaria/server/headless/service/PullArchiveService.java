@@ -18,6 +18,7 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.rest.dto.resource.Resource;
+import org.zanata.rest.dto.resource.TextFlowTarget;
 import org.zanata.rest.dto.resource.TranslationsResource;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.repository.DocumentRepository;
@@ -88,6 +89,9 @@ public class PullArchiveService {
                             }
                             TranslationsResource trans = exportService
                                     .toTranslations(d, loc.getLocaleId());
+                            if (!hasTranslations(trans)) {
+                                continue;
+                            }
                             for (var f : layout.writeTranslationFiles(source,
                                     trans, localeId).entrySet()) {
                                 if (written.add(f.getKey())) {
@@ -135,6 +139,22 @@ public class PullArchiveService {
         }
         return localeRepository.findAll().stream()
                 .filter(HLocale::isActive).toList();
+    }
+
+    private static boolean hasTranslations(TranslationsResource trans) {
+        if (trans == null || trans.getTextFlowTargets() == null) {
+            return false;
+        }
+        for (TextFlowTarget t : trans.getTextFlowTargets()) {
+            if (t.getContents() != null && !t.getContents().isEmpty()) {
+                for (String c : t.getContents()) {
+                    if (c != null && !c.isEmpty()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean sameLocale(String a, String b) {

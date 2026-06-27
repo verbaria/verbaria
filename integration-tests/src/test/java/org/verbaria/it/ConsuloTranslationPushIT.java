@@ -7,7 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.zanata.client.commands.pull.PullCommand;
+import org.zanata.client.commands.pull.PullOptionsImpl;
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.LocaleList;
@@ -141,5 +145,38 @@ class ConsuloTranslationPushIT extends AbstractPushPullIT {
                 .as("a zh_TW locale config must push to the zh-TW server locale")
                 .hasSize(1);
         assertThat(targets.get(0).getContents()).containsExactly(GREETING_ZH);
+    }
+
+    @Test
+    void pullTransSkipsLocalesWithNoTranslations() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("ru");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("itconsuloempty", VERSION);
+
+        Path libEn = tmp.resolve("LOCALIZE-LIB/en_US");
+        Files.createDirectories(libEn);
+        Files.writeString(libEn.resolve("messages.yaml"),
+                "greeting:\n    text: 'Hello'\n", StandardCharsets.UTF_8);
+
+        new PushCommand(pushOpts("source", "consulo", "itconsuloempty")).run();
+
+        Path out = tmp.resolve("pulled");
+        Files.createDirectories(out);
+        PullOptionsImpl pull = pullOpts("trans", "consulo", "itconsuloempty");
+        pull.setTransDir(out);
+        LocaleList locales = new LocaleList();
+        locales.add(new LocaleMapping("ru"));
+        pull.setLocaleMapList(locales);
+        new PullCommand(pull).run();
+
+        try (Stream<Path> walk = Files.walk(out)) {
+            assertThat(walk.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".yaml")).toList())
+                    .as("no empty translation yaml must be written for a locale "
+                            + "that has no translations")
+                    .isEmpty();
+        }
     }
 }
