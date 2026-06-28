@@ -19,8 +19,12 @@ import java.util.zip.ZipOutputStream;
 
 import java.net.URLEncoder;
 
+import java.io.PrintStream;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import org.jline.jansi.Ansi;
+import org.jline.jansi.AnsiConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
@@ -36,6 +40,8 @@ import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.commands.push.PushOptions;
 import org.zanata.client.config.LocaleMapping;
+import org.zanata.rest.dto.PushStartResponse;
+import org.zanata.rest.dto.PushStatus;
 
 public class GenericArchiveTransport {
 
@@ -162,32 +168,92 @@ public class GenericArchiveTransport {
         });
         HttpHeaders headers = authHeaders(opts.getUsername(), opts.getKey());
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> resp = rest.postForObject(
+        PushStartResponse start = rest.postForObject(
                 base(opts) + "rest/push-archive",
-                new HttpEntity<>(parts, headers), Map.class);
-        Object imported = resp == null ? null : resp.get("imported");
-        if (imported instanceof List<?> list) {
-            for (Object o : list) {
-                if (o instanceof Map<?, ?> m) {
-                    log.info("  -> {} as locale '{}' [{}]", m.get("docId"),
-                            m.get("localeId"),
-                            Boolean.TRUE.equals(m.get("source"))
-                                    ? "source" : "translation");
-                }
-            }
-            log.info("Push succeeded: server imported {} entr{}.",
-                    list.size(), list.size() == 1 ? "y" : "ies");
-        } else {
-            log.info("Push succeeded.");
+                new HttpEntity<>(parts, headers), PushStartResponse.class);
+        if (start == null || start.sessionId() == null) {
+            throw new IOException("Server did not return a push session id");
         }
-        Object lock = resp == null ? null : resp.get("lock");
+        log.info("Server accepted the archive (session {}); processing...",
+                start.sessionId());
+        Map<String, Object> lock = pollUntilDone(opts, start.sessionId());
         if (lock != null) {
             Path lockFile = lockDir(opts.getProjectConfig(), srcDir)
                     .resolve("verbaria-lock.json");
             Files.write(lockFile, PRETTY.writeValueAsBytes(lock));
             log.info("Wrote {}", lockFile);
         }
+    }
+
+    private Map<String, Object> pollUntilDone(PushOptions opts, String sessionId)
+            throws IOException {
+        HttpEntity<Void> req = new HttpEntity<>(
+                authHeaders(opts.getUsername(), opts.getKey()));
+        String url = base(opts) + "rest/push-status/" + sessionId;
+        boolean live = opts.isInteractiveMode();
+        int lastProcessed = -1;
+        while (true) {
+            PushStatus st = rest.exchange(url, HttpMethod.GET, req,
+                    PushStatus.class).getBody();
+            if (st == null) {
+                throw new IOException("Empty push status response");
+            }
+            if (st.failed()) {
+                if (live) {
+                    System.err.println();
+                }
+                throw new IOException("Push failed: " + st.error());
+            }
+            if (st.done()) {
+                renderDone(live, st);
+                return st.lock();
+            }
+            if (st.processed() != lastProcessed) {
+                renderProgress(live, st);
+                lastProcessed = st.processed();
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while waiting for push", e);
+            }
+        }
+    }
+
+    private static void renderProgress(boolean live, PushStatus st) {
+        if (live) {
+            PrintStream out = AnsiConsole.out();
+            out.print(Ansi.ansi().cursorToColumn(1).eraseLine().a(bar(st)));
+            out.flush();
+        } else {
+            log.info("Processing... {}/{}", st.processed(), st.total());
+        }
+    }
+
+    private static void renderDone(boolean live, PushStatus st) {
+        int n = st.imported() == null ? st.processed() : st.imported().size();
+        if (live) {
+            PrintStream out = AnsiConsole.out();
+            out.print(Ansi.ansi().cursorToColumn(1).eraseLine().a(bar(st))
+                    .newline());
+            out.flush();
+        }
+        log.info("Push succeeded: server imported {} entr{}.", n,
+                n == 1 ? "y" : "ies");
+    }
+
+    private static String bar(PushStatus st) {
+        int total = Math.max(st.total(), st.processed());
+        int width = 24;
+        int filled = total == 0 ? width
+                : (int) Math.round((double) st.processed() / total * width);
+        StringBuilder b = new StringBuilder("Pushing [");
+        for (int i = 0; i < width; i++) {
+            b.append(i < filled ? '#' : '.');
+        }
+        return b.append("] ").append(st.processed()).append('/')
+                .append(total).toString();
     }
 
     private static Path lockDir(Path projectConfig, Path fallback) {

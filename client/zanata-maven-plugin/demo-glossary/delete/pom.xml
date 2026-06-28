@@ -16,7 +16,7 @@
       <plugin>
         <groupId>org.zanata</groupId>
         <artifactId>zanata-maven-plugin</artifactId>
-        <version>6.0.4</version>
+        <version>6.1.0</version>
         <configuration>
           <lang>zh</lang>
           <allGlossary>true</allGlossary>

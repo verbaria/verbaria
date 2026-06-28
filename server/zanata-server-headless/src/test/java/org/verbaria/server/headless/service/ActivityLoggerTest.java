@@ -22,6 +22,8 @@ import org.zanata.model.HAccount;
 import org.zanata.model.HPerson;
 import org.zanata.model.IsEntityWithType;
 import org.zanata.model.type.EntityType;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.verbaria.server.headless.event.ContentChangedEvent;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.ActivityRepository;
@@ -39,7 +41,11 @@ class ActivityLoggerTest {
     void setUp() {
         repository = mock(ActivityRepository.class);
         accountRepository = mock(AccountRepository.class);
-        logger = new ActivityLogger(repository, accountRepository);
+        PlatformTransactionManager txManager =
+                mock(PlatformTransactionManager.class);
+        when(txManager.getTransaction(any()))
+                .thenReturn(mock(TransactionStatus.class));
+        logger = new ActivityLogger(repository, accountRepository, txManager);
 
         actor = mock(HPerson.class);
         when(actor.getId()).thenReturn(7L);

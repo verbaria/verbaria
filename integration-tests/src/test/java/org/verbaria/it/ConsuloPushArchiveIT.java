@@ -13,7 +13,8 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.zanata.rest.dto.PushStartResponse;
+import org.zanata.rest.dto.PushStatus;
 import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
@@ -42,8 +43,8 @@ class ConsuloPushArchiveIT extends AbstractPushPullIT {
                 "LOCALIZE-LIB/en/messages.yaml", SOURCE_YAML,
                 "LOCALIZE-LIB/ru/messages.yaml", TRANS_RU_YAML);
 
-        JsonNode resp = postArchive("consulo", "itconsuloarch", VERSION, zip);
-        assertThat(resp.get("imported")).hasSize(2);
+        PushStatus resp = postArchive("consulo", "itconsuloarch", VERSION, zip);
+        assertThat(resp.imported()).hasSize(2);
 
         HDocument doc = documentRepository
                 .findByVersionAndDocId("itconsuloarch", VERSION, "messages")
@@ -56,7 +57,7 @@ class ConsuloPushArchiveIT extends AbstractPushPullIT {
         assertThat(targets.get(0).getContents()).containsExactly(GREETING_RU);
     }
 
-    private JsonNode postArchive(String projectType, String project,
+    private PushStatus postArchive(String projectType, String project,
             String version, byte[] zip) throws Exception {
         String boundary = "----it" + System.nanoTime();
         ByteArrayOutputStream full = new ByteArrayOutputStream();
@@ -80,8 +81,34 @@ class ConsuloPushArchiveIT extends AbstractPushPullIT {
         HttpResponse<String> resp = HttpClient.newHttpClient()
                 .send(req, HttpResponse.BodyHandlers.ofString());
         assertThat(resp.statusCode())
-                .as("push-archive response: %s", resp.body()).isEqualTo(200);
-        return json.readTree(resp.body());
+                .as("push-archive response: %s", resp.body()).isEqualTo(202);
+        PushStartResponse start =
+                json.readValue(resp.body(), PushStartResponse.class);
+        return awaitDone(start.sessionId());
+    }
+
+    private PushStatus awaitDone(String sessionId) throws Exception {
+        for (int i = 0; i < 200; i++) {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:" + port
+                            + "/rest/push-status/" + sessionId))
+                    .header("X-Auth-User", USER)
+                    .header("X-Auth-Token", API_KEY)
+                    .GET().build();
+            HttpResponse<String> resp = HttpClient.newHttpClient()
+                    .send(req, HttpResponse.BodyHandlers.ofString());
+            assertThat(resp.statusCode())
+                    .as("push-status response: %s", resp.body()).isEqualTo(200);
+            PushStatus st = json.readValue(resp.body(), PushStatus.class);
+            if (st.done()) {
+                return st;
+            }
+            if (st.failed()) {
+                throw new AssertionError("push failed: " + st.error());
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("push did not finish for session " + sessionId);
     }
 
     private static byte[] textPart(String boundary, String name, String value) {

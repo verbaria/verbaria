@@ -24,20 +24,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.verbaria.server.headless.service.*;
 import org.zanata.common.ProjectType;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.rest.dto.LocaleDetails;
+import org.zanata.rest.dto.PushStartResponse;
+import org.zanata.rest.dto.PushStatus;
 import org.zanata.rest.dto.VersionInfo;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
-import org.verbaria.server.headless.service.LockService;
-import org.verbaria.server.headless.service.PullArchiveService;
-import org.verbaria.server.headless.service.PushArchiveService;
-import org.verbaria.server.headless.service.PushPlanService;
 
 @RestController
 @RequestMapping("/rest")
@@ -48,9 +47,8 @@ public class ZanataCliBridgeController {
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
     private final PushPlanService pushPlanService;
-    private final PushArchiveService pushArchiveService;
+    private final PushSessionService pushSessionService;
     private final PullArchiveService pullArchiveService;
-    private final LockService lockService;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -60,17 +58,15 @@ public class ZanataCliBridgeController {
                                      LocaleRepository localeRepository,
                                      AccountRepository accountRepository,
                                      PushPlanService pushPlanService,
-                                     PushArchiveService pushArchiveService,
-                                     PullArchiveService pullArchiveService,
-                                     LockService lockService) {
+                                     PushSessionService pushSessionService,
+                                     PullArchiveService pullArchiveService) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
         this.pushPlanService = pushPlanService;
-        this.pushArchiveService = pushArchiveService;
+        this.pushSessionService = pushSessionService;
         this.pullArchiveService = pullArchiveService;
-        this.lockService = lockService;
     }
 
     @GetMapping("/version")
@@ -197,10 +193,10 @@ public class ZanataCliBridgeController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
         try (InputStream in = archive.getInputStream()) {
-            var imported = pushArchiveService.push(
-                    type, project, version, targetLocales, sourceLang, force, in, actor);
-            return ResponseEntity.ok(Map.of("imported", imported,
-                    "lock", lockService.buildLock(project, version, targetLocales, false)));
+            String sessionId = pushSessionService.start(type, project, version,
+                    targetLocales, sourceLang, force, in.readAllBytes(),
+                    actor.getUsername());
+            return ResponseEntity.accepted().body(new PushStartResponse(sessionId));
         } catch (IllegalArgumentException iae) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", iae.getMessage() == null ? iae.toString() : iae.getMessage()));
@@ -208,6 +204,18 @@ public class ZanataCliBridgeController {
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", ioe.getMessage() == null ? ioe.toString() : ioe.getMessage()));
         }
+    }
+
+    @GetMapping("/push-status/{sessionId}")
+    public ResponseEntity<?> pushStatus(@PathVariable("sessionId") String sessionId) {
+        if (currentUser() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        PushStatus status = pushSessionService.status(sessionId);
+        if (status == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(status);
     }
 
     @GetMapping(value = "/pull-archive")

@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.zanata</groupId>
     <artifactId>client</artifactId>
-    <version>6.0.4</version>
+    <version>6.1.0</version>
   </parent>
   <artifactId>zanata-client-commands</artifactId>
   <name>Zanata client commands</name>
@@ -143,9 +143,9 @@
       <artifactId>hamcrest-library</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.fusesource.jansi</groupId>
-      <artifactId>jansi</artifactId>
-      <version>1.11</version>
+      <groupId>org.jline</groupId>
+      <artifactId>jansi-core</artifactId>
+      <version>3.30.6</version>
     </dependency>
 
   </dependencies>

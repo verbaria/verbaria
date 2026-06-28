@@ -25,8 +25,8 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
-import org.fusesource.jansi.Ansi;
-import org.fusesource.jansi.AnsiConsole;
+import org.jline.jansi.Ansi;
+import org.jline.jansi.AnsiConsole;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
