@@ -3,7 +3,6 @@ package org.zanata.adapter.properties;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
-import org.zanata.common.ProjectType;
 
 @Component
 public final class Utf8PropertiesDocumentLayout
@@ -14,7 +13,7 @@ public final class Utf8PropertiesDocumentLayout
     }
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Utf8Properties);
+    public Set<String> supportedTypes() {
+        return Set.of("utf8properties");
     }
 }

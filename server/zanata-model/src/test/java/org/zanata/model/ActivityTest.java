@@ -22,7 +22,6 @@ package org.zanata.model;
 
 import org.junit.jupiter.api.Test;
 import org.zanata.common.ActivityType;
-import org.zanata.common.ProjectType;
 
 import java.lang.reflect.Field;
 import java.util.Date;
@@ -70,7 +69,7 @@ public class ActivityTest {
         versionA.setId(1234567890L);
         HProjectIteration versionB = new HProjectIteration();
         versionB.setId(5678901234L);
-        versionB.setProjectType(ProjectType.Utf8Properties);
+        versionB.setProjectType("utf8properties");
 
         Activity activity = new Activity(actorA, versionA, versionA,
                 ActivityType.UPLOAD_SOURCE_DOCUMENT, 9000);
@@ -125,7 +124,7 @@ public class ActivityTest {
         versionA.setId(1234567890L);
         HProjectIteration versionB = new HProjectIteration();
         versionB.setId(5678901234L);
-        versionB.setProjectType(ProjectType.Utf8Properties);
+        versionB.setProjectType("utf8properties");
 
         Activity activity = new Activity(actorA, versionA, versionA,
                 ActivityType.UPLOAD_SOURCE_DOCUMENT, 9000);

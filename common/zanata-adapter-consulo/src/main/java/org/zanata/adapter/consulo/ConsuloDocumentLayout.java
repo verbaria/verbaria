@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.zanata.rest.dto.resource.Resource;
@@ -30,8 +29,8 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     private static final String LIB = "LOCALIZE-LIB/";
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Consulo);
+    public Set<String> supportedTypes() {
+        return Set.of("consulo");
     }
 
     @Override

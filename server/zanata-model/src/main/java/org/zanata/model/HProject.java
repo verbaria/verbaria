@@ -29,24 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
-import jakarta.persistence.Access;
-import jakarta.persistence.AccessType;
-import jakarta.persistence.Cacheable;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapKeyColumn;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Transient;
+
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.google.common.collect.ImmutableSet;
@@ -57,7 +41,6 @@ import org.zanata.annotation.EntityRestrict;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
 import org.zanata.common.MessageEvaluateType;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.Project;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -112,8 +95,8 @@ public class HProject extends SlugEntityBase
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "project",
             orphanRemoval = true)
     private List<WebHook> webHooks = Lists.newArrayList();
-    @Enumerated(EnumType.STRING)
-    private ProjectType defaultProjectType;
+    @Column(name = "default_project_type")
+    private String defaultProjectType;
     @Enumerated(EnumType.STRING)
     @Column(name = "message_evaluate_type")
     private MessageEvaluateType messageEvaluateType;
@@ -298,7 +281,7 @@ public class HProject extends SlugEntityBase
         this.webHooks = webHooks;
     }
 
-    public void setDefaultProjectType(final ProjectType defaultProjectType) {
+    public void setDefaultProjectType(final String defaultProjectType) {
         this.defaultProjectType = defaultProjectType;
     }
 
@@ -373,7 +356,7 @@ public class HProject extends SlugEntityBase
 
     /** Project type resolved through the parent chain (first non-null wins). */
     @Transient
-    public ProjectType getEffectiveDefaultProjectType() {
+    public String getEffectiveDefaultProjectType() {
         int depth = 0;
         for (HProject p = this; p != null && depth < MAX_PARENT_DEPTH;
                 p = p.parentProject, depth++) {
@@ -473,7 +456,7 @@ public class HProject extends SlugEntityBase
     }
 
     @Nullable
-    public ProjectType getDefaultProjectType() {
+    public String getDefaultProjectType() {
         return this.defaultProjectType;
     }
 

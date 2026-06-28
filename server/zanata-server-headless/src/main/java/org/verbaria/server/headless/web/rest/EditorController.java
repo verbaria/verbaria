@@ -99,7 +99,7 @@ public class EditorController {
             out.put("description", p.getDescription() == null ? "" : p.getDescription());
             out.put("status", p.getStatus() == null ? "ACTIVE" : p.getStatus().name());
             out.put("defaultType", p.getDefaultProjectType() == null
-                    ? "Gettext" : p.getDefaultProjectType().name());
+                    ? "gettext" : p.getDefaultProjectType());
             return ResponseEntity.ok(out);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }

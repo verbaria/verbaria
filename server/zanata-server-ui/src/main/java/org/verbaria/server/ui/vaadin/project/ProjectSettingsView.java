@@ -37,7 +37,7 @@ import java.util.Set;
 
 import org.zanata.common.EntityStatus;
 import org.zanata.common.MessageEvaluateType;
-import org.zanata.common.ProjectType;
+import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
@@ -61,6 +61,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
     private final LocaleRepository localeRepository;
     private final BreadcrumbsService breadcrumbsService;
     private final ProjectHierarchyService hierarchyService;
+    private final DocumentLayoutRegistry layoutRegistry;
     /** The general-settings Save/Back row, placed at the very bottom of the page. */
     private HorizontalLayout settingsActionsRow;
     /**
@@ -78,12 +79,14 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
                                ProjectIterationRepository iterationRepository,
                                LocaleRepository localeRepository,
                                BreadcrumbsService breadcrumbsService,
-                               ProjectHierarchyService hierarchyService) {
+                               ProjectHierarchyService hierarchyService,
+                               DocumentLayoutRegistry layoutRegistry) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.localeRepository = localeRepository;
         this.breadcrumbsService = breadcrumbsService;
         this.hierarchyService = hierarchyService;
+        this.layoutRegistry = layoutRegistry;
         // The MainLayout content card is overflow:hidden, so the view must size
         // to the area and scroll its own (long) content.
         setSizeFull();
@@ -136,10 +139,10 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         TextArea description = new TextArea(getTranslation("projectCreate.description"));
         description.setMaxLength(255);
         description.setValue(project.getDescription() == null ? "" : project.getDescription());
-        ComboBox<ProjectType> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
-        defaultType.setItems(ProjectType.values());
+        ComboBox<String> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
+        defaultType.setItems(layoutRegistry.knownTypes());
         defaultType.setValue(project.getDefaultProjectType() == null
-                ? ProjectType.Gettext : project.getDefaultProjectType());
+                ? "gettext" : project.getDefaultProjectType());
         ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("projectCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY, EntityStatus.OBSOLETE);
         status.setValue(project.getStatus() == null ? EntityStatus.ACTIVE : project.getStatus());
@@ -271,7 +274,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
      * through a transactional service call to avoid touching detached entities.
      */
     private void applyParentState(HProject selectedParent, String slug,
-            String projectName, ComboBox<ProjectType> defaultType,
+            String projectName, ComboBox<String> defaultType,
             ComboBox<HLocale> sourceLocale,
             MultiSelectComboBox<HLocale> targetLocales, TextField sourceView,
             ComboBox<MessageEvaluateType> messageFormat,
@@ -331,7 +334,7 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
                 .setSortable(true).setAutoWidth(true).setFlexGrow(1);
         versionsGrid.addColumn(it -> it.getProjectType() == null
                         ? getTranslation("versionSettings.inherited")
-                        : it.getProjectType().toString())
+                        : it.getProjectType())
                 .setHeader(getTranslation("versionSettings.projectType"))
                 .setSortable(true).setAutoWidth(true);
         versionsGrid.addColumn(it -> it.getStatus() == null
@@ -372,8 +375,8 @@ public class ProjectSettingsView extends VerticalLayout implements BeforeEnterOb
         detail.setSpacing(true);
         detail.setWidthFull();
 
-        ComboBox<ProjectType> typeBox = new ComboBox<>(getTranslation("versionSettings.projectType"));
-        typeBox.setItems(ProjectType.values());
+        ComboBox<String> typeBox = new ComboBox<>(getTranslation("versionSettings.projectType"));
+        typeBox.setItems(layoutRegistry.knownTypes());
         typeBox.setValue(iter.getProjectType());
         typeBox.setClearButtonVisible(true);
         typeBox.setHelperText(getTranslation("versionSettings.projectTypeHint"));

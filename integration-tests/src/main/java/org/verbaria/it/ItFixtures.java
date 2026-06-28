@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HAccount;
 import org.zanata.model.HAccountRole;
 import org.zanata.model.HLocale;
@@ -104,7 +103,7 @@ public class ItFixtures {
             p.setSlug(slug);
             p.setName(slug);
             p.setStatus(EntityStatus.ACTIVE);
-            p.setDefaultProjectType(ProjectType.File);
+            p.setDefaultProjectType("file");
             return projectRepository.save(p);
         });
         if (iterationRepository.findByProjectAndSlug(slug, version).isEmpty()) {
@@ -112,7 +111,7 @@ public class ItFixtures {
             iter.setSlug(version);
             iter.setProject(project);
             iter.setStatus(EntityStatus.ACTIVE);
-            iter.setProjectType(ProjectType.File);
+            iter.setProjectType("file");
             project.addIteration(iter);
             iterationRepository.save(iter);
         }
@@ -120,7 +119,7 @@ public class ItFixtures {
 
     /** A project with no versions yet (for testing version mirroring). */
     @Transactional
-    public void ensureProjectNoVersion(String slug, ProjectType type) {
+    public void ensureProjectNoVersion(String slug, String type) {
         projectRepository.findBySlug(slug).orElseGet(() -> {
             HProject p = new HProject();
             p.setSlug(slug);
@@ -159,7 +158,7 @@ public class ItFixtures {
     }
 
     @Transactional
-    public void setProjectType(String slug, ProjectType type) {
+    public void setProjectType(String slug, String type) {
         HProject p = projectRepository.findBySlug(slug).orElseThrow();
         p.setDefaultProjectType(type);
         projectRepository.save(p);

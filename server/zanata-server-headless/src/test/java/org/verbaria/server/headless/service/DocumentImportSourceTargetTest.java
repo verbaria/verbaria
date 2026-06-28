@@ -7,7 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,7 +15,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlowTarget;
@@ -75,8 +74,9 @@ class DocumentImportSourceTargetTest {
     /** Proves it is NOT gated to Consulo: every project type gets a source
      *  target, and as admin it lands Approved. */
     @ParameterizedTest
-    @EnumSource(ProjectType.class)
-    void createsApprovedSourceTargetForEveryProjectTypeWhenAdmin(ProjectType pt) {
+    @ValueSource(strings = {"utf8properties", "properties", "gettext",
+            "podir", "xliff", "xml", "file", "consulo", "chrome"})
+    void createsApprovedSourceTargetForEveryProjectTypeWhenAdmin(String pt) {
         asAdmin();
         List<HTextFlowTarget> saved = runImport(pt);
 
@@ -89,7 +89,7 @@ class DocumentImportSourceTargetTest {
     @Test
     void nonAdminGetsTranslatedSourceTarget() {
         asUser(); // authenticated, but not an admin
-        List<HTextFlowTarget> saved = runImport(ProjectType.Properties);
+        List<HTextFlowTarget> saved = runImport("properties");
 
         assertThat(saved).hasSize(1);
         assertThat(saved.get(0).getState()).isEqualTo(ContentState.Translated);
@@ -98,7 +98,7 @@ class DocumentImportSourceTargetTest {
     @Test
     void anonymousGetsTranslatedSourceTarget() {
         // no authentication at all
-        List<HTextFlowTarget> saved = runImport(ProjectType.Gettext);
+        List<HTextFlowTarget> saved = runImport("gettext");
 
         assertThat(saved).hasSize(1);
         assertThat(saved.get(0).getState()).isEqualTo(ContentState.Translated);
@@ -106,7 +106,7 @@ class DocumentImportSourceTargetTest {
 
     // --- helpers -----------------------------------------------------------
 
-    private List<HTextFlowTarget> runImport(ProjectType pt) {
+    private List<HTextFlowTarget> runImport(String pt) {
         HProjectIteration iter = new HProjectIteration();
         iter.setProjectType(pt);
         HLocale src = new HLocale(new LocaleId("en-US"));

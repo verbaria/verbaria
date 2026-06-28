@@ -16,7 +16,6 @@ import org.zanata.client.commands.push.PushOptionsImpl;
 import org.zanata.client.config.LocaleList;
 import org.zanata.client.config.LocaleMapping;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlowTarget;
 
@@ -135,7 +134,7 @@ class ChromePushPullIT extends AbstractPushPullIT {
         fixtures.ensureLocale("en");
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("itchrometype", VERSION);
-        fixtures.setProjectType("itchrometype", ProjectType.Chrome);
+        fixtures.setProjectType("itchrometype", "chrome");
         fixtures.setProjectSourceLocale("itchrometype", "en");
 
         Path enDir = tmp.resolve("src/main/chrome/_locales/en");
@@ -162,7 +161,7 @@ class ChromePushPullIT extends AbstractPushPullIT {
         fixtures.ensureLocale("en");
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("itchromescan", VERSION);
-        fixtures.setProjectType("itchromescan", ProjectType.Chrome);
+        fixtures.setProjectType("itchromescan", "chrome");
         fixtures.setProjectSourceLocale("itchromescan", "en");
 
         Path enDir = tmp.resolve("src/main/chrome/_locales/en");

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
@@ -36,7 +35,7 @@ public class PushPlanService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlanEntry> plan(ProjectType type, String pattern,
+    public List<PlanEntry> plan(String type, String pattern,
             List<String> paths, List<String> targetLocales, String sourceLang) {
         DocumentLayout layout = layouts.forType(type).orElseThrow(
                 () -> new IllegalArgumentException(

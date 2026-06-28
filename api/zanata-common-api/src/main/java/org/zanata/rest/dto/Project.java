@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize.Inclusion;
 import jakarta.validation.constraints.NotEmpty;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.Namespaces;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.MediaTypes;
 import org.zanata.rest.MediaTypes.Format;
 
@@ -188,7 +187,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
         entity.setId("sample-project");
         entity.setName("Sample Project");
         entity.setDescription("Sample Project Description");
-        entity.setDefaultType(ProjectType.Gettext.toString());
+        entity.setDefaultType("gettext");
         entity.getIterations(true).addAll(
                 new ProjectIteration().createSamples());
         return entity;
@@ -202,7 +201,7 @@ public class Project implements Serializable, HasCollectionSample<Project>,
         p2.setId("another-project");
         p2.setName("Another Sample Project");
         p2.setDescription("Another Sample Project Description");
-        p2.setDefaultType(ProjectType.Gettext.toString());
+        p2.setDefaultType("gettext");
         entities.add(p2);
         return entities;
     }

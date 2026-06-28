@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
@@ -24,8 +23,8 @@ public final class XliffDocumentLayout implements DocumentLayout {
             Pattern.compile("_([a-z]{2,3}([_-][A-Za-z0-9]{1,8})*)$");
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Xliff);
+    public Set<String> supportedTypes() {
+        return Set.of("xliff");
     }
 
     @Override

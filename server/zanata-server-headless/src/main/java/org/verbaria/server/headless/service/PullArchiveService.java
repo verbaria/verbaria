@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
@@ -50,7 +49,7 @@ public class PullArchiveService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] pull(ProjectType type, String projectSlug, String version,
+    public byte[] pull(String type, String projectSlug, String version,
             String pullType, List<String> requestedLocales) throws IOException {
         DocumentLayout layout = layouts.forType(type).orElseThrow(
                 () -> new IllegalArgumentException(

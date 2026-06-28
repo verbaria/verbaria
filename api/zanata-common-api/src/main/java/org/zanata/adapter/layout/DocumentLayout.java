@@ -6,13 +6,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
 public interface DocumentLayout {
 
-    Set<ProjectType> supportedTypes();
+    Set<String> supportedTypes();
 
     String fileExtension();
 

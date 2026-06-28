@@ -11,7 +11,6 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.zanata.common.ProjectType;
 import org.verbaria.server.headless.repository.ProjectIterationRepository;
 
 /**
@@ -31,7 +30,7 @@ class ParentProjectInheritanceIT extends AbstractPushPullIT {
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("sescparent", VERSION);
         fixtures.setProjectLocales("sescparent", "ru-RU", "zh-CN");
-        fixtures.ensureProjectNoVersion("sescchild", ProjectType.Properties);
+        fixtures.ensureProjectNoVersion("sescchild", "properties");
         fixtures.linkParent("sescchild", "sescparent");
 
         Long iterId = iterationRepository
@@ -55,7 +54,7 @@ class ParentProjectInheritanceIT extends AbstractPushPullIT {
         fixtures.setProjectLocales("ppconsulo", "ru-RU", "zh-CN");
 
         // Child has no version of its own yet — linking must mirror it.
-        fixtures.ensureProjectNoVersion("ppconsulojava", ProjectType.Properties);
+        fixtures.ensureProjectNoVersion("ppconsulojava", "properties");
         fixtures.linkParent("ppconsulojava", "ppconsulo");
 
         assertThat(fixtures.hasVersion("ppconsulojava", VERSION))
@@ -96,7 +95,7 @@ class ParentProjectInheritanceIT extends AbstractPushPullIT {
         fixtures.ensureLocale("en-US");
         fixtures.ensureAdmin(USER, API_KEY);
 
-        fixtures.ensureProjectNoVersion("ptpparent", ProjectType.Properties);
+        fixtures.ensureProjectNoVersion("ptpparent", "properties");
         fixtures.addVersion("ptpparent", VERSION);
         fixtures.ensureProjectNoVersion("ptpchild", null);
         fixtures.linkParent("ptpchild", "ptpparent");

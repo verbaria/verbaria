@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zanata.common.EntityStatus;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
 import org.zanata.rest.dto.Project;
@@ -70,10 +69,8 @@ public class ProjectsApiController {
         dto.setDescription(p.getDescription());
         dto.setSourceViewURL(p.getResolvedSourceViewURL());
         dto.setStatus(p.getStatus() == null ? EntityStatus.ACTIVE : p.getStatus());
-        ProjectType effectiveType = p.getEffectiveDefaultProjectType();
-        dto.setDefaultType(effectiveType == null
-                ? ProjectType.File.toString()
-                : effectiveType.toString());
+        String effectiveType = p.getEffectiveDefaultProjectType();
+        dto.setDefaultType(effectiveType == null ? "file" : effectiveType);
         List<ProjectIteration> iters = new ArrayList<>();
         if (p.getProjectIterations() != null) {
             for (HProjectIteration i : p.getProjectIterations()) {
@@ -81,7 +78,7 @@ public class ProjectsApiController {
                 ito.setStatus(i.getStatus() == null
                         ? EntityStatus.ACTIVE : i.getStatus());
                 if (i.getProjectType() != null) {
-                    ito.setProjectType(i.getProjectType().toString());
+                    ito.setProjectType(i.getProjectType());
                 }
                 iters.add(ito);
             }

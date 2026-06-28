@@ -15,7 +15,6 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.PushImportedEntry;
 import org.zanata.rest.dto.PushStatus;
 import org.zanata.rest.dto.PushStatus.State;
@@ -66,7 +65,7 @@ public class PushSessionService {
         this.workers = workers;
     }
 
-    public String start(ProjectType type, String pattern, String version,
+    public String start(String type, String pattern, String version,
             List<String> targetLocales, String sourceLang, boolean force,
             byte[] archive, String actorUsername) throws IOException {
         Prepared prepared = pushArchiveService.prepare(type, pattern, version,

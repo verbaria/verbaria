@@ -12,7 +12,6 @@ import org.xml.sax.InputSource;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TranslationsResource;
 
@@ -23,9 +22,8 @@ public final class GettextDocumentLayout implements DocumentLayout {
     private static final String PO = ".po";
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Gettext, ProjectType.Podir,
-                ProjectType.Xml, ProjectType.File);
+    public Set<String> supportedTypes() {
+        return Set.of("gettext", "podir", "xml", "file");
     }
 
     @Override

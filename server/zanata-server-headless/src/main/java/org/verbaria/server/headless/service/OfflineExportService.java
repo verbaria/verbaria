@@ -19,7 +19,6 @@ import java.util.Map;
 
 import org.zanata.common.ContentState;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
@@ -82,7 +81,7 @@ public class OfflineExportService {
         HDocument doc = docOpt.get();
         Resource source = toResource(doc);
         TranslationsResource trans = toTranslations(doc, locale);
-        byte[] body = layoutRegistry.forType(ProjectType.Consulo).orElseThrow()
+        byte[] body = layoutRegistry.forType("consulo").orElseThrow()
                 .writeTranslation(source, trans, locale.getId());
         return Optional.of(new Bundle(docId + ".yaml", "application/x-yaml", body));
     }
@@ -93,7 +92,7 @@ public class OfflineExportService {
         Optional<HDocument> docOpt = documentRepository
                 .findByVersionAndDocId(projectSlug, versionSlug, docId);
         if (docOpt.isEmpty()) return Optional.empty();
-        ProjectType type = resolveProjectType(projectSlug, versionSlug);
+        String type = resolveProjectType(projectSlug, versionSlug);
         DocumentLayout layout = layoutFor(type);
         HDocument doc = docOpt.get();
         Resource source = toResource(doc);
@@ -107,7 +106,7 @@ public class OfflineExportService {
     @Transactional(readOnly = true)
     public Bundle zipForOfflineTranslation(String projectSlug, String versionSlug,
                                            LocaleId locale) throws IOException {
-        ProjectType type = resolveProjectType(projectSlug, versionSlug);
+        String type = resolveProjectType(projectSlug, versionSlug);
         String ext = layoutFor(type).fileExtension();
         List<HDocument> docs = documentRepository.findByVersion(projectSlug, versionSlug);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
@@ -126,23 +125,23 @@ public class OfflineExportService {
         return new Bundle(archive, "application/zip", buf.toByteArray());
     }
 
-    private ProjectType resolveProjectType(String projectSlug, String versionSlug) {
+    private String resolveProjectType(String projectSlug, String versionSlug) {
         Optional<HProjectIteration> iter = iterationRepository
                 .findFullByProjectAndSlug(projectSlug, versionSlug);
         if (iter.isPresent() && iter.get().getProject() != null
                 && iter.get().getProject().getDefaultProjectType() != null) {
             return iter.get().getProject().getDefaultProjectType();
         }
-        return ProjectType.Gettext;
+        return "gettext";
     }
 
-    private DocumentLayout layoutFor(ProjectType type) {
+    private DocumentLayout layoutFor(String type) {
         return layoutRegistry.forType(type)
                 .orElseThrow(() -> new IllegalStateException(
                         "No document layout for project type: " + type));
     }
 
-    private byte[] writeOne(ProjectType type, Resource source,
+    private byte[] writeOne(String type, Resource source,
                             TranslationsResource trans, LocaleId locale) throws IOException {
         return layoutRegistry.forType(type)
                 .orElseThrow(() -> new IllegalStateException(

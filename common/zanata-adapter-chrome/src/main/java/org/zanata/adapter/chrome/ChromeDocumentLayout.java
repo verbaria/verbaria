@@ -15,7 +15,6 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.adapter.layout.PathDoc;
-import org.zanata.common.ProjectType;
 import org.zanata.rest.dto.extensions.chrome.ChromeMessage;
 import org.zanata.rest.dto.extensions.comment.SimpleComment;
 import org.zanata.rest.dto.extensions.gettext.PotEntryHeader;
@@ -32,8 +31,8 @@ public final class ChromeDocumentLayout implements DocumentLayout {
     private static final String STEM = "messages";
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Chrome);
+    public Set<String> supportedTypes() {
+        return Set.of("chrome");
     }
 
     @Override

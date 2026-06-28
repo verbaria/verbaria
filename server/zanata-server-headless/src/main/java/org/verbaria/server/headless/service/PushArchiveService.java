@@ -15,7 +15,6 @@ import java.util.zip.ZipInputStream;
 import org.springframework.stereotype.Service;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HAccount;
 import org.zanata.rest.dto.PushImportedEntry;
 import org.zanata.rest.dto.resource.Resource;
@@ -59,7 +58,7 @@ public class PushArchiveService {
         }
     }
 
-    public Prepared prepare(ProjectType type, String pattern, String version,
+    public Prepared prepare(String type, String pattern, String version,
             List<String> targetLocales, String sourceLang, byte[] archive)
             throws IOException {
         Map<String, byte[]> files = unzip(new ByteArrayInputStream(archive));

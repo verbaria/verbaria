@@ -3,7 +3,6 @@ package org.zanata.adapter.properties;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
-import org.zanata.common.ProjectType;
 
 @Component
 public final class PropertiesDocumentLayout extends AbstractPropertiesDocumentLayout {
@@ -13,7 +12,7 @@ public final class PropertiesDocumentLayout extends AbstractPropertiesDocumentLa
     }
 
     @Override
-    public Set<ProjectType> supportedTypes() {
-        return Set.of(ProjectType.Properties);
+    public Set<String> supportedTypes() {
+        return Set.of("properties");
     }
 }

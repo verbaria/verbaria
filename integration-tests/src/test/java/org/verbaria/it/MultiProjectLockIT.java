@@ -19,7 +19,6 @@ import org.zanata.client.config.LocaleMapping;
 import org.verbaria.server.headless.changelog.VerbariaLock;
 import org.verbaria.server.headless.changelog.VerbariaLockReaderWriter;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlowTarget;
 
@@ -143,7 +142,7 @@ class MultiProjectLockIT extends AbstractPushPullIT {
         fixtures.ensureLocale("ru");
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("globniru", VERSION);
-        fixtures.setProjectType("globniru", ProjectType.Consulo);
+        fixtures.setProjectType("globniru", "consulo");
 
         Path en = tmp.resolve("src/main/resources/LOCALIZE-LIB/en_US");
         Files.createDirectories(en);
@@ -189,9 +188,9 @@ class MultiProjectLockIT extends AbstractPushPullIT {
         fixtures.ensureLocale("ru");
         fixtures.ensureAdmin(USER, API_KEY);
         fixtures.ensureProject("consflata", VERSION);
-        fixtures.setProjectType("consflata", ProjectType.Consulo);
+        fixtures.setProjectType("consflata", "consulo");
         fixtures.ensureProject("consflatb", VERSION);
-        fixtures.setProjectType("consflatb", ProjectType.Consulo);
+        fixtures.setProjectType("consflatb", "consulo");
 
         pushConsulo("consflata", "a.Localize", "Hello A", "\u041f\u0440\u0438\u0432\u0435\u0442 A");
         pushConsulo("consflatb", "b.Localize", "Hello B", "\u041f\u0440\u0438\u0432\u0435\u0442 B");

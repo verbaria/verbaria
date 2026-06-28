@@ -17,8 +17,8 @@ import org.verbaria.server.ui.vaadin.i18n.TitleKey;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.zanata.common.EntityStatus;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HProject;
+import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.repository.AccountRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
 import org.verbaria.server.ui.vaadin.BreadcrumbsService;
@@ -34,7 +34,8 @@ public class ProjectCreateView extends VerticalLayout implements TitleKey, HasBr
 
     public ProjectCreateView(ProjectRepository projectRepository,
                              AccountRepository accountRepository,
-                             BreadcrumbsService breadcrumbsService) {
+                             BreadcrumbsService breadcrumbsService,
+                             DocumentLayoutRegistry layoutRegistry) {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -52,9 +53,9 @@ public class ProjectCreateView extends VerticalLayout implements TitleKey, HasBr
         name.setRequiredIndicatorVisible(true);
         TextArea description = new TextArea(getTranslation("projectCreate.description"));
         description.setMaxLength(255);
-        ComboBox<ProjectType> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
-        defaultType.setItems(ProjectType.values());
-        defaultType.setValue(ProjectType.Gettext);
+        ComboBox<String> defaultType = new ComboBox<>(getTranslation("projectCreate.type"));
+        defaultType.setItems(layoutRegistry.knownTypes());
+        defaultType.setValue("gettext");
         ComboBox<EntityStatus> status = new ComboBox<>(getTranslation("projectCreate.status"));
         status.setItems(EntityStatus.ACTIVE, EntityStatus.READONLY);
         status.setValue(EntityStatus.ACTIVE);

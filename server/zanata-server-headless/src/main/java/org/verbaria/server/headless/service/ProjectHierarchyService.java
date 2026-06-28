@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.MessageEvaluateType;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
 import org.zanata.model.HProjectIteration;
@@ -44,7 +43,7 @@ public class ProjectHierarchyService {
      * preview inherited values (parent set) and to copy them down (parent
      * removed).
      */
-    public record EffectiveSettings(ProjectType type, HLocale sourceLocale,
+    public record EffectiveSettings(String type, HLocale sourceLocale,
             Set<HLocale> locales, String sourceUrlTemplate,
             MessageEvaluateType messageFormat) {}
 

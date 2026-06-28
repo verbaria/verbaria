@@ -37,8 +37,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -54,7 +52,6 @@ import org.hibernate.annotations.Where;
 import org.zanata.annotation.EntityRestrict;
 import org.zanata.common.EntityStatus;
 import org.zanata.common.LocaleId;
-import org.zanata.common.ProjectType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -113,8 +110,8 @@ public class HProjectIteration extends SlugEntityBase
     @MapKeyColumn(name = "validation")
     @Column(name = "state", nullable = false)
     private Map<String, String> customizedValidations = Maps.newHashMap();
-    @Enumerated(EnumType.STRING)
-    private ProjectType projectType;
+    @Column(name = "project_type")
+    private String projectType;
 
         @NotNull
 
@@ -179,7 +176,7 @@ public class HProjectIteration extends SlugEntityBase
         this.customizedValidations = customizedValidations;
     }
 
-    public void setProjectType(final ProjectType projectType) {
+    public void setProjectType(final String projectType) {
         this.projectType = projectType;
     }
 
@@ -228,13 +225,13 @@ public class HProjectIteration extends SlugEntityBase
     }
 
     @Nullable
-    public ProjectType getProjectType() {
+    public String getProjectType() {
         return this.projectType;
     }
 
     @Transient @Nullable
-    public ProjectType getEffectiveProjectType() {
-        ProjectType projectType = getProjectType();
+    public String getEffectiveProjectType() {
+        String projectType = getProjectType();
         if (projectType == null) {
             // NB some old projects have null defaultProjectType; a child also
             // inherits its parent project's type through the parent chain.

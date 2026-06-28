@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.service.*;
-import org.zanata.common.ProjectType;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
@@ -49,6 +49,7 @@ public class ZanataCliBridgeController {
     private final PushPlanService pushPlanService;
     private final PushSessionService pushSessionService;
     private final PullArchiveService pullArchiveService;
+    private final DocumentLayoutRegistry layoutRegistry;
 
     @Value("${spring.application.version:unknown}")
     private String applicationVersion;
@@ -59,7 +60,8 @@ public class ZanataCliBridgeController {
                                      AccountRepository accountRepository,
                                      PushPlanService pushPlanService,
                                      PushSessionService pushSessionService,
-                                     PullArchiveService pullArchiveService) {
+                                     PullArchiveService pullArchiveService,
+                                     DocumentLayoutRegistry layoutRegistry) {
         this.projectRepository = projectRepository;
         this.iterationRepository = iterationRepository;
         this.localeRepository = localeRepository;
@@ -67,6 +69,7 @@ public class ZanataCliBridgeController {
         this.pushPlanService = pushPlanService;
         this.pushSessionService = pushSessionService;
         this.pullArchiveService = pullArchiveService;
+        this.layoutRegistry = layoutRegistry;
     }
 
     @GetMapping("/version")
@@ -91,13 +94,13 @@ public class ZanataCliBridgeController {
         if (iteration.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        ProjectType pt = iteration.get().getEffectiveProjectType();
+        String pt = iteration.get().getEffectiveProjectType();
         Map<String, Object> config = new LinkedHashMap<>();
         config.put("url", resolveBaseUrl(host, forwardedHost, forwardedProto));
         config.put("project", slug);
         config.put("projectVersion", iter);
         if (pt != null) {
-            config.put("projectType", pt.toString().toLowerCase());
+            config.put("projectType", pt.toLowerCase());
         }
         return ResponseEntity.ok(config);
     }
@@ -154,7 +157,7 @@ public class ZanataCliBridgeController {
         if (currentUser() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        ProjectType type;
+        String type;
         try {
             type = resolveType(body.projectType(), body.project());
         } catch (IllegalArgumentException e) {
@@ -186,7 +189,7 @@ public class ZanataCliBridgeController {
         if (actor == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        ProjectType type;
+        String type;
         try {
             type = resolveType(projectType, project);
         } catch (IllegalArgumentException e) {
@@ -228,7 +231,7 @@ public class ZanataCliBridgeController {
         if (currentUser() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        ProjectType type;
+        String type;
         try {
             type = resolveType(projectType, project);
         } catch (IllegalArgumentException e) {
@@ -251,14 +254,13 @@ public class ZanataCliBridgeController {
         }
     }
 
-    private ProjectType resolveType(String projectType, String pattern) {
+    private String resolveType(String projectType, String pattern) {
         if (projectType != null && !projectType.isBlank()) {
-            try {
-                return ProjectType.getValueOf(projectType);
-            } catch (Exception e) {
+            if (!layoutRegistry.isKnown(projectType)) {
                 throw new IllegalArgumentException(
                         "Unknown project type: " + projectType);
             }
+            return projectType;
         }
         HProject p;
         if (pattern != null && pattern.indexOf('*') >= 0) {
