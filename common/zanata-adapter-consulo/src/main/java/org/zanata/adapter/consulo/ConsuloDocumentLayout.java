@@ -195,7 +195,14 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
                 : tf.getExtensions().findByType(ConsuloSubFile.class);
         List<String> names = consulo == null ? null : consulo.getParamNames();
         List<String> types = consulo == null ? null : consulo.getParamTypes();
-        return new ConsuloWriter.Entry(content, names, types);
+        boolean subFile = consulo != null && consulo.getExtension() != null
+                && !consulo.getExtension().isEmpty();
+        String mnemonic = consulo == null || subFile ? null
+                : consulo.getMnemonic();
+        Integer mnemonicIndex = consulo == null || subFile ? null
+                : consulo.getMnemonicIndex();
+        return new ConsuloWriter.Entry(content, names, types, mnemonic,
+                mnemonicIndex);
     }
 
     private static byte[] render(Map<String, ConsuloWriter.Entry> entries)

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.verbaria.server.headless.service.PushPlanService;
-import org.zanata.rest.dto.PushPlan;
+import org.verbaria.server.api.PushPlan;
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.pull.PullOptionsImpl;
 import org.zanata.client.commands.push.PushCommand;

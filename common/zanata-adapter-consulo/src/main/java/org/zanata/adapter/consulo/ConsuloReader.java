@@ -50,8 +50,23 @@ public final class ConsuloReader {
         List<TextFlow> flows = new ArrayList<>(top.size());
         for (Map.Entry<?, ?> entry : top.entrySet()) {
             String key = String.valueOf(entry.getKey());
-            String text = textOf(entry.getValue());
-            if (text == null) continue;
+            String rawText = textOf(entry.getValue());
+            if (rawText == null) continue;
+            String mnemonic = stringOf(entry.getValue(), "mnemonic");
+            Integer mnemonicIndex = intOf(entry.getValue(), "mnemonicIndex");
+            String text = rawText;
+            if (mnemonic == null && mnemonicIndex == null) {
+                TextWithMnemonic twm = TextWithMnemonic.parse(rawText);
+                if (twm.hasMnemonic()) {
+                    text = twm.getText();
+                    int idx = twm.getMnemonicIndex();
+                    char ch = text.charAt(idx);
+                    mnemonic = String.valueOf(Character.toUpperCase(ch));
+                    if (!isFirstOccurrence(text, ch, idx)) {
+                        mnemonicIndex = idx + 1;
+                    }
+                }
+            }
             TextFlow tf = new TextFlow(key, LocaleId.EN_US, text);
             String comment = commentOf(entry.getValue());
             if (comment != null && !comment.isEmpty()) {
@@ -60,10 +75,13 @@ public final class ConsuloReader {
             List<String> names = listOf(entry.getValue(), "names");
             List<String> types = listOf(entry.getValue(), "types");
             if ((names != null && !names.isEmpty())
-                    || (types != null && !types.isEmpty())) {
+                    || (types != null && !types.isEmpty())
+                    || mnemonic != null || mnemonicIndex != null) {
                 ConsuloSubFile params = new ConsuloSubFile();
                 params.setNames(names);
                 params.setTypes(types);
+                params.setMnemonic(mnemonic);
+                params.setMnemonicIndex(mnemonicIndex);
                 tf.getExtensions(true).add(params);
             }
             flows.add(tf);
@@ -76,6 +94,41 @@ public final class ConsuloReader {
         if (value instanceof Map<?, ?> m) {
             Object c = m.get("comment");
             return c == null ? null : String.valueOf(c);
+        }
+        return null;
+    }
+
+    private static boolean isFirstOccurrence(String text, char ch, int idx) {
+        char lower = Character.toLowerCase(ch);
+        for (int i = 0; i < idx; i++) {
+            if (Character.toLowerCase(text.charAt(i)) == lower) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String stringOf(Object value, String field) {
+        if (value instanceof Map<?, ?> m && m.get(field) != null) {
+            String s = String.valueOf(m.get(field));
+            return s.isEmpty() ? null : s;
+        }
+        return null;
+    }
+
+    private static Integer intOf(Object value, String field) {
+        if (value instanceof Map<?, ?> m) {
+            Object v = m.get(field);
+            if (v instanceof Number n) {
+                return n.intValue();
+            }
+            if (v != null) {
+                try {
+                    return Integer.valueOf(String.valueOf(v).trim());
+                } catch (NumberFormatException ignore) {
+                    return null;
+                }
+            }
         }
         return null;
     }

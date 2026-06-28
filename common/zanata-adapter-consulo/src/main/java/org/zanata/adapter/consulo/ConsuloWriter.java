@@ -13,13 +13,16 @@ import org.yaml.snakeyaml.Yaml;
 
 public final class ConsuloWriter {
 
-    /** One yaml entry: translated text plus the source's placeholder metadata. */
-    public record Entry(String text, List<String> names, List<String> types) {}
+    /** One yaml entry: translated text plus the source's placeholder/mnemonic
+     * metadata. */
+    public record Entry(String text, List<String> names, List<String> types,
+            String mnemonic, Integer mnemonicIndex) {}
 
     public void write(Writer out, Map<String, String> entries) throws IOException {
         Map<String, Entry> rich = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : entries.entrySet()) {
-            rich.put(e.getKey(), new Entry(e.getValue(), null, null));
+            rich.put(e.getKey(),
+                    new Entry(e.getValue(), null, null, null, null));
         }
         writeEntries(out, rich);
     }
@@ -43,6 +46,12 @@ public final class ConsuloWriter {
             }
             if (entry.types() != null && !entry.types().isEmpty()) {
                 body.put("types", entry.types());
+            }
+            if (entry.mnemonic() != null && !entry.mnemonic().isEmpty()) {
+                body.put("mnemonic", entry.mnemonic());
+            }
+            if (entry.mnemonicIndex() != null) {
+                body.put("mnemonicIndex", entry.mnemonicIndex());
             }
             doc.put(e.getKey(), body);
         }

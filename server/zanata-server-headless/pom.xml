@@ -169,6 +169,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.zanata</groupId>
+            <artifactId>server-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-api</artifactId>
             <version>4.0.1</version>

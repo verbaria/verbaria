@@ -46,6 +46,10 @@ public class ConsuloSubFile
     private List<String> names;
     /** Value types of those placeholders, index-aligned with {@link #names}. */
     private List<String> types;
+    /** The mnemonic (accelerator) character, lifted out of {@code text}. */
+    private String mnemonic;
+    /** Index of the mnemonic character within the plain {@code text}. */
+    private Integer mnemonicIndex;
 
     public ConsuloSubFile() {
     }
@@ -85,6 +89,26 @@ public class ConsuloSubFile
         this.types = types;
     }
 
+    @JsonProperty("mnemonic")
+    @JsonInclude(Include.NON_NULL)
+    public String getMnemonic() {
+        return mnemonic;
+    }
+
+    public void setMnemonic(String mnemonic) {
+        this.mnemonic = mnemonic;
+    }
+
+    @JsonProperty("mnemonicIndex")
+    @JsonInclude(Include.NON_NULL)
+    public Integer getMnemonicIndex() {
+        return mnemonicIndex;
+    }
+
+    public void setMnemonicIndex(Integer mnemonicIndex) {
+        this.mnemonicIndex = mnemonicIndex;
+    }
+
     @Override
     @JsonIgnore
     public String getContentType() {
@@ -98,7 +122,8 @@ public class ConsuloSubFile
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(extension, names, types);
+        return java.util.Objects.hash(extension, names, types, mnemonic,
+                mnemonicIndex);
     }
 
     @Override
@@ -111,6 +136,8 @@ public class ConsuloSubFile
         }
         return java.util.Objects.equals(extension, other.extension)
                 && java.util.Objects.equals(names, other.names)
-                && java.util.Objects.equals(types, other.types);
+                && java.util.Objects.equals(types, other.types)
+                && java.util.Objects.equals(mnemonic, other.mnemonic)
+                && java.util.Objects.equals(mnemonicIndex, other.mnemonicIndex);
     }
 }

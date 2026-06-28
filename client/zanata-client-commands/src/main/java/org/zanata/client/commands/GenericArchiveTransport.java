@@ -40,11 +40,11 @@ import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.commands.push.PushOptions;
 import org.zanata.client.config.LocaleMapping;
-import org.zanata.rest.dto.PushPlan;
-import org.zanata.rest.dto.PushPlanEntry;
-import org.zanata.rest.dto.PushPlanUnmatched;
-import org.zanata.rest.dto.PushStartResponse;
-import org.zanata.rest.dto.PushStatus;
+import org.verbaria.server.api.PushPlan;
+import org.verbaria.server.api.PushPlanEntry;
+import org.verbaria.server.api.PushPlanUnmatched;
+import org.verbaria.server.api.PushStartResponse;
+import org.verbaria.server.api.PushStatus;
 
 public class GenericArchiveTransport {
 

@@ -16,10 +16,10 @@ import org.springframework.stereotype.Service;
 import org.zanata.adapter.layout.DocumentLayout;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HAccount;
-import org.zanata.rest.dto.PushImportedEntry;
+import org.verbaria.server.api.PushImportedEntry;
 import org.zanata.rest.dto.resource.Resource;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
-import org.zanata.rest.dto.PushPlanEntry;
+import org.verbaria.server.api.PushPlanEntry;
 
 @Service
 public class PushArchiveService {

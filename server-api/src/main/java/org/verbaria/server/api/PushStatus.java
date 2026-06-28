@@ -1,4 +1,4 @@
-package org.zanata.rest.dto;
+package org.verbaria.server.api;
 
 import java.util.List;
 import java.util.Map;

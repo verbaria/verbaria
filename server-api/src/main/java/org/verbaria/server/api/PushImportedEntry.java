@@ -1,8 +1,8 @@
-package org.zanata.rest.dto;
+package org.verbaria.server.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record PushPlanEntry(String path, String docId, String localeId,
+public record PushImportedEntry(String path, String docId, String localeId,
         String project, boolean source) {
 }

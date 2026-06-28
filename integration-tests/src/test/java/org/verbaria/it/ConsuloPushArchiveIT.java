@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.zanata.rest.dto.PushStartResponse;
-import org.zanata.rest.dto.PushStatus;
+import org.verbaria.server.api.PushStartResponse;
+import org.verbaria.server.api.PushStatus;
 import org.junit.jupiter.api.Test;
 import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;

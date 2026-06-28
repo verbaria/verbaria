@@ -368,12 +368,17 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Popover filterPop = setupFilter();
         headingRight.add(filterButton);
 
-        Button prefsBtn = new Button(LineAwesomeIcon.COG_SOLID.create(),
+        MenuBar overflow = new MenuBar();
+        overflow.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
+        var more = overflow.addItem(
+                LineAwesomeIcon.ELLIPSIS_V_SOLID.create());
+        more.getElement().setAttribute("title",
+                getTranslation("translate.moreActions"));
+        more.getElement().setAttribute("aria-label",
+                getTranslation("translate.moreActions"));
+        more.getSubMenu().addItem(getTranslation("translate.editorSettings"),
                 e -> openEditorSettings());
-        prefsBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        prefsBtn.getElement().setAttribute("title", getTranslation("translate.editorSettings"));
-        prefsBtn.getElement().setAttribute("aria-label", getTranslation("translate.editorSettings"));
-        headingRight.add(prefsBtn);
+        headingRight.add(overflow);
 
         this.toolbarActions = headingRight;
         add(statsPopover, filterPop);
