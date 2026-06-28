@@ -19,7 +19,7 @@ import org.zanata.model.HAccount;
 import org.zanata.rest.dto.PushImportedEntry;
 import org.zanata.rest.dto.resource.Resource;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
-import org.verbaria.server.headless.service.PushPlanService.PlanEntry;
+import org.zanata.rest.dto.PushPlanEntry;
 
 @Service
 public class PushArchiveService {
@@ -37,10 +37,10 @@ public class PushArchiveService {
     }
 
     public record DocWork(String project, String docId,
-            List<PlanEntry> source, List<List<PlanEntry>> translations) {
+            List<PushPlanEntry> source, List<List<PushPlanEntry>> translations) {
         public int fileCount() {
             int n = source.size();
-            for (List<PlanEntry> g : translations) {
+            for (List<PushPlanEntry> g : translations) {
                 n += g.size();
             }
             return n;
@@ -65,11 +65,12 @@ public class PushArchiveService {
         DocumentLayout layout = layouts.forType(type).orElseThrow(
                 () -> new IllegalArgumentException(
                         "No document layout for project type: " + type));
-        List<PlanEntry> plan = pushPlanService.plan(type, pattern,
-                new ArrayList<>(files.keySet()), targetLocales, sourceLang);
+        List<PushPlanEntry> plan = pushPlanService.plan(type, pattern,
+                new ArrayList<>(files.keySet()), targetLocales, sourceLang)
+                .entries();
 
         Map<String, DocAccum> byDoc = new LinkedHashMap<>();
-        for (PlanEntry e : plan) {
+        for (PushPlanEntry e : plan) {
             DocAccum acc = byDoc.computeIfAbsent(e.project() + "|" + e.docId(),
                     k -> new DocAccum(e.project(), e.docId()));
             if (e.source()) {
@@ -90,8 +91,8 @@ public class PushArchiveService {
     private static final class DocAccum {
         final String project;
         final String docId;
-        final List<PlanEntry> source = new ArrayList<>();
-        final Map<String, List<PlanEntry>> transByLocale = new LinkedHashMap<>();
+        final List<PushPlanEntry> source = new ArrayList<>();
+        final Map<String, List<PushPlanEntry>> transByLocale = new LinkedHashMap<>();
 
         DocAccum(String project, String docId) {
             this.project = project;
@@ -107,7 +108,7 @@ public class PushArchiveService {
             done.addAll(importSourceGroup(layout, version, doc.source(), files,
                     force, actor));
         }
-        for (List<PlanEntry> group : doc.translations()) {
+        for (List<PushPlanEntry> group : doc.translations()) {
             done.addAll(importTransGroup(layout, version, group, files, force,
                     actor));
         }
@@ -115,11 +116,11 @@ public class PushArchiveService {
     }
 
     private List<PushImportedEntry> importSourceGroup(DocumentLayout layout,
-            String version, List<PlanEntry> group, Map<String, byte[]> files,
+            String version, List<PushPlanEntry> group, Map<String, byte[]> files,
             boolean force, HAccount actor) {
-        PlanEntry first = group.get(0);
+        PushPlanEntry first = group.get(0);
         Map<String, byte[]> groupFiles = new LinkedHashMap<>();
-        for (PlanEntry e : group) {
+        for (PushPlanEntry e : group) {
             byte[] bytes = files.get(e.path());
             if (bytes != null) {
                 groupFiles.put(e.path(), bytes);
@@ -144,7 +145,7 @@ public class PushArchiveService {
                 ? result.document().getLocale().getLocaleId().getId()
                 : first.localeId();
         List<PushImportedEntry> done = new ArrayList<>();
-        for (PlanEntry e : group) {
+        for (PushPlanEntry e : group) {
             if (files.get(e.path()) != null) {
                 done.add(new PushImportedEntry(e.path(), e.docId(), storedLocale,
                         e.project(), true));
@@ -154,10 +155,10 @@ public class PushArchiveService {
     }
 
     private List<PushImportedEntry> importTransGroup(DocumentLayout layout,
-            String version, List<PlanEntry> group, Map<String, byte[]> files,
+            String version, List<PushPlanEntry> group, Map<String, byte[]> files,
             boolean force, HAccount actor) {
         List<PushImportedEntry> done = new ArrayList<>();
-        for (PlanEntry e : group) {
+        for (PushPlanEntry e : group) {
             byte[] bytes = files.get(e.path());
             if (bytes == null) {
                 continue;

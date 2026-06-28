@@ -11,6 +11,9 @@ import org.zanata.adapter.layout.PathDoc;
 import org.zanata.model.HDocument;
 import org.zanata.model.HLocale;
 import org.zanata.model.HProject;
+import org.zanata.rest.dto.PushPlan;
+import org.zanata.rest.dto.PushPlanEntry;
+import org.zanata.rest.dto.PushPlanUnmatched;
 import org.verbaria.server.headless.layout.DocumentLayoutRegistry;
 import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.ProjectRepository;
@@ -30,18 +33,15 @@ public class PushPlanService {
         this.documentRepository = documentRepository;
     }
 
-    public record PlanEntry(String path, String docId, String localeId,
-            String project, boolean source) {
-    }
-
     @Transactional(readOnly = true)
-    public List<PlanEntry> plan(String type, String pattern,
+    public PushPlan plan(String type, String pattern,
             List<String> paths, List<String> targetLocales, String sourceLang) {
         DocumentLayout layout = layouts.forType(type).orElseThrow(
                 () -> new IllegalArgumentException(
                         "No document layout for project type: " + type));
         boolean glob = pattern.indexOf('*') >= 0;
-        List<PlanEntry> out = new ArrayList<>();
+        List<PushPlanEntry> out = new ArrayList<>();
+        List<PushPlanUnmatched> unmatched = new ArrayList<>();
         for (String path : paths) {
             Optional<PathDoc> classified = layout.classify(path);
             if (classified.isEmpty()) {
@@ -51,18 +51,24 @@ public class PushPlanService {
             String localeId = classified.get().localeId();
             if (glob) {
                 String owner = ownerProject(docId, pattern);
-                if (owner != null && localeWanted(localeId, targetLocales)) {
-                    out.add(new PlanEntry(path, docId, localeId, owner, false));
+                if (owner == null) {
+                    unmatched.add(new PushPlanUnmatched(path, docId,
+                            "no project matching '" + pattern
+                                    + "' owns this document"));
+                } else if (localeWanted(localeId, targetLocales)) {
+                    out.add(new PushPlanEntry(path, docId, localeId, owner,
+                            false));
                 }
             } else {
                 HProject project = projectRepository.findBySlug(pattern).orElse(null);
                 boolean source = isSourceLocale(project, localeId, sourceLang);
                 if (source || localeWanted(localeId, targetLocales)) {
-                    out.add(new PlanEntry(path, docId, localeId, pattern, source));
+                    out.add(new PushPlanEntry(path, docId, localeId, pattern,
+                            source));
                 }
             }
         }
-        return out;
+        return new PushPlan(out, unmatched);
     }
 
     private static boolean localeWanted(String localeId, List<String> targetLocales) {

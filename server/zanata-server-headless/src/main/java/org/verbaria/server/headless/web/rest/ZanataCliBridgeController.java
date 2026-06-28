@@ -165,9 +165,8 @@ public class ZanataCliBridgeController {
         }
         List<String> paths = body.paths() == null ? List.of() : body.paths();
         try {
-            return ResponseEntity.ok(Map.of("entries", pushPlanService.plan(
-                    type, body.project(), paths, body.targetLocales(),
-                    body.sourceLang())));
+            return ResponseEntity.ok(pushPlanService.plan(type, body.project(),
+                    paths, body.targetLocales(), body.sourceLang()));
         } catch (IllegalArgumentException iae) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", iae.getMessage()));

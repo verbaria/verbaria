@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import org.verbaria.server.headless.service.PushPlanService;
+import org.zanata.rest.dto.PushPlan;
 import org.zanata.client.commands.pull.PullCommand;
 import org.zanata.client.commands.pull.PullOptionsImpl;
 import org.zanata.client.commands.push.PushCommand;
@@ -23,6 +26,30 @@ import org.zanata.model.HDocument;
 import org.zanata.model.HTextFlowTarget;
 
 class MultiProjectLockIT extends AbstractPushPullIT {
+
+    @Autowired
+    PushPlanService pushPlanService;
+
+    @Test
+    void globPushPlanReportsUnmatchedDocuments() throws Exception {
+        fixtures.ensureAdmin(USER, API_KEY);
+
+        PushPlan plan = pushPlanService.plan("consulo", "zzznomatch**",
+                List.of("LOCALIZE-LIB/en_US/messages.yaml"),
+                List.of("ru"), "en");
+
+        assertThat(plan.entries())
+                .as("no project matches the glob, so nothing is sent")
+                .isEmpty();
+        assertThat(plan.unmatched())
+                .as("the classified document with no owning project must be "
+                        + "reported, not silently dropped")
+                .hasSize(1);
+        assertThat(plan.unmatched().get(0).path())
+                .isEqualTo("LOCALIZE-LIB/en_US/messages.yaml");
+        assertThat(plan.unmatched().get(0).docId()).isEqualTo("messages");
+        assertThat(plan.unmatched().get(0).reason()).contains("zzznomatch**");
+    }
 
     @Test
     void globPullWritesOneLockCoveringEveryProject() throws Exception {

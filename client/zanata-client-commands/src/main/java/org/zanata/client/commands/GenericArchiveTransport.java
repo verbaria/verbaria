@@ -40,6 +40,9 @@ import org.springframework.web.client.RestTemplate;
 import org.zanata.client.commands.pull.PullOptions;
 import org.zanata.client.commands.push.PushOptions;
 import org.zanata.client.config.LocaleMapping;
+import org.zanata.rest.dto.PushPlan;
+import org.zanata.rest.dto.PushPlanEntry;
+import org.zanata.rest.dto.PushPlanUnmatched;
 import org.zanata.rest.dto.PushStartResponse;
 import org.zanata.rest.dto.PushStatus;
 
@@ -68,20 +71,29 @@ public class GenericArchiveTransport {
         boolean wantSource = pushType != PushPullType.Trans;
         boolean wantTrans = pushType != PushPullType.Source;
         log.info("Asking server which files to send...");
+        PushPlan plan = requestPlan(opts, paths);
+        if (!plan.unmatched().isEmpty()) {
+            for (PushPlanUnmatched u : plan.unmatched()) {
+                log.warn("  ? {} - unknown document '{}' ({})",
+                        u.path(), u.docId(), u.reason());
+            }
+            log.warn("{} file(s) matched no project and were skipped.",
+                    plan.unmatched().size());
+        }
         List<String> toSend = new ArrayList<>();
         int sources = 0;
         int translations = 0;
-        for (Map<String, Object> entry : requestPlan(opts, paths)) {
-            boolean source = Boolean.TRUE.equals(entry.get("source"));
+        for (PushPlanEntry entry : plan.entries()) {
+            boolean source = entry.source();
             if ((source && wantSource) || (!source && wantTrans)) {
-                String path = String.valueOf(entry.get("path"));
-                toSend.add(path);
+                toSend.add(entry.path());
                 if (source) {
                     sources++;
                 } else {
                     translations++;
                 }
-                log.info("  + {} [{}]", path, source ? "source" : "translation");
+                log.info("  + {} [{}]", entry.path(),
+                        source ? "source" : "translation");
             }
         }
         if (toSend.isEmpty()) {
@@ -123,9 +135,7 @@ public class GenericArchiveTransport {
     }
 
 
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> requestPlan(PushOptions opts,
-            List<String> paths) {
+    private PushPlan requestPlan(PushOptions opts, List<String> paths) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("projectType", opts.getProjectType());
         body.put("project", opts.getProj());
@@ -134,12 +144,9 @@ public class GenericArchiveTransport {
         body.put("sourceLang", opts.getSourceLang());
         HttpHeaders headers = authHeaders(opts.getUsername(), opts.getKey());
         headers.setContentType(MediaType.APPLICATION_JSON);
-        Map<String, Object> result = rest.postForObject(
-                base(opts) + "rest/push-plan",
-                new HttpEntity<>(body, headers), Map.class);
-        Object entries = result == null ? null : result.get("entries");
-        return entries instanceof List
-                ? (List<Map<String, Object>>) entries : List.of();
+        PushPlan result = rest.postForObject(base(opts) + "rest/push-plan",
+                new HttpEntity<>(body, headers), PushPlan.class);
+        return result == null ? new PushPlan(List.of(), List.of()) : result;
     }
 
     private void uploadArchive(PushOptions opts, Path srcDir, List<String> paths)
