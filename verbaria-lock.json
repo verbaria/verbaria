@@ -1,34 +1,23 @@
 {
   "lockVersion" : 1,
-  "server" : "https://i.verbaria.org/",
   "project" : "verbaria",
   "projectVersion" : "master",
   "sourceLocale" : "en-US",
-  "generatedAt" : "2026-06-26T09:40:55.494234995Z",
+  "generatedAt" : "2026-06-29T15:40:53.835099189Z",
   "documents" : {
     "translations" : {
       "source" : {
-        "revision" : 2,
-        "sig" : "9d79322bf14612a5562cd6de57823da6"
+        "sig" : "d234c30ac86064fcd92de58036f7f7b7"
       },
       "translations" : {
         "en-US" : {
-          "sig" : "8636acb7315881e5b3c3c3fb040d4f93",
-          "state" : "Approved",
-          "total" : 930,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>", "github <github@no-reply.com>" ]
+          "sig" : "1e40865360fdf0e624648b53c5775594"
         },
         "ru" : {
-          "sig" : "57d4847dde10a6d4d8d7de907a54a768",
-          "state" : "Approved",
-          "total" : 908,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
+          "sig" : "10f976e36edde79deb16cb9fa693dfee"
         },
         "zh-CN" : {
-          "sig" : "d41a46d40c3158cc26dbffd70cb9a13d",
-          "state" : "Approved",
-          "total" : 908,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
+          "sig" : "d41a46d40c3158cc26dbffd70cb9a13d"
         }
       }
     }
