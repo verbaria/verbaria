@@ -1,10 +1,9 @@
 {
   "lockVersion" : 1,
-  "server" : "https://i.verbaria.org/",
   "project" : "verbaria",
   "projectVersion" : "master",
   "sourceLocale" : "en-US",
-  "generatedAt" : "2026-06-26T09:40:55.494234995Z",
+  "generatedAt" : "2026-06-29T11:12:52.744789188Z",
   "documents" : {
     "translations" : {
       "source" : {
@@ -19,10 +18,10 @@
           "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>", "github <github@no-reply.com>" ]
         },
         "ru" : {
-          "sig" : "57d4847dde10a6d4d8d7de907a54a768",
+          "sig" : "2f2f8f9329c94f85e46194aa98948b84",
           "state" : "Approved",
-          "total" : 908,
-          "translators" : [ "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
+          "total" : 923,
+          "translators" : [ "Nikolay Yurchenko <nikolay@yurchenko.su>", "Valery Semenchuk <vistall.valeriy@gmail.com>" ]
         },
         "zh-CN" : {
           "sig" : "d41a46d40c3158cc26dbffd70cb9a13d",
