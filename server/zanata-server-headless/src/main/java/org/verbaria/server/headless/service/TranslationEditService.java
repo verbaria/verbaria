@@ -18,6 +18,7 @@ import org.zanata.rest.dto.TranslationSourceType;
 import org.zanata.model.HAccount;
 import org.zanata.model.HLocale;
 import org.zanata.model.HPerson;
+import org.zanata.model.HDocument;
 import org.zanata.model.HProjectIteration;
 import org.zanata.model.HTextFlow;
 import org.zanata.model.HTextFlowTarget;
@@ -28,6 +29,7 @@ import org.verbaria.server.headless.extension.TextFlowExtensionStore;
 import org.verbaria.server.headless.extension.comment.CommentExtensions;
 import org.verbaria.server.headless.extension.gettext.GettextExtensions;
 import org.verbaria.server.headless.repository.AccountRepository;
+import org.verbaria.server.headless.repository.DocumentRepository;
 import org.verbaria.server.headless.repository.LocaleRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.verbaria.server.headless.event.ContentChangedEvent;
@@ -47,6 +49,7 @@ public class TranslationEditService {
     private final TextFlowTargetHistoryRepository historyRepository;
     private final LocaleRepository localeRepository;
     private final AccountRepository accountRepository;
+    private final DocumentRepository documentRepository;
     private final TextFlowExtensionStore extensionStore;
     private final GettextExtensions gettext;
     private final CommentExtensions comments;
@@ -58,6 +61,7 @@ public class TranslationEditService {
                                   TextFlowTargetHistoryRepository historyRepository,
                                   LocaleRepository localeRepository,
                                   AccountRepository accountRepository,
+                                  DocumentRepository documentRepository,
                                   TextFlowExtensionStore extensionStore,
                                   GettextExtensions gettext,
                                   CommentExtensions comments,
@@ -68,6 +72,7 @@ public class TranslationEditService {
         this.historyRepository = historyRepository;
         this.localeRepository = localeRepository;
         this.accountRepository = accountRepository;
+        this.documentRepository = documentRepository;
         this.extensionStore = extensionStore;
         this.gettext = gettext;
         this.comments = comments;
@@ -270,36 +275,22 @@ public class TranslationEditService {
         return target;
     }
 
-    /**
-     * Change the consulo sub-file extension of a source text flow. Reviewers
-     * may set any extension (it drives editor highlighting and the file pull
-     * recreates). Empty string keeps it a raw file with no extension.
-     */
-    @Transactional
-    public void updateConsuloFileExt(Long textFlowId, String newExt) {
-        HTextFlow textFlow = textFlowRepository.findById(textFlowId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "TextFlow not found: " + textFlowId));
-        String fresh = newExt == null ? "" : newExt.trim();
-        if (fresh.startsWith(".")) {
-            fresh = fresh.substring(1);
-        }
-        extensionStore.put(textFlow, new ConsuloSubFile(fresh));
-        textFlowRepository.save(textFlow);
-    }
-
     public String consuloContentType(HTextFlow flow) {
         return extensionStore.contentType(flow).orElse(null);
     }
 
     public boolean isConsuloFile(HTextFlow flow) {
         return extensionStore.get(flow, ConsuloSubFile.class)
-                .map(c -> c.getExtension() != null).orElse(false);
+                .map(c -> c.getExtension() != null && !c.getExtension().isEmpty())
+                .orElse(false);
     }
 
-    public String consuloExtension(HTextFlow flow) {
-        return extensionStore.get(flow, ConsuloSubFile.class)
-                .map(ConsuloSubFile::getExtension).orElse(null);
+    @Transactional(readOnly = true)
+    public String documentProjectType(Long docId) {
+        return documentRepository.findById(docId)
+                .map(HDocument::getProjectIteration)
+                .map(HProjectIteration::getEffectiveProjectType)
+                .orElse(null);
     }
 
     @Transactional

@@ -24,6 +24,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
@@ -103,6 +104,8 @@ import org.verbaria.server.ui.vaadin.MainLayout;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
 import org.verbaria.server.ui.vaadin.iteration.IterationView;
 import org.verbaria.server.ui.vaadin.project.ProjectView;
+import org.verbaria.server.ui.DocumentAction;
+import org.verbaria.server.ui.TextFlowGateway;
 
 @Route(value = "translate/:projectSlug/:versionSlug/:localeId", layout = MainLayout.class)
 @AnonymousAllowed
@@ -197,6 +200,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          ProjectRepository projectRepository,
                          ReviewPermissionService reviewPermission,
                          DocumentAdminService documentAdminService,
+                         List<DocumentAction> documentActions,
+                         TextFlowGateway textFlowGateway,
                          ObjectProvider<TranslationRow> rowFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
@@ -211,6 +216,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.projectRepository = projectRepository;
         this.reviewPermission = reviewPermission;
         this.documentAdminService = documentAdminService;
+        this.documentActions = documentActions;
+        this.textFlowGateway = textFlowGateway;
         this.rowFactory = rowFactory;
         setSizeFull();
         setPadding(true);
@@ -220,6 +227,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final ProjectRepository projectRepository;
     private final ReviewPermissionService reviewPermission;
     private final DocumentAdminService documentAdminService;
+    private final List<DocumentAction> documentActions;
+    private final TextFlowGateway textFlowGateway;
     /** Project-level message-evaluate setting, resolved per navigation. */
     private MessageEvaluateType messageEvaluateType = MessageEvaluateType.NONE;
 
@@ -368,17 +377,28 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         Popover filterPop = setupFilter();
         headingRight.add(filterButton);
 
-        MenuBar overflow = new MenuBar();
-        overflow.addThemeVariants(MenuBarVariant.TERTIARY, MenuBarVariant.SMALL);
-        var more = overflow.addItem(
-                LineAwesomeIcon.ELLIPSIS_V_SOLID.create());
+        Button more = new Button(LineAwesomeIcon.ELLIPSIS_V_SOLID.create());
+        more.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
         more.getElement().setAttribute("title",
                 getTranslation("translate.moreActions"));
         more.getElement().setAttribute("aria-label",
                 getTranslation("translate.moreActions"));
-        more.getSubMenu().addItem(getTranslation("translate.editorSettings"),
+        ContextMenu moreMenu = new ContextMenu(more);
+        moreMenu.setOpenOnClick(true);
+        moreMenu.addItem(getTranslation("translate.editorSettings"),
                 e -> openEditorSettings());
-        headingRight.add(overflow);
+        if (isAuthenticated() && !documentActions.isEmpty()) {
+            String projectType =
+                    translationEditService.documentProjectType(docIdForProvider);
+            for (DocumentAction action : documentActions) {
+                if (!action.appliesTo(projectType)) {
+                    continue;
+                }
+                moreMenu.addItem(getTranslation(action.labelKey()),
+                        e -> runDocumentAction(action, docIdForProvider));
+            }
+        }
+        headingRight.add(more);
 
         this.toolbarActions = headingRight;
         add(statsPopover, filterPop);
@@ -643,6 +663,29 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                     res.translated(), res.translated()),
                     4000, Notification.Position.BOTTOM_START);
             rowsGrid.getDataProvider().refreshAll();
+        });
+    }
+
+    /**
+     * Run a Spring-contributed document-level {@link DocumentAction} (e.g. the
+     * consulo "Replace mnemonics" extraction) under a progress dialog — a large
+     * doc may have hundreds of entries — then refresh the grid so any source
+     * changes show immediately.
+     */
+    private void runDocumentAction(DocumentAction action, Long docId) {
+        progressDialogs.run(getTranslation(action.progressKey()),
+                handle -> action.run(textFlowGateway, docId))
+                .whenComplete((changed, err) -> {
+            if (err != null) {
+                Notification.show(getTranslation("common.failed", err.getMessage()),
+                        5000, Notification.Position.MIDDLE);
+                return;
+            }
+            Notification.show(getTranslation(action.resultKey(), changed),
+                    3000, Notification.Position.BOTTOM_START);
+            if (changed != null && changed > 0) {
+                rowsGrid.getDataProvider().refreshAll();
+            }
         });
     }
 

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>server-ui-api</artifactId>
+    <name>Verbaria Server UI API</name>
+    <description>SPI for adapter/extension contributions to the Verbaria server UI
+        (e.g. per-text-flow editor fields such as the Consulo mnemonic).
+        Framework-agnostic so adapters can declare UI without depending on Vaadin.</description>
+    <packaging>jar</packaging>
+
+    <parent>
+        <groupId>org.zanata</groupId>
+        <artifactId>parent</artifactId>
+        <version>6.1.2</version>
+        <relativePath>../parent/pom.xml</relativePath>
+    </parent>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>25.2.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.zanata</groupId>
+            <artifactId>zanata-common-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>flow-server</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

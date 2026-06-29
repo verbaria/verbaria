@@ -70,6 +70,10 @@ import org.verbaria.server.headless.validation.LanguageValidator;
 import org.verbaria.server.headless.validation.MessageFormatValidator;
 import org.verbaria.server.ui.vaadin.ProgressDialogService;
 import org.verbaria.server.ui.vaadin.AvatarService;
+import org.verbaria.server.ui.TextFlowGateway;
+import org.verbaria.server.ui.TextFlowMetadataContext;
+import org.verbaria.server.ui.TextFlowMetadataProvider;
+import org.verbaria.server.ui.TextFlowSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,6 +98,8 @@ public class TranslationRow extends Div {
     private final LocaleMemberRepository localeMemberRepository;
     private final MessageEvaluators messageEvaluators;
     private final AvatarService avatarService;
+    private final List<TextFlowMetadataProvider> metadataProviders;
+    private final TextFlowGateway textFlowGateway;
 
     private RowContext ctx;
     private HTextFlow flow;
@@ -132,7 +138,9 @@ public class TranslationRow extends Div {
                           LocaleRepository localeRepository,
                           LocaleMemberRepository localeMemberRepository,
                           MessageEvaluators messageEvaluators,
-                          AvatarService avatarService) {
+                          AvatarService avatarService,
+                          List<TextFlowMetadataProvider> metadataProviders,
+                          TextFlowGateway textFlowGateway) {
         this.languageValidator = languageValidator;
         this.messageEvaluators = messageEvaluators;
         this.taskScheduler = taskScheduler;
@@ -148,6 +156,8 @@ public class TranslationRow extends Div {
         this.localeRepository = localeRepository;
         this.localeMemberRepository = localeMemberRepository;
         this.avatarService = avatarService;
+        this.metadataProviders = metadataProviders;
+        this.textFlowGateway = textFlowGateway;
     }
 
     public TranslationRow populate(RowContext ctx, HTextFlow flow,
@@ -272,9 +282,13 @@ public class TranslationRow extends Div {
         this.editorArea = area;
         area.setValue(isSourceLocale ? source : initialContent);
         area.setReadOnly(!canEdit);
-        // Consulo raw sub-file: highlight by its extension.
+        // Consulo raw sub-file: highlight by its extension and give the editor a
+        // taller viewport — it holds a whole file, not a short message string.
         area.setModeForFileExtension(
                 translationEditService.consuloContentType(flow));
+        if (translationEditService.isConsuloFile(flow)) {
+            area.setHeight("20rem");
+        }
         liveContent = isSourceLocale ? source : initialContent;
         if (liveContent == null) liveContent = "";
         // Single point that keeps the live text fresh (the AceChanged event
@@ -285,7 +299,7 @@ public class TranslationRow extends Div {
             refreshActions();
         });
 
-        Component extField = buildConsuloExtensionField(area);
+        Component metaFields = buildMetadataFields();
 
         if (canEdit && !isSourceLocale) {
             Shortcuts.addShortcutListener(area, () -> area.setValue(source),
@@ -351,8 +365,9 @@ public class TranslationRow extends Div {
         actionRow.setSpacing(true);
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
-        if (extField != null) right.add(extField);
-        right.add(area, actionRow, historyPanel);
+        right.add(area);
+        if (metaFields != null) right.add(metaFields);
+        right.add(actionRow, historyPanel);
         return right;
     }
 
@@ -447,43 +462,31 @@ public class TranslationRow extends Div {
     }
 
     /**
-     * For a consulo raw sub-file, an editable "Extension" field. Reviewers may
-     * change it to any value; the change is persisted and immediately re-applies
-     * the editor's syntax highlighting. Returns {@code null} when the flow is
-     * not a consulo sub-file (an ordinary {@code key: text} entry).
+     * Places every Spring-contributed {@link TextFlowMetadataProvider} editor
+     * that applies to this source flow (e.g. the consulo extension / mnemonic
+     * controls). Each provider builds its own (adaptive) Vaadin UI and persists
+     * through the gateway. Returns {@code null} when nothing applies.
      */
-    private Component buildConsuloExtensionField(TranslationEditor area) {
-        if (!translationEditService.isConsuloFile(flow)) {
-            return null;
-        }
-        String ext = translationEditService.consuloExtension(flow);
-        TextField field = new TextField(getTranslation("translate.row.extension"));
-        field.setValue(ext == null ? "" : ext);
-        field.addThemeVariants(TextFieldVariant.SMALL);
-        field.setWidth("10rem");
-        field.setReadOnly(!canReview);
-        if (!canReview) {
-            field.setHelperText(
-                    getTranslation("translate.row.extensionReviewerOnly"));
-        }
-        // Listener added AFTER setValue so the initial value doesn't persist.
-        field.addValueChangeListener(e -> {
-            String val = e.getValue() == null ? "" : e.getValue().trim();
-            if (val.startsWith(".")) val = val.substring(1);
-            try {
-                translationEditService.updateConsuloFileExt(flow.getId(), val);
-                area.setModeForFileExtension(val);
-                Notification.show(getTranslation("translate.row.extensionSaved"),
-                        2000, Notification.Position.BOTTOM_START);
-            } catch (Exception ex) {
-                log.error("Failed to save consulo extension for textFlow {}",
-                        flow.getId(), ex);
-                Notification.show(getTranslation(
-                        "translate.row.extensionSaveFailed", ex.getMessage()),
-                        4000, Notification.Position.MIDDLE);
+    private Component buildMetadataFields() {
+        long id = flow.getId();
+        // One eager load shared by every provider's appliesTo + editor.
+        TextFlowSnapshot snapshot = textFlowGateway.snapshot(id);
+        TextFlowMetadataContext context = new TextFlowMetadataContext(
+                textFlowGateway, id, snapshot, canEdit, canReview);
+        VerticalLayout wrap = new VerticalLayout();
+        wrap.setPadding(false);
+        wrap.setSpacing(true);
+        wrap.setWidthFull();
+        // Breathing room between the editor text above and the fields.
+        wrap.addClassNames(AuraUtility.Margin.Top.MEDIUM);
+        boolean any = false;
+        for (TextFlowMetadataProvider provider : metadataProviders) {
+            if (provider.appliesTo(context)) {
+                wrap.add(provider.editor(context));
+                any = true;
             }
-        });
-        return field;
+        }
+        return any ? wrap : null;
     }
 
     /** True when this translation predates the current source revision. */

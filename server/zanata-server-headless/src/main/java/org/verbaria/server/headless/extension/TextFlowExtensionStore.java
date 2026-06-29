@@ -1,5 +1,7 @@
 package org.verbaria.server.headless.extension;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
@@ -40,6 +42,17 @@ public class TextFlowExtensionStore {
                 dto.getExtensions(true).add(pojo);
             }
         }
+    }
+
+    public List<TextFlowExtension> all(HTextFlow htf) {
+        List<TextFlowExtension> out = new ArrayList<>();
+        for (HTextFlowExtension row : htf.getExtensions()) {
+            TextFlowExtension pojo = read(row.getJson());
+            if (pojo != null) {
+                out.add(pojo);
+            }
+        }
+        return out;
     }
 
     public Optional<String> contentType(HTextFlow htf) {

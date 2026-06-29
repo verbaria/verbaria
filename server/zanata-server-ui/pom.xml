@@ -23,6 +23,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.zanata</groupId>
+            <artifactId>server-ui-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
         </dependency>
