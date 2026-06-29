@@ -142,7 +142,7 @@ public class PropWriter {
         try (OutputStream out = new BufferedOutputStream(
                 Files.newOutputStream(file))) {
             if (charset.alias.equals(StandardCharsets.UTF_8)) {
-                Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8.displayName());
+                Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
                 props.store(writer, null);
             } else {
                 props.store(out, null);

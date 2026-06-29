@@ -103,7 +103,9 @@ public abstract class AbstractPropertiesDocumentLayout implements DocumentLayout
         try {
             TranslatedDoc td =
                     new TranslatedDoc(source, translation, new LocaleId(localeId));
-            PropWriter.writeTranslationsFile(td, tmp.toPath(), charset, true, false);
+
+            PropWriter.writeTranslationsFile(td, tmp.toPath(), charset, false,
+                    false);
             return Files.readAllBytes(tmp.toPath());
         } finally {
             tmp.delete();
