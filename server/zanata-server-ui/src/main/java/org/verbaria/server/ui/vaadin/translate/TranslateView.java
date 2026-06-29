@@ -130,7 +130,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final TranslationEditService translationEditService;
     private final AiTranslationService aiTranslationService;
     private final BreadcrumbsService breadcrumbsService;
-    private final ObjectProvider<TranslationRow> rowFactory;
+    private final ObjectProvider<TranslateDialog> dialogFactory;
 
     private LocaleId currentLocale;
     private LocaleId sourceLocale;
@@ -198,7 +198,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                          DocumentAdminService documentAdminService,
                          List<DocumentAction> documentActions,
                          TextFlowGateway textFlowGateway,
-                         ObjectProvider<TranslationRow> rowFactory) {
+                         ObjectProvider<TranslateDialog> dialogFactory) {
         this.documentRepository = documentRepository;
         this.textFlowRepository = textFlowRepository;
         this.targetRepository = targetRepository;
@@ -214,7 +214,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         this.documentAdminService = documentAdminService;
         this.documentActions = documentActions;
         this.textFlowGateway = textFlowGateway;
-        this.rowFactory = rowFactory;
+        this.dialogFactory = dialogFactory;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -447,10 +447,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         if (clicked == null) {
             return;
         }
-        TranslationRow row = rowFactory.getObject().populate(
-                rowContext(), clicked.flow(), clicked.existing(), clicked.state(),
-                clicked.source(), false, true);
-        new TranslateDialog(clicked.source(), row, row.historyTab()).open();
+        dialogFactory.getObject().show(rowContext(), clicked.flow(),
+                clicked.existing(), clicked.state(), clicked.source());
     }
 
     /**
