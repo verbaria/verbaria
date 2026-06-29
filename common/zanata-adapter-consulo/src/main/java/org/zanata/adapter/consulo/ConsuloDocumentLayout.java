@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.springframework.stereotype.Component;
 import org.zanata.adapter.layout.DocumentLayout;
@@ -116,29 +117,46 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     @Override
     public Map<String, byte[]> writeSourceFiles(Resource source,
             String sourceLocaleId) throws IOException {
+        return writeFiles(source, sourceLocaleId,
+                ConsuloDocumentLayout::firstContent);
+    }
+
+    /**
+     * Shared source / translation file writer: raw sub-file entries (those with
+     * a {@link ConsuloSubFile} extension) are written as their own files, the
+     * rest go inline into the {@code <doc>.yaml}. The only difference between
+     * source and translation is where each entry's content comes from, supplied
+     * by {@code content} (returns {@code null} to skip an entry).
+     */
+    private static Map<String, byte[]> writeFiles(Resource source,
+            String localeId, Function<TextFlow, String> content)
+            throws IOException {
         Map<String, byte[]> out = new LinkedHashMap<>();
         Map<String, ConsuloWriter.Entry> yamlEntries = new LinkedHashMap<>();
-        String base = sourceLocaleId.replace('-', '_') + "/"
-                + source.getName();
+        String base = localeId.replace('-', '_') + "/" + source.getName();
         for (TextFlow tf : source.getTextFlows()) {
-            if (tf.getContents() == null || tf.getContents().isEmpty()) {
+            String c = content.apply(tf);
+            if (c == null) {
                 continue;
             }
-            String content = tf.getContents().get(0);
             ConsuloSubFile sub = tf.getExtensions() == null ? null
                     : tf.getExtensions().findByType(ConsuloSubFile.class);
             if (sub != null && sub.getExtension() != null
                     && !sub.getExtension().isEmpty()) {
                 String rel = humanKey(tf).replace('.', '/') + "."
                         + sub.getExtension();
-                out.put(base + "/" + rel,
-                        content.getBytes(StandardCharsets.UTF_8));
+                out.put(base + "/" + rel, c.getBytes(StandardCharsets.UTF_8));
             } else {
-                yamlEntries.put(humanKey(tf), entry(tf, content));
+                yamlEntries.put(humanKey(tf), entry(tf, c));
             }
         }
         out.put(base + ".yaml", render(yamlEntries));
         return out;
+    }
+
+    private static String firstContent(TextFlow tf) {
+        return tf.getContents() == null || tf.getContents().isEmpty()
+                ? null : tf.getContents().get(0);
     }
 
     private static boolean isAnchor(String path, String docId) {
@@ -168,6 +186,28 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
     @Override
     public byte[] writeTranslation(Resource source, TranslationsResource translation,
             String localeId) throws IOException {
+        Map<String, String> byResId = targetsByResId(translation);
+        Map<String, ConsuloWriter.Entry> entries = new LinkedHashMap<>();
+        for (TextFlow tf : source.getTextFlows()) {
+            String content = byResId.get(tf.getId());
+            if (content == null) {
+                continue;
+            }
+            entries.put(humanKey(tf), entry(tf, content));
+        }
+        return render(entries);
+    }
+
+    @Override
+    public Map<String, byte[]> writeTranslationFiles(Resource source,
+            TranslationsResource translation, String localeId)
+            throws IOException {
+        Map<String, String> byResId = targetsByResId(translation);
+        return writeFiles(source, localeId, tf -> byResId.get(tf.getId()));
+    }
+
+    private static Map<String, String> targetsByResId(
+            TranslationsResource translation) {
         Map<String, String> byResId = new LinkedHashMap<>();
         if (translation.getTextFlowTargets() != null) {
             for (TextFlowTarget t : translation.getTextFlowTargets()) {
@@ -179,15 +219,7 @@ public final class ConsuloDocumentLayout implements DocumentLayout {
                 }
             }
         }
-        Map<String, ConsuloWriter.Entry> entries = new LinkedHashMap<>();
-        for (TextFlow tf : source.getTextFlows()) {
-            String content = byResId.get(tf.getId());
-            if (content == null) {
-                continue;
-            }
-            entries.put(humanKey(tf), entry(tf, content));
-        }
-        return render(entries);
+        return byResId;
     }
 
     private static ConsuloWriter.Entry entry(TextFlow tf, String content) {

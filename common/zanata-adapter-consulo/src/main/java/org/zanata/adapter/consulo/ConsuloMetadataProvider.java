@@ -15,12 +15,14 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import org.springframework.context.annotation.Conditional;
 import org.verbaria.server.ui.TextFlowGateway;
 import org.verbaria.server.ui.TextFlowMetadataContext;
 import org.verbaria.server.ui.TextFlowMetadataProvider;
 import org.zanata.rest.dto.extensions.consulo.ConsuloSubFile;
 
 @org.springframework.stereotype.Component
+@Conditional(VaadinPresent.class)
 public class ConsuloMetadataProvider implements TextFlowMetadataProvider {
 
     @Override
