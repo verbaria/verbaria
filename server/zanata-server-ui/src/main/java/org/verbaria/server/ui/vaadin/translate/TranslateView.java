@@ -146,13 +146,9 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     private final RadioButtonGroup<TranslateFilterMode> filterMode =
             new RadioButtonGroup<>();
     private Button filterButton;
-    /** Grid (summary columns + expandable editor details) driven by a
-     * server-paged CallbackDataProvider. */
+    /** Grid (summary columns) driven by a server-paged CallbackDataProvider;
+     * clicking a row opens the full editor in a dialog. */
     private final Grid<RowData> rowsGrid = new Grid<>();
-    /** The row whose details are currently expanded, and its live editor, so a
-     * click on another row can guard against discarding unsaved edits. */
-    private RowData openRow;
-    private TranslationRow openEditor;
 
     /**
      * Snapshot of everything the row renderer needs. Equality/hashCode are
@@ -407,8 +403,7 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
         // editor only in an expandable details row, so documents with hundreds
         // of text-flows (e.g. Consulo *Localize.yaml, 300+) stay responsive.
         if (rowsGrid.getColumns().isEmpty()) {
-            rowsGrid.setSizeFull();
-            rowsGrid.getStyle().set("max-width", "100%");
+            rowsGrid.setWidthFull();
             rowsGrid.addClassNames(AuraUtility.MinHeight.NONE, "clickable-rows");
             rowsGrid.setSelectionMode(Grid.SelectionMode.NONE);
             rowsGrid.addThemeVariants(GridVariant.NO_BORDER,
@@ -423,19 +418,8 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
                     .setAutoWidth(true).setFlexGrow(0);
             rowsGrid.addColumn(new ComponentRenderer<>(this::aiCell))
                     .setHeader("").setAutoWidth(true).setFlexGrow(0);
-            rowsGrid.setItemDetailsRenderer(
-                    new ComponentRenderer<Component, RowData>(d -> {
-                        TranslationRow row = rowFactory.getObject().populate(
-                                rowContext(), d.flow(), d.existing(), d.state(),
-                                d.source(), true);
-                        openEditor = row;
-                        return row;
-                    }));
-            rowsGrid.setDetailsVisibleOnClick(false);
-            rowsGrid.addItemClickListener(e -> handleRowClick(e.getItem()));
+            rowsGrid.addItemClickListener(e -> openRowDialog(e.getItem()));
         }
-        openRow = null;
-        openEditor = null;
         addAndExpand(rowsGrid);
 
         installDataProvider(docIdForProvider);
@@ -455,45 +439,18 @@ public class TranslateView extends VerticalLayout implements BeforeEnterObserver
     }
 
     /**
-     * Details now open via this explicit click handler instead of
-     * {@code setDetailsVisibleOnClick(true)}: clicking the open row toggles it
-     * closed, while switching to another row is blocked with a warning when the
-     * open editor still has unsaved edits.
+     * Open the full editor for a text flow in a {@link TranslateDialog}. Saves
+     * inside the dialog refresh the grid (via {@link #refreshRows()} in the row
+     * context), so the summary cells reflect the new values.
      */
-    private void handleRowClick(RowData clicked) {
-        if (clicked == null || clicked.equals(openRow)) {
+    private void openRowDialog(RowData clicked) {
+        if (clicked == null) {
             return;
         }
-        if (openRow != null && openEditor != null && openEditor.isDirty()) {
-            showUnsavedWarning(() -> applyRowClick(clicked));
-            return;
-        }
-        applyRowClick(clicked);
-    }
-
-    private void applyRowClick(RowData clicked) {
-        if (openRow != null) {
-            rowsGrid.setDetailsVisible(openRow, false);
-        }
-        rowsGrid.setDetailsVisible(clicked, true);
-        openRow = clicked;
-    }
-
-    private void showUnsavedWarning(Runnable onDiscard) {
-        Dialog dlg = new Dialog();
-        dlg.setHeaderTitle(getTranslation("translate.unsaved.title"));
-        dlg.add(new Paragraph(getTranslation("translate.unsaved.message")));
-        Button keep = new Button(getTranslation("translate.unsaved.keep"),
-                e -> dlg.close());
-        keep.addThemeVariants(ButtonVariant.PRIMARY);
-        Button discard = new Button(getTranslation("translate.unsaved.discard"),
-                e -> {
-                    dlg.close();
-                    onDiscard.run();
-                });
-        discard.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.ERROR);
-        dlg.getFooter().add(discard, keep);
-        dlg.open();
+        TranslationRow row = rowFactory.getObject().populate(
+                rowContext(), clicked.flow(), clicked.existing(), clicked.state(),
+                clicked.source(), false, true);
+        new TranslateDialog(clicked.source(), row, row.historyTab()).open();
     }
 
     /**

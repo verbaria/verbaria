@@ -123,6 +123,10 @@ public class TranslationRow extends Div {
     private boolean canEdit;
     private boolean canReview;
     private boolean detailsMode;
+    /** When true the inline history is suppressed and exposed via
+     * {@link #historyTab()} for a separate tab instead. */
+    private boolean tabbed;
+    private Div historyPanel;
 
     public TranslationRow(LanguageValidator languageValidator,
                           TaskScheduler taskScheduler,
@@ -163,9 +167,10 @@ public class TranslationRow extends Div {
     public TranslationRow populate(RowContext ctx, HTextFlow flow,
                                    Optional<HTextFlowTarget> existing,
                                    ContentState initialState, String source,
-                                   boolean detailsMode) {
+                                   boolean detailsMode, boolean tabbed) {
         this.ctx = ctx;
         this.detailsMode = detailsMode;
+        this.tabbed = tabbed;
         this.flow = flow;
         this.initialState = initialState;
         this.currentState = initialState;
@@ -197,30 +202,48 @@ public class TranslationRow extends Div {
                     AuraUtility.BoxSizing.BORDER,
                     AuraUtility.Overflow.HIDDEN);
         }
-        setWidthFull();
-
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setSpacing(false);
-        row.addClassNames(AuraUtility.BoxSizing.BORDER);
-
         VerticalLayout left = buildLeftColumn();
         VerticalLayout right = buildRightColumn();
 
-        row.add(left, right);
-        row.setFlexGrow(1, left);
-        row.setFlexGrow(1, right);
-        add(row);
+        if (tabbed) {
+            // In the dialog the row stacks vertically (source above, editor
+            // below). It grows to fill the scroll container, but never shrinks
+            // below its content (flex: 1 0 auto), so overflow scrolls instead.
+            setWidthFull();
+            getStyle().set("flex", "1 0 auto");
+            VerticalLayout col = new VerticalLayout(left, right);
+            col.setSizeFull();
+            col.setPadding(false);
+            col.setSpacing(true);
+            col.setFlexGrow(1, right);
+            add(col);
+        } else {
+            setWidthFull();
+            HorizontalLayout row = new HorizontalLayout(left, right);
+            row.setWidthFull();
+            row.setSpacing(false);
+            row.addClassNames(AuraUtility.BoxSizing.BORDER);
+            row.setFlexGrow(1, left);
+            row.setFlexGrow(1, right);
+            add(row);
+        }
     }
 
     private VerticalLayout buildLeftColumn() {
         VerticalLayout left = new VerticalLayout();
         left.setPadding(false);
         left.setSpacing(false);
-        left.setWidth(null);
-        left.addClassNames(AuraUtility.Flex.ONE,
-                AuraUtility.Border.RIGHT, AuraUtility.BorderColor.DEFAULT,
-                AuraUtility.Padding.Right.LARGE, AuraUtility.Margin.Right.LARGE, AuraUtility.MinWidth.NONE);
+        if (tabbed) {
+            // Stacked vertically in the dialog: full width, no side divider.
+            left.setWidthFull();
+            left.addClassNames(AuraUtility.MinWidth.NONE);
+        } else {
+            left.setWidth(null);
+            left.addClassNames(AuraUtility.Flex.ONE,
+                    AuraUtility.Border.RIGHT, AuraUtility.BorderColor.DEFAULT,
+                    AuraUtility.Padding.Right.LARGE, AuraUtility.Margin.Right.LARGE,
+                    AuraUtility.MinWidth.NONE);
+        }
 
         String context = translationEditService.gettextContext(flow);
         String displayKey = context != null && !context.isEmpty()
@@ -247,15 +270,28 @@ public class TranslationRow extends Div {
 
         HorizontalLayout leftBtns = new HorizontalLayout(detailsBtn, bookmarkBtn);
         leftBtns.setSpacing(true);
-        if (!detailsMode) {
-            left.add(resId, srcText);
-        }
         // Source comment is per-key (source) metadata: a toggle icon sits in the
-        // action line with details/bookmark and reveals the comment block below.
+        // action line with details/bookmark and reveals the comment block.
         Component commentArea = buildSourceComment(leftBtns);
-        left.add(leftBtns);
+
+        // Source key / text / action buttons grouped on the left.
+        VerticalLayout info = new VerticalLayout();
+        info.setPadding(false);
+        info.setSpacing(false);
+        if (!detailsMode) {
+            info.add(resId, srcText);
+        }
+        info.add(leftBtns);
+
         if (commentArea != null) {
-            left.add(commentArea);
+            // Source info on the left, the comment block filling the right.
+            HorizontalLayout sourceRow = new HorizontalLayout(info, commentArea);
+            sourceRow.setWidthFull();
+            sourceRow.setAlignItems(FlexComponent.Alignment.START);
+            sourceRow.setFlexGrow(1, commentArea);
+            left.add(sourceRow);
+        } else {
+            left.add(info);
         }
         left.add(detailsPanel);
         return left;
@@ -265,8 +301,13 @@ public class TranslationRow extends Div {
         VerticalLayout right = new VerticalLayout();
         right.setPadding(false);
         right.setSpacing(false);
-        right.setWidth(null);
         right.addClassNames(AuraUtility.Flex.ONE, AuraUtility.MinWidth.NONE);
+        if (tabbed) {
+            right.setWidthFull();
+            right.setHeightFull();
+        } else {
+            right.setWidth(null);
+        }
 
         LocaleId rowLocale = isSourceLocale ? ctx.sourceLocale() : ctx.currentLocale();
         // Natural-language checks (warnings) plus, when the project uses a
@@ -286,7 +327,12 @@ public class TranslationRow extends Div {
         // taller viewport — it holds a whole file, not a short message string.
         area.setModeForFileExtension(
                 translationEditService.consuloContentType(flow));
-        if (translationEditService.isConsuloFile(flow)) {
+        if (tabbed) {
+            // Grow the editor to fill the (resizable) dialog vertically.
+            area.setHeight(null);
+            area.setWidthFull();
+            area.getElement().getStyle().set("min-height", "8rem");
+        } else if (translationEditService.isConsuloFile(flow)) {
             area.setHeight("20rem");
         }
         liveContent = isSourceLocale ? source : initialContent;
@@ -325,9 +371,10 @@ public class TranslationRow extends Div {
         Button historyBtn = new Button(getTranslation("translate.action.history"),
                 LineAwesomeIcon.CLOCK_SOLID.create());
         historyBtn.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.SMALL);
-        Div historyPanel = buildHistoryPanel(flow.getId(), initialContent,
+        historyPanel = buildHistoryPanel(flow.getId(), initialContent,
                 () -> area.getValue());
-        boolean initiallyOpen = ctx.historyExpanded().contains(flow.getId())
+        boolean initiallyOpen = tabbed
+                || ctx.historyExpanded().contains(flow.getId())
                 || (ctx.prefs().autoOpenHistory()
                         && !ctx.historyCollapsed().contains(flow.getId()));
         historyPanel.setVisible(initiallyOpen);
@@ -356,8 +403,11 @@ public class TranslationRow extends Div {
         Button evaluateBtn = buildEvaluateButton(area);
         Component reviewWarn = buildNeedsReviewBadge();
 
-        HorizontalLayout actionRow = new HorizontalLayout(
-                save, approve, reject, historyBtn, stateSpan);
+        HorizontalLayout actionRow = new HorizontalLayout(save, approve, reject);
+        // In tabbed mode history lives in its own tab, so the inline toggle and
+        // panel are omitted here.
+        if (!tabbed) actionRow.add(historyBtn);
+        actionRow.add(stateSpan);
         if (aiBtn != null) actionRow.add(aiBtn);
         if (evaluateBtn != null) actionRow.add(evaluateBtn);
         if (reviewWarn != null) actionRow.add(reviewWarn);
@@ -366,9 +416,17 @@ public class TranslationRow extends Div {
         actionRow.addClassNames(AuraUtility.Margin.Top.SMALL, AuraUtility.FlexWrap.WRAP);
 
         right.add(area);
+        if (tabbed) right.setFlexGrow(1, area);
         if (metaFields != null) right.add(metaFields);
-        right.add(actionRow, historyPanel);
+        right.add(actionRow);
+        if (!tabbed) right.add(historyPanel);
         return right;
+    }
+
+    /** The history panel, for hosting in a separate tab (tabbed mode). */
+    public Component historyTab() {
+        historyPanel.setWidthFull();
+        return historyPanel;
     }
 
     /**
@@ -930,6 +988,7 @@ public class TranslationRow extends Div {
         Grid<HistoryRow> grid = new Grid<>();
         grid.setItems(rows);
         grid.setAllRowsVisible(true);
+        grid.setWidthFull();
         grid.setSelectionMode(Grid.SelectionMode.MULTI);
         grid.addColumn(HistoryRow::version).setHeader(getTranslation("translate.history.col.version"))
                 .setAutoWidth(true).setFlexGrow(0);
@@ -938,8 +997,10 @@ public class TranslationRow extends Div {
         grid.addComponentColumn(this::historyAuthorCell)
                 .setHeader(getTranslation("translate.history.col.by"))
                 .setAutoWidth(true).setFlexGrow(0);
+        // Fixed width: a full timestamp is long and would otherwise force the
+        // grid wider than the dialog (horizontal scroll).
         grid.addColumn(HistoryRow::when).setHeader(getTranslation("translate.history.col.when"))
-                .setAutoWidth(true).setFlexGrow(0);
+                .setWidth("11rem").setFlexGrow(0);
         grid.addColumn(HistoryRow::source).setHeader(getTranslation("translate.history.col.source"))
                 .setAutoWidth(true).setFlexGrow(0);
         grid.addColumn(r -> {
