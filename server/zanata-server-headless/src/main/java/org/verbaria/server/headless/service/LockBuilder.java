@@ -5,10 +5,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 import org.zanata.common.ContentState;
-import org.zanata.rest.dto.Person;
 import org.zanata.rest.dto.resource.Resource;
 import org.zanata.rest.dto.resource.TextFlow;
 import org.zanata.rest.dto.resource.TextFlowTarget;
@@ -60,30 +58,17 @@ final class LockBuilder {
         included.sort(Comparator.comparing(TextFlowTarget::getResId,
                 Comparator.nullsFirst(Comparator.naturalOrder())));
         StringBuilder sb = new StringBuilder();
-        int maxRank = -1;
-        ContentState representative = null;
-        TreeSet<String> translators = new TreeSet<>();
         for (TextFlowTarget t : included) {
+            // The signature folds in resId, state and revision — all the
+            // changelog needs to detect a change. The translators are NOT stored
+            // here: the server derives them from its own history at changelog
+            // time (using the previous lock as the baseline).
             sb.append(t.getResId()).append(UNIT)
                     .append(t.getState()).append(UNIT)
                     .append(t.getRevision()).append(RECORD);
-            int r = rank(t.getState());
-            if (r > maxRank) {
-                maxRank = r;
-                representative = t.getState();
-            }
-            String who = formatPerson(t.getTranslator());
-            if (who != null) {
-                translators.add(who);
-            }
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sig", HashUtil.generateHash(sb.toString()));
-        out.put("state", representative == null ? null : representative.name());
-        out.put("total", included.size());
-        if (!translators.isEmpty()) {
-            out.put("translators", new ArrayList<>(translators));
-        }
         return out;
     }
 
@@ -96,38 +81,5 @@ final class LockBuilder {
             case NeedReview -> includeFuzzy;
             default -> false;
         };
-    }
-
-    private static int rank(ContentState state) {
-        if (state == null) {
-            return 0;
-        }
-        return switch (state) {
-            case Approved -> 4;
-            case Translated -> 3;
-            case NeedReview -> 2;
-            case Rejected -> 1;
-            default -> 0;
-        };
-    }
-
-    private static String formatPerson(Person person) {
-        if (person == null) {
-            return null;
-        }
-        String name = person.getName();
-        String email = person.getEmail();
-        boolean hasName = name != null && !name.isBlank();
-        boolean hasEmail = email != null && !email.isBlank();
-        if (hasName && hasEmail) {
-            return name.trim() + " <" + email.trim() + ">";
-        }
-        if (hasName) {
-            return name.trim();
-        }
-        if (hasEmail) {
-            return email.trim() + " <" + email.trim() + ">";
-        }
-        return null;
     }
 }

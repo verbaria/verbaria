@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.verbaria.server.headless.changelog.ChangelogService;
 import org.verbaria.server.headless.changelog.LockChangelog;
 import org.verbaria.server.headless.changelog.VerbariaLock;
 import org.verbaria.server.headless.changelog.VerbariaLockReaderWriter;
@@ -25,9 +26,12 @@ import org.verbaria.server.headless.repository.AccountRepository;
 public class ChangelogController {
 
     private final AccountRepository accountRepository;
+    private final ChangelogService changelogService;
 
-    public ChangelogController(AccountRepository accountRepository) {
+    public ChangelogController(AccountRepository accountRepository,
+            ChangelogService changelogService) {
         this.accountRepository = accountRepository;
+        this.changelogService = changelogService;
     }
 
     @PostMapping(value = "/changelog",
@@ -54,9 +58,8 @@ public class ChangelogController {
             if (after == null) {
                 return ResponseEntity.badRequest().body("Missing new lock");
             }
-            String rendered = LockChangelog.between(before, after)
-                    .excludeAuthors(split(excludeAuthors))
-                    .render(fmt);
+            String rendered = changelogService.render(before, after, fmt,
+                    split(excludeAuthors));
             return ResponseEntity.ok()
                     .contentType(new MediaType(MediaType.TEXT_PLAIN,
                             StandardCharsets.UTF_8))

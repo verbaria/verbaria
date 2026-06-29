@@ -120,6 +120,34 @@ public final class LockChangelog {
         return this;
     }
 
+    /**
+     * Supply Co-authored-by identities computed elsewhere (the server derives
+     * them from its translation history rather than reading them from the lock).
+     */
+    public LockChangelog withCoAuthors(Collection<String> who) {
+        if (who != null) {
+            for (String w : who) {
+                if (w != null && !w.isBlank()) {
+                    coAuthors.add(w.trim());
+                }
+            }
+        }
+        return this;
+    }
+
+    /**
+     * The added/updated {@code docId -> locales} that carry author attribution,
+     * so a caller can look up who translated them.
+     */
+    public Map<String, TreeSet<String>> changedTranslations() {
+        Map<String, TreeSet<String>> out = new TreeMap<>();
+        added.forEach((docId, locales) ->
+                out.computeIfAbsent(docId, k -> new TreeSet<>()).addAll(locales));
+        updated.forEach((docId, locales) ->
+                out.computeIfAbsent(docId, k -> new TreeSet<>()).addAll(locales));
+        return out;
+    }
+
     /** Convenience: diff two locks and render the commit message. */
     public static String render(VerbariaLock oldLock, VerbariaLock newLock) {
         return between(oldLock, newLock).render();

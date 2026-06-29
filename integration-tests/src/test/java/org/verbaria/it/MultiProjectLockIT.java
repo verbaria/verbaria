@@ -81,6 +81,44 @@ class MultiProjectLockIT extends AbstractPushPullIT {
     }
 
     @Test
+    void globPullOmitsDocsWithoutTranslation() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureLocale("fr-FR");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("lfdoca", VERSION);
+        fixtures.ensureProject("lfdocb", VERSION);
+
+        // lfdoca is pushed with an fr-FR translation; lfdocb is source only.
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        Files.writeString(tmp.resolve("messages_fr_FR.properties"),
+                "greeting=Bonjour\n");
+        pushOneProject("lfdoca");
+
+        Files.deleteIfExists(tmp.resolve("messages_fr_FR.properties"));
+        Files.deleteIfExists(tmp.resolve("verbaria-lock.json"));
+        PushOptionsImpl src = pushOpts("source", "properties", "lfdocb");
+        src.setIncludes("messages*.properties");
+        new PushCommand(src).run();
+
+        Files.deleteIfExists(tmp.resolve("verbaria-lock.json"));
+        PullOptionsImpl pull = pullOpts("both", "properties", "lfdoc**");
+        pull.setLocaleMapList(frLocales());
+        pull.setIncludes("messages*.properties");
+        new PullCommand(pull).run();
+
+        VerbariaLock lock = VerbariaLockReaderWriter.readOrNull(
+                tmp.resolve("verbaria-lock.json"));
+        assertThat(lock).isNotNull();
+        assertThat(lock.getDocuments().keySet())
+                .as("a translated doc is tracked in the lock")
+                .contains("lfdoca/messages");
+        assertThat(lock.getDocuments().keySet())
+                .as("a source-only doc (no translation) is omitted from the lock")
+                .doesNotContain("lfdocb/messages");
+    }
+
+    @Test
     void globPullHonoursPinnedTargetLocales() throws Exception {
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");

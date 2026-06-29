@@ -9,11 +9,13 @@ import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.zanata.client.commands.changelog.ChangelogCommand;
 import org.zanata.client.commands.changelog.ChangelogOptionsImpl;
 import org.zanata.client.commands.push.PushCommand;
 import org.zanata.client.commands.push.PushOptionsImpl;
+import org.verbaria.server.headless.changelog.ChangelogService;
 import org.verbaria.server.headless.changelog.LockChangelog;
 import org.verbaria.server.headless.changelog.VerbariaLock;
 import org.verbaria.server.headless.changelog.VerbariaLock.TranslationLock;
@@ -22,6 +24,9 @@ import org.zanata.common.LocaleId;
 import org.zanata.model.HDocument;
 
 class ChangelogIT extends AbstractPushPullIT {
+
+    @Autowired
+    ChangelogService changelogService;
 
     private VerbariaLock sampleLock(String sig, String generatedAt) {
         VerbariaLock lock = new VerbariaLock();
@@ -192,7 +197,10 @@ class ChangelogIT extends AbstractPushPullIT {
 
         VerbariaLock newLock = pullBothAndReadLock("itcls");
 
-        String changelog = LockChangelog.render(oldLock, newLock);
+        // The lock no longer carries translators; the server derives the
+        // Co-authored-by from its history at changelog time.
+        String changelog = changelogService.render(oldLock, newLock,
+                LockChangelog.Format.GIT_COMMIT, List.of());
         assertThat(changelog)
                 .as("changelog must report the source edit with its author; "
                         + "old=%s new=%s",

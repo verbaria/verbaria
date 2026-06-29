@@ -68,8 +68,14 @@ public class LockService {
                 sourceLocale = docSourceId;
                 String key = glob ? project.getSlug() + "/" + d.getDocId()
                         : d.getDocId();
-                documents.put(key, documentLock(d, docSourceId, requestedLocales,
-                        project, includeSourceTarget));
+                Map<String, Object> docLock = documentLock(d, docSourceId,
+                        requestedLocales, project, includeSourceTarget);
+                // Only track documents this repo actually translates: a doc with
+                // no target-locale translation (pure source) is left out, so the
+                // lock isn't bloated with untranslated documents.
+                if (hasTargetTranslation(docLock, docSourceId)) {
+                    documents.put(key, docLock);
+                }
             }
         }
         Map<String, Object> lock = new LinkedHashMap<>();
@@ -82,13 +88,28 @@ public class LockService {
         return lock;
     }
 
+    private static boolean hasTargetTranslation(Map<String, Object> docLock,
+            String sourceLocale) {
+        Object t = docLock.get("translations");
+        if (!(t instanceof Map<?, ?> m)) {
+            return false;
+        }
+        for (Object localeId : m.keySet()) {
+            if (!sameLocale(String.valueOf(localeId), sourceLocale)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Map<String, Object> documentLock(HDocument d, String docSourceId,
             List<String> requestedLocales, HProject project,
             boolean includeSourceTarget) {
         Resource source = exportService.toResource(d);
         Map<String, Object> docLock = new LinkedHashMap<>();
         Map<String, Object> src = new LinkedHashMap<>();
-        src.put("revision", d.getRevision());
+        // The signature is all the changelog needs to detect a source change;
+        // the revision is redundant.
         src.put("sig", LockBuilder.sourceSignature(source));
         docLock.put("source", src);
         Map<String, Object> transLocks = new TreeMap<>();

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.zanata.common.LocaleId;
+import org.zanata.model.HPerson;
 import org.zanata.model.HTextFlowTarget;
 
 @Repository
@@ -120,4 +121,24 @@ public interface TextFlowTargetRepository extends JpaRepository<HTextFlowTarget,
             """)
     List<HTextFlowTarget> findForTextFlows(
             @Param("textFlowIds") Collection<Long> textFlowIds);
+
+    /**
+     * Distinct translators of a document's targets in one locale that were
+     * (re)translated on or after {@code since}, used to attribute a changelog
+     * to the people who actually translated since the previous sync.
+     */
+    @Query("""
+            select distinct per from HTextFlowTarget t
+              join t.translator per
+            where t.textFlow.document.projectIteration.project.slug = :slug
+              and t.textFlow.document.projectIteration.slug = :version
+              and t.textFlow.document.docId = :docId
+              and t.locale.localeId = :locale
+              and t.lastChanged >= :since
+              and (t.state = org.zanata.common.ContentState.Translated
+                   or t.state = org.zanata.common.ContentState.Approved)
+            """)
+    List<HPerson> findTranslatorsSince(@Param("slug") String slug,
+            @Param("version") String version, @Param("docId") String docId,
+            @Param("locale") LocaleId locale, @Param("since") Date since);
 }
