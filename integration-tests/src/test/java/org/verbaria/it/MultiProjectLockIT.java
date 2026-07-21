@@ -119,6 +119,37 @@ class MultiProjectLockIT extends AbstractPushPullIT {
     }
 
     @Test
+    void sourceOnlyPullTracksSourceInLock() throws Exception {
+        tmp = inMemoryRoot();
+        fixtures.ensureLocale("en-US");
+        fixtures.ensureAdmin(USER, API_KEY);
+        fixtures.ensureProject("srconly", VERSION);
+        fixtures.setProjectSourceLocale("srconly", "en-US");
+
+        Files.writeString(tmp.resolve("messages.properties"), "greeting=Hello\n");
+        PushOptionsImpl src = pushOpts("source", "properties", "srconly");
+        src.setIncludes("messages*.properties");
+        new PushCommand(src).run();
+
+        Files.deleteIfExists(tmp.resolve("verbaria-lock.json"));
+        PullOptionsImpl pull = pullOpts("both", "properties", "srconly");
+        pull.setLocaleMapList(enUsLocales());
+        pull.setIncludes("messages*.properties");
+        new PullCommand(pull).run();
+
+        VerbariaLock lock = VerbariaLockReaderWriter.readOrNull(
+                tmp.resolve("verbaria-lock.json"));
+        assertThat(lock).isNotNull();
+        VerbariaLock.DocumentLock doc = lock.getDocuments().get("messages");
+        assertThat(doc)
+                .as("a source-only repo (pulling its own source locale) must "
+                        + "still track the document by its source signature")
+                .isNotNull();
+        assertThat(doc.getSource()).isNotNull();
+        assertThat(doc.getSource().getSig()).isNotBlank();
+    }
+
+    @Test
     void globPullHonoursPinnedTargetLocales() throws Exception {
         tmp = inMemoryRoot();
         fixtures.ensureLocale("en-US");

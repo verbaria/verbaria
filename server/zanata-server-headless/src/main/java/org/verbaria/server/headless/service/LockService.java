@@ -70,10 +70,7 @@ public class LockService {
                         : d.getDocId();
                 Map<String, Object> docLock = documentLock(d, docSourceId,
                         requestedLocales, project, includeSourceTarget);
-                // Only track documents this repo actually translates: a doc with
-                // no target-locale translation (pure source) is left out, so the
-                // lock isn't bloated with untranslated documents.
-                if (hasTargetTranslation(docLock, docSourceId)) {
+                if (shouldTrack(docLock, docSourceId, requestedLocales)) {
                     documents.put(key, docLock);
                 }
             }
@@ -88,6 +85,13 @@ public class LockService {
         return lock;
     }
 
+    private static boolean shouldTrack(Map<String, Object> docLock,
+            String docSourceId, List<String> requestedLocales) {
+        return hasTargetTranslation(docLock, docSourceId)
+                || (tracksSource(docSourceId, requestedLocales)
+                        && hasSourceSignature(docLock));
+    }
+
     private static boolean hasTargetTranslation(Map<String, Object> docLock,
             String sourceLocale) {
         Object t = docLock.get("translations");
@@ -100,6 +104,24 @@ public class LockService {
             }
         }
         return false;
+    }
+
+    private static boolean tracksSource(String docSourceId,
+            List<String> requestedLocales) {
+        if (requestedLocales == null) {
+            return false;
+        }
+        for (String r : requestedLocales) {
+            if (sameLocale(r, docSourceId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasSourceSignature(Map<String, Object> docLock) {
+        return docLock.get("source") instanceof Map<?, ?> src
+                && src.get("sig") != null;
     }
 
     private Map<String, Object> documentLock(HDocument d, String docSourceId,

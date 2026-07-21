@@ -128,8 +128,13 @@ public class GenericArchiveTransport {
                 new HttpEntity<>(authHeaders(opts.getUsername(), opts.getKey())),
                 byte[].class);
         Path transDir = opts.getTransDir();
+        // The archive carries canonical paths (e.g. en_US/doc.yaml); map them
+        // back onto the repository's actual layout so a pull updates the
+        // original files instead of dropping copies at the trans-dir root.
+        List<String> existing = collect(transDir, opts.getIncludes(),
+                opts.getExcludes(), true);
         int written = extract(resp.getBody(), transDir,
-                lockDir(opts.getProjectConfig(), transDir));
+                lockDir(opts.getProjectConfig(), transDir), existing);
         log.info("Pull succeeded: wrote {} file(s) into {}", written,
                 transDir == null ? null : transDir.toAbsolutePath().normalize());
     }
@@ -325,12 +330,13 @@ public class GenericArchiveTransport {
         return out.toByteArray();
     }
 
-    private static int extract(byte[] archive, Path transDir, Path lockDir)
-            throws IOException {
+    private static int extract(byte[] archive, Path transDir, Path lockDir,
+            List<String> existing) throws IOException {
         if (archive == null) {
             return 0;
         }
         int written = 0;
+        List<String> prefixes = new ArrayList<>();
         try (ZipInputStream zip =
                 new ZipInputStream(new ByteArrayInputStream(archive))) {
             ZipEntry entry;
@@ -339,8 +345,9 @@ public class GenericArchiveTransport {
                     continue;
                 }
                 boolean lock = "verbaria-lock.json".equals(entry.getName());
-                Path base = lock ? lockDir : transDir;
-                Path target = base.resolve(entry.getName());
+                Path target = lock ? lockDir.resolve(entry.getName())
+                        : transDir.resolve(mapEntry(entry.getName(), existing,
+                                prefixes));
                 Files.createDirectories(target.getParent());
                 Files.write(target, zip.readAllBytes());
                 log.info("  - {}", target);
@@ -350,6 +357,65 @@ public class GenericArchiveTransport {
             }
         }
         return written;
+    }
+
+    /**
+     * Maps a canonical archive path (e.g. {@code en_US/doc.yaml}) onto the
+     * repository's actual layout, so a pull updates the original file (e.g.
+     * {@code plugin/src/main/resources/LOCALIZE-LIB/en_US/doc.yaml}) instead of
+     * writing a new copy at the trans-dir root.
+     */
+    private static String mapEntry(String name, List<String> existing,
+            List<String> prefixes) {
+        if (existing.contains(name)) {
+            return name;
+        }
+        // Unique suffix match: the entry is an existing file deeper in the tree.
+        String tail = "/" + name;
+        String suffixHit = null;
+        boolean ambiguous = false;
+        for (String p : existing) {
+            if (p.endsWith(tail)) {
+                if (suffixHit != null) {
+                    ambiguous = true;
+                    break;
+                }
+                suffixHit = p;
+            }
+        }
+        if (suffixHit != null && !ambiguous) {
+            remember(prefixes,
+                    suffixHit.substring(0, suffixHit.length() - tail.length()));
+            return suffixHit;
+        }
+        // A sibling locale of the same document anchors new locale files:
+        // ru_RU/doc.yaml lands next to the existing …/en_US/doc.yaml.
+        int slash = name.indexOf('/');
+        if (slash > 0 && !ambiguous) {
+            String restTail = "/" + name.substring(slash + 1);
+            for (String p : existing) {
+                if (p.endsWith(restTail)) {
+                    String head =
+                            p.substring(0, p.length() - restTail.length());
+                    int prev = head.lastIndexOf('/');
+                    String prefix = prev >= 0 ? head.substring(0, prev) : "";
+                    remember(prefixes, prefix);
+                    return prefix.isEmpty() ? name : prefix + "/" + name;
+                }
+            }
+        }
+        // Single known prefix from earlier entries of this archive (e.g. the
+        // source matched at src/main/resources) places brand-new files there.
+        if (prefixes.size() == 1 && !prefixes.get(0).isEmpty()) {
+            return prefixes.get(0) + "/" + name;
+        }
+        return name;
+    }
+
+    private static void remember(List<String> prefixes, String prefix) {
+        if (!prefixes.contains(prefix)) {
+            prefixes.add(prefix);
+        }
     }
 
     private static List<String> targetLocales(PushOptions opts) {
